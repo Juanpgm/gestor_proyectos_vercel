@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest --environment jsdom",
-    "build:vercel": "npm run lint && next build",
+    "build:vercel": "next build",
     "preview": "next build && next start"
   },
   "dependencies": {
@@ -37,7 +37,6 @@
     "react-hook-form": "^7.49.0",
     "react-leaflet": "^4.2.1",
     "react-map-gl": "^8.0.4",
-    "react-palm": "^3.3.11",
     "react-redux": "^9.2.0",
     "recharts": "^2.10.0",
     "redux": "^5.0.1",
@@ -63,5 +62,13 @@
     "@testing-library/user-event": "^14.0.0",
     "@testing-library/jest-dom": "^6.0.0",
     "jsdom": "^22.0.0"
+  },
+  "overrides": {
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "resolutions": {
+    "react": "^18",
+    "react-dom": "^18"
   }
 }

@@ -1,17 +1,25 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": ".next",
   "routes": [
     {
       "src": "/data/(.*)",
       "headers": {
-        "cache-control": "s-maxage=1, stale-while-revalidate"
+        "cache-control": "s-maxage=3600, stale-while-revalidate=86400"
+      }
+    },
+    {
+      "src": "/geodata/(.*)",
+      "headers": {
+        "cache-control": "s-maxage=86400"
       }
     }
-  ]
+  ],
+  "functions": {
+    "app/page.tsx": {
+      "maxDuration": 10
+    }
+  }
 }
