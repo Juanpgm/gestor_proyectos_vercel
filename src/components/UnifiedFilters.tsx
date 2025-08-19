@@ -21,6 +21,8 @@ interface FilterState {
   filtrosPersonalizados: string[]
   subfiltrosPersonalizados: string[]
   periodos: string[]
+  fechaInicio?: string | null
+  fechaFin?: string | null
 }
 
 interface FilterProps {
@@ -43,6 +45,8 @@ const defaultFilters: FilterState = {
   filtrosPersonalizados: [],
   subfiltrosPersonalizados: [],
   periodos: []
+  ,fechaInicio: null
+  ,fechaFin: null
 }
 
 export default function UnifiedFilters({ 

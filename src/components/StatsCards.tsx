@@ -94,10 +94,10 @@ const StatCard: React.FC<StatCardProps> = ({
 }
 
 const StatsCards: React.FC = () => {
+  // Llamada al hook en el nivel superior para respetar las reglas de Hooks
+  const { stats, loading, error } = useFilteredStats()
+
   try {
-    // Intentar usar datos reales del contexto
-    const { stats, loading, error } = useFilteredStats()
-    
     if (error) {
       console.warn('Error en useFilteredStats:', error)
       // Fallback a datos mock si hay error
@@ -110,7 +110,7 @@ const StatsCards: React.FC = () => {
       }
       return renderStatsCards(mockStats, false, null)
     }
-    
+
     return renderStatsCards(stats, loading, error)
   } catch (err) {
     console.warn('Error en StatsCards, usando datos mock:', err)
