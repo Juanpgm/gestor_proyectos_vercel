@@ -1,0 +1,57 @@
+[
+  {
+    "bpin": 2020760010121,
+    "cod_contrato": "124412",
+    "nombre_proyecto": "Implementación de un modelo de agencia de cooperación en Santiago de Cali",
+    "descripcion_contrato": "Servicios de consultoría para el desarrollo del modelo de agencia de cooperación",
+    "estado_contrato": "Emitido",
+    "codigo_proveedor": "900171311",
+    "proveedor": "CONSULTORES ASOCIADOS SAS",
+    "url_contrato": "https://www.colombiacompra.gov.co/tienda-virtual-del-estado-colombiano/ordenes-compra/124412",
+    "fecha_actualizacion": "2024-12-31"
+  },
+  {
+    "bpin": 2021760010222,
+    "cod_contrato": "125743",
+    "nombre_proyecto": "Mejoramiento de Vías en Terrón Colorado",
+    "descripcion_contrato": "Contrato de obra para pavimentación y construcción de andenes",
+    "estado_contrato": "En Ejecución",
+    "codigo_proveedor": "900234567",
+    "proveedor": "CONSTRUCTORA VIAS DEL VALLE SAS",
+    "url_contrato": "https://www.colombiacompra.gov.co/tienda-virtual-del-estado-colombiano/ordenes-compra/125743",
+    "fecha_actualizacion": "2024-12-31"
+  },
+  {
+    "bpin": 2022760010333,
+    "cod_contrato": "126854",
+    "nombre_proyecto": "Construcción de Parque en Aguablanca",
+    "descripcion_contrato": "Contrato de obra para construcción de parque metropolitano",
+    "estado_contrato": "Adjudicado",
+    "codigo_proveedor": "900345678",
+    "proveedor": "GRUPO CONSTRUCTOR PARQUES Y ESPACIOS SAS",
+    "url_contrato": "https://www.colombiacompra.gov.co/tienda-virtual-del-estado-colombiano/ordenes-compra/126854",
+    "fecha_actualizacion": "2024-12-31"
+  },
+  {
+    "bpin": 2023760010444,
+    "cod_contrato": "127965",
+    "nombre_proyecto": "Red de Acueducto en Siloé",
+    "descripcion_contrato": "Suministro e instalación de tubería y accesorios para red de acueducto",
+    "estado_contrato": "En Ejecución",
+    "codigo_proveedor": "900456789",
+    "proveedor": "HIDROTECNICA DEL PACIFICO SAS",
+    "url_contrato": "https://www.colombiacompra.gov.co/tienda-virtual-del-estado-colombiano/ordenes-compra/127965",
+    "fecha_actualizacion": "2024-12-31"
+  },
+  {
+    "bpin": 2024760010555,
+    "cod_contrato": "128076",
+    "nombre_proyecto": "Centro de Salud en Ciudad Jardín",
+    "descripcion_contrato": "Contrato de obra para construcción de centro de salud",
+    "estado_contrato": "Terminado",
+    "codigo_proveedor": "900567890",
+    "proveedor": "CONSTRUCTORA SALUD Y BIENESTAR SAS",
+    "url_contrato": "https://www.colombiacompra.gov.co/tienda-virtual-del-estado-colombiano/ordenes-compra/128076",
+    "fecha_actualizacion": "2024-12-31"
+  }
+]

@@ -1,0 +1,305 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Alto Aguacatal",
+        "id_vereda": "ver_001",
+        "corregimiento": "Andes",
+        "area": 234.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.595, 3.51], [-76.585, 3.51], [-76.585, 3.52], [-76.595, 3.52], [-76.595, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Bajo Aguacatal",
+        "id_vereda": "ver_002",
+        "corregimiento": "Andes",
+        "area": 187.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.585, 3.51], [-76.575, 3.51], [-76.575, 3.52], [-76.585, 3.52], [-76.585, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Campo Alegre",
+        "id_vereda": "ver_003",
+        "corregimiento": "Andes",
+        "area": 156.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.575, 3.51], [-76.565, 3.51], [-76.565, 3.52], [-76.575, 3.52], [-76.575, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "La Buitrera",
+        "id_vereda": "ver_004",
+        "corregimiento": "Buitrera",
+        "area": 213.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.545, 3.51], [-76.535, 3.51], [-76.535, 3.52], [-76.545, 3.52], [-76.545, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Alto de las Flores",
+        "id_vereda": "ver_005",
+        "corregimiento": "Buitrera",
+        "area": 198.7
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.535, 3.51], [-76.525, 3.51], [-76.525, 3.52], [-76.535, 3.52], [-76.535, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Brillante",
+        "id_vereda": "ver_006",
+        "corregimiento": "Buitrera",
+        "area": 145.6
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.525, 3.51], [-76.515, 3.51], [-76.515, 3.52], [-76.525, 3.52], [-76.525, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cañas Gordas",
+        "id_vereda": "ver_007",
+        "corregimiento": "Cañaveralejo",
+        "area": 267.4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.495, 3.51], [-76.485, 3.51], [-76.485, 3.52], [-76.495, 3.52], [-76.495, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Chocho",
+        "id_vereda": "ver_008",
+        "corregimiento": "Cañaveralejo",
+        "area": 189.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.485, 3.51], [-76.475, 3.51], [-76.475, 3.52], [-76.485, 3.52], [-76.485, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Los Mangos",
+        "id_vereda": "ver_009",
+        "corregimiento": "Cañaveralejo",
+        "area": 234.1
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.475, 3.51], [-76.465, 3.51], [-76.465, 3.52], [-76.475, 3.52], [-76.475, 3.51]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Danubio",
+        "id_vereda": "ver_010",
+        "corregimiento": "Dapa",
+        "area": 312.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.595, 3.46], [-76.585, 3.46], [-76.585, 3.47], [-76.595, 3.47], [-76.595, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Diamante",
+        "id_vereda": "ver_011",
+        "corregimiento": "Dapa",
+        "area": 278.9
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.585, 3.46], [-76.575, 3.46], [-76.575, 3.47], [-76.585, 3.47], [-76.585, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Santa Helena",
+        "id_vereda": "ver_012",
+        "corregimiento": "Dapa",
+        "area": 201.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.575, 3.46], [-76.565, 3.46], [-76.565, 3.47], [-76.575, 3.47], [-76.575, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Saladito",
+        "id_vereda": "ver_013",
+        "corregimiento": "El Saladito",
+        "area": 167.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.545, 3.46], [-76.535, 3.46], [-76.535, 3.47], [-76.545, 3.47], [-76.545, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Saladito",
+        "id_vereda": "ver_014",
+        "corregimiento": "El Saladito",
+        "area": 143.7
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.535, 3.46], [-76.525, 3.46], [-76.525, 3.47], [-76.535, 3.47], [-76.535, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Salado",
+        "id_vereda": "ver_015",
+        "corregimiento": "El Saladito",
+        "area": 198.4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.525, 3.46], [-76.515, 3.46], [-76.515, 3.47], [-76.525, 3.47], [-76.525, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Filipinas",
+        "id_vereda": "ver_016",
+        "corregimiento": "Felidia",
+        "area": 289.6
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.495, 3.46], [-76.485, 3.46], [-76.485, 3.47], [-76.495, 3.47], [-76.495, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Topacio",
+        "id_vereda": "ver_017",
+        "corregimiento": "Felidia",
+        "area": 234.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.485, 3.46], [-76.475, 3.46], [-76.475, 3.47], [-76.485, 3.47], [-76.485, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "La Castellana",
+        "id_vereda": "ver_018",
+        "corregimiento": "Felidia",
+        "area": 156.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.475, 3.46], [-76.465, 3.46], [-76.465, 3.47], [-76.475, 3.47], [-76.475, 3.46]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Golondrinas",
+        "id_vereda": "ver_019",
+        "corregimiento": "Golondrinas",
+        "area": 267.9
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.595, 3.41], [-76.585, 3.41], [-76.585, 3.42], [-76.595, 3.42], [-76.595, 3.41]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Las Brisas",
+        "id_vereda": "ver_020",
+        "corregimiento": "Golondrinas",
+        "area": 189.7
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.585, 3.41], [-76.575, 3.41], [-76.575, 3.42], [-76.585, 3.42], [-76.585, 3.41]
+        ]]
+      }
+    }
+  ]
+}

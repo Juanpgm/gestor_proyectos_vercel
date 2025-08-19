@@ -1,0 +1,271 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Andes",
+        "id_corregimiento": "cor_001",
+        "area": 1234.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.6, 3.5], [-76.55, 3.5], [-76.55, 3.55], [-76.6, 3.55], [-76.6, 3.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Buitrera",
+        "id_corregimiento": "cor_002",
+        "area": 987.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.55, 3.5], [-76.5, 3.5], [-76.5, 3.55], [-76.55, 3.55], [-76.55, 3.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Cañaveralejo",
+        "id_corregimiento": "cor_003",
+        "area": 1567.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.5, 3.5], [-76.45, 3.5], [-76.45, 3.55], [-76.5, 3.55], [-76.5, 3.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Dapa",
+        "id_corregimiento": "cor_004",
+        "area": 2134.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.6, 3.45], [-76.55, 3.45], [-76.55, 3.5], [-76.6, 3.5], [-76.6, 3.45]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "El Saladito",
+        "id_corregimiento": "cor_005",
+        "area": 876.4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.55, 3.45], [-76.5, 3.45], [-76.5, 3.5], [-76.55, 3.5], [-76.55, 3.45]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Felidia",
+        "id_corregimiento": "cor_006",
+        "area": 1345.7
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.5, 3.45], [-76.45, 3.45], [-76.45, 3.5], [-76.5, 3.5], [-76.5, 3.45]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Golondrinas",
+        "id_corregimiento": "cor_007",
+        "area": 1098.6
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.6, 3.4], [-76.55, 3.4], [-76.55, 3.45], [-76.6, 3.45], [-76.6, 3.4]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Hormiguero",
+        "id_corregimiento": "cor_008",
+        "area": 743.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.55, 3.4], [-76.5, 3.4], [-76.5, 3.45], [-76.55, 3.45], [-76.55, 3.4]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "La Castilla",
+        "id_corregimiento": "cor_009",
+        "area": 1876.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.5, 3.4], [-76.45, 3.4], [-76.45, 3.45], [-76.5, 3.45], [-76.5, 3.4]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "La Elvira",
+        "id_corregimiento": "cor_010",
+        "area": 1234.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.6, 3.35], [-76.55, 3.35], [-76.55, 3.4], [-76.6, 3.4], [-76.6, 3.35]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "La Leonera",
+        "id_corregimiento": "cor_011",
+        "area": 956.7
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.55, 3.35], [-76.5, 3.35], [-76.5, 3.4], [-76.55, 3.4], [-76.55, 3.35]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "La Paz",
+        "id_corregimiento": "cor_012",
+        "area": 1567.1
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.5, 3.35], [-76.45, 3.35], [-76.45, 3.4], [-76.5, 3.4], [-76.5, 3.35]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Los Alpes",
+        "id_corregimiento": "cor_013",
+        "area": 2134.5
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.6, 3.3], [-76.55, 3.3], [-76.55, 3.35], [-76.6, 3.35], [-76.6, 3.3]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Montebello",
+        "id_corregimiento": "cor_014",
+        "area": 1345.9
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.55, 3.3], [-76.5, 3.3], [-76.5, 3.35], [-76.55, 3.35], [-76.55, 3.3]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Navarro",
+        "id_corregimiento": "cor_015",
+        "area": 876.2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.5, 3.3], [-76.45, 3.3], [-76.45, 3.35], [-76.5, 3.35], [-76.5, 3.3]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Pance",
+        "id_corregimiento": "cor_016",
+        "area": 1987.4
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.6, 3.25], [-76.55, 3.25], [-76.55, 3.3], [-76.6, 3.3], [-76.6, 3.25]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Pichindé",
+        "id_corregimiento": "cor_017",
+        "area": 2456.7
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.55, 3.25], [-76.5, 3.25], [-76.5, 3.3], [-76.55, 3.3], [-76.55, 3.25]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Santa Lucía",
+        "id_corregimiento": "cor_018",
+        "area": 1123.8
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.5, 3.25], [-76.45, 3.25], [-76.45, 3.3], [-76.5, 3.3], [-76.5, 3.25]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Villa Carmelo",
+        "id_corregimiento": "cor_019",
+        "area": 1678.3
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.6, 3.2], [-76.55, 3.2], [-76.55, 3.25], [-76.6, 3.25], [-76.6, 3.2]
+        ]]
+      }
+    }
+  ]
+}

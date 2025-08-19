@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/data/(.*)",
+      "headers": {
+        "cache-control": "s-maxage=1, stale-while-revalidate"
+      }
+    }
+  ]
+}

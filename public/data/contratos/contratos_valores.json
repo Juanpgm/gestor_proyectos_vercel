@@ -1,0 +1,27 @@
+[
+  {
+    "bpin": 2020760010121,
+    "cod_contrato": "124412",
+    "valor_contrato": 170032597
+  },
+  {
+    "bpin": 2021760010222,
+    "cod_contrato": "125743",
+    "valor_contrato": 2100000000
+  },
+  {
+    "bpin": 2022760010333,
+    "cod_contrato": "126854",
+    "valor_contrato": 1650000000
+  },
+  {
+    "bpin": 2023760010444,
+    "cod_contrato": "127965",
+    "valor_contrato": 3800000000
+  },
+  {
+    "bpin": 2024760010555,
+    "cod_contrato": "128076",
+    "valor_contrato": 2900000000
+  }
+]
