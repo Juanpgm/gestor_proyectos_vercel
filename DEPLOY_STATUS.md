@@ -15,6 +15,7 @@
 ## 📁 Archivos de Configuración Creados/Actualizados
 
 ### Configuración de Deploy
+
 - `vercel.json` - Configuración específica de Vercel
 - `next.config.js` - Optimizado para producción
 - `.env.example` - Template de variables de entorno
@@ -22,11 +23,13 @@
 - `.eslintrc.json` - Reglas flexibles para build
 
 ### Scripts de Deploy
+
 - `deploy.sh` - Script para Linux/Mac
 - `deploy.ps1` - Script para Windows PowerShell
 - `package.json` - Scripts npm adicionales
 
 ### Documentación
+
 - `DEPLOY_GUIDE.md` - Guía completa de deploy
 - `QUICK_DEPLOY.md` - Deploy rápido en 5 minutos
 - `README.md` - Actualizado con info de deploy
@@ -34,11 +37,13 @@
 ## 🚀 Opciones de Deploy
 
 ### 1. **Deploy Automático (Recomendado)**
+
 - Push a GitHub → Auto-deploy en Vercel
 - Preview automático en PRs
 - Rollback fácil
 
 ### 2. **Deploy Manual**
+
 ```bash
 npm install -g vercel
 vercel login
@@ -46,17 +51,19 @@ npm run deploy
 ```
 
 ### 3. **Script Automatizado**
+
 ```bash
 # Windows
 .\deploy.ps1
 
-# Linux/Mac  
+# Linux/Mac
 ./deploy.sh
 ```
 
 ## 🔧 Configuración de Variables de Entorno
 
 Configurar en Vercel Dashboard:
+
 ```
 NEXT_PUBLIC_APP_NAME=Dashboard Alcaldía Cali
 NEXT_PUBLIC_APP_VERSION=1.0.0
@@ -76,11 +83,13 @@ NODE_ENV=production
 ## 🎯 Próximos Pasos para Deploy
 
 1. **Conectar repositorio a Vercel:**
+
    - Ve a [vercel.com](https://vercel.com)
    - "New Project" → Importar repo
    - Configurar variables de entorno
 
 2. **Verificar deploy:**
+
    - Página principal carga
    - Mapas funcionan
    - Datos GeoJSON cargan
@@ -93,6 +102,7 @@ NODE_ENV=production
 El Dashboard Alcaldía Cali está completamente configurado y listo para producción en Vercel.
 
 **Funcionalidades verificadas:**
+
 - ✅ Visualización de 425+ unidades de proyecto
 - ✅ Mapas interactivos con Leaflet
 - ✅ Corrección automática de coordenadas

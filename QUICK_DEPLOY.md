@@ -3,6 +3,7 @@
 ## Opción 1: Deploy Automático (Recomendado)
 
 1. **Push a GitHub:**
+
    ```bash
    git add .
    git commit -m "feat: dashboard ready for production"

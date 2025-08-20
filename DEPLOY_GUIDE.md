@@ -14,6 +14,7 @@ Esta guía te llevará paso a paso para desplegar el Dashboard Alcaldía Cali en
 ### Método 1: Deploy Automático con Git (Recomendado)
 
 1. **Conectar repositorio a Vercel:**
+
    ```bash
    # 1. Ve a vercel.com y haz login
    # 2. Click en "New Project"
@@ -22,9 +23,11 @@ Esta guía te llevará paso a paso para desplegar el Dashboard Alcaldía Cali en
    ```
 
 2. **Configurar variables de entorno en Vercel:**
+
    - Ve a tu proyecto en Vercel Dashboard
    - Settings → Environment Variables
    - Agrega las siguientes variables:
+
    ```
    NEXT_PUBLIC_APP_NAME=Dashboard Alcaldía Cali
    NEXT_PUBLIC_APP_VERSION=1.0.0
@@ -41,16 +44,19 @@ Esta guía te llevará paso a paso para desplegar el Dashboard Alcaldía Cali en
 ### Método 2: Deploy Manual con Vercel CLI
 
 1. **Instalar Vercel CLI:**
+
    ```bash
    npm install -g vercel
    ```
 
 2. **Login en Vercel:**
+
    ```bash
    vercel login
    ```
 
 3. **Deploy inicial:**
+
    ```bash
    cd dashboard-alcaldia-cali
    vercel
@@ -78,12 +84,12 @@ chmod +x deploy.sh
 
 ### 1. Archivos de Configuración
 
-| Archivo | Descripción |
-|---------|-------------|
-| `vercel.json` | Configuración específica de Vercel |
+| Archivo          | Descripción                         |
+| ---------------- | ----------------------------------- |
+| `vercel.json`    | Configuración específica de Vercel  |
 | `next.config.js` | Configuración de Next.js optimizada |
-| `.env.example` | Template de variables de entorno |
-| `.gitignore` | Archivos excluidos del repositorio |
+| `.env.example`   | Template de variables de entorno    |
+| `.gitignore`     | Archivos excluidos del repositorio  |
 
 ### 2. Optimizaciones Incluidas
 
@@ -187,6 +193,7 @@ Después del deploy, verifica estas rutas:
 ## 🔒 Configuración de Dominio Personalizado
 
 1. **En Vercel Dashboard:**
+
    - Ve a tu proyecto → Settings → Domains
    - Agrega tu dominio personalizado
    - Configura DNS según las instrucciones

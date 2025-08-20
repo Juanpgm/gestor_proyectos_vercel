@@ -5,32 +5,39 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "regions": ["iad1"],
-  "routes": [
-    {
-      "src": "/data/(.*)",
-      "headers": {
-        "cache-control": "s-maxage=3600, stale-while-revalidate=86400"
-      }
-    },
-    {
-      "src": "/geodata/(.*)",
-      "headers": {
-        "cache-control": "s-maxage=86400"
-      }
-    },
-    {
-      "src": "/leaflet/(.*)",
-      "headers": {
-        "cache-control": "s-maxage=86400"
-      }
-    }
-  ],
   "functions": {
     "src/app/**": {
       "maxDuration": 30
     }
   },
   "headers": [
+    {
+      "source": "/data/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/geodata/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/leaflet/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [
