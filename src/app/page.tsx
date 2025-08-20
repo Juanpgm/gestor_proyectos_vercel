@@ -6,12 +6,15 @@ import Header from '@/components/Header'
 import StatsCards from '@/components/StatsCards'
 import BudgetChart from '@/components/BudgetChart'
 import ChoroplethMapLeaflet from '@/components/ChoroplethMapLeaflet'
-import MapComponent from '@/components/MapComponent'
+import DynamicMapComponent from '@/components/MapComponent'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
 import ProjectsUnitsTable, { ProjectUnit } from '@/components/ProjectsUnitsTable'
 import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
+import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
+import SimpleGeoJSONTest from '@/components/SimpleGeoJSONTest'
+import MapDebugTest from '@/components/MapDebugTest'
 import { 
   BarChart3, 
   Map as MapIcon, 
@@ -253,6 +256,9 @@ function DashboardContent() {
   // Conectar los filtros del dashboard con el DataContext
   const { setFilters: setDataContextFilters } = useDataContext()
 
+  // Hook para datos de unidades de proyecto
+  const { unidadesProyecto, loading: dataLoading, error: dataError } = useUnidadesProyecto()
+
   // Sincronizar filtros entre DashboardContext y DataContext
   useEffect(() => {
     // Convertir filtros del dashboard al formato del DataContext
@@ -273,9 +279,9 @@ function DashboardContent() {
     setDataContextFilters(dataContextFilters)
   }, [filters, setDataContextFilters])
 
-  // Lógica de filtrado para unidades de proyecto
+  // Lógica de filtrado para unidades de proyecto usando datos reales
   const filteredProjectUnits = useMemo(() => {
-    return mockProjectUnits.filter(unit => {
+    return unidadesProyecto.filter(unit => {
       // Filtro por búsqueda de texto
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase()
@@ -287,7 +293,9 @@ function DashboardContent() {
           unit.barrio,
           unit.corregimiento,
           unit.vereda,
-          unit.tipoIntervencion
+          unit.tipoIntervencion,
+          unit.claseObra,
+          unit.descripcion
         ].filter(Boolean).join(' ').toLowerCase()
         
         if (!searchFields.includes(searchTerm)) return false
@@ -325,7 +333,7 @@ function DashboardContent() {
 
       return true
     })
-  }, [filters])
+  }, [filters, unidadesProyecto])
 
   const tabs = [
     { id: 'overview' as const, label: 'Vista General', icon: BarChart3 },
@@ -367,11 +375,11 @@ function DashboardContent() {
         return (
           <div className="space-y-8">
             <div className="w-full">
-              <MapComponent className="w-full" />
+              <DynamicMapComponent className="w-full" />
             </div>
             <div className="w-full">
               <ProjectsUnitsTable 
-                projectUnits={mockProjectUnits} 
+                projectUnits={unidadesProyecto} 
                 filteredProjectUnits={filteredProjectUnits} 
               />
             </div>

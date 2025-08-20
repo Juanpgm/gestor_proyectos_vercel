@@ -34,7 +34,7 @@ export interface ProjectUnit {
   descripcion?: string
   texto1?: string
   texto2?: string
-  tipoIntervencion?: 'Construcción' | 'Mejoramiento' | 'Rehabilitación' | 'Mantenimiento'
+  tipoIntervencion?: 'Construcción' | 'Mejoramiento' | 'Rehabilitación' | 'Mantenimiento' | 'Adecuación'
   lat?: number
   lng?: number
 }
@@ -89,6 +89,7 @@ const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({
       case 'Mejoramiento': return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300'
       case 'Rehabilitación': return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
       case 'Mantenimiento': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+      case 'Adecuación': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
     }
   }

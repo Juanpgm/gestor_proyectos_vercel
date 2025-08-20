@@ -5,6 +5,8 @@ import { motion } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { Map, Layers, BarChart3, Eye, Settings, ChevronDown, Check, RefreshCw } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
+import { processGeoJSONCoordinates, CALI_COORDINATES } from '@/utils/coordinateUtils'
+import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
 import 'leaflet/dist/leaflet.css'
 
 // Dynamic import of Leaflet components to prevent SSR issues
@@ -235,7 +237,9 @@ const LeafletChoroplethMap: React.FC<{
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; min-width: 280px; max-width: 320px;">
           <div style="padding: 16px; border-bottom: 1px solid #e5e7eb;">
             <h3 style="margin: 0 0 8px 0; color: #111827; font-size: 18px; font-weight: 600;">${normalizeText(featureName)}</h3>
-            <p style="margin: 0; color: #6b7280; font-size: 14px;">${viewMode === 'comunas_corregimientos' ? 'Comuna de Cali' : 'Barrio de Cali'}</p>
+            <p style="margin: 0; color: #6b7280; font-size: 14px;">${viewMode === 'comunas_corregimientos' ? 'Comuna de Cali' : 
+                                                                       viewMode === 'barrios_veredas' ? 'Barrio de Cali' : 
+                                                                       'Unidad de Proyecto'}</p>
           </div>
           <div style="padding: 16px;">
             <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -631,7 +635,9 @@ const ChoroplethMap: React.FC<ChoroplethMapProps> = ({ className = '' }) => {
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="text-gray-600 dark:text-gray-400 transition-colors duration-300">
-                Visualización por {viewMode}
+                Visualización por {viewMode === 'comunas_corregimientos' ? 'comunas' : 
+                                  viewMode === 'barrios_veredas' ? 'barrios' : 
+                                  'unidades de proyecto'}
               </span>
             </div>
           </div>
