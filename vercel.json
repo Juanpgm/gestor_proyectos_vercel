@@ -1,8 +1,10 @@
 {
   "version": 2,
+  "name": "dashboard-alcaldia-cali",
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "npm run build",
   "outputDirectory": ".next",
+  "regions": ["iad1"],
   "routes": [
     {
       "src": "/data/(.*)",
@@ -15,11 +17,40 @@
       "headers": {
         "cache-control": "s-maxage=86400"
       }
+    },
+    {
+      "src": "/leaflet/(.*)",
+      "headers": {
+        "cache-control": "s-maxage=86400"
+      }
     }
   ],
   "functions": {
-    "app/page.tsx": {
-      "maxDuration": 10
+    "src/app/**": {
+      "maxDuration": 30
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options", 
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "origin-when-cross-origin"
+        }
+      ]
+    }
+  ]
 }

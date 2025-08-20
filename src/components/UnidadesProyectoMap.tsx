@@ -5,8 +5,8 @@ import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
-// Configurar iconos de Leaflet
-useEffect(() => {
+// Configurar iconos de Leaflet una sola vez
+const configureLeafletIcons = () => {
   try {
     // @ts-ignore
     delete L.Icon.Default.prototype._getIconUrl
@@ -19,7 +19,10 @@ useEffect(() => {
   } catch (e) {
     console.warn('⚠️ Error configurando iconos Leaflet:', e)
   }
-}, [])
+}
+
+// Configurar una sola vez al importar el módulo
+configureLeafletIcons()
 
 // Tipos
 interface FeatureCollection {

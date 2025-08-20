@@ -9,7 +9,11 @@
     "lint": "next lint",
     "test": "vitest --environment jsdom",
     "build:vercel": "next build",
-    "preview": "next build && next start"
+    "preview": "next build && next start",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel",
+    "analyze": "ANALYZE=true next build",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     
