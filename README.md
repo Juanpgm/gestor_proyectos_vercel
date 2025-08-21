@@ -12,10 +12,17 @@ Un dashboard interactivo para la gestión y visualización de proyectos de inver
 
 ### 🗺️ Visualización Geoespacial
 
+- **Sistema de mapas unificado**: Arquitectura UniversalMapCore que soporta tanto mapas coropléticos como de puntos
 - **Mapas coropléticos**: Visualización de datos por comunas y barrios usando Leaflet
-- **Datos geográficos reales**: Integración con archivos GeoJSON de Cali (comunas, barrios, corregimientos, veredas)
+- **Mapas de unidades de proyecto**: Visualización de equipamientos (CircleMarkers) e infraestructura vial (GeoJSON)
+- **Controles de mapa avanzados**:
+  - Pantalla completa con manejo robusto de errores de permisos
+  - Centro automático en capas visibles con animación suave
+  - Iconos mejorados y estilos modernos con gradientes
+- **Datos geográficos reales**: Integración con archivos GeoJSON de Cali (comunas, barrios, corregimientos, veredas, equipamientos, infraestructura vial)
 - **Mapas interactivos**: Navegación y zoom dinámico con información contextual
-- **Popups informativos**: Detalles específicos al hacer clic en las áreas geográficas
+- **Popups informativos**: Detalles específicos al hacer clic en las áreas geográficas o unidades de proyecto
+- **Carga optimizada**: Sistema de cache inteligente y eliminación de duplicación de datos
 
 ### 📋 Gestión de Proyectos
 
@@ -50,8 +57,10 @@ Un dashboard interactivo para la gestión y visualización de proyectos de inver
 ### Mapas y Geolocalización
 
 - **Leaflet**: Biblioteca de mapas interactivos
-- **React Leaflet**: Integración de Leaflet con React
+- **React Leaflet**: Integración de Leaflet con React con importación dinámica SSR-safe
+- **UniversalMapCore**: Arquitectura unificada para todos los tipos de mapas
 - **Turf.js**: Análisis y manipulación de datos geoespaciales
+- **CircleMarkers**: Representación optimizada de puntos de interés
 
 ### Gráficos y Visualización
 
@@ -81,21 +90,26 @@ dashboard-alcaldia-cali/
 │   │   └── globals.css        # Estilos globales
 │   ├── components/            # Componentes reutilizables
 │   │   ├── BudgetChart.tsx    # Gráfico de presupuesto
-│   │   ├── ChoroplethMapLeaflet.tsx  # Mapa coroplético con Leaflet
-│   │   ├── DynamicMapContent.tsx     # Contenido dinámico del mapa
+│   │   ├── ChoroplethMapInteractive.tsx  # Mapa coroplético con Leaflet
 │   │   ├── Header.tsx         # Encabezado de navegación
-│   │   ├── MapComponent.tsx   # Componente principal del mapa
-│   │   ├── MapPopup.tsx       # Popup del mapa
+│   │   ├── ProjectMapCore.tsx # Componente de mapas de proyectos
+│   │   ├── ProjectMapUnified.tsx  # Contenedor unificado de mapas
 │   │   ├── ProjectModal.tsx   # Modal de detalles de proyecto
 │   │   ├── ProjectsChart.tsx  # Gráfico de proyectos
 │   │   ├── ProjectsTable.tsx  # Tabla de proyectos
 │   │   ├── ProjectsUnitsTable.tsx  # Tabla de unidades de proyecto
-│   │   ├── ReduxProvider.tsx  # Proveedor de Redux
 │   │   ├── StatsCards.tsx     # Tarjetas de estadísticas
 │   │   ├── UnifiedFilters.tsx # Sistema unificado de filtros
+│   │   ├── UniversalMapCore.tsx   # Componente base unificado para mapas
 │   │   └── __tests__/         # Tests de componentes
 │   ├── context/               # Contextos de React
+│   │   ├── DashboardContext.tsx   # Estado global del dashboard
+│   │   ├── DataContext.tsx    # Gestión de datos
 │   │   └── ThemeContext.tsx   # Gestión de temas
+│   ├── hooks/                 # Hooks personalizados
+│   │   ├── useUnidadesProyecto.ts # Hook para unidades de proyecto
+│   │   ├── useProjectData.ts  # Hook para datos de proyectos
+│   │   └── [otros hooks...]   # Hooks adicionales para datos específicos
 │   ├── lib/                   # Utilidades y configuraciones
 │   │   └── leaflet-config.ts  # Configuración de Leaflet
 │   ├── store/                 # Configuración de Redux
@@ -103,18 +117,26 @@ dashboard-alcaldia-cali/
 │   ├── types/                 # Definiciones de tipos
 │   │   └── kepler.d.ts       # Tipos para mapas
 │   └── utils/                 # Funciones utilitarias
+│       ├── coordinateUtils.ts # Utilidades para coordenadas
+│       ├── geoJSONLoader.ts  # Carga optimizada de GeoJSON
 │       └── keplerShims.ts    # Configuración de mapas
 ├── public/
+│   ├── data/                 # Datos del dashboard
+│   │   ├── contratos/        # Datos de contratos
+│   │   ├── ejecucion_presupuestal/  # Datos presupuestales
+│   │   ├── seguimiento_pa/   # Seguimiento de planes
+│   │   └── unidades_proyecto/ # Datos de unidades de proyecto
+│   │       ├── equipamientos.geojson     # Equipamientos urbanos
+│   │       └── infraestructura_vial.geojson  # Infraestructura vial
 │   └── geodata/              # Datos geográficos
 │       ├── barrios.geojson   # Datos de barrios
 │       ├── comunas.geojson   # Datos de comunas
 │       ├── corregimientos.geojson  # Datos de corregimientos
 │       └── veredas.geojson   # Datos de veredas
-├── geodata/                  # Archivos fuente de datos geográficos
-│   ├── BARRIOS/             # Shapefiles de barrios
-│   └── COMUNAS/             # Shapefiles de comunas
-├── scripts/                 # Scripts de utilidad
-│   └── convert-shapefile.js # Conversión de shapefiles a GeoJSON
+├── scripts/                  # Scripts de utilidad
+│   ├── convert-shapefile.js  # Conversión de shapefiles a GeoJSON
+│   ├── add-centro-gestor-equipamientos.js   # Scripts de datos
+│   └── [otros scripts...]    # Scripts adicionales
 └── [archivos de configuración]
 ```
 
@@ -188,10 +210,14 @@ El dashboard está organizado en pestañas principales:
 
 ### Mapas Interactivos
 
-- **Capas intercambiables**: Comunas, barrios, corregimientos y veredas
+- **Sistema unificado**: UniversalMapCore como base para todos los tipos de mapas
+- **Capas intercambiables**: Comunas, barrios, corregimientos, veredas y unidades de proyecto
+- **Controles avanzados**: Pantalla completa y centrado automático con manejo robusto de errores
 - **Datos en tiempo real**: Métricas actualizadas por área geográfica
 - **Colores dinámicos**: Visualización basada en diferentes indicadores
 - **Zoom inteligente**: Navegación fluida con controles intuitivos
+- **CircleMarkers optimizados**: Representación eficiente de equipamientos urbanos
+- **GeoJSON nativo**: Soporte completo para geometrías complejas
 
 ### Filtros Inteligentes
 
@@ -259,6 +285,6 @@ Para reportar problemas o solicitar características:
 
 ---
 
-**Versión**: 1.0.0  
+**Versión**: 1.1.0  
 **Última actualización**: Agosto 2025  
 **Desarrollado con**: ❤️ para la gestión pública eficiente

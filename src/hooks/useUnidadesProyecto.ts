@@ -204,13 +204,22 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        console.log('🔄 Cargando datos de unidades de proyecto...')
+        console.log('🔄 === INICIANDO CARGA UNIDADES DE PROYECTO ===')
+
+        // Verificar que estamos en el cliente
+        if (typeof window === 'undefined') {
+          console.log('⚠️ Componente ejecutándose en servidor, saltando carga')
+          return
+        }
 
         // Cargar ambos archivos GeoJSON en paralelo
-        const [equipamientosRes, infraestructuraRes] = await Promise.all([
-          fetch('/data/unidades_proyecto/equipamientos.geojson'),
-          fetch('/data/unidades_proyecto/infraestructura_vial.geojson')
-        ])
+        console.log('📡 Cargando equipamientos...')
+        const equipamientosRes = await fetch('/data/unidades_proyecto/equipamientos.geojson')
+        console.log(`📡 Respuesta equipamientos: ${equipamientosRes.status} ${equipamientosRes.statusText}`)
+
+        console.log('📡 Cargando infraestructura...')
+        const infraestructuraRes = await fetch('/data/unidades_proyecto/infraestructura_vial.geojson')
+        console.log(`📡 Respuesta infraestructura: ${infraestructuraRes.status} ${infraestructuraRes.statusText}`)
 
         if (!equipamientosRes.ok) {
           throw new Error(`Error cargando equipamientos: HTTP ${equipamientosRes.status}`)
@@ -224,12 +233,15 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
 
         if (cancelled) return
 
+        console.log(`📊 Equipamientos raw: ${equipamientosData.features?.length || 0} features`)
+        console.log(`📊 Infraestructura raw: ${infraestructuraData.features?.length || 0} features`)
+
         // Procesar coordenadas con la utilidad centralizada
         const equipamientosProcesados = processGeoJSONCoordinates(equipamientosData)
         const infraestructuraProcesada = processGeoJSONCoordinates(infraestructuraData)
 
-        console.log(`✅ Equipamientos cargados: ${equipamientosProcesados.features?.length || 0} features`)
-        console.log(`✅ Infraestructura cargada: ${infraestructuraProcesada.features?.length || 0} features`)
+        console.log(`✅ Equipamientos procesados: ${equipamientosProcesados.features?.length || 0} features`)
+        console.log(`✅ Infraestructura procesada: ${infraestructuraProcesada.features?.length || 0} features`)
 
         // Convertir features a UnidadProyecto
         const equipamientosUnidades = (equipamientosProcesados.features || []).map((f: GeoJSONFeature) => 
@@ -241,7 +253,15 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
 
         const todasLasUnidades = [...equipamientosUnidades, ...infraestructuraUnidades]
 
-        console.log(`🎯 Total unidades de proyecto procesadas: ${todasLasUnidades.length}`)
+        console.log(`🎯 === RESULTADO FINAL ===`)
+        console.log(`📊 Equipamientos como unidades: ${equipamientosUnidades.length}`)
+        console.log(`📊 Infraestructura como unidades: ${infraestructuraUnidades.length}`)
+        console.log(`📊 Total unidades de proyecto: ${todasLasUnidades.length}`)
+
+        // Mostrar algunas unidades de ejemplo
+        if (todasLasUnidades.length > 0) {
+          console.log('🔍 Ejemplo de unidad:', todasLasUnidades[0])
+        }
 
         setState({
           equipamientos: equipamientosProcesados,
@@ -250,6 +270,8 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
           loading: false,
           error: null
         })
+
+        console.log('✅ === CARGA COMPLETA ===')
 
       } catch (error: any) {
         if (!cancelled) {

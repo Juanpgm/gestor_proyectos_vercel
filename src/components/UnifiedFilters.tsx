@@ -275,7 +275,7 @@ export default function UnifiedFilters({
     setSearchSuggestions(suggestions.slice(0, 10))
     setShowSearchSuggestions(suggestions.length > 0)
     setSelectedSuggestionIndex(-1) // Reset del índice seleccionado
-  }, [safeFilters.search, centrosGestores, getComunas, comunasBarrios, fuentesFinanciamiento, getPeriodos])
+  }, [safeFilters.search, centrosGestores, getComunas, comunasBarrios, fuentesFinanciamiento, getPeriodos, allProjects])
 
   // Datos para los filtros
   const estadosOptions = [
@@ -294,12 +294,12 @@ export default function UnifiedFilters({
       ['Error al cargar'] : 
       centrosGestores
 
-  // Opciones de comunas cargadas dinámicamente desde GeoJSON
-  const comunasOptions = comunasLoading ? 
-    ['Cargando...'] : 
-    comunasError ? 
-      ['Error al cargar'] : 
-      getComunas()
+  // Memoizar opciones de comunas para evitar re-renders
+  const comunasOptions = useMemo(() => {
+    if (comunasLoading) return ['Cargando...']
+    if (comunasError) return ['Error al cargar']
+    return getComunas()
+  }, [comunasLoading, comunasError, getComunas])
 
   const corregimientosOptions = [
     'Andes', 'Buitrera', 'Cañaveralejo', 'Dapa', 'El Saladito',

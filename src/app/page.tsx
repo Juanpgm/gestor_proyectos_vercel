@@ -5,16 +5,14 @@ import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import StatsCards from '@/components/StatsCards'
 import BudgetChart from '@/components/BudgetChart'
-import ChoroplethMapLeaflet from '@/components/ChoroplethMapLeaflet'
-import DynamicMapComponent from '@/components/MapComponent'
+import dynamic from 'next/dynamic'
+import ProjectMapUnified from '@/components/ProjectMapUnified'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
 import ProjectsUnitsTable, { ProjectUnit } from '@/components/ProjectsUnitsTable'
 import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
-import SimpleGeoJSONTest from '@/components/SimpleGeoJSONTest'
-import MapDebugTest from '@/components/MapDebugTest'
 import { 
   BarChart3, 
   Map as MapIcon, 
@@ -27,6 +25,9 @@ import {
   Activity,
   Package
 } from 'lucide-react'
+
+// Componentes dinámicos
+const ChoroplethMapInteractive = dynamic(() => import('@/components/ChoroplethMapInteractive'), { ssr: false })
 
 type ActiveTab = 'overview' | 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
 
@@ -359,7 +360,7 @@ function DashboardContent() {
             
             {/* Mapa Coroplético Principal */}
             <div className="w-full">
-              <ChoroplethMapLeaflet />
+              <ChoroplethMapInteractive />
             </div>
           </div>
         )
@@ -375,7 +376,7 @@ function DashboardContent() {
         return (
           <div className="space-y-8">
             <div className="w-full">
-              <DynamicMapComponent className="w-full" />
+              <ProjectMapUnified className="w-full" />
             </div>
             <div className="w-full">
               <ProjectsUnitsTable 
@@ -394,7 +395,7 @@ function DashboardContent() {
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               <div className="xl:col-span-2">
-                <ChoroplethMapLeaflet />
+                <ChoroplethMapInteractive />
               </div>
               <div>
                 <StatsCards />

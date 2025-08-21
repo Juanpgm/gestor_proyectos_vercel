@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { loadGeoJSON } from '@/utils/geoJSONLoader'
 
 // Tipos para cada fuente de datos
 interface Proyecto {
@@ -166,10 +167,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         setLoading(true)
         setError(null)
 
+        // Cargar datos GeoJSON usando el loader unificado
+        const [equipamientosData, infraestructuraData] = await Promise.all([
+          loadGeoJSON('equipamientos'),
+          loadGeoJSON('infraestructura_vial')
+        ])
+
+        // Cargar otros datos con fetch tradicional
         const [
           proyectosRes,
-          equipamientosRes,
-          infraestructuraRes,
           productosRes,
           actividadesRes,
           contratosRes,
@@ -180,8 +186,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           actividadesPaRes
         ] = await Promise.all([
           fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json'),
-          fetch('/data/unidades_proyecto/equipamientos.geojson'),
-          fetch('/data/unidades_proyecto/infraestructura_vial.geojson'),
           fetch('/data/seguimiento_pa/seguimiento_productos_pa.json'),
           fetch('/data/seguimiento_pa/seguimiento_actividades_pa.json'),
           fetch('/data/contratos/contratos.json'),
@@ -194,8 +198,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
         // Verificar que todas las respuestas sean exitosas
         if (!proyectosRes.ok) throw new Error('Error cargando proyectos')
-        if (!equipamientosRes.ok) throw new Error('Error cargando equipamientos')
-        if (!infraestructuraRes.ok) throw new Error('Error cargando infraestructura vial')
         if (!productosRes.ok) throw new Error('Error cargando productos')
         if (!actividadesRes.ok) throw new Error('Error cargando actividades')
         if (!contratosRes.ok) throw new Error('Error cargando contratos')
@@ -205,10 +207,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         if (!productosPaRes.ok) throw new Error('Error cargando productos PA')
         if (!actividadesPaRes.ok) throw new Error('Error cargando actividades PA')
 
-        // Parsear los datos
+        // Parsear los datos JSON
         const proyectosData = await proyectosRes.json()
-        const equipamientosData = await equipamientosRes.json()
-        const infraestructuraData = await infraestructuraRes.json()
         const productosData = await productosRes.json()
         const actividadesData = await actividadesRes.json()
         const contratosData = await contratosRes.json()
@@ -221,7 +221,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         // Establecer los datos en el estado
         setProyectos(proyectosData || [])
         
-        // Para GeoJSON, extraer las features
+        // Para GeoJSON, extraer las features (los datos ya vienen procesados del loader)
         setEquipamientos(equipamientosData?.features?.map((f: any) => f.properties) || [])
         setInfraestructuraVial(infraestructuraData?.features?.map((f: any) => f.properties) || [])
         
