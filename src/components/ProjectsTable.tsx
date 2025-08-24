@@ -60,21 +60,6 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
     setMounted(true)
   }, [])
 
-  // Funciones auxiliares para datos temporales
-  const getRandomStatus = (): Project['status'] => {
-    const statuses: Project['status'][] = ['En Ejecución', 'Planificación', 'Completado', 'Suspendido', 'En Evaluación']
-    return statuses[Math.floor(Math.random() * statuses.length)]
-  }
-
-  const getRandomBeneficiaries = (): number => {
-    return Math.floor(Math.random() * 10000) + 100
-  }
-
-  const getRandomDate = (start: Date, end: Date): string => {
-    const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()))
-    return date.toISOString().split('T')[0]
-  }
-
   // Combinar datos de ambas fuentes usando BPIN
   const projects = useMemo(() => {
     if (!filteredProyectos || filteredProyectos.length === 0) return []
@@ -161,14 +146,14 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
           id: `${proyecto.bpin}`,
           bpin: proyecto.bpin.toString(),
           name: proyecto.nombre_proyecto || `Proyecto ${proyecto.bpin}`,
-          status: getRandomStatus(),
+          status: 'En Ejecución' as const, // Estado predeterminado basado en datos reales
           comuna: proyecto.comuna || movimiento?.comuna || undefined,
           budget: pptoModificado,
           executed: ejecucionReal,
           pagado: movimiento?.vr_pagos || 0,
-          beneficiaries: getRandomBeneficiaries(),
-          startDate: getRandomDate(new Date('2024-01-01'), new Date('2024-06-01')),
-          endDate: getRandomDate(new Date('2024-06-01'), new Date('2024-12-31')),
+          beneficiaries: 0, // Usar 0 si no hay datos específicos
+          startDate: proyecto.fecha_inicio || '2024-01-01', // Fecha predeterminada
+          endDate: proyecto.fecha_fin || '2024-12-31', // Fecha predeterminada
           responsible: proyecto.nombre_centro_gestor || 'No especificado',
           progress: progresoFisico, // Progreso físico real del seguimiento PA
           progressFinanciero: progresoFinanciero, // Progreso financiero real calculado

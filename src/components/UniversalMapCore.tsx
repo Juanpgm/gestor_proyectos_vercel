@@ -134,7 +134,11 @@ const MapControls: React.FC<{
   const centerOnVisibleLayers = useCallback(() => {
     const visibleLayers = layers.filter(layer => layer.visible && layer.data)
     
-    if (visibleLayers.length === 0) return
+    if (visibleLayers.length === 0) {
+      // Si no hay capas visibles, centrar en Cali
+      map.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
+      return
+    }
     
     const bounds = L.latLngBounds([])
     let hasValidBounds = false
@@ -162,7 +166,26 @@ const MapControls: React.FC<{
     })
     
     if (hasValidBounds) {
-      map.fitBounds(bounds, { padding: [20, 20] })
+      // Verificar si los bounds están dentro del área de Cali
+      const caliBounds = L.latLngBounds([
+        [3.2, -76.8], // Southwest corner
+        [3.7, -76.3]  // Northeast corner
+      ])
+      
+      // Si los bounds están completamente fuera de Cali, centrar en Cali
+      if (!caliBounds.intersects(bounds)) {
+        map.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
+      } else {
+        // Expandir los bounds para incluir el centro de Cali
+        bounds.extend(CALI_COORDINATES.CENTER_LAT_LNG)
+        map.fitBounds(bounds, { 
+          padding: [30, 30],
+          maxZoom: 15 // Evitar zoom demasiado cercano
+        })
+      }
+    } else {
+      // Fallback: centrar en Cali
+      map.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
     }
   }, [map, layers])
   
@@ -184,40 +207,58 @@ const MapControls: React.FC<{
     // Botón de pantalla completa
     if (enableFullscreen) {
       const fullscreenBtn = document.createElement('button')
-      fullscreenBtn.className = 'map-control-btn'
+      fullscreenBtn.className = 'map-control-btn fullscreen-btn'
       fullscreenBtn.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
         </svg>
       `
       fullscreenBtn.title = 'Pantalla completa'
+      fullscreenBtn.setAttribute('aria-label', 'Activar pantalla completa')
       fullscreenBtn.style.cssText = `
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border: 2px solid #e2e8f0;
-        border-radius: 8px;
+        border-radius: 10px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
         color: #475569;
         font-weight: 600;
+        position: relative;
+        overflow: hidden;
       `
+      
+      // Efecto hover mejorado
       fullscreenBtn.onmouseover = () => {
-        fullscreenBtn.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+        fullscreenBtn.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
         fullscreenBtn.style.color = '#ffffff'
-        fullscreenBtn.style.transform = 'scale(1.05)'
-        fullscreenBtn.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)'
+        fullscreenBtn.style.transform = 'scale(1.08) translateY(-1px)'
+        fullscreenBtn.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.35), 0 4px 12px rgba(0,0,0,0.1)'
+        fullscreenBtn.style.borderColor = '#3b82f6'
       }
+      
       fullscreenBtn.onmouseout = () => {
         fullscreenBtn.style.background = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
         fullscreenBtn.style.color = '#475569'
-        fullscreenBtn.style.transform = 'scale(1)'
-        fullscreenBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+        fullscreenBtn.style.transform = 'scale(1) translateY(0)'
+        fullscreenBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)'
+        fullscreenBtn.style.borderColor = '#e2e8f0'
       }
+      
+      // Efecto click
+      fullscreenBtn.onmousedown = () => {
+        fullscreenBtn.style.transform = 'scale(0.95) translateY(0)'
+      }
+      
+      fullscreenBtn.onmouseup = () => {
+        fullscreenBtn.style.transform = 'scale(1.08) translateY(-1px)'
+      }
+      
       fullscreenBtn.onclick = onFullscreen
       controlsContainer.appendChild(fullscreenBtn)
     }
@@ -225,41 +266,59 @@ const MapControls: React.FC<{
     // Botón de centrar vista
     if (enableCenterView) {
       const centerBtn = document.createElement('button')
-      centerBtn.className = 'map-control-btn'
+      centerBtn.className = 'map-control-btn center-btn'
       centerBtn.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <circle cx="12" cy="12" r="3"/>
           <path d="M12 1v6m0 14v6m11-7h-6m-14 0h6"/>
         </svg>
       `
-      centerBtn.title = 'Centrar vista en capas visibles'
+      centerBtn.title = 'Centrar vista en Cali'
+      centerBtn.setAttribute('aria-label', 'Centrar vista en la ciudad de Cali')
       centerBtn.style.cssText = `
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border: 2px solid #e2e8f0;
-        border-radius: 8px;
+        border-radius: 10px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
         color: #475569;
         font-weight: 600;
+        position: relative;
+        overflow: hidden;
       `
+      
+      // Efecto hover mejorado para el botón de centrar
       centerBtn.onmouseover = () => {
         centerBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
         centerBtn.style.color = '#ffffff'
-        centerBtn.style.transform = 'scale(1.05)'
-        centerBtn.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)'
+        centerBtn.style.transform = 'scale(1.08) translateY(-1px)'
+        centerBtn.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.35), 0 4px 12px rgba(0,0,0,0.1)'
+        centerBtn.style.borderColor = '#10b981'
       }
+      
       centerBtn.onmouseout = () => {
         centerBtn.style.background = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
         centerBtn.style.color = '#475569'
-        centerBtn.style.transform = 'scale(1)'
-        centerBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+        centerBtn.style.transform = 'scale(1) translateY(0)'
+        centerBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)'
+        centerBtn.style.borderColor = '#e2e8f0'
       }
+      
+      // Efecto click
+      centerBtn.onmousedown = () => {
+        centerBtn.style.transform = 'scale(0.95) translateY(0)'
+      }
+      
+      centerBtn.onmouseup = () => {
+        centerBtn.style.transform = 'scale(1.08) translateY(-1px)'
+      }
+      
       centerBtn.onclick = centerOnVisibleLayers
       controlsContainer.appendChild(centerBtn)
     }
@@ -501,48 +560,73 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     if (!container) return
     
     if (!isFullscreen) {
-      // Entrar en pantalla completa - con manejo de errores
+      // Entrar en pantalla completa
       try {
-        if (container.requestFullscreen) {
-          container.requestFullscreen().catch(err => {
-            console.warn('No se pudo activar pantalla completa:', err)
+        const fullscreenPromise = container.requestFullscreen?.() || 
+                                  (container as any).webkitRequestFullscreen?.() || 
+                                  (container as any).msRequestFullscreen?.() || 
+                                  Promise.resolve()
+        
+        fullscreenPromise
+          .then(() => {
+            setIsFullscreen(true)
+            // Invalidar tamaño del mapa después del cambio
+            setTimeout(() => {
+              if (mapRef.current) {
+                mapRef.current.invalidateSize()
+              }
+            }, 150)
           })
-        } else if ((container as any).webkitRequestFullscreen) {
-          (container as any).webkitRequestFullscreen()
-        } else if ((container as any).msRequestFullscreen) {
-          (container as any).msRequestFullscreen()
-        } else {
-          console.warn('Pantalla completa no soportada en este navegador')
-        }
-        setIsFullscreen(true)
+          .catch(err => {
+            console.warn('No se pudo activar pantalla completa:', err)
+            // Fallback: simular pantalla completa con CSS
+            container.style.position = 'fixed'
+            container.style.top = '0'
+            container.style.left = '0'
+            container.style.width = '100vw'
+            container.style.height = '100vh'
+            container.style.zIndex = '9999'
+            container.style.background = 'white'
+            setIsFullscreen(true)
+          })
       } catch (error) {
         console.warn('Error al activar pantalla completa:', error)
       }
     } else {
       // Salir de pantalla completa
       try {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().catch(err => {
-            console.warn('Error al salir de pantalla completa:', err)
-          })
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen()
-        } else if ((document as any).msExitFullscreen) {
-          (document as any).msExitFullscreen()
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.()
+            .then(() => {
+              setIsFullscreen(false)
+            })
+            .catch(err => {
+              console.warn('Error al salir de pantalla completa:', err)
+              setIsFullscreen(false)
+            })
+        } else {
+          // Salir del modo simulado
+          container.style.position = ''
+          container.style.top = ''
+          container.style.left = ''
+          container.style.width = ''
+          container.style.height = ''
+          container.style.zIndex = ''
+          container.style.background = ''
+          setIsFullscreen(false)
         }
-        setIsFullscreen(false)
+        
+        // Invalidar tamaño del mapa
+        setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.invalidateSize()
+          }
+        }, 150)
       } catch (error) {
         console.warn('Error al salir de pantalla completa:', error)
         setIsFullscreen(false)
       }
     }
-    
-    // Invalidar tamaño del mapa después de un breve delay
-    setTimeout(() => {
-      if (mapRef.current) {
-        mapRef.current.invalidateSize()
-      }
-    }, 100)
   }, [isFullscreen])
 
   // Escuchar eventos de pantalla completa
@@ -582,7 +666,18 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         style={{ height: '100%', width: '100%' }}
         className="rounded-xl"
         preferCanvas={true}
-        whenReady={() => setMapReady(true)}
+        whenReady={() => {
+          setMapReady(true)
+          // Asegurar que el mapa esté centrado en Cali al inicializar
+          if (mapRef.current) {
+            mapRef.current.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
+          }
+        }}
+        maxBounds={[
+          [3.0, -77.0], // Southwest corner - área ampliada alrededor de Cali
+          [4.0, -76.0]  // Northeast corner
+        ]}
+        maxBoundsViscosity={0.5} // Permite un poco de movimiento fuera de los límites
       >
         {/* Capa base */}
         <TileLayer

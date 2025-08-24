@@ -11,10 +11,7 @@ export interface ProjectMapCoreProps {
     url: string
     attribution: string
   }
-  layerVisibility: {
-    equipamientos: boolean
-    infraestructura: boolean
-  }
+  layerVisibility: Record<string, boolean>
   height: string
   theme: string
 }
@@ -31,27 +28,34 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
     const mapLayers: MapLayer[] = []
 
     // Capa de equipamientos como puntos (unidades de proyecto)
-    if (layerVisibility.equipamientos && data.unidadesProyecto && data.unidadesProyecto.length > 0) {
+    if (data.unidadesProyecto && data.unidadesProyecto.length > 0) {
       mapLayers.push({
-        id: 'equipamientos',
-        name: 'Equipamientos',
+        id: 'unidades_proyecto',
+        name: 'Unidades de Proyecto',
         data: data.unidadesProyecto.filter(p => p.lat && p.lng),
         visible: true,
         type: 'points'
       })
     }
 
-    // Capa de infraestructura/vías
-    if (data.infraestructura && layerVisibility.infraestructura) {
-      mapLayers.push({
-        id: 'infraestructura',
-        name: 'Vías',
-        data: data.infraestructura,
-        visible: true,
-        type: 'geojson'
-      })
-    }
+    // Agregar capas dinámicamente para cada archivo GeoJSON cargado
+    Object.entries(data.allGeoJSONData).forEach(([fileName, geoJSONData]) => {
+      if (geoJSONData && layerVisibility[fileName]) {
+        const displayName = fileName === 'infraestructura_vial' ? 'Infraestructura Vial' : 
+                          fileName === 'equipamientos' ? 'Equipamientos GeoJSON' : 
+                          fileName.charAt(0).toUpperCase() + fileName.slice(1)
+        
+        mapLayers.push({
+          id: fileName,
+          name: displayName,
+          data: geoJSONData,
+          visible: true,
+          type: 'geojson'
+        })
+      }
+    })
 
+    console.log(`🗺️ Capas construidas para el mapa:`, mapLayers.map(l => ({ id: l.id, name: l.name, features: l.data?.features?.length || l.data?.length || 0 })))
     return mapLayers
   }, [data, layerVisibility])
 

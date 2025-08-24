@@ -100,29 +100,29 @@ const StatsCards: React.FC = () => {
   try {
     if (error) {
       console.warn('Error en useFilteredStats:', error)
-      // Fallback a datos mock si hay error
-      const mockStats = {
-        totalProyectos: 127,
-        totalUnidadesProyecto: 45,
-        totalProductos: 89,
-        totalActividades: 256,
-        totalContratos: 73
+      // Mostrar datos en 0 si hay error, sin fallback mock
+      const emptyStats = {
+        totalProyectos: 0,
+        totalUnidadesProyecto: 0,
+        totalProductos: 0,
+        totalActividades: 0,
+        totalContratos: 0
       }
-      return renderStatsCards(mockStats, false, null)
+      return renderStatsCards(emptyStats, false, error)
     }
 
     return renderStatsCards(stats, loading, error)
   } catch (err) {
-    console.warn('Error en StatsCards, usando datos mock:', err)
-    // Fallback completo a datos mock
-    const mockStats = {
-      totalProyectos: 127,
-      totalUnidadesProyecto: 45,
-      totalProductos: 89,
-      totalActividades: 256,
-      totalContratos: 73
+    console.warn('Error en StatsCards:', err)
+    // Mostrar datos en 0 si hay error, sin fallback mock
+    const emptyStats = {
+      totalProyectos: 0,
+      totalUnidadesProyecto: 0,
+      totalProductos: 0,
+      totalActividades: 0,
+      totalContratos: 0
     }
-    return renderStatsCards(mockStats, false, null)
+    return renderStatsCards(emptyStats, false, err)
   }
 }
 

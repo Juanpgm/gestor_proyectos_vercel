@@ -12,36 +12,14 @@ import {
   ArrowDown
 } from 'lucide-react'
 import ProjectModal from './ProjectModal'
+import type { UnidadProyecto } from '@/hooks/useUnidadesProyecto'
 
-export interface ProjectUnit {
-  id: string
-  bpin: string
-  name: string
-  status: 'En Ejecución' | 'Planificación' | 'Completado' | 'Suspendido' | 'En Evaluación'
-  comuna?: string
-  barrio?: string
-  corregimiento?: string
-  vereda?: string
-  budget: number
-  executed: number
-  pagado: number
-  beneficiaries: number
-  startDate: string
-  endDate: string
-  responsible: string
-  progress: number
-  unidadesDeProyecto?: number
-  descripcion?: string
-  texto1?: string
-  texto2?: string
-  tipoIntervencion?: 'Construcción' | 'Mejoramiento' | 'Rehabilitación' | 'Mantenimiento' | 'Adecuación'
-  lat?: number
-  lng?: number
-}
+// Exportar el tipo para compatibilidad
+export type ProjectUnit = UnidadProyecto
 
 interface ProjectsUnitsTableProps {
-  projectUnits: ProjectUnit[]
-  filteredProjectUnits: ProjectUnit[]
+  projectUnits: UnidadProyecto[]
+  filteredProjectUnits: UnidadProyecto[]
   className?: string
 }
 
@@ -70,17 +48,6 @@ const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({
       return num.toString()
     }
     return num.toLocaleString('es-CO')
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'En Ejecución': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-      case 'Planificación': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-      case 'Completado': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-      case 'Suspendido': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-      case 'En Evaluación': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
-    }
   }
 
   const getInterventionColor = (tipo?: string) => {
@@ -212,15 +179,6 @@ const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({
               </th>
               <th 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('status')}
-              >
-                <div className="flex items-center space-x-1">
-                  <span>Estado</span>
-                  {getSortIcon('status')}
-                </div>
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('tipoIntervencion')}
               >
                 <div className="flex items-center space-x-1">
@@ -276,11 +234,6 @@ const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(project.status)}`}>
-                    {project.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getInterventionColor(project.tipoIntervencion)}`}>
                     {project.tipoIntervencion || 'No definido'}
                   </span>
@@ -298,47 +251,23 @@ const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({
                     )}
                   </div>
                 </td>
-                {/* Progreso: física y financiera apiladas en una sola celda (accesible) */}
+                {/* Progreso: solo avance físico de obra */}
                 <td className="px-6 py-4 whitespace-nowrap align-top">
-                  <div className="space-y-2">
-                    <div>
-                      {(() => {
-                        const physicalPct = Number(project.progress)
-                        const physicalDisplay = physicalPct.toFixed(1)
-                        const physicalAria = Number(physicalDisplay)
-                        return (
-                          <>
-                            <div className="text-xs text-gray-500">Física</div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">{physicalDisplay}%</div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1" role="progressbar" aria-label={`Progreso físico de ${project.name}`} aria-valuenow={physicalAria} aria-valuemin={0} aria-valuemax={100}>
-                              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${physicalPct}%` }} />
-                            </div>
-                            <span className="sr-only">Progreso físico {physicalDisplay} por ciento</span>
-                          </>
-                        )
-                      })()}
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Financiera</div>
-                      {project.budget > 0 ? (
-                        (() => {
-                          const executedPct = (project.executed / project.budget) * 100
-                          const executedDisplay = executedPct.toFixed(1)
-                          const executedAria = Number(executedDisplay)
-                          return (
-                            <>
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{executedDisplay}%</div>
-                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1" role="progressbar" aria-label={`Progreso financiero de ${project.name}`} aria-valuenow={executedAria} aria-valuemin={0} aria-valuemax={100}>
-                                <div className="bg-emerald-600 h-2 rounded-full" style={{ width: `${executedPct}%` }} />
-                              </div>
-                              <span className="sr-only">Progreso financiero {executedDisplay} por ciento</span>
-                            </>
-                          )
-                        })()
-                      ) : (
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">—</div>
-                      )}
-                    </div>
+                  <div>
+                    {(() => {
+                      const physicalPct = Number(project.progress)
+                      const physicalDisplay = physicalPct.toFixed(1)
+                      const physicalAria = Number(physicalDisplay)
+                      return (
+                        <>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">{physicalDisplay}%</div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2" role="progressbar" aria-label={`Progreso físico de ${project.name}`} aria-valuenow={physicalAria} aria-valuemin={0} aria-valuemax={100}>
+                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${physicalPct}%` }} />
+                          </div>
+                          <span className="sr-only">Progreso físico {physicalDisplay} por ciento</span>
+                        </>
+                      )
+                    })()}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center justify-center align-middle">

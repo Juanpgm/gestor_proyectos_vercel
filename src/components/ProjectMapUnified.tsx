@@ -6,7 +6,7 @@ import { Map, Layers, ChevronDown, Check } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useTheme } from '@/context/ThemeContext'
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
-import { loadMultipleGeoJSON } from '@/utils/geoJSONLoader'
+import { loadAllUnidadesProyecto } from '@/utils/geoJSONLoader'
 import 'leaflet/dist/leaflet.css'
 
 /**
@@ -45,8 +45,7 @@ const DynamicProjectMap = dynamic(
 )
 
 export interface ProjectMapData {
-  equipamientos: any
-  infraestructura: any
+  allGeoJSONData: Record<string, any>
   unidadesProyecto: any[]
 }
 
@@ -100,11 +99,8 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
   const [showBaseMapSelector, setShowBaseMapSelector] = useState(false)
   const [isClient, setIsClient] = useState(false)
   
-  // Configuración de capas - Ambas activadas por defecto
-  const [layerVisibility, setLayerVisibility] = useState({
-    equipamientos: true,
-    infraestructura: true
-  })
+  // Configuración de capas - Dinámicamente basada en archivos cargados
+  const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({})
 
   // Hooks
   const { theme } = useTheme()
@@ -130,8 +126,7 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
   }, [])
 
   /**
-   * Carga inicial de datos GeoJSON e infraestructura
-   * No depende de unidades de proyecto para evitar recargas
+   * Carga inicial de todos los archivos GeoJSON de unidades_proyecto
    */
   useEffect(() => {
     const loadMapData = async () => {
@@ -141,22 +136,26 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
         
         console.log('🗺️ === INICIANDO CARGA MAPA UNIDADES DE PROYECTO ===')
         
-        // Cargar datos geográficos en paralelo - solo infraestructura
-        const geoData = await loadMultipleGeoJSON(['infraestructura'], {
+        // Cargar TODOS los archivos GeoJSON de unidades_proyecto automáticamente
+        const allGeoJSONData = await loadAllUnidadesProyecto({
           processCoordinates: true,
           cache: true
         })
 
-        // Estructura de datos unificada - solo infraestructura inicialmente
+        // Estructura de datos unificada con todos los GeoJSON
         const projectMapData: ProjectMapData = {
-          equipamientos: null, // No cargar equipamientos GeoJSON para evitar duplicación
-          infraestructura: geoData.infraestructura || null,
+          allGeoJSONData,
           unidadesProyecto: [] // Se actualizará en el useEffect separado
         }
 
         console.log('🗺️ Datos del mapa unificado:')
-        console.log('📊 Infraestructura features:', projectMapData.infraestructura?.features?.length || 0)
-        console.log('📊 Unidades de proyecto:', 'Se cargarán en useEffect separado')
+        Object.entries(allGeoJSONData).forEach(([fileName, data]) => {
+          if (data) {
+            console.log(`📊 ${fileName}: ${data.features?.length || 0} features`)
+          } else {
+            console.log(`❌ ${fileName}: Error al cargar`)
+          }
+        })
 
         setMapData(projectMapData)
         console.log('✅ Datos del mapa de unidades cargados exitosamente')
@@ -191,9 +190,22 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
   }, [unidadesProyecto, mapData])
 
   /**
+   * Inicializar visibilidad de capas basada en archivos cargados
+   */
+  useEffect(() => {
+    if (mapData?.allGeoJSONData) {
+      const initialVisibility: Record<string, boolean> = {}
+      Object.keys(mapData.allGeoJSONData).forEach(fileName => {
+        initialVisibility[fileName] = true // Todas las capas activadas por defecto
+      })
+      setLayerVisibility(initialVisibility)
+    }
+  }, [mapData?.allGeoJSONData])
+
+  /**
    * Alternar visibilidad de capas
    */
-  const toggleLayer = (layerName: keyof typeof layerVisibility) => {
+  const toggleLayer = (layerName: string) => {
     setLayerVisibility(prev => ({
       ...prev,
       [layerName]: !prev[layerName]
@@ -206,11 +218,23 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
   const mapStats = useMemo(() => {
     if (!mapData) return null
     
+    // Contar features de todos los archivos GeoJSON cargados
+    const geoJSONStats: Record<string, number> = {}
+    let totalGeoJSONFeatures = 0
+    
+    Object.entries(mapData.allGeoJSONData).forEach(([fileName, data]) => {
+      const count = data?.features?.length || 0
+      geoJSONStats[fileName] = count
+      totalGeoJSONFeatures += count
+    })
+    
     return {
       totalProyectos: mapData.unidadesProyecto.length,
-      equipamientos: mapData.equipamientos?.features?.length || 0,
-      infraestructura: mapData.infraestructura?.features?.length || 0,
-      proyectosActivos: mapData.unidadesProyecto.filter(p => p.status === 'En Ejecución').length
+      totalGeoJSONFeatures,
+      equipamientos: geoJSONStats.equipamientos || 0,
+      infraestructura: geoJSONStats.infraestructura_vial || 0,
+      proyectosActivos: mapData.unidadesProyecto.filter(p => p.status === 'En Ejecución').length,
+      geoJSONStats
     }
   }, [mapData])
 
@@ -312,30 +336,32 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
             </div>
           </div>
 
-          {/* Controles de capas */}
-          {showLayerControls && (
+          {/* Controles de capas dinámicos */}
+          {showLayerControls && mapData && Object.keys(layerVisibility).length > 0 && (
             <div className="flex items-center space-x-4">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Capas:</span>
               
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layerVisibility.equipamientos}
-                  onChange={() => toggleLayer('equipamientos')}
-                  className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Equipamientos</span>
-              </label>
-              
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={layerVisibility.infraestructura}
-                  onChange={() => toggleLayer('infraestructura')}
-                  className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Vías</span>
-              </label>
+              {Object.keys(mapData.allGeoJSONData).map(fileName => {
+                const displayName = fileName === 'infraestructura_vial' ? 'Vías' : 
+                                  fileName === 'equipamientos' ? 'Equipamientos' : 
+                                  fileName.charAt(0).toUpperCase() + fileName.slice(1)
+                
+                const colorClass = fileName === 'equipamientos' ? 'text-green-600' : 
+                                 fileName === 'infraestructura_vial' ? 'text-orange-600' :
+                                 'text-blue-600'
+                
+                return (
+                  <label key={fileName} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={layerVisibility[fileName] || false}
+                      onChange={() => toggleLayer(fileName)}
+                      className={`w-4 h-4 bg-gray-100 border-gray-300 rounded focus:ring-2 ${colorClass.replace('text-', 'text-')} focus:ring-${colorClass.split('-')[1]}-500`}
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{displayName}</span>
+                  </label>
+                )
+              })}
             </div>
           )}
         </div>
@@ -352,7 +378,7 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
         />
       </div>
 
-      {/* Estadísticas */}
+      {/* Estadísticas dinámicas */}
       {mapStats && (
         <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -368,19 +394,34 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-400">En Ejecución</div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {mapStats.equipamientos}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Equipamientos</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {mapStats.infraestructura}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Infraestructura</div>
-            </div>
+            {Object.entries(mapStats.geoJSONStats).map(([fileName, count]) => {
+              const displayName = fileName === 'infraestructura_vial' ? 'Vías' : 
+                                fileName === 'equipamientos' ? 'Equipamientos' : 
+                                fileName.charAt(0).toUpperCase() + fileName.slice(1)
+              
+              const colorClass = fileName === 'equipamientos' ? 'text-purple-600 dark:text-purple-400' : 
+                               fileName === 'infraestructura_vial' ? 'text-orange-600 dark:text-orange-400' :
+                               'text-indigo-600 dark:text-indigo-400'
+              
+              return (
+                <div key={fileName}>
+                  <div className={`text-2xl font-bold ${colorClass}`}>
+                    {count}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">{displayName}</div>
+                </div>
+              )
+            })}
           </div>
+          
+          {/* Mostrar información sobre archivos con errores si los hay */}
+          {mapStats.geoJSONStats && Object.values(mapStats.geoJSONStats).some(count => count === 0) && (
+            <div className="mt-3 text-center">
+              <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                ⚠️ Algunos archivos GeoJSON no se pudieron cargar completamente
+              </p>
+            </div>
+          )}
         </div>
       )}
     </motion.div>

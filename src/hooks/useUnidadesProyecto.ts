@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { processGeoJSONCoordinates, fixCoordinatesForGeoJSON } from '@/utils/coordinateUtils'
+import { loadAllUnidadesProyecto } from '@/utils/geoJSONLoader'
 
 // Tipos para los datos GeoJSON
 export interface GeoJSONFeature {
@@ -65,7 +66,7 @@ export interface UnidadProyecto {
   endDate: string
   responsible: string
   progress: number
-  tipoIntervencion?: 'Construcción' | 'Mejoramiento' | 'Rehabilitación' | 'Mantenimiento' | 'Adecuación'
+  tipoIntervencion?: string
   claseObra?: string
   descripcion?: string
   direccion?: string
@@ -75,7 +76,7 @@ export interface UnidadProyecto {
     type: string
     coordinates: number[] | number[][]
   }
-  source: 'equipamientos' | 'infraestructura'
+  source?: 'equipamientos' | 'infraestructura'
 }
 
 // Estado del hook
@@ -126,18 +127,33 @@ function mapEstadoUnidadProyecto(estado?: string): UnidadProyecto['status'] {
   return 'En Ejecución' // default
 }
 
-// Mapea tipo de intervención del GeoJSON
-function mapTipoIntervencion(tipo?: string): UnidadProyecto['tipoIntervencion'] {
-  if (!tipo) return 'Construcción'
+// Mapea tipo de intervención del GeoJSON - conservar valores originales
+function mapTipoIntervencion(tipo?: string): string {
+  if (!tipo) return 'Sin especificar'
   
-  const tipoLower = tipo.toLowerCase().trim()
-  if (tipoLower.includes('construcción') || tipoLower.includes('construccion')) return 'Construcción'
-  if (tipoLower.includes('mejoramiento')) return 'Mejoramiento'
-  if (tipoLower.includes('rehabilitación') || tipoLower.includes('rehabilitacion')) return 'Rehabilitación'
-  if (tipoLower.includes('mantenimiento')) return 'Mantenimiento'
-  if (tipoLower.includes('adecuación') || tipoLower.includes('adecuacion')) return 'Adecuación'
+  // Retornar el valor original limpio
+  return typeof tipo === 'string' ? tipo.trim() : 'Sin especificar'
+}
+
+// Función para separar comunas y corregimientos del campo comuna_corregimiento
+function procesarComunaCorregimiento(comunaCorregimiento?: string): { comuna?: string, corregimiento?: string } {
+  if (!comunaCorregimiento || typeof comunaCorregimiento !== 'string') return {}
   
-  return 'Construcción' // default
+  const valor = comunaCorregimiento.trim()
+  
+  // Si empieza con "Comuna" (case insensitive), es una comuna
+  if (valor.toLowerCase().startsWith('comuna')) {
+    return { comuna: valor }
+  }
+  
+  // Si empieza con "Corregimiento" (case insensitive), es un corregimiento  
+  if (valor.toLowerCase().startsWith('corregimiento')) {
+    return { corregimiento: valor }
+  }
+  
+  // Para valores como "La Elvira", "La Buitrera", etc. (nombres propios)
+  // Estos parecen ser corregimientos/veredas según el contexto de los datos
+  return { corregimiento: valor }
 }
 
 // Convierte feature de equipamientos a UnidadProyecto
@@ -162,13 +178,33 @@ function featureToUnidadProyecto(feature: GeoJSONFeature, source: 'equipamientos
   const startDate = props.fecha_inicio_real || props.fecha_inicio_planeado || '2024-01-01'
   const endDate = props.fecha_fin_real || props.fecha_fin_planeado || '2024-12-31'
   
+  // Procesar campo comuna_corregimiento para separar comunas y corregimientos
+  const { comuna, corregimiento } = procesarComunaCorregimiento(props.comuna_corregimiento)
+  
+  // Procesar campo barrio_vereda para separar barrios y veredas
+  const barrioVereda = typeof props.barrio_vereda === 'string' ? props.barrio_vereda.trim() : undefined
+  let barrio: string | undefined
+  let vereda: string | undefined
+  
+  if (barrioVereda) {
+    // Si el valor del barrio/vereda es "Vereda", es una vereda genérica
+    if (barrioVereda.toLowerCase() === 'vereda') {
+      vereda = barrioVereda
+    } else {
+      // Asumir que es un barrio en caso contrario
+      barrio = barrioVereda
+    }
+  }
+  
   return {
     id,
     bpin: props.bpin?.toString() || '0',
     name: props.nickname || props.nombre_unidad_proyecto || props.seccion_via || `Unidad ${id}`,
     status: mapEstadoUnidadProyecto(props.estado_unidad_proyecto),
-    comuna: props.comuna_corregimiento,
-    barrio: props.barrio_vereda,
+    comuna,
+    barrio,
+    corregimiento,
+    vereda,
     budget: props.ppto_base || 0,
     executed: props.pagos_realizados || 0,
     pagado: props.pagos_realizados || 0,
@@ -178,7 +214,7 @@ function featureToUnidadProyecto(feature: GeoJSONFeature, source: 'equipamientos
     responsible: props.nombre_centro_gestor || 'No especificado',
     progress: (props.avance_físico_obra || 0) * 100, // Convertir de decimal a porcentaje
     tipoIntervencion: mapTipoIntervencion(props.tipo_intervencion),
-    claseObra: props.clase_obra,
+    claseObra: typeof props.clase_obra === 'string' ? props.clase_obra.trim() : 'Sin especificar',
     descripcion: props.descripcion_intervencion,
     direccion: props.direccion,
     lat,
@@ -189,6 +225,8 @@ function featureToUnidadProyecto(feature: GeoJSONFeature, source: 'equipamientos
 }
 
 export function useUnidadesProyecto(): UnidadesProyectoState {
+  console.log('🚀 useUnidadesProyecto: Hook inicializado')
+  
   const [state, setState] = useState<UnidadesProyectoState>({
     equipamientos: null,
     infraestructura: null,
@@ -204,7 +242,7 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        console.log('🔄 === INICIANDO CARGA UNIDADES DE PROYECTO ===')
+        console.log('🔄 === INICIANDO CARGA UNIDADES DE PROYECTO (MEJORADO) ===')
 
         // Verificar que estamos en el cliente
         if (typeof window === 'undefined') {
@@ -212,50 +250,35 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
           return
         }
 
-        // Cargar ambos archivos GeoJSON en paralelo
-        console.log('📡 Cargando equipamientos...')
-        const equipamientosRes = await fetch('/data/unidades_proyecto/equipamientos.geojson')
-        console.log(`📡 Respuesta equipamientos: ${equipamientosRes.status} ${equipamientosRes.statusText}`)
-
-        console.log('📡 Cargando infraestructura...')
-        const infraestructuraRes = await fetch('/data/unidades_proyecto/infraestructura_vial.geojson')
-        console.log(`📡 Respuesta infraestructura: ${infraestructuraRes.status} ${infraestructuraRes.statusText}`)
-
-        if (!equipamientosRes.ok) {
-          throw new Error(`Error cargando equipamientos: HTTP ${equipamientosRes.status}`)
-        }
-        if (!infraestructuraRes.ok) {
-          throw new Error(`Error cargando infraestructura: HTTP ${infraestructuraRes.status}`)
-        }
-
-        const equipamientosData = await equipamientosRes.json() as GeoJSONData
-        const infraestructuraData = await infraestructuraRes.json() as GeoJSONData
+        // Usar nuestro nuevo sistema de carga automática
+        console.log('📡 Cargando con sistema automático...')
+        const allGeoJSONData = await loadAllUnidadesProyecto(
+          { processCoordinates: true, cache: true },
+          false // No usar detección automática para evitar 404s
+        )
 
         if (cancelled) return
 
-        console.log(`📊 Equipamientos raw: ${equipamientosData.features?.length || 0} features`)
-        console.log(`📊 Infraestructura raw: ${infraestructuraData.features?.length || 0} features`)
+        console.log(`� Datos cargados automáticamente:`, allGeoJSONData)
 
-        // Procesar coordenadas con la utilidad centralizada
-        const equipamientosProcesados = processGeoJSONCoordinates(equipamientosData)
-        const infraestructuraProcesada = processGeoJSONCoordinates(infraestructuraData)
+        // Convertir todos los datos a UnidadProyecto
+        const todasLasUnidades: UnidadProyecto[] = []
 
-        console.log(`✅ Equipamientos procesados: ${equipamientosProcesados.features?.length || 0} features`)
-        console.log(`✅ Infraestructura procesada: ${infraestructuraProcesada.features?.length || 0} features`)
-
-        // Convertir features a UnidadProyecto
-        const equipamientosUnidades = (equipamientosProcesados.features || []).map((f: GeoJSONFeature) => 
-          featureToUnidadProyecto(f, 'equipamientos')
-        )
-        const infraestructuraUnidades = (infraestructuraProcesada.features || []).map((f: GeoJSONFeature) => 
-          featureToUnidadProyecto(f, 'infraestructura')
-        )
-
-        const todasLasUnidades = [...equipamientosUnidades, ...infraestructuraUnidades]
+        // Procesar cada archivo cargado
+        Object.entries(allGeoJSONData).forEach(([fileName, geoJSONData]) => {
+          if (geoJSONData?.features) {
+            console.log(`📊 Procesando ${fileName}: ${geoJSONData.features.length} features`)
+            
+            const source = fileName.includes('equipamientos') ? 'equipamientos' : 'infraestructura'
+            const unidades = geoJSONData.features.map((feature: GeoJSONFeature) => 
+              featureToUnidadProyecto(feature, source)
+            )
+            
+            todasLasUnidades.push(...unidades)
+          }
+        })
 
         console.log(`🎯 === RESULTADO FINAL ===`)
-        console.log(`📊 Equipamientos como unidades: ${equipamientosUnidades.length}`)
-        console.log(`📊 Infraestructura como unidades: ${infraestructuraUnidades.length}`)
         console.log(`📊 Total unidades de proyecto: ${todasLasUnidades.length}`)
 
         // Mostrar algunas unidades de ejemplo
@@ -264,8 +287,8 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
         }
 
         setState({
-          equipamientos: equipamientosProcesados,
-          infraestructura: infraestructuraProcesada,
+          equipamientos: null,
+          infraestructura: null,
           unidadesProyecto: todasLasUnidades,
           loading: false,
           error: null

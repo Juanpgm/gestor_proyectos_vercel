@@ -301,88 +301,58 @@ export default function UnifiedFilters({
     return getComunas()
   }, [comunasLoading, comunasError, getComunas])
 
-  const corregimientosOptions = [
-    'Andes', 'Buitrera', 'Cañaveralejo', 'Dapa', 'El Saladito',
-    'Felidia', 'Golondrinas', 'Hormiguero', 'La Castilla', 'La Elvira',
-    'La Leonera', 'La Paz', 'Los Alpes', 'Montebello', 'Navarro',
-    'Pance', 'Pichindé', 'Santa Lucía', 'Villa Carmelo'
-  ]
-
-  const veredasOptions = [
-    'Alto Aguacatal', 'Alto de las Flores', 'Alto de los Mangos',
-    'Alto del Nudo', 'Alto del Rey', 'Bajo Aguacatal', 'Bajo Calima',
-    'Bocas del Palo', 'Bolo Azul', 'Bolo Blanco', 'Bolo San Isidro',
-    'Buchitolo', 'Buenos Aires', 'Caldono', 'Camelias', 'Campo Alegre',
-    'Cañas Gordas', 'Chicoral', 'Chontaduro', 'Ciprés', 'El Banqueo',
-    'El Brillante', 'El Carmelo', 'El Chocho', 'El Danubio', 'El Diamante',
-    'El Guayabo', 'El Hormiguero', 'El Mango', 'El Otoño', 'El Pencil',
-    'El Porvenir', 'El Queremal', 'El Rosal', 'El Salado', 'El Saladito',
-    'El Topacio', 'El Vínculo', 'Filipinas', 'Garganta de la Vieja',
-    'Golondrinas', 'Hojas Anchas', 'La Argentina', 'La Buitrera',
-    'La Castellana', 'La Castilla', 'La Esmeralda', 'La Esperanza',
-    'La Guardia', 'La Leonera', 'La Palma', 'La Palomera', 'La Paz',
-    'La Sirena', 'La Viga', 'Las Brisas', 'Las Nieves', 'Loma de la Cruz',
-    'Los Alpes', 'Los Andes', 'Los Mangos', 'Marruecos', 'Miravalle',
-    'Montebello', 'Pavas', 'Pico de Loro', 'Pico de Oro', 'Pichindé',
-    'Playa Rica', 'Pueblo Nuevo', 'San Antonio de Pichindé',
-    'San Francisco', 'San Isidro', 'San Jorge', 'San Pablo',
-    'Santa Helena', 'Santa Lucía', 'Santa Rosa', 'Saladito',
-    'Tinajas', 'Villa Carmelo', 'Villa Colombia'
-  ]
-
-  // Construir mapeos dinámicos para asociar barrios a comunas y veredas a corregimientos.
-  const corregimientoVeredasMap = useMemo(() => {
-    const map: Record<string, string[]> = {
-      'Andes': ['Alto Aguacatal', 'Bajo Aguacatal', 'Campo Alegre'],
-      'Buitrera': ['La Buitrera', 'Alto de las Flores', 'El Brillante'],
-      'Cañaveralejo': ['Cañas Gordas', 'El Chocho', 'Los Mangos'],
-      'Dapa': ['El Danubio', 'El Diamante', 'Santa Helena'],
-      'El Saladito': ['El Saladito', 'Saladito', 'El Salado'],
-      'Felidia': ['Filipinas', 'El Topacio', 'La Castellana'],
-      'Golondrinas': ['Golondrinas', 'Las Brisas', 'Alto del Rey'],
-      'Hormiguero': ['El Hormiguero', 'El Banqueo', 'Buchitolo'],
-      'La Castilla': ['La Castilla', 'La Guardia', 'San Jorge'],
-      'La Elvira': ['La Elvira', 'Buenos Aires', 'El Carmelo'],
-      'La Leonera': ['La Leonera', 'La Palomera', 'San Antonio de Pichindé'],
-      'La Paz': ['La Paz', 'Las Nieves', 'Santa Rosa'],
-      'Los Alpes': ['Los Alpes', 'Miravalle', 'Loma de la Cruz'],
-      'Montebello': ['Montebello', 'El Vínculo', 'Playa Rica'],
-      'Navarro': ['Caldono', 'Chicoral', 'El Rosal'],
-      'Pance': ['Pico de Loro', 'Pico de Oro', 'Villa Carmelo'],
-      'Pichindé': ['Pichindé', 'San Pablo', 'Tinajas'],
-      'Santa Lucía': ['Santa Lucía', 'El Pencil', 'Villa Colombia'],
-      'Villa Carmelo': ['Villa Carmelo', 'Pueblo Nuevo', 'San Francisco']
-    }
-    return map
-  }, [])
-
   // Opciones de fuentes de financiamiento cargadas dinámicamente desde JSON
   const fuentesFinanciamientoOptions = fuentesLoading ?
     ['Cargando...'] :
     fuentesError ?
       ['Error al cargar'] :
-      fuentesFinanciamiento  // Opciones de filtros personalizados
-  // Opciones para filtros personalizados con estructura jerárquica (categorías principales)
-  const filtrosPersonalizadosOptions = ['Invertir para crecer', 'Seguridad']
-  
-  // Subfiltros personalizados (subcategorías)
-  const subfiltrosPersonalizadosOptions = [
-    'Sanar heridas del pasado',
-    'Cali al futuro', 
-    'Motores estratégicos de desarrollo',
-    'Lucha contra el terrorismo',
-    'Orden Vial'
+      fuentesFinanciamiento
+
+  // Opciones hardcodeadas para corregimientos y veredas
+  const corregimientosOptions = [
+    'Corregimiento 1', 'Corregimiento 2', 'Corregimiento 3',
+    'La Buitrera', 'El Hormiguero', 'Golondrinas',
+    'La Castilla', 'Los Andes', 'Villa Carmelo'
   ]
+
+  const veredasOptions = [
+    'Vereda 1', 'Vereda 2', 'Vereda 3',
+    'La Elvira', 'Santa Elena', 'La Buitrera',
+    'El Saladito', 'Los Chorros', 'La Vorágine'
+  ]
+
+  // Mapeo hardcodeado de corregimientos a veredas
+  const corregimientoVeredasMap = {
+    'Corregimiento 1': ['Vereda 1A', 'Vereda 1B'],
+    'Corregimiento 2': ['Vereda 2A', 'Vereda 2B'],
+    'Corregimiento 3': ['Vereda 3A', 'Vereda 3B'],
+    'La Buitrera': ['La Elvira', 'Santa Elena'],
+    'El Hormiguero': ['El Saladito', 'Los Chorros'],
+    'Golondrinas': ['La Vorágine'],
+    'La Castilla': ['Vereda Castilla 1', 'Vereda Castilla 2'],
+    'Los Andes': ['Vereda Los Andes'],
+    'Villa Carmelo': ['Vereda Villa Carmelo']
+  }
+
+  // Opciones hardcodeadas para filtros personalizados
+  const filtrosPersonalizadosOptions = [
+    'Invertir para crecer',
+    'Seguridad'
+  ]
+
+  // Función para obtener veredas dinámicamente según corregimientos seleccionados
   const getVeredasForCorregimientos = (selectedCorregimientos: string[] | undefined) => {
     if (!selectedCorregimientos || selectedCorregimientos.length === 0) return []
+    
     const set = new Set<string>()
     selectedCorregimientos.forEach(corr => {
-      const veredas = corregimientoVeredasMap[corr]
+      const veredas = (corregimientoVeredasMap as Record<string, string[]>)[corr]
       if (veredas) {
-        veredas.forEach(vereda => set.add(vereda))
+        veredas.forEach((vereda: string) => set.add(vereda))
       }
     })
-    return Array.from(set)
+    
+    return Array.from(set).sort()
   }
 
   // Mapeo de filtros personalizados a subfiltros (jerárquico)
