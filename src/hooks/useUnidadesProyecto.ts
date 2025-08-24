@@ -84,6 +84,7 @@ interface UnidadesProyectoState {
   equipamientos: GeoJSONData | null
   infraestructura: GeoJSONData | null
   unidadesProyecto: UnidadProyecto[]
+  allGeoJSONData: Record<string, GeoJSONData>
   loading: boolean
   error: string | null
 }
@@ -231,6 +232,7 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
     equipamientos: null,
     infraestructura: null,
     unidadesProyecto: [],
+    allGeoJSONData: {},
     loading: true,
     error: null
   })
@@ -261,35 +263,48 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
 
         console.log(`� Datos cargados automáticamente:`, allGeoJSONData)
 
-        // Convertir todos los datos a UnidadProyecto
+        // Convertir todos los datos a UnidadProyecto de manera más eficiente
         const todasLasUnidades: UnidadProyecto[] = []
 
-        // Procesar cada archivo cargado
-        Object.entries(allGeoJSONData).forEach(([fileName, geoJSONData]) => {
-          if (geoJSONData?.features) {
+        // Procesar cada archivo cargado con procesamiento por lotes
+        for (const [fileName, geoJSONData] of Object.entries(allGeoJSONData)) {
+          if (geoJSONData?.features && geoJSONData.features.length > 0) {
             console.log(`📊 Procesando ${fileName}: ${geoJSONData.features.length} features`)
             
             const source = fileName.includes('equipamientos') ? 'equipamientos' : 'infraestructura'
-            const unidades = geoJSONData.features.map((feature: GeoJSONFeature) => 
-              featureToUnidadProyecto(feature, source)
-            )
             
-            todasLasUnidades.push(...unidades)
+            // Procesar en lotes más pequeños para mejor rendimiento
+            const batchSize = 100
+            for (let i = 0; i < geoJSONData.features.length; i += batchSize) {
+              const batch = geoJSONData.features.slice(i, i + batchSize)
+              const unidadesBatch = batch.map((feature: GeoJSONFeature) => 
+                featureToUnidadProyecto(feature, source)
+              )
+              todasLasUnidades.push(...unidadesBatch)
+              
+              // Permitir que el hilo principal respire cada 4 lotes
+              if (i % (batchSize * 4) === 0 && i > 0) {
+                await new Promise(resolve => setTimeout(resolve, 1))
+              }
+            }
           }
-        })
+        }
 
         console.log(`🎯 === RESULTADO FINAL ===`)
         console.log(`📊 Total unidades de proyecto: ${todasLasUnidades.length}`)
 
-        // Mostrar algunas unidades de ejemplo
-        if (todasLasUnidades.length > 0) {
-          console.log('🔍 Ejemplo de unidad:', todasLasUnidades[0])
-        }
+        // Mostrar estadísticas por tipo
+        const stats = todasLasUnidades.reduce((acc, unidad) => {
+          acc[unidad.source || 'desconocido'] = (acc[unidad.source || 'desconocido'] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+        console.log('📈 Estadísticas por tipo:', stats)
 
         setState({
           equipamientos: null,
           infraestructura: null,
           unidadesProyecto: todasLasUnidades,
+          allGeoJSONData: allGeoJSONData,
           loading: false,
           error: null
         })

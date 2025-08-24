@@ -109,8 +109,14 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   const [selectedBaseMap, setSelectedBaseMap] = useState<string>('light')
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
-  const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({})
-  const [layerOpacity, setLayerOpacity] = useState<Record<string, number>>({})
+  const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({
+    equipamientos: true,
+    infraestructura_vial: true
+  })
+  const [layerOpacity, setLayerOpacity] = useState<Record<string, number>>({
+    equipamientos: 0.8,
+    infraestructura_vial: 0.8
+  })
   const [activeChart, setActiveChart] = useState<'interventions' | 'progress'>('interventions')
 
   // Hooks
@@ -118,6 +124,11 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   const unidadesState = useUnidadesProyecto()
   const dataContext = useDataContext()
   const { filters } = useDashboardFilters()
+  
+  // Sincronizar mapa base con el tema
+  useEffect(() => {
+    setSelectedBaseMap(theme === 'dark' ? 'dark' : 'light')
+  }, [theme])
   
   // Obtener unidades de proyecto (ya procesadas por el hook)
   const unidadesProyecto = useMemo(() => {
@@ -208,7 +219,7 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
       return {
         id: fileName,
         name: displayName,
-        visible: layerVisibility[fileName] || false,
+        visible: layerVisibility[fileName] ?? true, // Por defecto visible
         opacity: layerOpacity[fileName] || 0.8,
         color: layerColors[fileName as keyof typeof layerColors] || '#6B7280',
         icon: layerIcons[fileName as keyof typeof layerIcons] || '📍',
@@ -313,7 +324,7 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
         <div className="flex-1 relative bg-gray-50 dark:bg-gray-800">
           <DynamicProjectMap
             data={{
-              allGeoJSONData: {},
+              allGeoJSONData: unidadesState.allGeoJSONData || {},
               unidadesProyecto: unidadesProyecto
             }}
             baseMapConfig={baseMaps[selectedBaseMap as keyof typeof baseMaps]}
