@@ -40,7 +40,7 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
 
     // Agregar capas dinámicamente para cada archivo GeoJSON cargado
     Object.entries(data.allGeoJSONData).forEach(([fileName, geoJSONData]) => {
-      if (geoJSONData && layerVisibility[fileName]) {
+      if (geoJSONData) {
         const displayName = fileName === 'infraestructura_vial' ? 'Infraestructura Vial' : 
                           fileName === 'equipamientos' ? 'Equipamientos GeoJSON' : 
                           fileName.charAt(0).toUpperCase() + fileName.slice(1)
@@ -49,7 +49,7 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
           id: fileName,
           name: displayName,
           data: geoJSONData,
-          visible: true,
+          visible: layerVisibility[fileName] !== false, // Visible por defecto
           type: 'geojson'
         })
       }

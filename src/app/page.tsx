@@ -10,7 +10,6 @@ import ProjectMapWithPanels from '@/components/ProjectMapWithPanels'
 import SimpleMapLayout from '@/components/SimpleMapLayout'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
 import ProjectsUnitsTable, { ProjectUnit } from '@/components/ProjectsUnitsTable'
-import GeoJSONDiagnostics from '@/components/GeoJSONDiagnostics'
 import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
@@ -31,7 +30,7 @@ import {
 // Componentes dinámicos
 const ChoroplethMapInteractive = dynamic(() => import('@/components/ChoroplethMapInteractive'), { ssr: false })
 
-type ActiveTab = 'overview' | 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'diagnostics'
+type ActiveTab = 'overview' | 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
 
 export default function Dashboard() {
   return (
@@ -257,8 +256,7 @@ function DashboardContent() {
     { id: 'project_units' as const, label: 'Unidades de Proyecto', icon: MapIcon },
     { id: 'activities' as const, label: 'Actividades', icon: Activity },
     { id: 'products' as const, label: 'Productos', icon: Package },
-    { id: 'contracts' as const, label: 'Contratos', icon: FileText, disabled: true },
-    { id: 'diagnostics' as const, label: 'Diagnósticos GeoJSON', icon: FileText }
+    { id: 'contracts' as const, label: 'Contratos', icon: FileText, disabled: true }
   ]
 
   const renderContent = () => {
@@ -393,22 +391,6 @@ function DashboardContent() {
                   Catálogo de productos que se actualizarán automáticamente según los filtros seleccionados.
                 </p>
               </div>
-            </div>
-          </div>
-        )
-
-      case 'diagnostics':
-        return (
-          <div className="space-y-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
-              <div className="flex items-center space-x-3 mb-6">
-                <FileText className="w-6 h-6 text-blue-500" />
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Diagnósticos GeoJSON</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Verificación de archivos GeoJSON en unidades de proyecto
-                </p>
-              </div>
-              <GeoJSONDiagnostics />
             </div>
           </div>
         )

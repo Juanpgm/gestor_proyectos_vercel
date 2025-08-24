@@ -349,6 +349,36 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
   const mapRef = useRef<L.Map | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [mapReady, setMapReady] = useState(false)
+  const [leafletLoaded, setLeafletLoaded] = useState(false)
+
+  // Verificar que Leaflet esté cargado
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.L) {
+      setLeafletLoaded(true)
+    } else {
+      // Esperar a que Leaflet se cargue
+      const checkLeaflet = setInterval(() => {
+        if (typeof window !== 'undefined' && window.L) {
+          setLeafletLoaded(true)
+          clearInterval(checkLeaflet)
+        }
+      }, 100)
+
+      return () => clearInterval(checkLeaflet)
+    }
+  }, [])
+
+  // Timeout de respaldo para asegurar la inicialización del mapa
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      if (!mapReady && leafletLoaded) {
+        console.log('🕒 Timeout de respaldo: forzando inicialización del mapa')
+        setMapReady(true)
+      }
+    }, 3000) // 3 segundos de timeout
+
+    return () => clearTimeout(fallbackTimer)
+  }, [mapReady, leafletLoaded])
 
   // Obtener estilos de capa
   const getLayerStyle = useCallback((layer: MapLayer) => {
@@ -657,6 +687,18 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     }
   }, [])
 
+  // Mostrar loader si Leaflet no está cargado
+  if (!leafletLoaded) {
+    return (
+      <div className="relative w-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-xl" style={{ height }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Inicializando mapa...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`relative w-full ${isFullscreen ? 'h-screen' : ''}`} style={{ height: isFullscreen ? '100vh' : height }}>
       <MapContainer
@@ -667,10 +709,12 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         className="rounded-xl"
         preferCanvas={true}
         whenReady={() => {
+          console.log('🗺️ Mapa listo - whenReady ejecutado')
           setMapReady(true)
           // Asegurar que el mapa esté centrado en Cali al inicializar
           if (mapRef.current) {
             mapRef.current.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
+            console.log('🎯 Mapa centrado en Cali')
           }
         }}
         maxBounds={[
