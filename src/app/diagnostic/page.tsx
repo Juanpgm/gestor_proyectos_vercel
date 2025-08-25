@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import MapClickDiagnostics from '@/components/MapClickDiagnostics'
+import MapClickDiagnosticsWrapper from '@/components/MapClickDiagnosticsWrapper'
 
 export default function DiagnosticPage() {
   return (
@@ -11,7 +11,7 @@ export default function DiagnosticPage() {
           Diagnóstico de Clicks en Vías
         </h1>
         
-        <MapClickDiagnostics height="600px" />
+        <MapClickDiagnosticsWrapper height="600px" />
       </div>
     </div>
   )

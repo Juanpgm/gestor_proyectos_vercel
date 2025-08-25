@@ -14,8 +14,10 @@ import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyecto'
-import { useUnidadesProyectoSimple } from '@/hooks/useUnidadesProyectoSimple'
-import { useUnidadesProyectoForced } from '@/hooks/useUnidadesProyectoForced'
+// import { useUnidadesProyectoOptimized } from '@/hooks/useUnidadesProyectoOptimized'
+// import { useGlobalDataPreloader } from '@/hooks/useGlobalDataPreloader'
+// import { useUnidadesProyectoSimple } from '@/hooks/useUnidadesProyectoSimple'
+// import { useUnidadesProyectoForced } from '@/hooks/useUnidadesProyectoForced'
 import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
 import ActividadesTable from '@/components/ActividadesTable'
@@ -24,6 +26,7 @@ import ActividadesCharts from '@/components/ActividadesCharts'
 import ProductosTable from '@/components/ProductosTable'
 import ProductosStats from '@/components/ProductosStats'
 import ProductosCharts from '@/components/ProductosCharts'
+import TestUseEffect from '@/components/TestUseEffect'
 import { 
   BarChart3, 
   Map as MapIcon, 
@@ -50,7 +53,7 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('project_units') // CAMBIADO TEMPORALMENTE
+  const [activeTab, setActiveTab] = useState<ActiveTab>('overview') // Vista General por defecto
   
   // Estado para la unidad de proyecto seleccionada desde la tabla
   const [selectedProjectUnitFromTable, setSelectedProjectUnitFromTable] = useState<UnidadProyecto | null>(null)
@@ -80,6 +83,15 @@ function DashboardContent() {
   const { state, getFilteredCount, exportData } = useDashboard()
   const { filters, updateFilters, activeFiltersCount } = useDashboardFilters()
 
+  // TEMPORALMENTE COMENTADO: Pre-carga de datos al iniciar la aplicación
+  // const globalPreloader = useGlobalDataPreloader()
+  // console.log('🌍 MAIN: Global preloader result:', {
+  //   loading: globalPreloader.loading,
+  //   unidades: globalPreloader.unidadesProyecto.length,
+  //   geoJSONKeys: Object.keys(globalPreloader.allGeoJSONData),
+  //   error: globalPreloader.error
+  // })
+
   // Conectar los filtros del dashboard con el DataContext y obtener proyectos
   const { 
     setFilters: setDataContextFilters, 
@@ -87,21 +99,30 @@ function DashboardContent() {
     loading: proyectosLoading 
   } = useDataContext()
 
-  // PRUEBA: Hook forzado que no usa useEffect
-  const forcedState = useUnidadesProyectoForced()
-  console.log('🔥 MAIN: Forced hook result:', {
-    loading: forcedState.loading,
-    error: forcedState.error,
-    dataKeys: Object.keys(forcedState.allGeoJSONData)
-  })
+  // PRUEBA: Solo usar el hook principal para evitar conflictos
+  // const forcedState = useUnidadesProyectoForced()
+  // console.log('🔥 MAIN: Forced hook result:', {
+  //   loading: forcedState.loading,
+  //   error: forcedState.error,
+  //   dataKeys: Object.keys(forcedState.allGeoJSONData)
+  // })
 
-  // Usar el hook optimizado para obtener datos de unidades de proyecto
+  // Usar el hook principal para obtener datos de unidades de proyecto
   const unidadesState = useUnidadesProyecto()
   const { unidadesProyecto, loading: dataLoading, error: dataError } = unidadesState
 
-  // TEST: Hook simple para verificar useEffect
-  const simpleTest = useUnidadesProyectoSimple()
-  console.log('🟢 MAIN: Simple hook result:', simpleTest)
+  // TEMPORALMENTE COMENTADO: Hook optimizado
+  // const optimizedUnidades = useUnidadesProyectoOptimized()
+  // console.log('🎯 MAIN: Hook optimizado result:', {
+  //   loading: optimizedUnidades.loading,
+  //   error: optimizedUnidades.error,
+  //   unidades: optimizedUnidades.unidadesProyecto.length,
+  //   dataKeys: Object.keys(optimizedUnidades.allGeoJSONData)
+  // })
+
+  // TEMPORALMENTE COMENTADO: Hook simple para verificar useEffect
+  // const simpleTest = useUnidadesProyectoSimple()
+  // console.log('🟢 MAIN: Simple hook result:', simpleTest)
 
   // Hooks para actividades y productos
   const actividadesState = useActividades()
@@ -127,9 +148,13 @@ function DashboardContent() {
     setDataContextFilters(dataContextFilters)
   }, [filters, setDataContextFilters])
 
-  // Lógica de filtrado para unidades de proyecto usando datos reales
+  // Lógica de filtrado para unidades de proyecto usando datos optimizados del preloader global
   const filteredProjectUnits: UnidadProyecto[] = useMemo(() => {
-    return unidadesProyecto.filter(unit => {
+    // Usar datos del preloader global que están siempre disponibles
+    // Usar datos del hook principal en lugar del global preloader
+    const sourceUnidades = unidadesProyecto
+    
+    return sourceUnidades.filter(unit => {
       // Filtro por búsqueda de texto (solo se aplica si NO hay filtros específicos activos)
       if (filters.search && filters.comunas.length === 0 && filters.barrios.length === 0 && filters.corregimientos.length === 0) {
         const searchTerm = filters.search.toLowerCase()
@@ -388,8 +413,12 @@ function DashboardContent() {
   ]
 
   const renderContent = () => {
-    // Mostrar estado de carga unificado
-    if (dataLoading || (activeTab === 'activities' && actividadesState.loading) || (activeTab === 'products' && productosState.loading)) {
+    // Mostrar estado de carga unificado - usar preloader global como fuente principal
+    const isLoading = dataLoading || 
+                     (activeTab === 'activities' && actividadesState.loading) || 
+                     (activeTab === 'products' && productosState.loading)
+                     
+    if (isLoading) {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -406,8 +435,12 @@ function DashboardContent() {
       )
     }
 
-    // Mostrar estado de error unificado
-    if (dataError || (activeTab === 'activities' && actividadesState.error) || (activeTab === 'products' && productosState.error)) {
+    // Mostrar estado de error unificado - usar preloader global como fuente principal
+    const hasError = dataError || 
+                    (activeTab === 'activities' && actividadesState.error) || 
+                    (activeTab === 'products' && productosState.error)
+                    
+    if (hasError) {
       const errorMessage = dataError || actividadesState.error || productosState.error
       return (
         <div className="flex items-center justify-center h-64">
@@ -429,6 +462,9 @@ function DashboardContent() {
       case 'overview':
         return (
           <div className="space-y-8">
+            {/* TEST COMPONENT */}
+            <TestUseEffect />
+            
             {/* Stats Cards */}
             <StatsCards />
             
@@ -460,6 +496,7 @@ function DashboardContent() {
                 className="w-full" 
                 height="800px"
                 selectedProjectUnitFromTable={selectedProjectUnitFromTable}
+                optimizedGeoJSONData={unidadesState.allGeoJSONData}
               />
             </div>
             

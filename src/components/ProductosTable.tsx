@@ -14,6 +14,7 @@ import {
   Package
 } from 'lucide-react'
 import { Producto } from '@/hooks/useProductos'
+import { useDataContext } from '@/context/DataContext'
 
 interface ProductosTableProps {
   productos: Producto[]
@@ -37,9 +38,28 @@ export default function ProductosTable({
   const [sortKey, setSortKey] = useState<SortKey>('nombre_producto')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
+  // Obtener datos del contexto para presupuestos
+  const { filteredMovimientosPresupuestales } = useDataContext()
+
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Función para obtener presupuesto total por BPIN
+  const getPresupuestoTotalPorBpin = (bpin: number): number => {
+    if (!filteredMovimientosPresupuestales) return 0
+    
+    // Buscar el movimiento más reciente para este BPIN
+    const movimientosBpin = filteredMovimientosPresupuestales.filter((mov: any) => mov.bpin === bpin)
+    if (movimientosBpin.length === 0) return 0
+    
+    // Ordenar por periodo y tomar el más reciente
+    const movimientoReciente = movimientosBpin.sort((a: any, b: any) => 
+      b.periodo_corte?.localeCompare(a.periodo_corte || '') || 0
+    )[0]
+    
+    return movimientoReciente?.ppto_modificado || 0
+  }
 
   // Funciones de utilidad
   const formatCurrency = (value: number | null | undefined): string => {
@@ -83,9 +103,15 @@ export default function ProductosTable({
   }
 
   const getProductState = (progress: number | null | undefined): { label: string, color: string } => {
-    if (!progress) return { label: 'No Iniciado', color: 'bg-gray-100 text-gray-800' }
-    if (progress === 1) return { label: 'Completado', color: 'bg-green-100 text-green-800' }
-    return { label: 'En Proceso', color: 'bg-blue-100 text-blue-800' }
+    // Convertir el progreso de la ponderación (0-1) a porcentaje (0-100)
+    const progressPercent = (progress || 0) * 100
+    
+    if (progressPercent === 0) return { label: 'No Iniciado', color: 'bg-gray-100 text-gray-800' }
+    if (progressPercent === 100) return { label: 'Completado', color: 'bg-green-100 text-green-800' }
+    if (progressPercent >= 80) return { label: 'Cercano a Terminar', color: 'bg-yellow-100 text-yellow-800' }
+    if (progressPercent >= 50) return { label: 'En Progreso Avanzado', color: 'bg-blue-100 text-blue-800' }
+    if (progressPercent >= 25) return { label: 'En Progreso', color: 'bg-indigo-100 text-indigo-800' }
+    return { label: 'En Proceso Inicial', color: 'bg-purple-100 text-purple-800' }
   }
 
   // Ordenamiento
@@ -193,7 +219,7 @@ export default function ProductosTable({
                 >
                   <div className="flex items-center justify-center space-x-1">
                     <span>Estado y Progreso</span>
-                    {getSortIcon('avance_producto')}
+                    {getSortIcon('ponderacion_producto')}
                   </div>
                 </th>
 
@@ -208,8 +234,9 @@ export default function ProductosTable({
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedProductos.map((producto) => {
-                const productState = getProductState(producto.avance_producto)
-                const progress = (producto.avance_producto || 0) * 100
+                // Usar ponderación_producto para TODOS los cálculos para ser consistente
+                const progress = (producto.ponderacion_producto || 0) * 100
+                const productState = getProductState(producto.ponderacion_producto)
                 
                 return (
                   <motion.tr
@@ -238,11 +265,36 @@ export default function ProductosTable({
                           </div>
                         </div>
 
-                        {/* Presupuesto - usando ejecución presupuestaria */}
-                        <div className="mb-1">
-                          <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                            Ejecución: {(producto.ejecucion_ppto_producto * 100).toFixed(1)}%
-                          </div>
+                        {/* Presupuesto - Total y Ejecutado */}
+                        <div className="mb-1 space-y-0.5">
+                          {(() => {
+                            const presupuestoTotal = getPresupuestoTotalPorBpin(producto.bpin)
+                            // Usar directamente el valor de ejecucion_ppto_producto del JSON
+                            const presupuestoEjecutado = producto.ejecucion_ppto_producto || 0
+                            const porcentajeEjecucion = presupuestoTotal > 0 
+                              ? (presupuestoEjecutado / presupuestoTotal) * 100 
+                              : 0
+
+                            return (
+                              <>
+                                <div className="text-xs">
+                                  <span className="text-gray-500 dark:text-gray-400">Total:</span>
+                                  <span className="ml-1 text-emerald-700 dark:text-emerald-300 font-semibold">
+                                    {formatCurrency(presupuestoTotal)}
+                                  </span>
+                                </div>
+                                <div className="text-xs">
+                                  <span className="text-gray-500 dark:text-gray-400">Ejecutado:</span>
+                                  <span className="ml-1 text-blue-700 dark:text-blue-300 font-semibold">
+                                    {formatCurrency(presupuestoEjecutado)}
+                                  </span>
+                                  <span className="ml-1 text-green-600 dark:text-green-400 font-medium">
+                                    ({porcentajeEjecucion.toFixed(1)}%)
+                                  </span>
+                                </div>
+                              </>
+                            )
+                          })()}
                         </div>
 
                         {/* Tipo de Meta */}

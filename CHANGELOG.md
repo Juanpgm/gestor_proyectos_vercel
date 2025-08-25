@@ -5,6 +5,186 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-08-25
+
+### 🎉 Sistema de Gestión de Actividades y Productos + Mejoras de Datos
+
+#### ✨ Nuevas Funcionalidades
+
+- **Gestión Completa de Actividades**
+
+  - Nueva sección de Actividades con tabla completa y filtros avanzados
+  - Estadísticas de actividades: total, completadas, en progreso, no iniciadas
+  - Gráficos de progreso y distribución por centro gestor
+  - Seguimiento de ejecución con porcentajes de avance
+  - Modal de detalles con información completa de cada actividad
+
+- **Gestión Completa de Productos**
+
+  - Nueva sección de Productos con funcionalidades completas
+  - Estadísticas detalladas: productos por tipo, estado y progreso
+  - Visualización de presupuesto total vs ejecutado con porcentajes
+  - Sistema de estados inteligente basado en progreso real
+  - Gráficos de distribución de tipos de productos más comunes
+  - Formato de moneda colombiana en todas las cifras presupuestales
+
+- **Mejoras en Tabla de Productos**
+
+  - **Presupuesto Integral**: Muestra presupuesto total (desde BPIN) y ejecutado (desde ejecucion_ppto_producto)
+  - **Formato Moneda**: Todas las cifras en formato peso colombiano ($1.234.567)
+  - **Porcentajes de Ejecución**: Cálculo automático de porcentaje ejecutado
+  - **Estados Consistentes**: 6 niveles de estado basados en ponderación del producto:
+    - No Iniciado (0%)
+    - En Proceso Inicial (1-24%)
+    - En Progreso (25-49%)
+    - En Progreso Avanzado (50-79%)
+    - Cercano a Terminar (80-99%)
+    - Completado (100%)
+
+- **Sistema de Navegación Mejorado**
+  - **Vista General como página inicial**: La aplicación ahora inicia en la sección "Vista General"
+  - Navegación fluida entre secciones con estado persistente
+  - Iconografía mejorada para cada sección (Actividades: Activity, Productos: Package)
+
+#### 🛠️ Mejoras Técnicas
+
+- **Hooks de Datos Especializados**
+
+  - `useActividades`: Hook optimizado para carga de datos de actividades
+  - `useProductos`: Hook especializado para gestión de productos
+  - `useUnidadesProyectoSimple`: Hook de prueba para validación de useEffect
+  - `useUnidadesProyectoForced`: Hook de testing sin useEffect para debugging
+
+- **Componentes de Estadísticas Avanzadas**
+
+  - `ActividadesStats`: Métricas completas de actividades con cards informativos
+  - `ProductosStats`: Estadísticas de productos con gráficos de barras integrados
+  - `ActividadesCharts`: Visualizaciones de distribución y progreso
+  - `ProductosCharts`: Gráficos de tipos de productos y distribución
+
+- **Integración de Datos del DataContext**
+  - Conexión con movimientos presupuestales para obtener presupuesto total por BPIN
+  - Función `getPresupuestoTotalPorBpin` para cálculos de presupuesto
+  - Uso consistente de `ejecucion_ppto_producto` para montos ejecutados
+  - Estandarización de `ponderacion_producto` para todos los cálculos de progreso
+
+#### 🐛 Correcciones Críticas
+
+- **Resolución de Inconsistencias en Datos**
+
+  - **Problema**: Productos mostraban estado "No Iniciado" con 100% de progreso
+  - **Solución**: Estandarización de `ponderacion_producto` para estado, progreso y porcentajes
+  - **Resultado**: Coherencia total entre etiquetas de estado y porcentajes mostrados
+
+- **Error de Compilación en Página Diagnostic**
+
+  - **Problema**: `window is not defined` durante generación estática
+  - **Solución**: Implementación de `MapClickDiagnosticsWrapper` con dynamic imports
+  - **Configuración**: `ssr: false` para componentes que usan Leaflet
+  - **Resultado**: Build exitoso sin errores de servidor
+
+- **Optimización de Filtros**
+  - Filtros transversales aplicables a todas las secciones
+  - Filtrado inteligente de actividades y productos por datos de proyecto relacionado
+  - Sincronización entre DashboardContext y DataContext
+
+#### 🎨 Mejoras de UI/UX
+
+- **Diseño Consistente**
+
+  - Cards de estadísticas con iconografía coherente
+  - Paleta de colores unificada para estados y tipos
+  - Animaciones fluidas entre secciones con Framer Motion
+  - Responsive design optimizado para todas las pantallas
+
+- **Experiencia de Usuario Mejorada**
+
+  - Inicio automático en "Vista General" para mejor onboarding
+  - Estados de carga informativos con mensajes específicos por sección
+  - Manejo graceful de errores con opciones de recuperación
+  - Tooltips informativos en botones y controles
+
+- **Formato de Datos Profesional**
+  - Moneda colombiana con separadores de miles
+  - Porcentajes con precisión decimal apropiada
+  - Estados descriptivos en lugar de códigos numéricos
+  - Fechas y períodos en formato legible
+
+#### 📊 Nuevas Métricas y Análisis
+
+- **Métricas de Actividades**
+
+  - Progreso promedio de actividades por centro gestor
+  - Distribución de estados de actividades
+  - Tracking de cumplimiento por período
+
+- **Métricas de Productos**
+
+  - Top 10 tipos de productos más comunes
+  - Análisis de ejecución presupuestal por producto
+  - Porcentajes de completitud por categoría
+  - Identificación de productos con mayor impacto
+
+- **Análisis Presupuestal Avanzado**
+  - Correlación entre progreso físico y ejecución presupuestal
+  - Identificación de proyectos con alta/baja eficiencia
+  - Alertas de productos con ejecución presupuestal incompleta
+
+#### 🔧 Optimizaciones de Rendimiento
+
+- **Carga de Datos Eficiente**
+
+  - Hooks especializados para cada tipo de datos
+  - Memoización de cálculos complejos con useMemo
+  - Filtrado optimizado con dependencias mínimas
+
+- **Gestión de Estado Mejorada**
+  - Estados de carga independientes por sección
+  - Manejo de errores específico por tipo de datos
+  - Cache inteligente para evitar recargas innecesarias
+
+#### 🚀 Funcionalidades de Exportación
+
+- **Preparación para Reportes**
+  - Estructuras de datos listas para exportación
+  - Métricas calculadas disponibles para PDF/Excel
+  - Filtros aplicados listos para reportes personalizados
+
+### 🗑️ Limpieza y Refactoring
+
+- **Eliminación de Código Temporal**
+
+  - Logs de debugging excesivos removidos
+  - Comentarios de desarrollo temporal limpiados
+  - Estados de prueba convertidos a producción
+
+- **Estandarización de Nomenclatura**
+  - Consistencia en nombres de variables y funciones
+  - Interfaces TypeScript mejoradas y documentadas
+  - Patrones de naming unificados en todos los componentes
+
+### 📝 Mejoras en Documentación
+
+- **Comentarios de Código Mejorados**
+
+  - Documentación inline en funciones críticas
+  - Explicación de lógica de negocio compleja
+  - Referencias a fuentes de datos y cálculos
+
+- **TypeScript Interfaces Documentadas**
+  - Tipos claramente definidos para Actividad y Producto
+  - Propiedades opcionales bien identificadas
+  - Relaciones entre interfaces documentadas
+
+### ⚠️ Notas de Migración
+
+- **Cambio de Sección Inicial**: La aplicación ahora inicia en "Vista General" en lugar de "Unidades de Proyecto"
+- **Nuevos Hooks**: `useActividades` y `useProductos` disponibles para uso en otros componentes
+- **Formato de Datos**: Todas las cifras monetarias usan formato peso colombiano
+- **Estados de Producto**: Usar `ponderacion_producto` para cálculos de progreso consistentes
+
+---
+
 ## [1.1.0] - 2025-08-21
 
 ### 🎉 Sistema de Mapas Unificado y Mejoras de Arquitectura

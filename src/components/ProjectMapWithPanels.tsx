@@ -29,6 +29,7 @@ interface ProjectMapWithPanelsProps {
   className?: string
   height?: string
   selectedProjectUnitFromTable?: UnidadProyecto | null
+  optimizedGeoJSONData?: Record<string, any> // Datos GeoJSON pre-cargados
 }
 
 // Base maps configuration
@@ -60,7 +61,8 @@ const layerIcons = {
 const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   className = '',
   height = '600px',
-  selectedProjectUnitFromTable
+  selectedProjectUnitFromTable,
+  optimizedGeoJSONData = {}
 }) => {
   // Estados locales
   const [selectedBaseMap, setSelectedBaseMap] = useState('light')
