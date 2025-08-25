@@ -30,6 +30,7 @@ interface FilterProps {
   onFiltersChange: (filters: FilterState) => void
   className?: string
   allProjects?: any[] // Para obtener nombres de proyectos para sugerencias
+  activeTab?: 'overview' | 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
 }
 
 // Valores por defecto para evitar errores
@@ -44,16 +45,17 @@ const defaultFilters: FilterState = {
   fuentesFinanciamiento: [],
   filtrosPersonalizados: [],
   subfiltrosPersonalizados: [],
-  periodos: []
-  ,fechaInicio: null
-  ,fechaFin: null
+  periodos: [],
+  fechaInicio: null,
+  fechaFin: null
 }
 
 export default function UnifiedFilters({ 
   filters = defaultFilters, 
   onFiltersChange, 
   className = '',
-  allProjects = []
+  allProjects = [],
+  activeTab = 'overview'
 }: FilterProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false)
@@ -277,15 +279,54 @@ export default function UnifiedFilters({
     setSelectedSuggestionIndex(-1) // Reset del índice seleccionado
   }, [safeFilters.search, centrosGestores, getComunas, comunasBarrios, fuentesFinanciamiento, getPeriodos, allProjects])
 
-  // Datos para los filtros
-  const estadosOptions = [
-    { value: 'all', label: 'Estado' },
-    { value: 'En Ejecución', label: 'En Ejecución' },
-    { value: 'Planificación', label: 'Planificación' },
-    { value: 'Completado', label: 'Completado' },
-    { value: 'Suspendido', label: 'Suspendido' },
-    { value: 'En Evaluación', label: 'En Evaluación' }
-  ]
+  // Opciones dinámicas de estado basadas en la sección activa
+  const getEstadosOptions = () => {
+    switch (activeTab) {
+      case 'projects':
+        return [
+          { value: 'all', label: 'Estado de Proyecto' },
+          { value: 'En Ejecución', label: 'En Ejecución' },
+          { value: 'Planificación', label: 'Planificación' },
+          { value: 'Completado', label: 'Completado' },
+          { value: 'Suspendido', label: 'Suspendido' },
+          { value: 'En Evaluación', label: 'En Evaluación' }
+        ]
+      case 'project_units':
+        return [
+          { value: 'all', label: 'Estado Unidad de Proyecto' },
+          { value: 'En Ejecución', label: 'En Ejecución' },
+          { value: 'Planificación', label: 'Planificación' },
+          { value: 'Completado', label: 'Completado' },
+          { value: 'Suspendido', label: 'Suspendido' }
+        ]
+      case 'activities':
+        return [
+          { value: 'all', label: 'Estado de Actividad' },
+          { value: 'no_iniciada', label: 'No Iniciada' },
+          { value: 'en_ejecucion', label: 'En Ejecución' },
+          { value: 'cercana_terminar', label: 'Cercana a Terminar' },
+          { value: 'completada', label: 'Completada' }
+        ]
+      case 'products':
+        return [
+          { value: 'all', label: 'Estado de Producto' },
+          { value: 'no_iniciado', label: 'No Iniciado' },
+          { value: 'en_proceso', label: 'En Proceso' },
+          { value: 'completado', label: 'Completado' }
+        ]
+      default:
+        return [
+          { value: 'all', label: 'Estado' },
+          { value: 'En Ejecución', label: 'En Ejecución' },
+          { value: 'Planificación', label: 'Planificación' },
+          { value: 'Completado', label: 'Completado' },
+          { value: 'Suspendido', label: 'Suspendido' },
+          { value: 'En Evaluación', label: 'En Evaluación' }
+        ]
+    }
+  }
+
+  const estadosOptions = getEstadosOptions()
 
   // Opciones de centro gestor cargadas dinámicamente desde JSON
   const centroGestorOptions = centrosLoading ? 

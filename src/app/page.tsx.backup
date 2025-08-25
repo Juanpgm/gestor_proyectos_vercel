@@ -7,7 +7,21 @@ import StatsCards from '@/components/StatsCards'
 import BudgetChart from '@/components/BudgetChart'
 import dynamic from 'next/dynamic'
 import ProjectMapWithPanels from '@/components/ProjectMapWithPanels'
-import SimpleMapLayout from '@/components/SimpleMapLayout'
+i                   <ActividadesStats
+              totalActividades={actividadesState.totalActividades}
+              completedActivities={actividadesState.completedActivities}
+              inProgressActivities={actividadesState.inProgressActivities}
+              notStartedActivities={actividadesState.notStartedActivities}
+              averageProgress={actividadesState.averageProgress}
+              loading={actividadesState.loading}
+            />ividadesStats
+              totalActividades={actividadesState.totalActividades}
+              completedActivities={actividadesState.completedActividades}
+              inProgressActivities={actividadesState.inProgressActivities}
+              notStartedActivities={actividadesState.notStartedActivities}
+              averageProgress={actividadesState.averageProgress}
+              loading={actividadesState.loading}
+            />pleMapLayout from '@/components/SimpleMapLayout'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
 import ProjectsUnitsTable, { ProjectUnit } from '@/components/ProjectsUnitsTable'
 import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
@@ -55,7 +69,7 @@ function DashboardContent() {
   // Estado para la unidad de proyecto seleccionada desde la tabla
   const [selectedProjectUnitFromTable, setSelectedProjectUnitFromTable] = useState<UnidadProyecto | null>(null)
   
-  // Estados para actividades y productos seleccionados
+  // Estados para elementos seleccionados de actividades y productos
   const [selectedActivity, setSelectedActivity] = useState<Actividad | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null)
   
@@ -64,28 +78,24 @@ function DashboardContent() {
     console.log('👁️ Mostrando unidad de proyecto en panel:', projectUnit)
     setSelectedProjectUnitFromTable(projectUnit)
   }
-  
-  // Funciones para manejar actividades y productos
-  const handleViewActivity = (activity: Actividad) => {
-    console.log('👁️ Mostrando actividad:', activity)
-    setSelectedActivity(activity)
+
+  // Funciones para manejar vista de actividades y productos
+  const handleViewActivity = (actividad: Actividad) => {
+    console.log('🎯 Mostrando actividad:', actividad)
+    setSelectedActivity(actividad)
   }
-  
-  const handleViewProduct = (product: Producto) => {
-    console.log('👁️ Mostrando producto:', product)
-    setSelectedProduct(product)
+
+  const handleViewProduct = (producto: Producto) => {
+    console.log('📦 Mostrando producto:', producto)
+    setSelectedProduct(producto)
   }
   
   // Usar el contexto global del dashboard
   const { state, getFilteredCount, exportData } = useDashboard()
   const { filters, updateFilters, activeFiltersCount } = useDashboardFilters()
 
-  // Conectar los filtros del dashboard con el DataContext y obtener proyectos
-  const { 
-    setFilters: setDataContextFilters, 
-    proyectos = [], 
-    loading: proyectosLoading 
-  } = useDataContext()
+  // Conectar los filtros del dashboard con el DataContext
+  const { setFilters: setDataContextFilters } = useDataContext()
 
   // PRUEBA: Hook forzado que no usa useEffect
   const forcedState = useUnidadesProyectoForced()
@@ -103,7 +113,7 @@ function DashboardContent() {
   const simpleTest = useUnidadesProyectoSimple()
   console.log('🟢 MAIN: Simple hook result:', simpleTest)
 
-  // Hooks para actividades y productos
+  // Cargar datos de actividades y productos
   const actividadesState = useActividades()
   const productosState = useProductos()
 
@@ -126,6 +136,61 @@ function DashboardContent() {
     
     setDataContextFilters(dataContextFilters)
   }, [filters, setDataContextFilters])
+
+  // Lógica de filtrado para actividades usando filtros transversales
+  const filteredActividades: Actividad[] = useMemo(() => {
+    return actividadesState.actividades.filter(actividad => {
+      // Filtro por búsqueda de texto
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase()
+        const searchFields = [
+          actividad.nombre_actividad,
+          actividad.descripcion_actividad,
+          actividad.bpin?.toString(),
+          actividad.cod_actividad?.toString()
+        ].filter(Boolean).join(' ').toLowerCase()
+        
+        if (!searchFields.includes(searchTerm)) return false
+      }
+
+      // Filtro por períodos
+      if (filters.periodos && filters.periodos.length > 0) {
+        if (!actividad.periodo_corte || !filters.periodos.includes(actividad.periodo_corte)) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [filters, actividadesState.actividades])
+
+  // Lógica de filtrado para productos usando filtros transversales
+  const filteredProductos: Producto[] = useMemo(() => {
+    return productosState.productos.filter(producto => {
+      // Filtro por búsqueda de texto
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase()
+        const searchFields = [
+          producto.nombre_producto,
+          producto.descripcion_avance_producto,
+          producto.bpin?.toString(),
+          producto.cod_producto?.toString(),
+          producto.tipo_meta_producto
+        ].filter(Boolean).join(' ').toLowerCase()
+        
+        if (!searchFields.includes(searchTerm)) return false
+      }
+
+      // Filtro por períodos
+      if (filters.periodos && filters.periodos.length > 0) {
+        if (!producto.periodo_corte || !filters.periodos.includes(producto.periodo_corte)) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [filters, productosState.productos])
 
   // Lógica de filtrado para unidades de proyecto usando datos reales
   const filteredProjectUnits: UnidadProyecto[] = useMemo(() => {
@@ -199,185 +264,6 @@ function DashboardContent() {
     })
   }, [filters, unidadesProyecto])
 
-  // Lógica de filtrado avanzada para actividades
-  const filteredActividades: Actividad[] = useMemo(() => {
-    return actividadesState.actividades.filter(activity => {
-      // Obtener el proyecto relacionado por BPIN para aplicar filtros de proyecto
-      const relatedProject = proyectos.find(p => p.bpin === activity.bpin)
-
-      // Filtro por búsqueda de texto (incluye datos del proyecto)
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
-        const searchFields = [
-          activity.nombre_actividad,
-          activity.descripcion_actividad,
-          activity.cod_centro_gestor?.toString(),
-          activity.bpin?.toString(),
-          // Incluir datos del proyecto relacionado
-          relatedProject?.nombre_proyecto,
-          relatedProject?.nombre_centro_gestor
-        ].filter(Boolean).join(' ').toLowerCase()
-        
-        if (!searchFields.includes(searchTerm)) return false
-      }
-
-      // Filtro por centro gestor (usando proyecto relacionado)
-      if (filters.centroGestor && filters.centroGestor.length > 0 && relatedProject?.nombre_centro_gestor) {
-        if (!filters.centroGestor.includes(relatedProject.nombre_centro_gestor)) return false
-      }
-
-      // Filtro por período
-      if (filters.periodos && filters.periodos.length > 0) {
-        if (!filters.periodos.includes(activity.periodo_corte)) return false
-      }
-
-      // Filtro por estado del proyecto (si hay proyecto relacionado)
-      if (filters.estado !== 'all' && relatedProject?.estado) {
-        if (relatedProject.estado !== filters.estado) return false
-      }
-
-      // Filtro por fuentes de financiamiento (usando proyecto relacionado)
-      if (filters.fuentesFinanciamiento && filters.fuentesFinanciamiento.length > 0 && relatedProject?.nombre_fondo) {
-        if (!filters.fuentesFinanciamiento.some(fuente => 
-          relatedProject.nombre_fondo?.toLowerCase().includes(fuente.toLowerCase())
-        )) return false
-      }
-
-      // Filtro por estado de actividad
-      if (filters.estado && filters.estado !== 'all') {
-        const activityState = activity.avance_actividad === 0 ? 'no_iniciada' :
-                             activity.avance_actividad === 1 ? 'completada' :
-                             activity.avance_actividad >= 0.8 ? 'cercana_terminar' : 'en_ejecucion'
-        
-        if (filters.estado !== activityState) return false
-      }
-
-      return true
-    })
-  }, [filters, actividadesState.actividades, proyectos])
-
-  // Lógica de filtrado avanzada para productos
-  const filteredProductos: Producto[] = useMemo(() => {
-    return productosState.productos.filter(product => {
-      // Obtener el proyecto relacionado por BPIN para aplicar filtros de proyecto
-      const relatedProject = proyectos.find(p => p.bpin === product.bpin)
-
-      // Filtro por búsqueda de texto (incluye datos del proyecto)
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
-        const searchFields = [
-          product.nombre_producto,
-          product.descripcion_avance_producto,
-          product.tipo_meta_producto,
-          product.bpin?.toString(),
-          // Incluir datos del proyecto relacionado
-          relatedProject?.nombre_proyecto,
-          relatedProject?.nombre_centro_gestor
-        ].filter(Boolean).join(' ').toLowerCase()
-        
-        if (!searchFields.includes(searchTerm)) return false
-      }
-
-      // Filtro por centro gestor (usando proyecto relacionado)
-      if (filters.centroGestor && filters.centroGestor.length > 0 && relatedProject?.nombre_centro_gestor) {
-        if (!filters.centroGestor.includes(relatedProject.nombre_centro_gestor)) return false
-      }
-
-      // Filtro por período
-      if (filters.periodos && filters.periodos.length > 0) {
-        if (!filters.periodos.includes(product.periodo_corte)) return false
-      }
-
-      // Filtro por estado del proyecto (si hay proyecto relacionado) o estado de producto
-      if (filters.estado !== 'all') {
-        // Si estamos en la sección de productos, aplicar lógica específica de estado de producto
-        if (activeTab === 'products') {
-          const productState = product.avance_producto === 0 ? 'no_iniciado' :
-                              product.avance_producto === 1 ? 'completado' : 'en_proceso'
-          
-          if (filters.estado !== productState) return false
-        } else if (relatedProject?.estado) {
-          // Para otras secciones, usar el estado del proyecto relacionado
-          if (relatedProject.estado !== filters.estado) return false
-        }
-      }
-
-      // Filtro por fuentes de financiamiento (usando proyecto relacionado)
-      if (filters.fuentesFinanciamiento && filters.fuentesFinanciamiento.length > 0 && relatedProject?.nombre_fondo) {
-        if (!filters.fuentesFinanciamiento.some(fuente => 
-          relatedProject.nombre_fondo?.toLowerCase().includes(fuente.toLowerCase())
-        )) return false
-      }
-
-      return true
-    })
-  }, [filters, productosState.productos, proyectos, activeTab])
-
-  // Calcular métricas filtradas para actividades
-  const filteredActividadesMetrics = useMemo(() => {
-    if (filteredActividades.length === 0) {
-      return {
-        totalActividades: 0,
-        completedActivities: 0,
-        inProgressActivities: 0,
-        notStartedActivities: 0,
-        averageProgress: 0
-      }
-    }
-
-    const completedActivities = filteredActividades.filter(a => a.avance_actividad === 1).length
-    const inProgressActivities = filteredActividades.filter(a => a.avance_actividad > 0 && a.avance_actividad < 1).length
-    const notStartedActivities = filteredActividades.filter(a => a.avance_actividad === 0).length
-    const averageProgress = filteredActividades.reduce((sum, a) => sum + a.avance_actividad, 0) / filteredActividades.length
-
-    return {
-      totalActividades: filteredActividades.length,
-      completedActivities,
-      inProgressActivities,
-      notStartedActivities,
-      averageProgress
-    }
-  }, [filteredActividades])
-
-  // Calcular métricas filtradas para productos
-  const filteredProductosMetrics = useMemo(() => {
-    if (filteredProductos.length === 0) {
-      return {
-        totalProductos: 0,
-        completedProducts: 0,
-        inProgressProducts: 0,
-        notStartedProducts: 0,
-        averageProgress: 0,
-        productsByType: {}
-      }
-    }
-
-    const completedProducts = filteredProductos.filter(p => p.avance_producto >= p.cantidad_programada_producto).length
-    const inProgressProducts = filteredProductos.filter(p => p.avance_producto > 0 && p.avance_producto < p.cantidad_programada_producto).length
-    const notStartedProducts = filteredProductos.filter(p => p.avance_producto === 0).length
-    
-    const averageProgress = filteredProductos.reduce((sum, p) => {
-      const progress = p.cantidad_programada_producto > 0 ? p.avance_producto / p.cantidad_programada_producto : 0
-      return sum + Math.min(progress, 1)
-    }, 0) / filteredProductos.length
-
-    // Agrupación por tipo de producto (filtrado)
-    const productsByType = filteredProductos.reduce((acc, producto) => {
-      const type = producto.nombre_producto
-      acc[type] = (acc[type] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-
-    return {
-      totalProductos: filteredProductos.length,
-      completedProducts,
-      inProgressProducts,
-      notStartedProducts,
-      averageProgress,
-      productsByType
-    }
-  }, [filteredProductos])
-
   const tabs = [
     { id: 'overview' as const, label: 'Vista General', icon: BarChart3 },
     { id: 'projects' as const, label: 'Proyectos', icon: Table },
@@ -389,17 +275,16 @@ function DashboardContent() {
 
   const renderContent = () => {
     // Mostrar estado de carga unificado
-    if (dataLoading || (activeTab === 'activities' && actividadesState.loading) || (activeTab === 'products' && productosState.loading)) {
+    if (dataLoading || actividadesState.loading || productosState.loading) {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-400">Cargando datos del proyecto...</p>
             <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-              {activeTab === 'project_units' && 'Preparando mapa y tabla...'}
-              {activeTab === 'activities' && 'Cargando actividades...'}
-              {activeTab === 'products' && 'Cargando productos...'}
-              {!['project_units', 'activities', 'products'].includes(activeTab) && 'Obteniendo información...'}
+              {activeTab === 'project_units' ? 'Preparando mapa y tabla...' : 
+               activeTab === 'activities' ? 'Cargando actividades...' :
+               activeTab === 'products' ? 'Cargando productos...' : 'Obteniendo información...'}
             </p>
           </div>
         </div>
@@ -407,13 +292,13 @@ function DashboardContent() {
     }
 
     // Mostrar estado de error unificado
-    if (dataError || (activeTab === 'activities' && actividadesState.error) || (activeTab === 'products' && productosState.error)) {
-      const errorMessage = dataError || actividadesState.error || productosState.error
+    if (dataError || actividadesState.error || productosState.error) {
+      const error = dataError || actividadesState.error || productosState.error
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <p className="text-red-600 dark:text-red-400 mb-4">Error cargando datos: {errorMessage}</p>
+            <p className="text-red-600 dark:text-red-400 mb-4">Error cargando datos: {error}</p>
             <button 
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -496,11 +381,11 @@ function DashboardContent() {
           <div className="space-y-8">
             {/* Estadísticas de actividades */}
             <ActividadesStats
-              totalActividades={filteredActividadesMetrics.totalActividades}
-              completedActivities={filteredActividadesMetrics.completedActivities}
-              inProgressActivities={filteredActividadesMetrics.inProgressActivities}
-              notStartedActivities={filteredActividadesMetrics.notStartedActivities}
-              averageProgress={filteredActividadesMetrics.averageProgress}
+              totalActividades={actividadesState.totalActividades}
+              completedActivities={actividadesState.completedActivities}
+              inProgressActivities={actividadesState.inProgressActivities}
+              notStartedActivities={actividadesState.notStartedActivities}
+              averageProgress={actividadesState.averageProgress}
               loading={actividadesState.loading}
             />
             
@@ -525,12 +410,13 @@ function DashboardContent() {
           <div className="space-y-8">
             {/* Estadísticas de productos */}
             <ProductosStats
-              totalProductos={filteredProductosMetrics.totalProductos}
-              completedProducts={filteredProductosMetrics.completedProducts}
-              inProgressProducts={filteredProductosMetrics.inProgressProducts}
-              notStartedProducts={filteredProductosMetrics.notStartedProducts}
-              averageProgress={filteredProductosMetrics.averageProgress}
-              productsByType={filteredProductosMetrics.productsByType}
+              totalProductos={productosState.totalProductos}
+              totalBudget={productosState.totalBudget}
+              completedProducts={productosState.completedProducts}
+              inProgressProducts={productosState.inProgressProducts}
+              notStartedProducts={productosState.notStartedProducts}
+              averageProgress={productosState.averageProgress}
+              productsByType={productosState.productsByType}
               loading={productosState.loading}
             />
             
@@ -609,7 +495,6 @@ function DashboardContent() {
           <UnifiedFilters 
             filters={filters}
             onFiltersChange={updateFilters}
-            activeTab={activeTab}
           />
         </motion.div>
 
