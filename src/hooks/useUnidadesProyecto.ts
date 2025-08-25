@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { processGeoJSONCoordinates, fixCoordinatesForGeoJSON } from '@/utils/coordinateUtils'
 import { loadMapDataWithFallback, validateMapData } from '@/utils/geoJSONLoader'
 
@@ -265,6 +265,15 @@ async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
       console.log(`📊 Archivos válidos encontrados: ${validFiles.length}`)
       validFiles.forEach(([fileName, data]: [string, any]) => {
         console.log(`✅ ${fileName}: ${data.features.length} features`)
+        
+        // Log específico para infraestructura vial
+        if (fileName === 'infraestructura_vial') {
+          console.log(`🛣️ Infraestructura vial - muestra de features:`, {
+            totalFeatures: data.features.length,
+            firstFeature: data.features[0]?.properties,
+            geometryTypes: data.features.map((f: any) => f.geometry.type).slice(0, 5)
+          })
+        }
       })
 
       // Convertir todos los datos a UnidadProyecto
@@ -324,14 +333,10 @@ async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
 }
 
 export function useUnidadesProyecto(): UnidadesProyectoState {
-  console.log('🚀 useUnidadesProyecto: Hook inicializado')
+  console.log('🚀 useUnidadesProyecto: Hook START')
   
   const [state, setState] = useState<UnidadesProyectoState>(() => {
-    // Si ya tenemos datos globales, usarlos inmediatamente
-    if (globalUnidadesState && !globalUnidadesState.loading) {
-      return globalUnidadesState
-    }
-    
+    console.log('🏗️ useState inicializado')
     return {
       equipamientos: null,
       infraestructura: null,
@@ -342,32 +347,39 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
     }
   })
 
+  console.log('🎯 BEFORE useEffect, state:', state.loading)
+
+  // Test useEffect INMEDIATAMENTE después del useState
   useEffect(() => {
-    let cancelled = false
-
-    // Agregar listener global
-    const listener = (newState: UnidadesProyectoState) => {
-      if (!cancelled) {
-        setState(newState)
-      }
+    console.log('� TEST EFFECT EJECUTADO!')
+    console.log('🔥 Window available:', typeof window !== 'undefined')
+    
+    // Cargar datos directamente sin complicaciones
+    if (typeof window !== 'undefined') {
+      console.log('🔥 Iniciando carga simple...')
+      
+      // Usar la función de carga existente
+      loadUnidadesProyectoGlobal()
+        .then(result => {
+          console.log('� Carga exitosa:', result.unidadesProyecto.length, 'unidades')
+          setState(result)
+        })
+        .catch(error => {
+          console.error('� Error en carga:', error)
+          setState(prev => ({ 
+            ...prev, 
+            loading: false, 
+            error: error.message 
+          }))
+        })
     }
-    globalListeners.add(listener)
-
-    // Si ya tenemos datos, usarlos
-    if (globalUnidadesState && !globalUnidadesState.loading) {
-      setState(globalUnidadesState)
-    } else {
-      // Iniciar carga global si no está en progreso
-      loadUnidadesProyectoGlobal().catch(() => {
-        // Error ya manejado en la función global
-      })
-    }
-
+    
     return () => {
-      cancelled = true
-      globalListeners.delete(listener)
+      console.log('🔥 TEST EFFECT CLEANUP')
     }
-  }, [])
+  }, []) // Sin dependencias
+
+  console.log('🎯 AFTER useEffect setup, returning state:', state.loading)
 
   return state
 }

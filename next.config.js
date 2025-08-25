@@ -66,6 +66,16 @@ const nextConfig = {
       },
     ];
   },
+
+  // Rewrite para redirigir /geodata/ a /data/geodata/
+  async rewrites() {
+    return [
+      {
+        source: '/geodata/:path*',
+        destination: '/data/geodata/:path*'
+      }
+    ];
+  },
 }
 
 module.exports = nextConfig

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, ChevronDown, MapPin, BarChart3, Activity } from 'lucide-react'
+import { Settings, ChevronDown, MapPin, BarChart3, Activity, Layers } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useTheme } from '@/context/ThemeContext'
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
@@ -64,6 +64,8 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   const [selectedBaseMap, setSelectedBaseMap] = useState('light')
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false)
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false)
+  const [layerControlCollapsed, setLayerControlCollapsed] = useState(false)
+  const [propertiesCollapsed, setPropertiesCollapsed] = useState(false)
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
   const [selectedLayerType, setSelectedLayerType] = useState<string>('')
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({
@@ -98,6 +100,12 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   const { theme } = useTheme()
   const unidadesState = useUnidadesProyecto()
   const { filters } = useDashboardFilters()
+  
+  console.log('🗺️ ProjectMapWithPanels renderizado:', {
+    loading: unidadesState.loading,
+    error: unidadesState.error,
+    dataKeys: Object.keys(unidadesState.allGeoJSONData || {})
+  })
   
   // Sincronizar mapa base con el tema
   useEffect(() => {
@@ -261,11 +269,26 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
 
   // Función para manejar click en features del mapa
   const handleFeatureClick = (feature: any, layer: any) => {
-    console.log('🔍 Feature clicked:', { feature, layer })
+    console.log('🔍 Feature clicked en ProjectMapWithPanels:', { 
+      feature, 
+      layer,
+      properties: feature?.properties,
+      geometryType: feature?.geometry?.type
+    })
+    
     setSelectedFeature(feature)
     setSelectedLayerType(layer?.id || layer?.type || 'unknown')
+    
+    // Asegurar que los paneles estén visibles cuando se selecciona una feature
     if (leftPanelCollapsed) {
+      console.log('📂 Expandiendo panel izquierdo para mostrar propiedades')
       setLeftPanelCollapsed(false)
+    }
+    
+    // Mostrar propiedades automáticamente cuando se selecciona una feature
+    if (propertiesCollapsed) {
+      console.log('📋 Expandiendo panel de propiedades')
+      setPropertiesCollapsed(false)
     }
   }
 
@@ -273,6 +296,13 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   const handleCloseProperties = () => {
     setSelectedFeature(null)
     setSelectedLayerType('')
+  }
+
+  // Función para aplicar cambios de capas al mapa
+  const handleApplyLayerChanges = () => {
+    console.log('🎨 Aplicando cambios de capas al mapa')
+    // Aquí podrías agregar lógica adicional si es necesaria
+    // Por ejemplo, refrescar el mapa o notificar cambios
   }
 
   // Preparar datos para el control de capas
@@ -373,29 +403,87 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
 
           {/* Contenido del panel izquierdo */}
           {!leftPanelCollapsed && (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-y-auto">
               
-              {/* Control de Capas - Parte superior */}
-              <div className="flex-shrink-0">
-                <LayerManagementPanel
-                  layers={layerConfigs}
-                  onLayerUpdate={updateLayerConfig}
-                  className="w-full"
-                />
-              </div>
+              {/* Control de Capas - Parte superior con su propio colapso */}
+              {!layerControlCollapsed && (
+                <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
+                  <div className="p-2 bg-gray-100 dark:bg-gray-800 flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <Layers className="w-4 h-4" />
+                      Control de Capas
+                    </h4>
+                    <button
+                      onClick={() => setLayerControlCollapsed(true)}
+                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                      title="Ocultar control de capas"
+                    >
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <LayerManagementPanel
+                    layers={layerConfigs}
+                    onLayerUpdate={updateLayerConfig}
+                    onApplyChanges={handleApplyLayerChanges}
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              {/* Botón para mostrar control de capas cuando está oculto */}
+              {layerControlCollapsed && (
+                <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setLayerControlCollapsed(false)}
+                    className="w-full p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                    title="Mostrar control de capas"
+                  >
+                    <Layers className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Mostrar Control de Capas</span>
+                  </button>
+                </div>
+              )}
               
-              {/* Propiedades - Parte inferior */}
-              {selectedFeature && (
-                <div className="flex-1 border-t border-gray-200 dark:border-gray-700 overflow-y-auto">
+              {/* Propiedades - Parte inferior con su propio colapso */}
+              {selectedFeature && !propertiesCollapsed && (
+                <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700">
+                  <div className="p-2 bg-gray-100 dark:bg-gray-800 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Propiedades
+                    </h4>
+                    <button
+                      onClick={() => setPropertiesCollapsed(true)}
+                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                      title="Ocultar propiedades"
+                    >
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  </div>
                   <PropertiesPanel
                     feature={selectedFeature}
                     layerType={selectedLayerType}
                     onClose={handleCloseProperties}
-                    className="w-full h-full"
+                    className="w-full"
                   />
                 </div>
               )}
+
+              {/* Botón para mostrar propiedades cuando está oculto */}
+              {selectedFeature && propertiesCollapsed && (
+                <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setPropertiesCollapsed(false)}
+                    className="w-full p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                    title="Mostrar propiedades"
+                  >
+                    <MapPin className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Mostrar Propiedades</span>
+                  </button>
+                </div>
+              )}
               
+              {/* Estado vacío cuando no hay selección */}
               {!selectedFeature && (
                 <div className="flex-1 border-t border-gray-200 dark:border-gray-700 p-4">
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 h-full flex items-center justify-center">

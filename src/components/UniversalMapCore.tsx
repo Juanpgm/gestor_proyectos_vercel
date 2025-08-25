@@ -31,6 +31,9 @@ export interface MapLayer {
   data: any
   visible: boolean
   type: 'geojson' | 'points'
+  color?: string
+  opacity?: number
+  representationMode?: 'clase_obra' | 'tipo_intervencion' | 'estado'
   style?: any
   pointStyle?: {
     radius: number
@@ -390,30 +393,75 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     // Si la capa tiene estilo personalizado, usarlo
     if (layer.style) return layer.style
     
-    // Colores base por defecto
-    const baseColors = LAYER_COLORS[layer.id as keyof typeof LAYER_COLORS] || LAYER_COLORS.unidadesProyecto
+    // Buscar configuración específica de la capa
+    const layerConfig = layers.find(l => l.id === layer.id)
+    
+    // Colores base: usar configuración específica o por defecto
+    let baseColors
+    if (layerConfig && layerConfig.color) {
+      // Usar color personalizado de la configuración
+      baseColors = {
+        fill: layerConfig.color,
+        stroke: layerConfig.color
+      }
+    } else {
+      // Usar colores base por defecto
+      baseColors = LAYER_COLORS[layer.id as keyof typeof LAYER_COLORS] || LAYER_COLORS.unidadesProyecto
+    }
+    
+    // Configuración especial para vías/infraestructura para mejorar la clickeabilidad
+    const isInfraestructura = layer.id.includes('infraestructura') || layer.id.includes('vias')
+    
+    // Obtener opacidad de la configuración
+    const opacity = layerConfig?.opacity ?? (isInfraestructura ? 0.9 : 0.8)
     
     return {
       ...DEFAULT_STYLES.geojson,
       color: baseColors.stroke,
-      fillColor: baseColors.fill
+      fillColor: baseColors.fill,
+      fillOpacity: opacity,
+      opacity: opacity,
+      // Aumentar el weight para vías para mejorar la clickeabilidad
+      weight: isInfraestructura ? 10 : DEFAULT_STYLES.geojson.weight,
+      // Agregar un borde invisible más grueso para mejorar el área de click
+      bubblingMouseEvents: false,
+      interactive: true,
+      // Configuración adicional para LineString
+      lineCap: 'round',
+      lineJoin: 'round'
     }
-  }, [])
+  }, [layers])
 
   // Obtener estilo de puntos
   const getPointStyle = useCallback((layer: MapLayer) => {
     // Si la capa tiene estilo de puntos personalizado, usarlo
     if (layer.pointStyle) return layer.pointStyle
     
-    // Colores base por defecto
-    const baseColors = LAYER_COLORS[layer.id as keyof typeof LAYER_COLORS] || LAYER_COLORS.unidadesProyecto
+    // Buscar configuración específica de la capa
+    const layerConfig = layers.find(l => l.id === layer.id)
+    
+    // Colores base: usar configuración específica o por defecto
+    let baseColors
+    if (layerConfig && layerConfig.color) {
+      baseColors = {
+        fill: layerConfig.color,
+        stroke: layerConfig.color
+      }
+    } else {
+      baseColors = LAYER_COLORS[layer.id as keyof typeof LAYER_COLORS] || LAYER_COLORS.unidadesProyecto
+    }
+    
+    // Obtener opacidad de la configuración
+    const opacity = layerConfig?.opacity ?? 0.8
     
     return {
       ...DEFAULT_STYLES.points,
       fillColor: baseColors.fill,
-      color: baseColors.stroke
+      color: baseColors.stroke,
+      fillOpacity: opacity,
+      opacity: opacity
     }
-  }, [])
+  }, [layers])
 
   // Función helper para crear gauge chart HTML
   const createGaugeChartHTML = useCallback((progress: number) => {
@@ -1146,9 +1194,11 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
           .filter(layer => layer.visible && layer.type === 'geojson' && layer.data)
           .map(layer => (
             <GeoJSON
-              key={layer.id}
+              key={`${layer.id}-${layer.color}-${layer.opacity}-${layer.representationMode}`} // Key único para forzar re-render
               data={layer.data}
               style={() => getLayerStyle(layer)}
+              // Configurar pane para vías en nivel superior
+              pane={layer.id.includes('infraestructura') || layer.id.includes('vias') ? 'shadowPane' : undefined}
               pointToLayer={(feature, latlng) => {
                 // Usar CircleMarker para todos los puntos en lugar de marcadores estándar
                 return L.circleMarker(latlng, {
@@ -1164,7 +1214,69 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
               onEachFeature={(feature, leafletLayer) => {
                 // Solo agregar evento de click, sin popup
                 if (onFeatureClick) {
+                  console.log(`🔧 Configurando feature: ${layer.id} - ${feature.geometry.type}`, {
+                    layerId: layer.id,
+                    geometryType: feature.geometry.type,
+                    properties: feature.properties
+                  })
+                  
+                  // Configuración específica para LineString
+                  if (feature.geometry.type === 'LineString') {
+                    // Verificar que el layer tenga el método setStyle
+                    const pathLayer = leafletLayer as any;
+                    if (pathLayer.setStyle) {
+                      // Configurar estilo inicial optimizado para click
+                      pathLayer.setStyle({
+                        weight: 12, // Área de click más grande
+                        opacity: 0.8,
+                        stroke: true,
+                        interactive: true,
+                        bubblingMouseEvents: false
+                      })
+                      
+                      // Configurar cursor pointer (verificar que el elemento existe)
+                      setTimeout(() => {
+                        const element = pathLayer.getElement();
+                        if (element && element.style) {
+                          element.style.cursor = 'pointer';
+                          element.style.pointerEvents = 'auto';
+                        }
+                      }, 100)
+                      
+                      // Agregar hover para mejor UX
+                      leafletLayer.on('mouseover', () => {
+                        console.log('🐭 Mouse over en vía:', feature.properties?.nickname || feature.properties?.id_via)
+                        pathLayer.setStyle({
+                          opacity: 1,
+                          weight: 14
+                        })
+                        const element = pathLayer.getElement();
+                        if (element && element.style) {
+                          element.style.cursor = 'pointer';
+                        }
+                      })
+                      
+                      leafletLayer.on('mouseout', () => {
+                        pathLayer.setStyle({
+                          opacity: 0.8,
+                          weight: 12
+                        })
+                      })
+                    }
+                  }
+                  
+                  // Evento de click para todos los tipos de geometría
                   leafletLayer.on('click', (e) => {
+                    console.log('🎯 Click detectado en feature:', {
+                      layerId: layer.id,
+                      geometryType: feature.geometry.type,
+                      properties: feature.properties,
+                      event: e
+                    })
+                    
+                    // Prevenir propagación del evento
+                    e.originalEvent.stopPropagation()
+                    
                     // Llamar al handler de click
                     onFeatureClick(feature, layer)
                     
@@ -1202,7 +1314,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
               .filter((point: any) => point.lat && point.lng)
               .map((point: any, index: number) => (
                 <CircleMarker
-                  key={`${layer.id}-${index}`}
+                  key={`${layer.id}-${index}-${layer.color}-${layer.opacity}`} // Key único para forzar re-render
                   center={[point.lat, point.lng]}
                   {...getPointStyle(layer)}
                   eventHandlers={onFeatureClick ? {

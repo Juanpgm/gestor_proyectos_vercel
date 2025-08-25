@@ -14,6 +14,8 @@ import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyecto'
+import { useUnidadesProyectoSimple } from '@/hooks/useUnidadesProyectoSimple'
+import { useUnidadesProyectoForced } from '@/hooks/useUnidadesProyectoForced'
 import { 
   BarChart3, 
   Map as MapIcon, 
@@ -40,7 +42,7 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('project_units') // CAMBIADO TEMPORALMENTE
   
   // Usar el contexto global del dashboard
   const { state, getFilteredCount, exportData } = useDashboard()
@@ -49,19 +51,21 @@ function DashboardContent() {
   // Conectar los filtros del dashboard con el DataContext
   const { setFilters: setDataContextFilters } = useDataContext()
 
+  // PRUEBA: Hook forzado que no usa useEffect
+  const forcedState = useUnidadesProyectoForced()
+  console.log('🔥 MAIN: Forced hook result:', {
+    loading: forcedState.loading,
+    error: forcedState.error,
+    dataKeys: Object.keys(forcedState.allGeoJSONData)
+  })
+
   // Usar el hook optimizado para obtener datos de unidades de proyecto
   const unidadesState = useUnidadesProyecto()
   const { unidadesProyecto, loading: dataLoading, error: dataError } = unidadesState
 
-  // Debug logs
-  useEffect(() => {
-    console.log('🔍 DEBUG page.tsx - Datos del hook:', {
-      unidadesProyectoLength: unidadesProyecto.length,
-      loading: dataLoading,
-      error: dataError,
-      primerasUnidades: unidadesProyecto.slice(0, 3)
-    })
-  }, [unidadesProyecto, dataLoading, dataError])
+  // TEST: Hook simple para verificar useEffect
+  const simpleTest = useUnidadesProyectoSimple()
+  console.log('🟢 MAIN: Simple hook result:', simpleTest)
 
   // Sincronizar filtros entre DashboardContext y DataContext
   useEffect(() => {
@@ -154,21 +158,6 @@ function DashboardContent() {
       return true
     })
   }, [filters, unidadesProyecto])
-
-  // Debug logs para datos filtrados
-  useEffect(() => {
-    console.log('🔍 DEBUG filteredProjectUnits:', {
-      originalLength: unidadesProyecto.length,
-      filteredLength: filteredProjectUnits.length,
-      filters: filters,
-      comunasFiltradas: filters.comunas,
-      primerosFiltrados: filteredProjectUnits.slice(0, 5).map(u => ({
-        name: u.name,
-        comuna: u.comuna,
-        barrio: u.barrio
-      }))
-    })
-  }, [filteredProjectUnits, unidadesProyecto, filters])
 
   const tabs = [
     { id: 'overview' as const, label: 'Vista General', icon: BarChart3 },

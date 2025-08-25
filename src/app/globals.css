@@ -106,11 +106,76 @@
 
 /* GeoJSON layer styles */
 .leaflet-overlay-pane svg {
-  pointer-events: auto;
+  pointer-events: auto !important;
 }
 
 .leaflet-overlay-pane path {
-  pointer-events: visiblePainted;
+  pointer-events: visiblePainted !important;
+  cursor: pointer !important;
+}
+
+/* Estilos mejorados para vías/LineString */
+.leaflet-overlay-pane path[stroke] {
+  cursor: pointer !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: auto !important;
+}
+
+.leaflet-overlay-pane path[stroke]:hover {
+  stroke-width: 12 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+/* Asegurar que todos los elementos vectoriales sean clickeables */
+.leaflet-interactive {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Estilos para sliders en tema oscuro */
+.slider-thumb::-webkit-slider-thumb {
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider-thumb::-webkit-slider-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+.dark .slider-thumb::-webkit-slider-thumb {
+  background: #60a5fa;
+  border: 2px solid #374151;
+}
+
+.dark .slider-thumb::-webkit-slider-thumb:hover {
+  background: #3b82f6;
+}
+
+.slider-thumb::-moz-range-thumb {
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.dark .slider-thumb::-moz-range-thumb {
+  background: #60a5fa;
+  border: 2px solid #374151;
 }
 
 /* Zoom control styles */

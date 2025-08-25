@@ -205,6 +205,11 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     setSelectedLayerType('')
   }
 
+  // Función para aplicar cambios de capas al mapa
+  const handleApplyLayerChanges = () => {
+    console.log('🎨 Aplicando cambios de capas al mapa')
+  }
+
   // Preparar datos para el control de capas
   const layerControlData = useMemo(() => {
     return ['equipamientos', 'infraestructura_vial'].map(fileName => {
@@ -310,6 +315,7 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
                 <LayerManagementPanel
                   layers={layerConfigs}
                   onLayerUpdate={updateLayerConfig}
+                  onApplyChanges={handleApplyLayerChanges}
                   className="w-full"
                 />
               </div>

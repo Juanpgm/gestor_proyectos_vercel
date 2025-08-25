@@ -69,16 +69,16 @@ export async function loadGeoJSON(
     }
 
     const pathMapping: Record<string, string> = {
-      'barrios': '/geodata',
-      'comunas': '/geodata', 
-      'corregimientos': '/geodata',
-      'veredas': '/geodata',
+      'barrios': '/data/geodata',
+      'comunas': '/data/geodata', 
+      'corregimientos': '/data/geodata',
+      'veredas': '/data/geodata',
       'equipamientos': '/data/unidades_proyecto',
       'infraestructura_vial': '/data/unidades_proyecto'
     }
 
     const actualFileName = fileMapping[fileName] || fileName
-    const basePath = pathMapping[actualFileName] || '/geodata'
+    const basePath = pathMapping[actualFileName] || '/data/geodata'
     const fullPath = `${basePath}/${actualFileName}.geojson`
 
     console.log(`🔍 Cargando archivo: ${fullPath}`)
