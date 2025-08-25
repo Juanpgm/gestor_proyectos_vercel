@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic'
 import { useTheme } from '@/context/ThemeContext'
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
 import { loadAllUnidadesProyecto } from '@/utils/geoJSONLoader'
+import MapLayerFilters, { type GeographicFilters } from './MapLayerFilters'
+import ColorCustomizationControl, { type LayerColors } from './ColorCustomizationControl'
 import 'leaflet/dist/leaflet.css'
 
 /**
@@ -46,7 +48,7 @@ const DynamicProjectMap = dynamic(
 
 export interface ProjectMapData {
   allGeoJSONData: Record<string, any>
-  unidadesProyecto: any[]
+  unidadesProyecto?: any[] // ⚠️ DEPRECATED: Ya no se usa, datos vienen desde allGeoJSONData
 }
 
 export interface ProjectMapProps {
@@ -98,26 +100,34 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
   const [selectedBaseMap, setSelectedBaseMap] = useState<string>('light')
   const [showBaseMapSelector, setShowBaseMapSelector] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  const [geographicFilters, setGeographicFilters] = useState<GeographicFilters>({
+    comunas: [],
+    barrios: [],
+    corregimientos: []
+  })
+  const [layerColors, setLayerColors] = useState<Record<string, LayerColors>>({})
   
   // Configuración de capas - Dinámicamente basada en archivos cargados
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({})
 
   // Hooks
   const { theme } = useTheme()
+  
+  /**
+   * Usar datos del hook optimizado en lugar de cargar independientemente
+   */
   const unidadesState = useUnidadesProyecto()
+  const { allGeoJSONData, unidadesProyecto: hookUnidadesProyecto, loading: hookLoading, error: hookError } = unidadesState
   
   // Memoizar unidades de proyecto para evitar re-renders innecesarios
   const unidadesProyecto = useMemo(() => {
-    return unidadesState.unidadesProyecto || []
-  }, [unidadesState.unidadesProyecto])
-  
-  const unidadesLoading = unidadesState.loading
-  const unidadesError = unidadesState.error
+    return hookUnidadesProyecto || []
+  }, [hookUnidadesProyecto])
 
   console.log('📊 Estado unidades proyecto:', {
     total: unidadesProyecto.length,
-    loading: unidadesLoading,
-    error: unidadesError
+    loading: hookLoading,
+    error: hookError
   })
 
   // Verificar si estamos en el cliente
@@ -126,65 +136,49 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
   }, [])
 
   /**
-   * Carga inicial de todos los archivos GeoJSON de unidades_proyecto
+   * Sincronizar datos del hook con el estado local del mapa
    */
   useEffect(() => {
-    const loadMapData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        console.log('🗺️ === INICIANDO CARGA MAPA UNIDADES DE PROYECTO ===')
-        
-        // Cargar TODOS los archivos GeoJSON de unidades_proyecto automáticamente
-        const allGeoJSONData = await loadAllUnidadesProyecto({
-          processCoordinates: true,
-          cache: true
-        })
+    if (isClient && !hookLoading && !hookError && allGeoJSONData) {
+      // Verificar que hay datos válidos
+      const hasValidData = Object.values(allGeoJSONData).some(data => 
+        data && data.features && data.features.length > 0
+      )
 
-        // Estructura de datos unificada con todos los GeoJSON
+      if (hasValidData) {
+        console.log('🔄 Sincronizando datos del hook con el mapa')
+        
         const projectMapData: ProjectMapData = {
           allGeoJSONData,
-          unidadesProyecto: [] // Se actualizará en el useEffect separado
+          unidadesProyecto: hookUnidadesProyecto || []
         }
 
-        console.log('🗺️ Datos del mapa unificado:')
+        setMapData(projectMapData)
+        setLoading(false)
+        setError(null)
+        
+        console.log('✅ Datos sincronizados desde hook global')
         Object.entries(allGeoJSONData).forEach(([fileName, data]) => {
           if (data) {
             console.log(`📊 ${fileName}: ${data.features?.length || 0} features`)
-          } else {
-            console.log(`❌ ${fileName}: Error al cargar`)
           }
         })
-
-        setMapData(projectMapData)
-        console.log('✅ Datos del mapa de unidades cargados exitosamente')
-        
-        // Forzar re-render después de un breve delay para asegurar que el mapa se muestre
-        setTimeout(() => {
-          setMapData(prev => ({ ...prev! }))
-        }, 100)
-        
-      } catch (err) {
-        console.error('❌ Error cargando datos del mapa:', err)
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
       }
+    } else if (hookError) {
+      setError(hookError)
+      setLoading(false)
+    } else if (hookLoading) {
+      setLoading(true)
+      setError(null)
     }
-
-    // Cargar inmediatamente cuando el componente está en cliente
-    if (isClient) {
-      loadMapData()
-    }
-  }, [isClient]) // Solo depende de isClient
+  }, [isClient, hookLoading, hookError, allGeoJSONData, hookUnidadesProyecto])
 
   /**
-   * Actualizar unidades de proyecto cuando cambien
+   * Actualizar unidades de proyecto cuando cambien desde props
    */
   useEffect(() => {
     if (mapData && unidadesProyecto && unidadesProyecto.length > 0) {
-      console.log('🔄 Actualizando unidades de proyecto en mapa:', unidadesProyecto.length)
+      console.log('🔄 Actualizando unidades de proyecto desde props:', unidadesProyecto.length)
       setMapData(prev => prev ? { ...prev, unidadesProyecto } : null)
     }
   }, [unidadesProyecto, mapData])
@@ -213,6 +207,23 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
   }
 
   /**
+   * Manejar cambios en filtros geográficos
+   */
+  const handleGeographicFilterChange = (filters: GeographicFilters) => {
+    setGeographicFilters(filters)
+  }
+
+  /**
+   * Manejar cambios en colores de capas
+   */
+  const handleLayerColorChange = (layerId: string, colors: LayerColors) => {
+    setLayerColors(prev => ({
+      ...prev,
+      [layerId]: colors
+    }))
+  }
+
+  /**
    * Estadísticas del mapa
    */
   const mapStats = useMemo(() => {
@@ -228,12 +239,26 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
       totalGeoJSONFeatures += count
     })
     
+    // Calcular total de proyectos desde GeoJSON en lugar de unidadesProyecto
+    const totalProyectos = Object.values(mapData.allGeoJSONData).reduce((total, geoJSON: any) => {
+      return total + (geoJSON?.features?.length || 0)
+    }, 0)
+    
+    // Calcular proyectos activos desde GeoJSON
+    const proyectosActivos = Object.values(mapData.allGeoJSONData).reduce((activos, geoJSON: any) => {
+      const activosEnCapa = geoJSON?.features?.filter((f: any) => 
+        f.properties?.status === 'En Ejecución' || 
+        f.properties?.estado === 'En Ejecución'
+      ).length || 0
+      return activos + activosEnCapa
+    }, 0)
+    
     return {
-      totalProyectos: mapData.unidadesProyecto.length,
+      totalProyectos,
       totalGeoJSONFeatures,
       equipamientos: geoJSONStats.equipamientos || 0,
       infraestructura: geoJSONStats.infraestructura_vial || 0,
-      proyectosActivos: mapData.unidadesProyecto.filter(p => p.status === 'En Ejecución').length,
+      proyectosActivos,
       geoJSONStats
     }
   }, [mapData])
@@ -375,55 +400,21 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
           layerVisibility={layerVisibility}
           height={height}
           theme={theme}
+          geographicFilters={geographicFilters}
+          layerColors={layerColors}
         />
+
+        {/* Controles flotantes en el mapa */}
+        <div className="absolute top-4 left-4 z-[1000] space-y-3 max-w-xs">
+          {/* Control de colores */}
+          <ColorCustomizationControl
+            onColorChange={handleLayerColorChange}
+            layers={Object.keys(mapData?.allGeoJSONData || {})}
+          />
+        </div>
       </div>
 
-      {/* Estadísticas dinámicas */}
-      {mapStats && (
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {mapStats.totalProyectos}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Total Proyectos</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {mapStats.proyectosActivos}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">En Ejecución</div>
-            </div>
-            {Object.entries(mapStats.geoJSONStats).map(([fileName, count]) => {
-              const displayName = fileName === 'infraestructura_vial' ? 'Vías' : 
-                                fileName === 'equipamientos' ? 'Equipamientos' : 
-                                fileName.charAt(0).toUpperCase() + fileName.slice(1)
-              
-              const colorClass = fileName === 'equipamientos' ? 'text-purple-600 dark:text-purple-400' : 
-                               fileName === 'infraestructura_vial' ? 'text-orange-600 dark:text-orange-400' :
-                               'text-indigo-600 dark:text-indigo-400'
-              
-              return (
-                <div key={fileName}>
-                  <div className={`text-2xl font-bold ${colorClass}`}>
-                    {count}
-                  </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">{displayName}</div>
-                </div>
-              )
-            })}
-          </div>
-          
-          {/* Mostrar información sobre archivos con errores si los hay */}
-          {mapStats.geoJSONStats && Object.values(mapStats.geoJSONStats).some(count => count === 0) && (
-            <div className="mt-3 text-center">
-              <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                ⚠️ Algunos archivos GeoJSON no se pudieron cargar completamente
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+
     </motion.div>
   )
 }

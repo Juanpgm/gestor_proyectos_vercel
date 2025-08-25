@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { processGeoJSONCoordinates, fixCoordinatesForGeoJSON } from '@/utils/coordinateUtils'
-import { loadAllUnidadesProyecto } from '@/utils/geoJSONLoader'
+import { loadMapDataWithFallback, validateMapData } from '@/utils/geoJSONLoader'
 
 // Tipos para los datos GeoJSON
 export interface GeoJSONFeature {
@@ -225,108 +225,147 @@ function featureToUnidadProyecto(feature: GeoJSONFeature, source: 'equipamientos
   }
 }
 
+// Estado global para evitar cargas múltiples
+let globalUnidadesState: UnidadesProyectoState | null = null
+let globalUnidadesPromise: Promise<UnidadesProyectoState> | null = null
+let globalListeners: Set<(state: UnidadesProyectoState) => void> = new Set()
+
+// Función para cargar datos de manera singleton
+async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
+  if (globalUnidadesPromise) {
+    console.log('🔄 Esperando carga global existente...')
+    return globalUnidadesPromise
+  }
+
+  globalUnidadesPromise = (async () => {
+    try {
+      console.log('🔄 === INICIANDO CARGA GLOBAL UNIDADES DE PROYECTO ===')
+
+      // Verificar que estamos en el cliente
+      if (typeof window === 'undefined') {
+        throw new Error('Componente ejecutándose en servidor')
+      }
+
+      // Usar sistema de carga con fallback más robusto
+      console.log('📡 Iniciando carga de archivos GeoJSON...')
+      const allGeoJSONData = await loadMapDataWithFallback()
+
+      console.log('🔍 Resultado de carga:', allGeoJSONData)
+
+      // Validar datos
+      if (!validateMapData(allGeoJSONData)) {
+        console.warn('⚠️ Datos no válidos, usando estructura vacía')
+      }
+
+      // Verificar que se cargaron datos válidos
+      const validFiles = Object.entries(allGeoJSONData).filter(([fileName, data]: [string, any]) => 
+        data && data.features && Array.isArray(data.features) && data.features.length > 0
+      )
+
+      console.log(`📊 Archivos válidos encontrados: ${validFiles.length}`)
+      validFiles.forEach(([fileName, data]: [string, any]) => {
+        console.log(`✅ ${fileName}: ${data.features.length} features`)
+      })
+
+      // Convertir todos los datos a UnidadProyecto
+      const todasLasUnidades: UnidadProyecto[] = []
+
+      for (const [fileName, geoJSONData] of validFiles) {
+        const source = fileName.includes('equipamientos') ? 'equipamientos' : 'infraestructura'
+        
+        const unidadesArchivo = (geoJSONData as any).features.map((feature: GeoJSONFeature) => 
+          featureToUnidadProyecto(feature, source)
+        )
+        todasLasUnidades.push(...unidadesArchivo)
+      }
+
+      console.log(`🎯 Total unidades globales: ${todasLasUnidades.length}`)
+
+      const finalState: UnidadesProyectoState = {
+        equipamientos: null,
+        infraestructura: null,
+        unidadesProyecto: todasLasUnidades,
+        allGeoJSONData: allGeoJSONData,
+        loading: false,
+        error: null
+      }
+
+      globalUnidadesState = finalState
+      console.log('✅ === CARGA GLOBAL COMPLETA ===')
+      
+      // Notificar a todos los listeners
+      globalListeners.forEach(listener => listener(finalState))
+      
+      return finalState
+
+    } catch (error: any) {
+      console.error('❌ Error en carga global:', error)
+      
+      const errorState: UnidadesProyectoState = {
+        equipamientos: null,
+        infraestructura: null,
+        unidadesProyecto: [],
+        allGeoJSONData: {},
+        loading: false,
+        error: error.message || 'Error cargando datos'
+      }
+
+      globalUnidadesState = errorState
+      globalUnidadesPromise = null // Reset para permitir reintento
+      
+      // Notificar error a todos los listeners
+      globalListeners.forEach(listener => listener(errorState))
+      
+      throw error
+    }
+  })()
+
+  return globalUnidadesPromise
+}
+
 export function useUnidadesProyecto(): UnidadesProyectoState {
   console.log('🚀 useUnidadesProyecto: Hook inicializado')
   
-  const [state, setState] = useState<UnidadesProyectoState>({
-    equipamientos: null,
-    infraestructura: null,
-    unidadesProyecto: [],
-    allGeoJSONData: {},
-    loading: true,
-    error: null
+  const [state, setState] = useState<UnidadesProyectoState>(() => {
+    // Si ya tenemos datos globales, usarlos inmediatamente
+    if (globalUnidadesState && !globalUnidadesState.loading) {
+      return globalUnidadesState
+    }
+    
+    return {
+      equipamientos: null,
+      infraestructura: null,
+      unidadesProyecto: [],
+      allGeoJSONData: {},
+      loading: true,
+      error: null
+    }
   })
 
   useEffect(() => {
     let cancelled = false
 
-    const loadData = async () => {
-      try {
-        setState(prev => ({ ...prev, loading: true, error: null }))
-
-        console.log('🔄 === INICIANDO CARGA UNIDADES DE PROYECTO (MEJORADO) ===')
-
-        // Verificar que estamos en el cliente
-        if (typeof window === 'undefined') {
-          console.log('⚠️ Componente ejecutándose en servidor, saltando carga')
-          return
-        }
-
-        // Usar nuestro nuevo sistema de carga automática
-        console.log('📡 Cargando con sistema automático...')
-        const allGeoJSONData = await loadAllUnidadesProyecto(
-          { processCoordinates: true, cache: true },
-          false // No usar detección automática para evitar 404s
-        )
-
-        if (cancelled) return
-
-        console.log(`� Datos cargados automáticamente:`, allGeoJSONData)
-
-        // Convertir todos los datos a UnidadProyecto de manera más eficiente
-        const todasLasUnidades: UnidadProyecto[] = []
-
-        // Procesar cada archivo cargado con procesamiento por lotes
-        for (const [fileName, geoJSONData] of Object.entries(allGeoJSONData)) {
-          if (geoJSONData?.features && geoJSONData.features.length > 0) {
-            console.log(`📊 Procesando ${fileName}: ${geoJSONData.features.length} features`)
-            
-            const source = fileName.includes('equipamientos') ? 'equipamientos' : 'infraestructura'
-            
-            // Procesar en lotes más pequeños para mejor rendimiento
-            const batchSize = 100
-            for (let i = 0; i < geoJSONData.features.length; i += batchSize) {
-              const batch = geoJSONData.features.slice(i, i + batchSize)
-              const unidadesBatch = batch.map((feature: GeoJSONFeature) => 
-                featureToUnidadProyecto(feature, source)
-              )
-              todasLasUnidades.push(...unidadesBatch)
-              
-              // Permitir que el hilo principal respire cada 4 lotes
-              if (i % (batchSize * 4) === 0 && i > 0) {
-                await new Promise(resolve => setTimeout(resolve, 1))
-              }
-            }
-          }
-        }
-
-        console.log(`🎯 === RESULTADO FINAL ===`)
-        console.log(`📊 Total unidades de proyecto: ${todasLasUnidades.length}`)
-
-        // Mostrar estadísticas por tipo
-        const stats = todasLasUnidades.reduce((acc, unidad) => {
-          acc[unidad.source || 'desconocido'] = (acc[unidad.source || 'desconocido'] || 0) + 1
-          return acc
-        }, {} as Record<string, number>)
-        console.log('📈 Estadísticas por tipo:', stats)
-
-        setState({
-          equipamientos: null,
-          infraestructura: null,
-          unidadesProyecto: todasLasUnidades,
-          allGeoJSONData: allGeoJSONData,
-          loading: false,
-          error: null
-        })
-
-        console.log('✅ === CARGA COMPLETA ===')
-
-      } catch (error: any) {
-        if (!cancelled) {
-          console.error('❌ Error cargando unidades de proyecto:', error)
-          setState(prev => ({
-            ...prev,
-            loading: false,
-            error: error.message || 'Error cargando datos'
-          }))
-        }
+    // Agregar listener global
+    const listener = (newState: UnidadesProyectoState) => {
+      if (!cancelled) {
+        setState(newState)
       }
     }
+    globalListeners.add(listener)
 
-    loadData()
+    // Si ya tenemos datos, usarlos
+    if (globalUnidadesState && !globalUnidadesState.loading) {
+      setState(globalUnidadesState)
+    } else {
+      // Iniciar carga global si no está en progreso
+      loadUnidadesProyectoGlobal().catch(() => {
+        // Error ya manejado en la función global
+      })
+    }
 
     return () => {
       cancelled = true
+      globalListeners.delete(listener)
     }
   }, [])
 

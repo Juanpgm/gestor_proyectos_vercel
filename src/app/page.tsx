@@ -13,8 +13,7 @@ import ProjectsUnitsTable, { ProjectUnit } from '@/components/ProjectsUnitsTable
 import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
-import { loadAllUnidadesProyecto } from '@/utils/geoJSONLoader'
-import { type UnidadProyecto } from '@/hooks/useUnidadesProyecto'
+import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyecto'
 import { 
   BarChart3, 
   Map as MapIcon, 
@@ -50,92 +49,13 @@ function DashboardContent() {
   // Conectar los filtros del dashboard con el DataContext
   const { setFilters: setDataContextFilters } = useDataContext()
 
-  // Estado para datos de unidades de proyecto - usando geoJSONLoader directo como el mapa
-  const [unidadesProyecto, setUnidadesProyecto] = useState<UnidadProyecto[]>([])
-  const [dataLoading, setDataLoading] = useState(true)
-  const [dataError, setDataError] = useState<string | null>(null)
-
-  // Cargar datos directamente como lo hace el mapa
-  useEffect(() => {
-    const loadUnidadesData = async () => {
-      try {
-        console.log('🔄 === INICIANDO CARGA TABLA UNIDADES DE PROYECTO ===')
-        setDataLoading(true)
-        setDataError(null)
-        
-        // Usar exactamente la misma función que usa el mapa
-        const allGeoJSONData = await loadAllUnidadesProyecto({
-          processCoordinates: true,
-          cache: true
-        })
-        
-        console.log('✅ Datos cargados para tabla:', allGeoJSONData)
-        
-        // Convertir GeoJSON a formato de tabla (mismo proceso que usa el hook)
-        const allFeatures: UnidadProyecto[] = []
-
-        Object.entries(allGeoJSONData).forEach(([fileName, geoJSONData]) => {
-          if (geoJSONData && geoJSONData.features && Array.isArray(geoJSONData.features)) {
-            console.log(`📊 Procesando ${fileName}: ${geoJSONData.features.length} features`)
-            
-            const source = fileName.includes('equipamientos') ? 'equipamientos' : 'infraestructura'
-            const features = geoJSONData.features.map((feature: any, index: number) => {
-              const props = feature.properties || {}
-              
-              return {
-                id: props.identificador?.toString() || props.id_via?.toString() || `${fileName}-${index}`,
-                bpin: props.bpin?.toString() || '0',
-                name: props.nickname || props.nombre_unidad_proyecto || props.seccion_via || `Unidad ${props.identificador || index}`,
-                status: 'En Ejecución' as const,
-                comuna: props.comuna_corregimiento,
-                barrio: props.barrio_vereda,
-                budget: props.ppto_base || 0,
-                executed: props.pagos_realizados || 0,
-                pagado: props.pagos_realizados || 0,
-                beneficiaries: props.usuarios_beneficiarios || 0,
-                startDate: props.fecha_inicio_real || props.fecha_inicio_planeado || '2024-01-01',
-                endDate: props.fecha_fin_real || props.fecha_fin_planeado || '2024-12-31',
-                responsible: props.nombre_centro_gestor || 'No especificado',
-                progress: (props.avance_físico_obra || 0) * 100,
-                tipoIntervencion: 'Construcción' as const,
-                claseObra: props.clase_obra,
-                descripcion: props.descripcion_intervencion,
-                direccion: props.direccion,
-                geometry: feature.geometry,
-                source: source as 'equipamientos' | 'infraestructura'
-              }
-            })
-            
-            allFeatures.push(...features)
-          }
-        })
-
-        console.log(`🎯 Total unidades procesadas para tabla: ${allFeatures.length}`)
-        
-        // Debug: Mostrar ejemplos de comunas para verificar formato
-        const comunasEjemplos = allFeatures.slice(0, 10).map(u => ({
-          name: u.name,
-          comuna: u.comuna,
-          raw_comuna: u.comuna
-        }))
-        console.log('📍 Ejemplos de comunas en datos:', comunasEjemplos)
-        
-        setUnidadesProyecto(allFeatures)
-        
-      } catch (error) {
-        console.error('❌ Error cargando datos para tabla:', error)
-        setDataError(error instanceof Error ? error.message : 'Error desconocido')
-      } finally {
-        setDataLoading(false)
-      }
-    }
-
-    loadUnidadesData()
-  }, [])
+  // Usar el hook optimizado para obtener datos de unidades de proyecto
+  const unidadesState = useUnidadesProyecto()
+  const { unidadesProyecto, loading: dataLoading, error: dataError } = unidadesState
 
   // Debug logs
   useEffect(() => {
-    console.log('🔍 DEBUG page.tsx - Datos cargados:', {
+    console.log('🔍 DEBUG page.tsx - Datos del hook:', {
       unidadesProyectoLength: unidadesProyecto.length,
       loading: dataLoading,
       error: dataError,
@@ -260,6 +180,39 @@ function DashboardContent() {
   ]
 
   const renderContent = () => {
+    // Mostrar estado de carga unificado
+    if (dataLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Cargando datos del proyecto...</p>
+            <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
+              {activeTab === 'project_units' ? 'Preparando mapa y tabla...' : 'Obteniendo información...'}
+            </p>
+          </div>
+        </div>
+      )
+    }
+
+    // Mostrar estado de error unificado
+    if (dataError) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 text-4xl mb-4">⚠️</div>
+            <p className="text-red-600 dark:text-red-400 mb-4">Error cargando datos: {dataError}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      )
+    }
+
     switch (activeTab) {
       case 'overview':
         return (

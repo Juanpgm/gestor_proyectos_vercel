@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { processGeoJSONCoordinates } from './coordinateUtils'
 
 /**
@@ -7,19 +8,8 @@ import { processGeoJSONCoordinates } from './coordinateUtils'
  * UTILIDAD UNIFICADA DE CARGA GEOJSON
  * ===================================
  * 
- * Sistema centralizado para la carga de archivos GeoJSON
- * Estrategia optimizada por tamaño de archivo:
- * - < 1MB: Importación estática (recomendado para la mayoría)
- * - 1-10MB: API routes  
- * - > 10MB: CDN/bucket externo
- * 
- * Archivos y ubicaciones actuales:
- * /geodata/:
- * - barrios.geojson, comunas.geojson, corregimientos.geojson, veredas.geojson ✅ Estático
- * 
- * /data/unidades_proyecto/:
- * - equipamientos.geojson: 433.4 KB ✅ Estático
- * - infraestructura_vial.geojson: 278.5 KB ✅ Estático
+ * Sistema centralizado y simplificado para la carga de archivos GeoJSON
+ * Elimina duplicaciones y consolida toda la lógica en un solo lugar
  */
 
 export interface GeoJSONLoadResult {
@@ -40,7 +30,15 @@ export interface GeoJSONLoaderOptions {
 const geoJSONCache = new Map<string, any>()
 
 /**
- * Carga archivo GeoJSON con estrategia unificada
+ * Datos de fallback para evitar errores
+ */
+const FALLBACK_GEOJSON = {
+  type: 'FeatureCollection',
+  features: []
+}
+
+/**
+ * Carga archivo GeoJSON con estrategia unificada y fallback
  * 
  * @param fileName - Nombre del archivo (sin extensión)
  * @param options - Opciones de carga
@@ -57,7 +55,6 @@ export async function loadGeoJSON(
   } = options
 
   console.log(`🗺️ Cargando GeoJSON: ${fileName}`)
-  console.log(`🔧 Opciones:`, { processCoordinates, cache, timeout })
 
   // Verificar cache si está habilitado
   if (cache && geoJSONCache.has(fileName)) {
@@ -66,19 +63,11 @@ export async function loadGeoJSON(
   }
 
   try {
-    // Estrategia de carga optimizada por fetch (archivos < 1MB)
-    // Todos nuestros archivos actuales califican para esta estrategia
-    const validFiles = [
-      'barrios', 'comunas', 'corregimientos', 'veredas', 
-      'equipamientos', 'infraestructura', 'infraestructura_vial'
-    ]
-
-    // Mapeo de nombres alternativos
+    // Configuración de archivos y rutas
     const fileMapping: Record<string, string> = {
       'infraestructura': 'infraestructura_vial'
     }
 
-    // Mapeo de rutas por archivo
     const pathMapping: Record<string, string> = {
       'barrios': '/geodata',
       'comunas': '/geodata', 
@@ -89,25 +78,15 @@ export async function loadGeoJSON(
     }
 
     const actualFileName = fileMapping[fileName] || fileName
-    console.log(`📝 Archivo original: ${fileName} → Archivo final: ${actualFileName}`)
-
-    // Verificar que el archivo es válido
-    if (!validFiles.includes(actualFileName)) {
-      console.warn(`⚠️ Archivo no reconocido: ${fileName}, intentando carga directa en /geodata`)
-    }
-
-    // Determinar la ruta correcta
     const basePath = pathMapping[actualFileName] || '/geodata'
     const fullPath = `${basePath}/${actualFileName}.geojson`
 
-    console.log(`🔍 Buscando archivo en: ${fullPath}`)
+    console.log(`🔍 Cargando archivo: ${fullPath}`)
 
-    // Carga por fetch (estrategia unificada)
+    // Realizar solicitud con timeout
     const response = await fetch(fullPath, {
       signal: AbortSignal.timeout(timeout)
     })
-
-    console.log(`📡 Respuesta HTTP: ${response.status} ${response.statusText}`)
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
@@ -116,13 +95,15 @@ export async function loadGeoJSON(
     const data = await response.json()
 
     // Validar estructura GeoJSON
-    validateGeoJSON(data, fileName)
+    if (!validateGeoJSON(data, fileName)) {
+      throw new Error(`Archivo GeoJSON inválido: ${fileName}`)
+    }
 
-    console.log(`✅ GeoJSON cargado: ${fileName} (${data.features.length} features)`)
+    console.log(`✅ GeoJSON cargado: ${fileName} (${data.features?.length || 0} features)`)
 
     // Procesar coordenadas si es necesario
     let processedData = data
-    if (processCoordinates) {
+    if (processCoordinates && data.features) {
       console.log(`🔄 Procesando coordenadas para: ${fileName}`)
       processedData = processGeoJSONCoordinates(data)
     }
@@ -136,12 +117,21 @@ export async function loadGeoJSON(
 
   } catch (error) {
     console.error(`❌ Error cargando GeoJSON ${fileName}:`, error)
-    throw error
+    
+    // Retornar fallback en lugar de lanzar error
+    console.warn(`⚠️ Usando fallback para ${fileName}`)
+    const fallbackData = { ...FALLBACK_GEOJSON }
+    
+    if (cache) {
+      geoJSONCache.set(fileName, fallbackData)
+    }
+    
+    return fallbackData
   }
 }
 
 /**
- * Carga múltiples archivos GeoJSON en paralelo
+ * Carga múltiples archivos GeoJSON con manejo robusto de errores
  * 
  * @param fileNames - Array de nombres de archivos
  * @param options - Opciones de carga
@@ -153,31 +143,25 @@ export async function loadMultipleGeoJSON(
 ): Promise<Record<string, any>> {
   console.log(`🗺️ Cargando múltiples GeoJSON:`, fileNames)
 
-  try {
-    const promises = fileNames.map(async (fileName) => {
+  const results: Record<string, any> = {}
+
+  // Cargar archivos secuencialmente para evitar sobrecarga
+  for (const fileName of fileNames) {
+    try {
       const data = await loadGeoJSON(fileName, options)
-      return { fileName, data }
-    })
-
-    const results = await Promise.all(promises)
-    
-    const dataMap: Record<string, any> = {}
-    results.forEach(({ fileName, data }) => {
-      dataMap[fileName] = data
-    })
-
-    console.log(`✅ Múltiples GeoJSON cargados exitosamente:`, Object.keys(dataMap))
-    return dataMap
-
-  } catch (error) {
-    console.error(`❌ Error cargando múltiples GeoJSON:`, error)
-    throw error
+      results[fileName] = data
+    } catch (error) {
+      console.warn(`⚠️ Error cargando ${fileName}, usando fallback`)
+      results[fileName] = { ...FALLBACK_GEOJSON }
+    }
   }
+
+  console.log(`✅ Múltiples GeoJSON procesados:`, Object.keys(results))
+  return results
 }
 
 /**
- * Lista de archivos GeoJSON disponibles en unidades_proyecto
- * IMPORTANTE: Actualizar esta lista cuando se agreguen nuevos archivos
+ * Lista simplificada de archivos predefinidos
  */
 const UNIDADES_PROYECTO_FILES = [
   'equipamientos',
@@ -185,173 +169,80 @@ const UNIDADES_PROYECTO_FILES = [
 ]
 
 /**
- * Detecta automáticamente archivos GeoJSON en la carpeta unidades_proyecto
- * Intentará cargar archivos comunes que podrían existir
- * 
- * @returns Array de nombres de archivos encontrados
- */
-export async function detectUnidadesProyectoFiles(): Promise<string[]> {
-  const possibleFiles = [
-    ...UNIDADES_PROYECTO_FILES,
-    // Agregar aquí otros posibles nombres de archivos que podrían existir
-    'espacios_publicos',
-    'movilidad',
-    'servicios_publicos',
-    'educacion',
-    'salud',
-    'deporte_recreacion',
-    'cultura',
-    'seguridad',
-    'medio_ambiente'
-  ]
-
-  const existingFiles: string[] = []
-  
-  console.log('🔍 Detectando archivos GeoJSON disponibles...')
-  
-  for (const fileName of possibleFiles) {
-    try {
-      const basePath = '/data/unidades_proyecto'
-      const fullPath = `${basePath}/${fileName}.geojson`
-      
-      // Intentar un HEAD request para verificar si existe sin descargar
-      const response = await fetch(fullPath, { method: 'HEAD' })
-      
-      if (response.ok) {
-        existingFiles.push(fileName)
-        console.log(`✅ Encontrado: ${fileName}`)
-      }
-    } catch (error) {
-      // Archivo no existe o error de red, continuar
-      console.log(`❌ No encontrado: ${fileName}`)
-    }
-  }
-  
-  console.log(`📁 Archivos detectados: ${existingFiles.length}`, existingFiles)
-  return existingFiles
-}
-
-/**
- * Carga automáticamente todos los archivos GeoJSON de la carpeta unidades_proyecto
- * Detecta automáticamente los archivos disponibles y los carga
+ * Carga todos los archivos de unidades de proyecto con manejo robusto
  * 
  * @param options - Opciones de carga
- * @param useDetection - Si true, detecta archivos automáticamente. Si false, usa lista predefinida
- * @returns Object con todos los datos GeoJSON indexados por nombre de archivo
+ * @returns Object con todos los datos GeoJSON
  */
 export async function loadAllUnidadesProyecto(
-  options: GeoJSONLoaderOptions = {},
-  useDetection: boolean = false  // CAMBIO: false por defecto para usar lista predefinida
+  options: GeoJSONLoaderOptions = {}
 ): Promise<Record<string, any>> {
-  console.log(`🗺️ === CARGANDO TODAS LAS UNIDADES DE PROYECTO ===`)
+  console.log(`🗺️ === CARGANDO UNIDADES DE PROYECTO ===`)
   
-  let filesToLoad: string[]
-  
-  if (useDetection) {
-    try {
-      filesToLoad = await detectUnidadesProyectoFiles()
-      console.log(`� Detección automática exitosa: ${filesToLoad.length} archivos`)
-    } catch (error) {
-      console.warn(`⚠️ Error en detección automática, usando lista predefinida:`, error)
-      filesToLoad = UNIDADES_PROYECTO_FILES
-    }
-  } else {
-    filesToLoad = UNIDADES_PROYECTO_FILES
-  }
-  
-  console.log(`📂 Archivos a cargar:`, filesToLoad)
-
   const results: Record<string, any> = {}
-  const errors: Record<string, string> = {}
-  const successful: string[] = []
+  let successCount = 0
 
-  // Cargar cada archivo y manejar errores individualmente
-  for (const fileName of filesToLoad) {
+  for (const fileName of UNIDADES_PROYECTO_FILES) {
     try {
       console.log(`🔄 Cargando: ${fileName}...`)
       const data = await loadGeoJSON(fileName, options)
-      results[fileName] = data
-      successful.push(fileName)
-      console.log(`✅ ${fileName}: ${data.features?.length || 0} features`)
+      
+      if (data && data.features && Array.isArray(data.features)) {
+        results[fileName] = data
+        successCount++
+        console.log(`✅ ${fileName}: ${data.features.length} features cargadas`)
+      } else {
+        console.warn(`⚠️ ${fileName}: Datos vacíos, usando fallback`)
+        results[fileName] = { ...FALLBACK_GEOJSON }
+      }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Error desconocido'
-      errors[fileName] = errorMsg
-      console.error(`❌ Error cargando ${fileName}:`, errorMsg)
-      // Continuar con el siguiente archivo en lugar de fallar completamente
-      results[fileName] = null
+      console.error(`❌ Error cargando ${fileName}:`, error)
+      results[fileName] = { ...FALLBACK_GEOJSON }
     }
   }
 
-  // Mostrar resumen detallado
-  console.log(`📊 === RESUMEN DE CARGA ===`)
-  console.log(`✅ Exitosos (${successful.length}):`, successful)
-  if (Object.keys(errors).length > 0) {
-    console.log(`❌ Fallidos (${Object.keys(errors).length}):`, Object.keys(errors))
-    console.log(`🔍 Errores detallados:`, errors)
-  }
-  
-  // Estadísticas de features cargadas
-  const totalFeatures = successful.reduce((total, fileName) => {
-    return total + (results[fileName]?.features?.length || 0)
-  }, 0)
-  console.log(`📈 Total features cargadas: ${totalFeatures}`)
-  
-  // Notificar errores pero no fallar completamente si hay al menos un archivo exitoso
-  if (successful.length === 0) {
-    throw new Error(`❌ No se pudo cargar ningún archivo GeoJSON. Errores: ${JSON.stringify(errors)}`)
-  }
-  
-  if (Object.keys(errors).length > 0) {
-    console.warn(`⚠️ Algunos archivos fallaron pero la carga continúa con ${successful.length} archivos exitosos`)
-  }
-
+  console.log(`📊 Resumen: ${successCount}/${UNIDADES_PROYECTO_FILES.length} archivos cargados exitosamente`)
   return results
-}
-
-/**
+}/**
  * Valida la estructura de un archivo GeoJSON
  * 
  * @param data - Datos a validar
  * @param fileName - Nombre del archivo para logging
- * @returns true si es válido, throws Error si no
+ * @returns true si es válido, false si no
  */
 export function validateGeoJSON(data: any, fileName: string): boolean {
-  if (!data) {
-    throw new Error(`${fileName}: Datos vacíos`)
-  }
-  
-  if (typeof data !== 'object') {
-    throw new Error(`${fileName}: Los datos no son un objeto`)
-  }
-  
-  if (data.type !== 'FeatureCollection') {
-    throw new Error(`${fileName}: No es una FeatureCollection (encontrado: ${data.type})`)
-  }
-  
-  if (!Array.isArray(data.features)) {
-    throw new Error(`${fileName}: features no es un array`)
-  }
-  
-  // Validar algunas features para asegurar estructura correcta
-  if (data.features.length > 0) {
-    const firstFeature = data.features[0]
-    
-    if (!firstFeature.type || firstFeature.type !== 'Feature') {
-      throw new Error(`${fileName}: La primera feature no es de tipo 'Feature'`)
+  try {
+    if (!data) {
+      console.warn(`${fileName}: Datos vacíos`)
+      return false
     }
     
-    if (!firstFeature.geometry) {
-      throw new Error(`${fileName}: La primera feature no tiene geometría`)
+    if (typeof data !== 'object') {
+      console.warn(`${fileName}: Los datos no son un objeto`)
+      return false
     }
     
-    if (!firstFeature.properties) {
-      throw new Error(`${fileName}: La primera feature no tiene propiedades`)
+    if (data.type !== 'FeatureCollection') {
+      console.warn(`${fileName}: No es una FeatureCollection (encontrado: ${data.type})`)
+      return false
     }
+    
+    if (!Array.isArray(data.features)) {
+      console.warn(`${fileName}: features no es un array`)
+      return false
+    }
+    
+    console.log(`✅ Validación GeoJSON exitosa para: ${fileName}`)
+    return true
+  } catch (error) {
+    console.warn(`${fileName}: Error en validación:`, error)
+    return false
   }
-  
-  console.log(`✅ Validación GeoJSON exitosa para: ${fileName}`)
-  return true
 }
+
+/**
+ * Hook React para cargar GeoJSON con estado
+ */
 export function useGeoJSONLoader(
   fileName: string | null,
   options: GeoJSONLoaderOptions = {}
@@ -378,7 +269,7 @@ export function useGeoJSONLoader(
       })
       .catch(error => {
         setState({ 
-          data: null, 
+          data: { ...FALLBACK_GEOJSON }, 
           loading: false, 
           error: error.message || 'Error desconocido' 
         })
@@ -390,7 +281,6 @@ export function useGeoJSONLoader(
 
 /**
  * Limpia el cache de GeoJSON
- * Útil para forzar recarga de datos actualizados
  */
 export function clearGeoJSONCache(fileName?: string): void {
   if (fileName) {
@@ -412,18 +302,57 @@ export function getGeoJSONCacheStats(): { size: number; keys: string[] } {
   }
 }
 
-// Importar React para el hook
-import React from 'react'
+/**
+ * Función helper para cargar datos con fallback robusto
+ * Reemplaza la funcionalidad de mapDataLoader.ts
+ */
+export async function loadMapDataWithFallback(): Promise<Record<string, any>> {
+  console.log('🗺️ Cargando datos del mapa con fallback...')
+  
+  const results: Record<string, any> = {}
+  const filesToLoad = ['equipamientos', 'infraestructura_vial']
+  
+  for (const fileName of filesToLoad) {
+    try {
+      const data = await loadGeoJSON(fileName)
+      results[fileName] = data
+      console.log(`✅ ${fileName} cargado:`, data.features?.length || 0, 'features')
+    } catch (error) {
+      console.warn(`⚠️ Error cargando ${fileName}, usando fallback:`, error)
+      results[fileName] = { ...FALLBACK_GEOJSON }
+    }
+  }
+  
+  console.log('📊 Datos del mapa listos:', Object.keys(results))
+  return results
+}
 
+/**
+ * Valida que los datos del mapa son correctos
+ */
+export function validateMapData(data: any): boolean {
+  if (!data || typeof data !== 'object') return false
+  
+  const hasValidData = Object.values(data).some((geojsonData: any) => 
+    geojsonData && 
+    geojsonData.type === 'FeatureCollection' && 
+    Array.isArray(geojsonData.features)
+  )
+  
+  return hasValidData
+}
+
+// Exportar el objeto default sin funciones obsoletas
 const geoJSONLoader = {
   loadGeoJSON,
   loadMultipleGeoJSON,
   loadAllUnidadesProyecto,
-  detectUnidadesProyectoFiles,
   validateGeoJSON,
   useGeoJSONLoader,
   clearGeoJSONCache,
-  getGeoJSONCacheStats
+  getGeoJSONCacheStats,
+  loadMapDataWithFallback,
+  validateMapData
 }
 
 export default geoJSONLoader

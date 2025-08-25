@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { loadGeoJSON } from '@/utils/geoJSONLoader'
+import { loadGeoJSON, loadMapDataWithFallback } from '@/utils/geoJSONLoader'
 
 // Tipos para cada fuente de datos
 interface Proyecto {
@@ -167,11 +167,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         setLoading(true)
         setError(null)
 
-        // Cargar datos GeoJSON usando el loader unificado
-        const [equipamientosData, infraestructuraData] = await Promise.all([
-          loadGeoJSON('equipamientos'),
-          loadGeoJSON('infraestructura_vial')
-        ])
+        // Cargar datos GeoJSON usando el loader centralizado con fallback
+        const geoJSONData = await loadMapDataWithFallback()
+        const equipamientosData = geoJSONData.equipamientos
+        const infraestructuraData = geoJSONData.infraestructura_vial
 
         // Cargar otros datos con fetch tradicional
         const [

@@ -134,77 +134,8 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     // Extraer todas las features de todos los GeoJSON
     Object.values(allGeoJSONData).forEach((geoJSON: any) => {
       if (geoJSON?.features) {
-        geoJSON.features.forEach((feature: any) => {
-          if (feature.properties) {
-            const props = feature.properties
-            
-            // Mapear los datos para que tengan la estructura esperada por los gráficos
-            const mappedData = {
-              ...props,
-              // Asegurar que existe un campo progress
-              progress: props.progress || 
-                       props.porcentaje_avance || 
-                       props.avance_fisico || 
-                       props.porcentaje_ejecutado ||
-                       (props.valor_ejecutado && props.valor_total ? 
-                         Math.round((props.valor_ejecutado / props.valor_total) * 100) : 0),
-              
-              // Asegurar que existe un campo status
-              status: props.status || 
-                     props.estado || 
-                     props.estado_proyecto ||
-                     props.fase ||
-                     'Sin especificar',
-              
-              // Campos adicionales útiles para métricas
-              type: props.tipo_intervencion || 
-                   props.tipo_proyecto || 
-                   props.tipo ||
-                   'General',
-              
-              // Para InterventionMetrics - campos específicos
-              tipoIntervencion: props.tipo_intervencion || 
-                              props.tipo_proyecto || 
-                              props.tipo ||
-                              'Sin especificar',
-              
-              claseObra: props.clase_obra || 
-                        props.clase || 
-                        props.categoria ||
-                        'Sin especificar',
-              
-              // Campos financieros
-              budget: props.valor_total || 
-                     props.valor_contrato || 
-                     props.presupuesto ||
-                     0,
-              
-              value: props.valor_total || 
-                    props.valor_contrato || 
-                    props.presupuesto ||
-                    0,
-              
-              // Identificadores
-              id: props.id || props.codigo || feature.id || Math.random().toString(36),
-              bpin: props.bpin || props.codigo_bpin || '',
-              
-              name: props.nombre || 
-                   props.titulo || 
-                   props.descripcion ||
-                   'Proyecto sin nombre',
-            }
-            
-            allFeatures.push(mappedData)
-          }
-        })
+        allFeatures.push(...geoJSON.features.map((f: any) => f.properties))
       }
-    })
-    
-    console.log('🔍 GeoJSON Metrics calculados:', {
-      totalFeatures: allFeatures.length,
-      sampleData: allFeatures.slice(0, 3),
-      progressFields: allFeatures.filter(f => f.progress > 0).length,
-      statusFields: allFeatures.filter(f => f.status !== 'Sin especificar').length
     })
     
     return allFeatures
@@ -260,10 +191,9 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   }
 
   // Función para manejar click en features del mapa
-  const handleFeatureClick = (feature: any, layer: any) => {
-    console.log('🔍 Feature clicked:', { feature, layer })
+  const handleFeatureClick = (feature: any, layerType: string) => {
     setSelectedFeature(feature)
-    setSelectedLayerType(layer?.id || layer?.type || 'unknown')
+    setSelectedLayerType(layerType)
     if (leftPanelCollapsed) {
       setLeftPanelCollapsed(false)
     }
