@@ -113,6 +113,24 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
       return value.toString()
     }
     
+    // Formatear como porcentaje con máximo 2 decimales para campos de progreso/avance
+    if (keyLower.includes('progress') || keyLower.includes('avance') || 
+        keyLower.includes('físico') || keyLower.includes('fisico') ||
+        keyLower.includes('porcentaje') || keyLower.includes('percent')) {
+      let percentage = parseFloat(value)
+      // Si el valor está entre 0 y 1, convertir a porcentaje
+      if (percentage >= 0 && percentage <= 1) {
+        percentage = percentage * 100
+      }
+      return `${percentage.toFixed(2)}%`
+    }
+    
+    // Formatear como porcentaje para ejecución financiera (calculada)
+    if (keyLower.includes('ejecucion') && keyLower.includes('financier')) {
+      let percentage = parseFloat(value)
+      return `${percentage.toFixed(2)}%`
+    }
+    
     if (typeof value === 'number') {
       // Solo formatear como moneda si contiene palabras clave de presupuesto/dinero
       if (keyLower.includes('presupuesto') || keyLower.includes('valor') || keyLower.includes('budget') || 
@@ -148,7 +166,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     if (keyLower.includes('longitud') || keyLower.includes('length') || keyLower.includes('seccion') || keyLower.includes('via')) {
       return 'infrastructure'
     }
-    if (keyLower.includes('ppto_base') || keyLower.includes('presupuesto') || keyLower.includes('valor') || keyLower.includes('budget') || keyLower.includes('pagos') || keyLower.includes('executed')) {
+    if (keyLower.includes('ppto_base') || keyLower.includes('presupuesto') || keyLower.includes('valor') || keyLower.includes('budget') || keyLower.includes('pagos') || keyLower.includes('executed') || keyLower.includes('ejecucion')) {
       return 'investment'
     }
     if (keyLower.includes('comuna') || keyLower.includes('barrio') || keyLower.includes('corregimiento') || keyLower.includes('vereda') || keyLower.includes('direccion')) {

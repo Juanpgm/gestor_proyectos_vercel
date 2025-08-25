@@ -11,7 +11,6 @@ import {
   ArrowUp,
   ArrowDown
 } from 'lucide-react'
-import ProjectModal from './ProjectModal'
 import type { UnidadProyecto } from '@/hooks/useUnidadesProyecto'
 
 // Exportar el tipo para compatibilidad
@@ -21,6 +20,7 @@ interface ProjectsUnitsTableProps {
   projectUnits: UnidadProyecto[]
   filteredProjectUnits: UnidadProyecto[]
   className?: string
+  onViewProjectUnit?: (projectUnit: UnidadProyecto) => void
 }
 
 type SortKey = keyof ProjectUnit
@@ -29,15 +29,14 @@ type SortDirection = 'asc' | 'desc'
 const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({ 
   projectUnits,
   filteredProjectUnits,
-  className = '' 
+  className = '',
+  onViewProjectUnit
 }) => {
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [sortKey, setSortKey] = useState<SortKey>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-  const [selectedProject, setSelectedProject] = useState<ProjectUnit | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -94,13 +93,9 @@ const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({
   }
 
   const handleViewProject = (project: ProjectUnit) => {
-    setSelectedProject(project)
-    setIsModalOpen(true)
-  }
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setSelectedProject(null)
+    if (onViewProjectUnit) {
+      onViewProjectUnit(project)
+    }
   }
 
   const sortedProjects = useMemo(() => {
@@ -330,13 +325,6 @@ const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Modal de Ficha de Proyecto */}
-      <ProjectModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        project={selectedProject}
-      />
     </motion.div>
   )
 }

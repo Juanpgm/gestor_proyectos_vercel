@@ -49,6 +49,19 @@
   .border-cali-green {
     border-color: var(--cali-green);
   }
+
+  /* Z-index utilities for modal layering */
+  .z-modal {
+    z-index: 9999;
+  }
+
+  .z-modal-backdrop {
+    z-index: 9998;
+  }
+
+  .z-max {
+    z-index: 99999;
+  }
 }
 
 /* Leaflet Map Styles */
@@ -58,6 +71,42 @@
   border-radius: 0.5rem;
   background: transparent !important;
   outline: none;
+}
+
+/* Fix for fullscreen mode - remove border radius and ensure full coverage */
+.leaflet-container.fullscreen {
+  border-radius: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix the parent container in fullscreen mode */
+.map-fullscreen-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #000 !important;
+  overflow: hidden !important;
+}
+
+/* Ensure body doesn't scroll in fullscreen */
+body.map-fullscreen {
+  overflow: hidden !important;
 }
 
 /* Fix for map rendering issues */

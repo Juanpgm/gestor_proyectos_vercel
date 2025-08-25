@@ -1038,106 +1038,30 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
 
   // Manejar pantalla completa
   const toggleFullscreen = useCallback(() => {
-    if (!mapRef.current) return
+    // Simplificar: usar solo CSS personalizado
+    const newFullscreenState = !isFullscreen
+    setIsFullscreen(newFullscreenState)
     
-    const container = mapRef.current.getContainer().parentElement
-    if (!container) return
-    
-    if (!isFullscreen) {
-      // Entrar en pantalla completa
-      try {
-        const fullscreenPromise = container.requestFullscreen?.() || 
-                                  (container as any).webkitRequestFullscreen?.() || 
-                                  (container as any).msRequestFullscreen?.() || 
-                                  Promise.resolve()
-        
-        fullscreenPromise
-          .then(() => {
-            setIsFullscreen(true)
-            // Invalidar tamaño del mapa después del cambio
-            setTimeout(() => {
-              if (mapRef.current) {
-                mapRef.current.invalidateSize()
-              }
-            }, 150)
-          })
-          .catch(err => {
-            console.warn('No se pudo activar pantalla completa:', err)
-            // Fallback: simular pantalla completa con CSS
-            container.style.position = 'fixed'
-            container.style.top = '0'
-            container.style.left = '0'
-            container.style.width = '100vw'
-            container.style.height = '100vh'
-            container.style.zIndex = '9999'
-            container.style.background = 'white'
-            setIsFullscreen(true)
-          })
-      } catch (error) {
-        console.warn('Error al activar pantalla completa:', error)
-      }
+    // Controlar scroll del body
+    if (newFullscreenState) {
+      document.body.classList.add('map-fullscreen')
     } else {
-      // Salir de pantalla completa
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen?.()
-            .then(() => {
-              setIsFullscreen(false)
-            })
-            .catch(err => {
-              console.warn('Error al salir de pantalla completa:', err)
-              setIsFullscreen(false)
-            })
-        } else {
-          // Salir del modo simulado
-          container.style.position = ''
-          container.style.top = ''
-          container.style.left = ''
-          container.style.width = ''
-          container.style.height = ''
-          container.style.zIndex = ''
-          container.style.background = ''
-          setIsFullscreen(false)
-        }
-        
-        // Invalidar tamaño del mapa
-        setTimeout(() => {
-          if (mapRef.current) {
-            mapRef.current.invalidateSize()
-          }
-        }, 150)
-      } catch (error) {
-        console.warn('Error al salir de pantalla completa:', error)
-        setIsFullscreen(false)
-      }
+      document.body.classList.remove('map-fullscreen')
     }
+    
+    // Invalidar tamaño del mapa después del cambio
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize({ animate: false })
+        console.log('🔄 Mapa invalidado para', newFullscreenState ? 'pantalla completa' : 'modo normal')
+      }
+    }, 100)
   }, [isFullscreen])
 
-  // Escuchar eventos de pantalla completa
+  // Limpiar clase del body al desmontar el componente
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!(document.fullscreenElement || 
-        (document as any).webkitFullscreenElement || 
-        (document as any).msFullscreenElement)
-      
-      setIsFullscreen(isCurrentlyFullscreen)
-      
-      // Invalidar tamaño del mapa
-      setTimeout(() => {
-        if (mapRef.current) {
-          mapRef.current.invalidateSize()
-        }
-      }, 100)
-    }
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange)
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
-    document.addEventListener('msfullscreenchange', handleFullscreenChange)
-
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange)
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
-      document.removeEventListener('msfullscreenchange', handleFullscreenChange)
+      document.body.classList.remove('map-fullscreen')
     }
   }, [])
 
@@ -1160,13 +1084,13 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
   }
 
   return (
-    <div className={`relative w-full ${isFullscreen ? 'h-screen' : ''}`} style={{ height: isFullscreen ? '100vh' : height }}>
+    <div className={isFullscreen ? 'map-fullscreen-container' : `relative w-full`} style={{ height: isFullscreen ? '100vh' : height }}>
       <MapContainer
         ref={mapRef}
         center={CALI_COORDINATES.CENTER_LAT_LNG}
         zoom={CALI_COORDINATES.DEFAULT_ZOOM}
         style={{ height: '100%', width: '100%' }}
-        className="rounded-xl"
+        className={isFullscreen ? "fullscreen" : "rounded-xl"}
         preferCanvas={true}
         whenReady={() => {
           console.log('🗺️ Mapa listo - whenReady ejecutado')

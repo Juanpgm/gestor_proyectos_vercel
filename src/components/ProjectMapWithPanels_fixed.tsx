@@ -5,13 +5,14 @@ import { motion } from 'framer-motion'
 import { Settings, ChevronDown, MapPin, BarChart3, Activity } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useTheme } from '@/context/ThemeContext'
-import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
+import { useUnidadesProyecto, UnidadProyecto } from '@/hooks/useUnidadesProyecto'
 import { useDashboardFilters } from '@/context/DashboardContext'
 import LayerManagementPanel from './LayerManagementPanel'
 import PropertiesPanel from './PropertiesPanel'
 import UnifiedFilters from './UnifiedFilters'
 import ProgressGaugeChart from './ProgressGaugeChart'
 import InterventionMetrics from './InterventionMetrics'
+import ProjectUnitModal from './ProjectUnitModal'
 
 // Dynamic imports para optimización
 const DynamicProjectMap = dynamic(
@@ -93,6 +94,11 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     }
   ])
   const [activeChart, setActiveChart] = useState<'gauge' | 'interventions'>('gauge')
+
+  // Estados para el modal de unidades de proyecto
+  const [selectedProjectUnit, setSelectedProjectUnit] = useState<UnidadProyecto | null>(null)
+  const [isUnitModalOpen, setIsUnitModalOpen] = useState(false)
+  const [selectedFeatureData, setSelectedFeatureData] = useState<any>(null)
 
   // Hooks
   const { theme } = useTheme()
@@ -192,17 +198,90 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
 
   // Función para manejar click en features del mapa
   const handleFeatureClick = (feature: any, layerType: string) => {
-    setSelectedFeature(feature)
-    setSelectedLayerType(layerType)
-    if (leftPanelCollapsed) {
-      setLeftPanelCollapsed(false)
+    console.log('🔍 Feature clicked:', { feature, layerType, properties: feature?.properties })
+    
+    // Determinar si es una unidad de proyecto basándose en las propiedades
+    const isProjectUnit = feature?.properties && (
+      feature.properties.bpin || 
+      feature.properties.identificador || 
+      feature.properties.nickname ||
+      feature.properties.id_via ||
+      feature.properties.clase_obra ||
+      feature.properties.tipo_intervencion
+    )
+
+    if (isProjectUnit) {
+      console.log('🎯 Es una unidad de proyecto, creando objeto UnidadProyecto...')
+      
+      // Crear objeto UnidadProyecto a partir del feature
+      const projectUnit: UnidadProyecto = {
+        id: feature.properties.identificador?.toString() || feature.properties.id_via?.toString() || `unit-${Math.random().toString(36).substr(2, 9)}`,
+        bpin: feature.properties.bpin?.toString() || '0',
+        name: feature.properties.nickname || feature.properties.nombre_unidad_proyecto || feature.properties.seccion_via || `Unidad ${feature.properties.identificador || feature.properties.id_via || 'Sin ID'}`,
+        status: mapEstadoFromGeoJSON(feature.properties.estado_unidad_proyecto) || 'En Ejecución',
+        comuna: feature.properties.comuna_corregimiento || feature.properties.comuna || undefined,
+        barrio: feature.properties.barrio_vereda || feature.properties.barrio || undefined,
+        corregimiento: feature.properties.comuna_corregimiento?.toLowerCase().includes('corregimiento') ? feature.properties.comuna_corregimiento : undefined,
+        vereda: feature.properties.barrio_vereda?.toLowerCase().includes('vereda') ? feature.properties.barrio_vereda : undefined,
+        budget: feature.properties.ppto_base || 0,
+        executed: feature.properties.pagos_realizados || 0,
+        pagado: feature.properties.pagos_realizados || 0,
+        beneficiaries: feature.properties.usuarios_beneficiarios || 0,
+        startDate: feature.properties.fecha_inicio_planeado || feature.properties.fecha_inicio_real || '2024-01-01',
+        endDate: feature.properties.fecha_fin_planeado || feature.properties.fecha_fin_real || '2024-12-31',
+        responsible: feature.properties.nombre_centro_gestor || 'No especificado',
+        progress: (feature.properties.avance_físico_obra || 0) * 100, // Convertir decimal a porcentaje
+        tipoIntervencion: feature.properties.tipo_intervencion || 'Sin especificar',
+        claseObra: feature.properties.clase_obra || feature.properties.subclase_obra || 'Sin especificar',
+        descripcion: feature.properties.descripcion_intervencion || undefined,
+        direccion: feature.properties.direccion || undefined,
+        lat: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[1] : undefined,
+        lng: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[0] : undefined,
+        geometry: feature.geometry,
+        source: layerType.includes('equipamientos') ? 'equipamientos' : 'infraestructura'
+      }
+
+      console.log('✅ Unidad de proyecto creada:', projectUnit)
+      
+      // Abrir modal de unidad de proyecto
+      setSelectedProjectUnit(projectUnit)
+      setSelectedFeatureData(feature)
+      setIsUnitModalOpen(true)
+    } else {
+      // Comportamiento normal para features que no son unidades de proyecto
+      setSelectedFeature(feature)
+      setSelectedLayerType(layerType)
+      if (leftPanelCollapsed) {
+        setLeftPanelCollapsed(false)
+      }
     }
+  }
+
+  // Función helper para mapear estados del GeoJSON
+  const mapEstadoFromGeoJSON = (estado?: string): UnidadProyecto['status'] => {
+    if (!estado) return 'En Ejecución'
+    
+    const estadoLower = estado.toLowerCase().trim()
+    if (estadoLower.includes('ejecución') || estadoLower.includes('ejecucion')) return 'En Ejecución'
+    if (estadoLower.includes('completado') || estadoLower.includes('terminado') || estadoLower.includes('finalizado')) return 'Completado'
+    if (estadoLower.includes('suspendido') || estadoLower.includes('pausado')) return 'Suspendido'
+    if (estadoLower.includes('evaluación') || estadoLower.includes('evaluacion') || estadoLower.includes('revisión')) return 'En Evaluación'
+    if (estadoLower.includes('planificación') || estadoLower.includes('planificacion') || estadoLower.includes('planeación')) return 'Planificación'
+    
+    return 'En Ejecución'
   }
 
   // Función para cerrar el panel de propiedades
   const handleCloseProperties = () => {
     setSelectedFeature(null)
     setSelectedLayerType('')
+  }
+
+  // Función para cerrar el modal de unidades de proyecto
+  const handleCloseUnitModal = () => {
+    setIsUnitModalOpen(false)
+    setSelectedProjectUnit(null)
+    setSelectedFeatureData(null)
   }
 
   // Función para aplicar cambios de capas al mapa
@@ -462,6 +541,14 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
           )}
         </motion.div>
       </div>
+
+      {/* Modal de Unidad de Proyecto */}
+      <ProjectUnitModal
+        isOpen={isUnitModalOpen}
+        onClose={handleCloseUnitModal}
+        projectUnit={selectedProjectUnit}
+        feature={selectedFeatureData}
+      />
     </motion.div>
   )
 }

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Settings, ChevronDown, MapPin, BarChart3, Activity, Layers } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useTheme } from '@/context/ThemeContext'
-import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
+import { useUnidadesProyecto, UnidadProyecto } from '@/hooks/useUnidadesProyecto'
 import { useDashboardFilters } from '@/context/DashboardContext'
 import LayerManagementPanel from './LayerManagementPanel'
 import PropertiesPanel from './PropertiesPanel'
@@ -28,6 +28,7 @@ const DynamicProjectMap = dynamic(
 interface ProjectMapWithPanelsProps {
   className?: string
   height?: string
+  selectedProjectUnitFromTable?: UnidadProyecto | null
 }
 
 // Base maps configuration
@@ -58,7 +59,8 @@ const layerIcons = {
 
 const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   className = '',
-  height = '600px'
+  height = '600px',
+  selectedProjectUnitFromTable
 }) => {
   // Estados locales
   const [selectedBaseMap, setSelectedBaseMap] = useState('light')
@@ -230,6 +232,64 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     })
   }, [unidadesProyecto, unidadesState, geoJSONMetrics])
 
+  // Efecto para manejar la unidad seleccionada desde la tabla
+  useEffect(() => {
+    if (selectedProjectUnitFromTable) {
+      console.log('👁️ Unidad seleccionada desde tabla, creando feature artificial:', selectedProjectUnitFromTable)
+      
+      // Crear un feature artificial para el panel de propiedades
+      const artificialFeature = {
+        properties: {
+          // Datos básicos
+          nickname: selectedProjectUnitFromTable.name,
+          nombre_unidad_proyecto: selectedProjectUnitFromTable.name,
+          BPIN: selectedProjectUnitFromTable.bpin,
+          bpin: selectedProjectUnitFromTable.bpin,
+          identificador: selectedProjectUnitFromTable.id,
+          
+          // Ubicación
+          comuna_corregimiento: selectedProjectUnitFromTable.comuna || selectedProjectUnitFromTable.corregimiento,
+          barrio_vereda: selectedProjectUnitFromTable.barrio || selectedProjectUnitFromTable.vereda,
+          direccion: selectedProjectUnitFromTable.direccion || '',
+          
+          // Estado y progreso
+          estado_unidad_proyecto: selectedProjectUnitFromTable.status,
+          avance_físico_obra: selectedProjectUnitFromTable.progress / 100, // Convertir a decimal
+          progress: selectedProjectUnitFromTable.progress,
+          
+          // Financiero
+          ppto_base: selectedProjectUnitFromTable.budget,
+          pagos_realizados: selectedProjectUnitFromTable.executed || selectedProjectUnitFromTable.pagado,
+          valor_ejecutado: selectedProjectUnitFromTable.executed || selectedProjectUnitFromTable.pagado,
+          ejecucion_financiera: selectedProjectUnitFromTable.budget > 0 
+            ? ((selectedProjectUnitFromTable.executed || selectedProjectUnitFromTable.pagado || 0) / selectedProjectUnitFromTable.budget) * 100
+            : 0,
+          
+          // Detalles del proyecto
+          tipo_intervencion: selectedProjectUnitFromTable.tipoIntervencion,
+          clase_obra: selectedProjectUnitFromTable.claseObra,
+          descripcion_intervencion: selectedProjectUnitFromTable.descripcion,
+          
+          // Fechas y responsables
+          fecha_inicio_planeado: selectedProjectUnitFromTable.startDate,
+          fecha_fin_planeado: selectedProjectUnitFromTable.endDate,
+          nombre_centro_gestor: selectedProjectUnitFromTable.responsible,
+          usuarios_beneficiarios: selectedProjectUnitFromTable.beneficiaries,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [0, 0] // Coordenadas dummy
+        }
+      }
+      
+      setSelectedFeature(artificialFeature)
+      setSelectedLayerType('unidad_proyecto_desde_tabla')
+      setPropertiesCollapsed(false) // Expandir el panel de propiedades
+      
+      console.log('✅ Feature artificial creado para el panel:', artificialFeature)
+    }
+  }, [selectedProjectUnitFromTable])
+
   // Inicializar configuración de capas cuando hay datos
   useEffect(() => {
     if (geoJSONMetrics.length > 0) {
@@ -276,20 +336,92 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
       geometryType: feature?.geometry?.type
     })
     
-    setSelectedFeature(feature)
-    setSelectedLayerType(layer?.id || layer?.type || 'unknown')
+    const layerType = layer?.id || layer?.type || 'unknown'
     
-    // Asegurar que los paneles estén visibles cuando se selecciona una feature
-    if (leftPanelCollapsed) {
-      console.log('📂 Expandiendo panel izquierdo para mostrar propiedades')
-      setLeftPanelCollapsed(false)
-    }
-    
-    // Mostrar propiedades automáticamente cuando se selecciona una feature
-    if (propertiesCollapsed) {
-      console.log('📋 Expandiendo panel de propiedades')
+    // Determinar si es una unidad de proyecto basándose en las propiedades
+    const isProjectUnit = feature?.properties && (
+      feature.properties.bpin || 
+      feature.properties.identificador || 
+      feature.properties.nickname ||
+      feature.properties.id_via ||
+      feature.properties.clase_obra ||
+      feature.properties.tipo_intervencion
+    )
+
+    if (isProjectUnit) {
+      console.log('🎯 Es una unidad de proyecto, creando objeto UnidadProyecto...')
+      
+      // Crear objeto UnidadProyecto a partir del feature
+      const projectUnit: UnidadProyecto = {
+        id: feature.properties.identificador?.toString() || feature.properties.id_via?.toString() || `unit-${Math.random().toString(36).substr(2, 9)}`,
+        bpin: feature.properties.bpin?.toString() || '0',
+        name: feature.properties.nickname || feature.properties.nombre_unidad_proyecto || feature.properties.seccion_via || `Unidad ${feature.properties.identificador || feature.properties.id_via || 'Sin ID'}`,
+        status: mapEstadoFromGeoJSON(feature.properties.estado_unidad_proyecto) || 'En Ejecución',
+        comuna: feature.properties.comuna_corregimiento || feature.properties.comuna || undefined,
+        barrio: feature.properties.barrio_vereda || feature.properties.barrio || undefined,
+        corregimiento: feature.properties.comuna_corregimiento?.toLowerCase().includes('corregimiento') ? feature.properties.comuna_corregimiento : undefined,
+        vereda: feature.properties.barrio_vereda?.toLowerCase().includes('vereda') ? feature.properties.barrio_vereda : undefined,
+        budget: feature.properties.ppto_base || 0,
+        executed: feature.properties.pagos_realizados || 0,
+        pagado: feature.properties.pagos_realizados || 0,
+        beneficiaries: feature.properties.usuarios_beneficiarios || 0,
+        startDate: feature.properties.fecha_inicio_planeado || feature.properties.fecha_inicio_real || '2024-01-01',
+        endDate: feature.properties.fecha_fin_planeado || feature.properties.fecha_fin_real || '2024-12-31',
+        responsible: feature.properties.nombre_centro_gestor || 'No especificado',
+        progress: (feature.properties.avance_físico_obra || 0) * 100, // Convertir decimal a porcentaje
+        tipoIntervencion: feature.properties.tipo_intervencion || 'Sin especificar',
+        claseObra: feature.properties.clase_obra || feature.properties.subclase_obra || 'Sin especificar',
+        descripcion: feature.properties.descripcion_intervencion || undefined,
+        direccion: feature.properties.direccion || undefined,
+        lat: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[1] : undefined,
+        lng: feature.geometry?.type === 'Point' ? feature.geometry.coordinates[0] : undefined,
+        geometry: feature.geometry,
+        source: layerType.includes('equipamientos') ? 'equipamientos' : 'infraestructura'
+      }
+
+      console.log('✅ Unidad de proyecto creada:', projectUnit)
+      
+      // Mostrar en panel de propiedades en lugar de modal
+      setSelectedFeature(feature)
+      setSelectedLayerType('unidad_proyecto_desde_mapa')
       setPropertiesCollapsed(false)
+      
+      // Expandir panel izquierdo si está colapsado
+      if (leftPanelCollapsed) {
+        console.log('📂 Expandiendo panel izquierdo para mostrar propiedades')
+        setLeftPanelCollapsed(false)
+      }
+    } else {
+      // Comportamiento normal para features que no son unidades de proyecto
+      setSelectedFeature(feature)
+      setSelectedLayerType(layerType)
+      
+      // Asegurar que los paneles estén visibles cuando se selecciona una feature
+      if (leftPanelCollapsed) {
+        console.log('📂 Expandiendo panel izquierdo para mostrar propiedades')
+        setLeftPanelCollapsed(false)
+      }
+      
+      // Mostrar propiedades automáticamente cuando se selecciona una feature
+      if (propertiesCollapsed) {
+        console.log('📋 Expandiendo panel de propiedades')
+        setPropertiesCollapsed(false)
+      }
     }
+  }
+
+  // Función helper para mapear estados del GeoJSON
+  const mapEstadoFromGeoJSON = (estado?: string): UnidadProyecto['status'] => {
+    if (!estado) return 'En Ejecución'
+    
+    const estadoLower = estado.toLowerCase().trim()
+    if (estadoLower.includes('ejecución') || estadoLower.includes('ejecucion')) return 'En Ejecución'
+    if (estadoLower.includes('completado') || estadoLower.includes('terminado') || estadoLower.includes('finalizado')) return 'Completado'
+    if (estadoLower.includes('suspendido') || estadoLower.includes('pausado')) return 'Suspendido'
+    if (estadoLower.includes('evaluación') || estadoLower.includes('evaluacion') || estadoLower.includes('revisión')) return 'En Evaluación'
+    if (estadoLower.includes('planificación') || estadoLower.includes('planificacion') || estadoLower.includes('planeación')) return 'Planificación'
+    
+    return 'En Ejecución'
   }
 
   // Función para cerrar el panel de propiedades

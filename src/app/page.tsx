@@ -44,6 +44,15 @@ export default function Dashboard() {
 function DashboardContent() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('project_units') // CAMBIADO TEMPORALMENTE
   
+  // Estado para la unidad de proyecto seleccionada desde la tabla
+  const [selectedProjectUnitFromTable, setSelectedProjectUnitFromTable] = useState<UnidadProyecto | null>(null)
+  
+  // Función para manejar cuando se hace clic en el ojito en la tabla
+  const handleViewProjectUnitInPanel = (projectUnit: UnidadProyecto) => {
+    console.log('👁️ Mostrando unidad de proyecto en panel:', projectUnit)
+    setSelectedProjectUnitFromTable(projectUnit)
+  }
+  
   // Usar el contexto global del dashboard
   const { state, getFilteredCount, exportData } = useDashboard()
   const { filters, updateFilters, activeFiltersCount } = useDashboardFilters()
@@ -236,6 +245,7 @@ function DashboardContent() {
               <ProjectMapWithPanels 
                 className="w-full" 
                 height="800px"
+                selectedProjectUnitFromTable={selectedProjectUnitFromTable}
               />
             </div>
             
@@ -244,6 +254,7 @@ function DashboardContent() {
               <ProjectsUnitsTable 
                 projectUnits={unidadesProyecto} 
                 filteredProjectUnits={filteredProjectUnits} 
+                onViewProjectUnit={handleViewProjectUnitInPanel}
               />
             </div>
           </div>
