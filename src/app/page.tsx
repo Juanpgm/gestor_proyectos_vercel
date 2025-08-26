@@ -26,7 +26,6 @@ import ActividadesCharts from '@/components/ActividadesCharts'
 import ProductosTable from '@/components/ProductosTable'
 import ProductosStats from '@/components/ProductosStats'
 import ProductosCharts from '@/components/ProductosCharts'
-import TestUseEffect from '@/components/TestUseEffect'
 import { 
   BarChart3, 
   Map as MapIcon, 
@@ -462,9 +461,6 @@ function DashboardContent() {
       case 'overview':
         return (
           <div className="space-y-8">
-            {/* TEST COMPONENT */}
-            <TestUseEffect />
-            
             {/* Stats Cards */}
             <StatsCards />
             
