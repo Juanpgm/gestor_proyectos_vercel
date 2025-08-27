@@ -1,18 +1,133 @@
 'use client'
 
-import React from 'react'
-import MapClickDiagnosticsWrapper from '@/components/MapClickDiagnosticsWrapper'
+import React, { useState } from 'react'
+import dynamic from 'next/dynamic'
+import Header from '@/components/Header'
+
+// Importar dinámicamente los componentes de diagnóstico
+const GeoJSONHealthDashboard = dynamic(
+  () => import('@/components/GeoJSONHealthDashboard'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-32">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+)
+
+const MapClickDiagnosticsWrapper = dynamic(
+  () => import('@/components/MapClickDiagnosticsWrapper'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-32">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Cargando mapa...</p>
+        </div>
+      </div>
+    )
+  }
+)
+
+type DiagnosticTab = 'health' | 'map-clicks'
 
 export default function DiagnosticPage() {
+  const [activeTab, setActiveTab] = useState<DiagnosticTab>('health')
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-gray-800">
-          Diagnóstico de Clicks en Vías
-        </h1>
-        
-        <MapClickDiagnosticsWrapper height="600px" />
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <Header />
+      
+      <main className="container mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+              <span className="text-white text-lg">🔍</span>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                Panel de Diagnósticos
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Herramientas avanzadas para monitoreo y análisis de datos geográficos
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-8">
+          <div className="flex space-x-1 bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-100 dark:border-gray-700">
+            <button
+              onClick={() => setActiveTab('health')}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === 'health'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <span>🏥</span>
+              <span>Estado de Salud GeoJSON</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('map-clicks')}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === 'map-clicks'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <span>🗺️</span>
+              <span>Diagnóstico de Clicks</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="space-y-6">
+          {activeTab === 'health' && (
+            <div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  🏥 Monitoreo de Salud de Datos
+                </h2>
+                <ul className="text-blue-700 dark:text-blue-300 space-y-1 text-sm">
+                  <li>• Verifica la integridad de todos los archivos GeoJSON</li>
+                  <li>• Detecta problemas de coordenadas y formatos inválidos</li>
+                  <li>• Proporciona soluciones automáticas para errores comunes</li>
+                  <li>• Genera reportes detallados descargables</li>
+                  <li>• Monitorea estadísticas de features y geometrías</li>
+                </ul>
+              </div>
+              <GeoJSONHealthDashboard />
+            </div>
+          )}
+
+          {activeTab === 'map-clicks' && (
+            <div>
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+                <h2 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
+                  🗺️ Diagnóstico de Interacciones del Mapa
+                </h2>
+                <ul className="text-green-700 dark:text-green-300 space-y-1 text-sm">
+                  <li>• Prueba la detección de clicks en elementos del mapa</li>
+                  <li>• Verifica la precisión de coordenadas en tiempo real</li>
+                  <li>• Analiza la respuesta de las capas de vías</li>
+                  <li>• Depura problemas de interactividad del mapa</li>
+                </ul>
+              </div>
+              <MapClickDiagnosticsWrapper height="600px" />
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   )
 }

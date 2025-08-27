@@ -421,14 +421,21 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
       fillColor: baseColors.fill,
       fillOpacity: opacity,
       opacity: opacity,
-      // Aumentar el weight para vías para mejorar la clickeabilidad
-      weight: isInfraestructura ? 10 : DEFAULT_STYLES.geojson.weight,
-      // Agregar un borde invisible más grueso para mejorar el área de click
+      // Grosor visual normal para vías (mantenemos delgado)
+      weight: isInfraestructura ? 4 : DEFAULT_STYLES.geojson.weight,
+      // Configuración para mejorar el área de click (se manejará en onEachFeature)
       bubblingMouseEvents: false,
       interactive: true,
       // Configuración adicional para LineString
       lineCap: 'round',
-      lineJoin: 'round'
+      lineJoin: 'round',
+      // Propiedades para mejorar la detección de clics
+      smoothFactor: 1,
+      clickable: true,
+      keyboard: false,
+      // Asegurar que el elemento sea completamente interactivo
+      stroke: true,
+      fill: !isInfraestructura // Solo llenar polígonos, no líneas
     }
   }, [layers])
 
@@ -1091,7 +1098,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         zoom={CALI_COORDINATES.DEFAULT_ZOOM}
         style={{ height: '100%', width: '100%' }}
         className={isFullscreen ? "fullscreen" : "rounded-xl"}
-        preferCanvas={true}
+        preferCanvas={false} // Cambiar a SVG para mejor clickeabilidad
         whenReady={() => {
           console.log('🗺️ Mapa listo - whenReady ejecutado')
           setMapReady(true)
@@ -1099,6 +1106,11 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
           if (mapRef.current) {
             mapRef.current.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
             console.log('🎯 Mapa centrado en Cali')
+            
+            // Configurar eventos globales para mejor detección de clics
+            mapRef.current.on('click', (e) => {
+              console.log('🗺️ Click en mapa base:', e.latlng)
+            })
           }
         }}
         maxBounds={[
@@ -1106,6 +1118,16 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
           [4.0, -76.0]  // Northeast corner
         ]}
         maxBoundsViscosity={0.5} // Permite un poco de movimiento fuera de los límites
+        // Configuraciones adicionales para mejor interactividad
+        zoomControl={true}
+        doubleClickZoom={true}
+        closePopupOnClick={true}
+        dragging={true}
+        zoomSnap={1}
+        zoomDelta={1}
+        trackResize={true}
+        touchZoom={true}
+        scrollWheelZoom={true}
       >
         {/* Capa base */}
         <TileLayer
@@ -1118,11 +1140,24 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
           .filter(layer => layer.visible && layer.type === 'geojson' && layer.data)
           .map(layer => (
             <GeoJSON
-              key={`${layer.id}-${layer.color}-${layer.opacity}-${layer.representationMode}`} // Key único para forzar re-render
+              key={`${layer.id}-${layer.color}-${layer.opacity}-${layer.representationMode}-${layer.data?.features?.length || 0}-${Date.now()}`} // Key único para forzar re-render con timestamp
               data={layer.data}
-              style={() => getLayerStyle(layer)}
-              // Configurar pane para vías en nivel superior
-              pane={layer.id.includes('infraestructura') || layer.id.includes('vias') ? 'shadowPane' : undefined}
+              style={(feature) => {
+                const baseStyle = getLayerStyle(layer)
+                // Para LineString, usar un estilo con mejor área de click
+                if (feature?.geometry?.type === 'LineString') {
+                  return {
+                    ...baseStyle,
+                    weight: 8, // Área de click mediana pero no demasiado gruesa visualmente
+                    opacity: 0.8,
+                    // Usar un border más grueso invisible para el área de click
+                    className: 'via-clickeable'
+                  }
+                }
+                return baseStyle
+              }}
+              // Configurar pane para vías en nivel superior para mejor interactividad
+              pane={layer.id.includes('infraestructura') || layer.id.includes('vias') ? 'overlayPane' : undefined}
               pointToLayer={(feature, latlng) => {
                 // Usar CircleMarker para todos los puntos en lugar de marcadores estándar
                 return L.circleMarker(latlng, {
@@ -1132,77 +1167,90 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                   weight: 2,
                   opacity: 1,
                   fillOpacity: 0.8,
-                  pane: 'markerPane'
+                  pane: 'markerPane',
+                  interactive: true,
+                  bubblingMouseEvents: false
                 })
               }}
               onEachFeature={(feature, leafletLayer) => {
-                // Solo agregar evento de click, sin popup
+                console.log(`🔧 Configurando feature: ${layer.id} - ${feature.geometry.type}`, {
+                  layerId: layer.id,
+                  geometryType: feature.geometry.type,
+                  properties: feature.properties,
+                  featureName: feature.properties?.nickname || feature.properties?.id_via || feature.properties?.nombre || 'Sin nombre',
+                  hasOnFeatureClick: !!onFeatureClick
+                })
+                
+                // Solo agregar evento de click si onFeatureClick está definido
                 if (onFeatureClick) {
-                  console.log(`🔧 Configurando feature: ${layer.id} - ${feature.geometry.type}`, {
-                    layerId: layer.id,
-                    geometryType: feature.geometry.type,
-                    properties: feature.properties
-                  })
+                  // Configuración mejorada para TODOS los tipos de geometría
+                  const pathLayer = leafletLayer as any;
                   
-                  // Configuración específica para LineString
-                  if (feature.geometry.type === 'LineString') {
-                    // Verificar que el layer tenga el método setStyle
-                    const pathLayer = leafletLayer as any;
-                    if (pathLayer.setStyle) {
-                      // Configurar estilo inicial optimizado para click
-                      pathLayer.setStyle({
-                        weight: 12, // Área de click más grande
-                        opacity: 0.8,
-                        stroke: true,
-                        interactive: true,
-                        bubblingMouseEvents: false
-                      })
-                      
-                      // Configurar cursor pointer (verificar que el elemento existe)
-                      setTimeout(() => {
-                        const element = pathLayer.getElement();
-                        if (element && element.style) {
-                          element.style.cursor = 'pointer';
-                          element.style.pointerEvents = 'auto';
-                        }
-                      }, 100)
-                      
-                      // Agregar hover para mejor UX
-                      leafletLayer.on('mouseover', () => {
-                        console.log('🐭 Mouse over en vía:', feature.properties?.nickname || feature.properties?.id_via)
-                        pathLayer.setStyle({
-                          opacity: 1,
-                          weight: 14
-                        })
-                        const element = pathLayer.getElement();
-                        if (element && element.style) {
-                          element.style.cursor = 'pointer';
-                        }
-                      })
-                      
-                      leafletLayer.on('mouseout', () => {
-                        pathLayer.setStyle({
-                          opacity: 0.8,
-                          weight: 12
-                        })
-                      })
-                    }
+                  // Asegurar interactividad
+                  if (pathLayer.setStyle) {
+                    pathLayer.setStyle({
+                      interactive: true,
+                      bubblingMouseEvents: false,
+                      pane: 'overlayPane'
+                    })
                   }
                   
-                  // Evento de click para todos los tipos de geometría
+                  // Configuración específica para LineString (Vías) - SIMPLIFICADO
+                  if (feature.geometry.type === 'LineString') {
+                    console.log('🛣️ Configurando LineString para vía:', feature.properties?.nickname || feature.properties?.id_via || 'Sin nombre')
+                    
+                    // Agregar hover para feedback visual
+                    leafletLayer.on('mouseover', (e) => {
+                      console.log('🐭 Mouse over en vía:', feature.properties?.nickname || feature.properties?.id_via)
+                      if (pathLayer.setStyle) {
+                        pathLayer.setStyle({
+                          opacity: 1,
+                          weight: 12,
+                          color: '#FF6B35'
+                        })
+                      }
+                    })
+                    
+                    leafletLayer.on('mouseout', () => {
+                      // Restaurar estilo original
+                      const originalStyle = getLayerStyle(layer)
+                      if (pathLayer.setStyle) {
+                        pathLayer.setStyle({
+                          ...originalStyle,
+                          weight: 8 // Mantener área de click
+                        })
+                      }
+                    })
+                  }
+                  
+                  // Evento de click UNIVERSAL para todos los tipos de geometría
                   leafletLayer.on('click', (e) => {
-                    console.log('🎯 Click detectado en feature:', {
+                    console.log('🎯 CLICK DETECTADO en feature:', {
                       layerId: layer.id,
                       geometryType: feature.geometry.type,
                       properties: feature.properties,
-                      event: e
+                      isLineString: feature.geometry.type === 'LineString',
+                      hasProperties: !!feature.properties,
+                      featureName: feature.properties?.nickname || feature.properties?.id_via || feature.properties?.nombre || 'Sin nombre',
+                      event: e,
+                      latlng: e.latlng
                     })
                     
-                    // Prevenir propagación del evento
-                    e.originalEvent.stopPropagation()
+                    // CRÍTICO: Prevenir propagación del evento de manera más robusta
+                    if (e.originalEvent) {
+                      e.originalEvent.stopPropagation()
+                      e.originalEvent.preventDefault()
+                      e.originalEvent.stopImmediatePropagation()
+                    }
+                    L.DomEvent.stopPropagation(e)
                     
                     // Llamar al handler de click
-                    onFeatureClick(feature, layer)
+                    console.log('📞 Llamando a onFeatureClick...')
+                    try {
+                      onFeatureClick(feature, layer)
+                    } catch (error) {
+                      console.error('❌ Error al llamar onFeatureClick:', error)
+                    }
                     
                     // Zoom al feature clickeado
                     if (mapRef.current) {
@@ -1212,8 +1260,19 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                         mapRef.current.flyTo([coords[1], coords[0]], 16, {
                           duration: 1.5
                         })
+                      } else if (feature.geometry.type === 'LineString') {
+                        // Para líneas, hacer fitBounds con padding menor
+                        const featureLayer = e.target
+                        if (featureLayer.getBounds) {
+                          console.log('🔍 Haciendo zoom a LineString')
+                          mapRef.current.fitBounds(featureLayer.getBounds(), {
+                            padding: [10, 10],
+                            maxZoom: 15,
+                            duration: 1.5
+                          })
+                        }
                       } else {
-                        // Para polígonos/líneas, hacer fitBounds
+                        // Para polígonos, hacer fitBounds
                         const featureLayer = e.target
                         if (featureLayer.getBounds) {
                           mapRef.current.fitBounds(featureLayer.getBounds(), {
@@ -1225,6 +1284,17 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                       }
                     }
                   })
+                  
+                  // Agregar eventos adicionales para debug solo en desarrollo
+                  if (process.env.NODE_ENV === 'development') {
+                    leafletLayer.on('mousedown', (e) => {
+                      console.log('⬇️ MouseDown en feature:', feature.properties?.nickname || feature.properties?.id_via || 'Sin nombre')
+                    })
+                    
+                    leafletLayer.on('mouseup', (e) => {
+                      console.log('⬆️ MouseUp en feature:', feature.properties?.nickname || feature.properties?.id_via || 'Sin nombre')
+                    })
+                  }
                 }
               }}
             />
@@ -1325,7 +1395,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         </div>
       )}
 
-      {/* Estilos CSS mejorados para popups expandidos */}
+      {/* Estilos CSS mejorados para popups expandidos y mejor interactividad */}
       <style jsx global>{`
         .custom-point-popup .leaflet-popup-content {
           margin: 8px 12px;
@@ -1356,6 +1426,31 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
           max-height: 450px;
           overflow-y: auto;
           font-family: system-ui, -apple-system, sans-serif;
+        }
+        
+        /* CRÍTICO: Asegurar que todas las rutas/líneas sean clickeables */
+        .leaflet-interactive {
+          cursor: pointer !important;
+          pointer-events: auto !important;
+          touch-action: auto !important;
+        }
+        
+        /* Mejorar la detección de clics en elementos SVG */
+        .leaflet-overlay-pane svg {
+          pointer-events: auto !important;
+        }
+        
+        .leaflet-overlay-pane path {
+          cursor: pointer !important;
+          pointer-events: auto !important;
+          touch-action: auto !important;
+        }
+        
+        /* Asegurar que las vías tengan prioridad en la detección de clics */
+        .leaflet-overlay-pane path[stroke="#D97706"] {
+          cursor: pointer !important;
+          pointer-events: auto !important;
+          z-index: 1000 !important;
         }
         
         /* Scrollbar personalizado para webkit */

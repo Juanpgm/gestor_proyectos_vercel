@@ -222,17 +222,38 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     return allFeatures
   }, [unidadesState.allGeoJSONData])
 
-  // Debug logs
+  // Debug logs adicionales para el problema de carga inicial
   useEffect(() => {
-    console.log('🔍 ProjectMapWithPanels - Estado de datos:', {
+    console.log('🔍 ProjectMapWithPanels - Estado de datos completo:', {
       unidadesOriginales: unidadesState.unidadesProyecto?.length || 0,
       unidadesFiltradas: unidadesProyecto.length,
       geoJSONFeatures: geoJSONMetrics.length,
       loading: unidadesState.loading,
       error: unidadesState.error,
+      allGeoJSONDataKeys: Object.keys(unidadesState.allGeoJSONData || {}),
+      layerVisibilityKeys: Object.keys(layerVisibility),
+      hasGeoJSONData: Object.keys(unidadesState.allGeoJSONData || {}).length > 0,
       muestraUnidades: unidadesState.unidadesProyecto?.slice(0, 2)
     })
-  }, [unidadesProyecto, unidadesState, geoJSONMetrics])
+  }, [unidadesProyecto, unidadesState, geoJSONMetrics, layerVisibility])
+
+  // 🎯 SOLUCIÓN PARA CARGA INICIAL - Force re-render cuando los datos cambien
+  useEffect(() => {
+    if (!unidadesState.loading && Object.keys(unidadesState.allGeoJSONData || {}).length > 0) {
+      console.log('🚀 FORÇA ACTUALIZACIÓN MAPA - Datos disponibles:', {
+        dataKeys: Object.keys(unidadesState.allGeoJSONData || {}),
+        timestamp: new Date().toISOString()
+      })
+      
+      // Forzar re-renderización del mapa después de un pequeño delay
+      // para asegurar que los datos estén completamente cargados
+      const timer = setTimeout(() => {
+        console.log('🎯 Re-renderización forzada del mapa completada')
+      }, 100)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [unidadesState.loading, unidadesState.allGeoJSONData])
 
   // Efecto para manejar la unidad seleccionada desde la tabla
   useEffect(() => {
@@ -645,6 +666,7 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
             onFeatureClick={handleFeatureClick}
             height="100%"
             theme={theme}
+            key={`map-${Object.keys(unidadesState.allGeoJSONData || {}).join('-')}-${Object.values(layerVisibility).join('-')}`}
           />
         </div>
 

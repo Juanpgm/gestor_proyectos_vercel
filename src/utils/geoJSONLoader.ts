@@ -48,13 +48,23 @@ export async function loadGeoJSON(
   fileName: string,
   options: GeoJSONLoaderOptions = {}
 ): Promise<any> {
+  // Timeouts adaptativos según el archivo
+  const defaultTimeouts: Record<string, number> = {
+    'equipamientos': 30000, // 30 segundos para equipamientos (archivo grande)
+    'infraestructura_vial': 20000, // 20 segundos para infraestructura
+    'barrios': 15000, // 15 segundos para barrios (archivo mediano)
+    'comunas': 10000, // 10 segundos para archivos pequeños
+    'corregimientos': 10000,
+    'veredas': 10000
+  }
+
   const {
     processCoordinates = true,
     cache = true,
-    timeout = 10000
+    timeout = defaultTimeouts[fileName] || 15000 // Default 15 segundos
   } = options
 
-  console.log(`🗺️ Cargando GeoJSON: ${fileName}`)
+  console.log(`🗺️ Cargando GeoJSON: ${fileName} (timeout: ${timeout}ms)`)
 
   // Verificar cache si está habilitado
   if (cache && geoJSONCache.has(fileName)) {
@@ -83,37 +93,77 @@ export async function loadGeoJSON(
 
     console.log(`🔍 Cargando archivo: ${fullPath}`)
 
-    // Realizar solicitud con timeout
-    const response = await fetch(fullPath, {
-      signal: AbortSignal.timeout(timeout)
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    // Verificación previa del archivo con HEAD request (más rápido)
+    try {
+      const headResponse = await fetch(fullPath, { 
+        method: 'HEAD',
+        signal: AbortSignal.timeout(5000) // 5 segundos para verificación
+      })
+      
+      if (!headResponse.ok) {
+        throw new Error(`Archivo no encontrado: ${fullPath} (${headResponse.status})`)
+      }
+      
+      console.log(`✅ Archivo verificado: ${fullPath}`)
+    } catch (headError) {
+      console.warn(`⚠️ No se pudo verificar ${fullPath}, intentando carga directa...`)
     }
 
-    const data = await response.json()
+    // Crear AbortController para timeout manual más robusto
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      console.warn(`⏰ Timeout alcanzado para ${fileName} (${timeout}ms)`)
+      controller.abort()
+    }, timeout)
 
-    // Validar estructura GeoJSON
-    if (!validateGeoJSON(data, fileName)) {
-      throw new Error(`Archivo GeoJSON inválido: ${fileName}`)
+    try {
+      // Realizar solicitud con AbortController
+      const response = await fetch(fullPath, {
+        signal: controller.signal
+      })
+
+      // Limpiar timeout si la respuesta es exitosa
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      // Validar estructura GeoJSON
+      if (!validateGeoJSON(data, fileName)) {
+        throw new Error(`Archivo GeoJSON inválido: ${fileName}`)
+      }
+
+      console.log(`✅ GeoJSON cargado: ${fileName} (${data.features?.length || 0} features)`)
+
+      // Procesar coordenadas si es necesario
+      let processedData = data
+      if (processCoordinates && data.features) {
+        console.log(`🔄 Procesando coordenadas para: ${fileName}`)
+        processedData = processGeoJSONCoordinates(data)
+      }
+
+      // Guardar en cache
+      if (cache) {
+        geoJSONCache.set(fileName, processedData)
+      }
+
+      return processedData
+
+    } catch (fetchError) {
+      // Limpiar timeout en caso de error
+      clearTimeout(timeoutId)
+      
+      // Si es error de abort por timeout, lanzar mensaje más claro
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        throw new Error(`Timeout cargando ${fileName} (${timeout}ms)`)
+      }
+      
+      // Re-lanzar otros errores de fetch
+      throw fetchError
     }
-
-    console.log(`✅ GeoJSON cargado: ${fileName} (${data.features?.length || 0} features)`)
-
-    // Procesar coordenadas si es necesario
-    let processedData = data
-    if (processCoordinates && data.features) {
-      console.log(`🔄 Procesando coordenadas para: ${fileName}`)
-      processedData = processGeoJSONCoordinates(data)
-    }
-
-    // Guardar en cache
-    if (cache) {
-      geoJSONCache.set(fileName, processedData)
-    }
-
-    return processedData
 
   } catch (error) {
     console.error(`❌ Error cargando GeoJSON ${fileName}:`, error)
@@ -303,6 +353,54 @@ export function getGeoJSONCacheStats(): { size: number; keys: string[] } {
 }
 
 /**
+ * Verifica rápidamente qué archivos GeoJSON están disponibles
+ */
+export async function checkGeoJSONAvailability(fileNames: string[]): Promise<Record<string, boolean>> {
+  console.log('🔍 Verificando disponibilidad de archivos GeoJSON...')
+  
+  const results: Record<string, boolean> = {}
+  
+  const fileMapping: Record<string, string> = {
+    'infraestructura': 'infraestructura_vial'
+  }
+
+  const pathMapping: Record<string, string> = {
+    'barrios': '/data/geodata',
+    'comunas': '/data/geodata', 
+    'corregimientos': '/data/geodata',
+    'veredas': '/data/geodata',
+    'equipamientos': '/data/unidades_proyecto',
+    'infraestructura_vial': '/data/unidades_proyecto'
+  }
+
+  await Promise.all(
+    fileNames.map(async (fileName) => {
+      try {
+        const actualFileName = fileMapping[fileName] || fileName
+        const basePath = pathMapping[actualFileName] || '/data/geodata'
+        const fullPath = `${basePath}/${actualFileName}.geojson`
+        
+        const response = await fetch(fullPath, { 
+          method: 'HEAD',
+          signal: AbortSignal.timeout(3000)
+        })
+        
+        results[fileName] = response.ok
+        console.log(`${response.ok ? '✅' : '❌'} ${fileName}: ${response.status}`)
+      } catch (error) {
+        results[fileName] = false
+        console.log(`❌ ${fileName}: Error - ${error}`)
+      }
+    })
+  )
+  
+  const available = Object.values(results).filter(Boolean).length
+  console.log(`📊 Archivos disponibles: ${available}/${fileNames.length}`)
+  
+  return results
+}
+
+/**
  * Función helper para cargar datos con fallback robusto
  * Reemplaza la funcionalidad de mapDataLoader.ts
  */
@@ -352,7 +450,8 @@ const geoJSONLoader = {
   clearGeoJSONCache,
   getGeoJSONCacheStats,
   loadMapDataWithFallback,
-  validateMapData
+  validateMapData,
+  checkGeoJSONAvailability
 }
 
 export default geoJSONLoader
