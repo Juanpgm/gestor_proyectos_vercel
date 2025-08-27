@@ -116,6 +116,20 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     setSelectedBaseMap(theme === 'dark' ? 'dark' : 'light')
   }, [theme])
   
+  // Sincronizar layerVisibility con layerConfigs al inicio
+  useEffect(() => {
+    const syncVisibility = () => {
+      const newVisibility: Record<string, boolean> = {}
+      layerConfigs.forEach(config => {
+        newVisibility[config.id] = config.visible
+      })
+      setLayerVisibility(newVisibility)
+      console.log('🔄 Sincronizando visibilidad inicial de capas:', newVisibility)
+    }
+    
+    syncVisibility()
+  }, [layerConfigs]) // Dependencia corregida
+  
   // Procesar unidades de proyecto filtradas (mantenemos para compatibilidad)
   const unidadesProyecto = useMemo(() => {
     const rawUnidades = unidadesState.unidadesProyecto || []
@@ -347,6 +361,15 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     
     if (updates.opacity !== undefined) {
       setLayerOpacity(prev => ({ ...prev, [layerId]: updates.opacity }))
+    }
+    
+    // CRÍTICO: También actualizar layerVisibility cuando cambie la visibilidad
+    if (updates.visible !== undefined) {
+      setLayerVisibility(prev => ({
+        ...prev,
+        [layerId]: updates.visible
+      }))
+      console.log(`🔄 Actualizando visibilidad de capa ${layerId} a:`, updates.visible)
     }
   }
 

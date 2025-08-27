@@ -213,7 +213,7 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
           id: fileName,
           name: displayName,
           data: filteredGeoJSON,
-          visible: layerVisibility[fileName] !== false,
+          visible: layerVisibility[fileName] === true, // Más explícito
           type: 'geojson',
           style: {
             weight: 2,
@@ -230,8 +230,13 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
       id: l.id, 
       name: l.name, 
       features: l.data?.features?.length || l.data?.length || 0,
-      visible: l.visible
+      visible: l.visible,
+      layerVisibilityState: layerVisibility[l.id],
+      rawLayerVisibility: layerVisibility
     })))
+    
+    console.log('🔍 Estado completo de layerVisibility:', layerVisibility)
+    
     return mapLayers
   }, [data, layerVisibility, filterGeoJSONByGeography, filterUnidadesByGeography, getLayerColors])
 
