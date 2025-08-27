@@ -10,6 +10,8 @@ import { createRoot } from 'react-dom/client'
 
 import { CALI_COORDINATES } from '@/utils/coordinateUtils'
 import PopupGaugeChart from './PopupGaugeChart'
+import { useLayerSymbology } from '@/hooks/useLayerSymbology'
+import { createCustomIcon, createCategoryIcon, createRangeIcon, createShapeIcon } from '@/utils/customIcons'
 
 /**
  * ============================================
@@ -356,6 +358,9 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
   const [mapReady, setMapReady] = useState(false)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
 
+  // Hook de simbología personalizada
+  const { getFeatureStyle, getFeatureIcon, getLayerSymbology } = useLayerSymbology()
+
   // Verificar que Leaflet esté cargado
   useEffect(() => {
     if (typeof window !== 'undefined' && window.L) {
@@ -388,10 +393,10 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     }
   }, [])
 
-  // Obtener estilos de capa
+  // Obtener estilos de capa con simbología personalizada
   const getLayerStyle = useCallback((layer: MapLayer) => {
-    // Si la capa tiene estilo personalizado, usarlo
-    if (layer.style) return layer.style
+    // Si la capa tiene estilo personalizado, usarlo como fallback
+    const fallbackStyle = layer.style || DEFAULT_STYLES.geojson
     
     // Buscar configuración específica de la capa
     const layerConfig = layers.find(l => l.id === layer.id)
@@ -415,7 +420,8 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     // Obtener opacidad de la configuración
     const opacity = layerConfig?.opacity ?? (isInfraestructura ? 0.9 : 0.8)
     
-    return {
+    // Estilo base que se puede sobrescribir por la simbología personalizada
+    const baseStyle = {
       ...DEFAULT_STYLES.geojson,
       color: baseColors.stroke,
       fillColor: baseColors.fill,
@@ -437,6 +443,8 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
       stroke: true,
       fill: !isInfraestructura // Solo llenar polígonos, no líneas
     }
+
+    return baseStyle
   }, [layers])
 
   // Obtener estilo de puntos
@@ -1143,30 +1151,111 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
               key={`${layer.id}-${layer.color}-${layer.opacity}-${layer.representationMode}-${layer.data?.features?.length || 0}-${Date.now()}`} // Key único para forzar re-render con timestamp
               data={layer.data}
               style={(feature) => {
+                // Aplicar simbología personalizada si está disponible
+                const customStyle = getFeatureStyle(feature, layer.id, feature?.geometry?.type, false)
+                
+                // Si no hay simbología personalizada, usar la configuración por defecto
                 const baseStyle = getLayerStyle(layer)
-                // Para LineString, usar un estilo con mejor área de click
+                
+                // Combinar estilos
+                const finalStyle = {
+                  ...baseStyle,
+                  ...customStyle
+                }
+                
+                // Para LineString, usar un estilo con mejor área de click y aplicar estilos de línea
                 if (feature?.geometry?.type === 'LineString') {
                   return {
-                    ...baseStyle,
-                    weight: 8, // Área de click mediana pero no demasiado gruesa visualmente
-                    opacity: 0.8,
-                    // Usar un border más grueso invisible para el área de click
-                    className: 'via-clickeable'
+                    ...finalStyle,
+                    weight: Math.max(8, finalStyle.weight || 4), // Área de click mínima de 8px
+                    opacity: finalStyle.opacity || 0.8,
+                    className: 'via-clickeable',
+                    lineCap: finalStyle.lineCap || 'round',
+                    lineJoin: finalStyle.lineJoin || 'round',
+                    dashArray: finalStyle.dashArray || null
                   }
                 }
-                return baseStyle
+                return {
+                  ...finalStyle,
+                  lineCap: finalStyle.lineCap || 'round',
+                  lineJoin: finalStyle.lineJoin || 'round'
+                }
               }}
               // Configurar pane para vías en nivel superior para mejor interactividad
               pane={layer.id.includes('infraestructura') || layer.id.includes('vias') ? 'overlayPane' : undefined}
               pointToLayer={(feature, latlng) => {
-                // Usar CircleMarker para todos los puntos en lugar de marcadores estándar
+                // Obtener configuración de simbología para la capa
+                const layerConfigData = layers.find(l => l.id === layer.id)
+                const layerConfig = getLayerSymbology(layer.id, false, layerConfigData?.color)
+                const customStyle = getFeatureStyle(feature, layer.id, 'Point', false)
+                
+                // Si el modo es 'icons', crear marcador con icono personalizado
+                if (layerConfig.mode === 'icons') {
+                  const iconEmoji = getFeatureIcon(feature, layer.id)
+                  
+                  const customIconMarker = L.marker(latlng, {
+                    icon: createCustomIcon(iconEmoji, layerConfig.pointSize || 30, customStyle.fillColor || '#3B82F6'),
+                    pane: 'markerPane'
+                  })
+                  
+                  return customIconMarker
+                }
+                // Si el modo es 'categories', crear marcador con color de categoría
+                else if (layerConfig.mode === 'categories') {
+                  const attributeValue = feature.properties?.[layerConfig.attribute || ''] || ''
+                  
+                  const categoryMarker = L.marker(latlng, {
+                    icon: createCategoryIcon(customStyle.fillColor || '#3B82F6', String(attributeValue), layerConfig.pointSize || 24),
+                    pane: 'markerPane'
+                  })
+                  
+                  return categoryMarker
+                }
+                // Si el modo es 'ranges', crear marcador con intensidad basada en valor
+                else if (layerConfig.mode === 'ranges') {
+                  const attributeValue = parseFloat(feature.properties?.[layerConfig.attribute || ''] || 0)
+                  
+                  // Encontrar el rango correspondiente
+                  const range = layerConfig.rangeColors?.find((r: any) => attributeValue >= r.min && attributeValue <= r.max)
+                  const rangeColor = range ? range.color : customStyle.fillColor || '#3B82F6'
+                  
+                  const rangeMarker = L.marker(latlng, {
+                    icon: createRangeIcon(
+                      rangeColor, 
+                      attributeValue, 
+                      range ? { min: range.min, max: range.max } : { min: 0, max: 100 },
+                      layerConfig.pointSize || 22
+                    ),
+                    pane: 'markerPane'
+                  })
+                  
+                  return rangeMarker
+                }
+                
+                // Para otros modos, usar formas geométricas personalizadas si están configuradas
+                if (layerConfig.pointShape && layerConfig.pointShape !== 'circle') {
+                  const shapeMarker = L.marker(latlng, {
+                    icon: createShapeIcon(
+                      layerConfig.pointShape,
+                      customStyle.fillColor || '#3B82F6',
+                      layerConfig.pointSize || 16,
+                      customStyle.color || '#FFFFFF',
+                      customStyle.weight || 2
+                    ),
+                    pane: 'markerPane'
+                  })
+                  
+                  return shapeMarker
+                }
+                
+                // Usar CircleMarker para todos los otros casos
                 return L.circleMarker(latlng, {
-                  radius: 8,
-                  fillColor: '#3B82F6',
-                  color: '#FFFFFF',
-                  weight: 2,
-                  opacity: 1,
-                  fillOpacity: 0.8,
+                  radius: layerConfig.pointSize || 8,
+                  fillColor: customStyle.fillColor || '#3B82F6',
+                  color: customStyle.color || '#FFFFFF',
+                  weight: customStyle.weight || 2,
+                  opacity: customStyle.opacity || 1,
+                  fillOpacity: customStyle.fillOpacity || 0.8,
                   pane: 'markerPane',
                   interactive: true,
                   bubblingMouseEvents: false

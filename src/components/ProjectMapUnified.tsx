@@ -8,7 +8,7 @@ import { useTheme } from '@/context/ThemeContext'
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
 import { loadAllUnidadesProyecto } from '@/utils/geoJSONLoader'
 import MapLayerFilters, { type GeographicFilters } from './MapLayerFilters'
-import ColorCustomizationControl, { type LayerColors } from './ColorCustomizationControl'
+
 import 'leaflet/dist/leaflet.css'
 
 /**
@@ -105,7 +105,6 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
     barrios: [],
     corregimientos: []
   })
-  const [layerColors, setLayerColors] = useState<Record<string, LayerColors>>({})
   
   // Configuración de capas - Dinámicamente basada en archivos cargados
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({})
@@ -211,16 +210,6 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
    */
   const handleGeographicFilterChange = (filters: GeographicFilters) => {
     setGeographicFilters(filters)
-  }
-
-  /**
-   * Manejar cambios en colores de capas
-   */
-  const handleLayerColorChange = (layerId: string, colors: LayerColors) => {
-    setLayerColors(prev => ({
-      ...prev,
-      [layerId]: colors
-    }))
   }
 
   /**
@@ -401,16 +390,11 @@ const ProjectMapUnified: React.FC<ProjectMapProps> = ({
           height={height}
           theme={theme}
           geographicFilters={geographicFilters}
-          layerColors={layerColors}
         />
 
         {/* Controles flotantes en el mapa */}
         <div className="absolute top-4 left-4 z-[1000] space-y-3 max-w-xs">
-          {/* Control de colores */}
-          <ColorCustomizationControl
-            onColorChange={handleLayerColorChange}
-            layers={Object.keys(mapData?.allGeoJSONData || {})}
-          />
+          {/* Aquí se pueden agregar otros controles si es necesario */}
         </div>
       </div>
 

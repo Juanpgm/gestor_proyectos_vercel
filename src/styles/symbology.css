@@ -1,0 +1,230 @@
+/* Estilos adicionales para la simbología personalizada */
+
+/* Modal z-index fix - Asegurar que esté por encima del mapa */
+.symbology-modal-overlay {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+.symbology-modal-content {
+  z-index: 10000 !important;
+  position: relative !important;
+}
+
+/* Override para cualquier z-index de Leaflet */
+.leaflet-container {
+  z-index: 1 !important;
+}
+
+.leaflet-control-container {
+  z-index: 1000 !important;
+}
+
+/* Estilos para diferentes tipos de líneas */
+.leaflet-overlay-pane path.line-dashed {
+  stroke-dasharray: 10, 10;
+}
+
+.leaflet-overlay-pane path.line-dotted {
+  stroke-dasharray: 2, 8;
+}
+
+.leaflet-overlay-pane path.line-dashdot {
+  stroke-dasharray: 10, 5, 2, 5;
+}
+
+.leaflet-overlay-pane path.line-solid {
+  stroke-dasharray: none;
+}
+
+/* Mejorar la interactividad de las vías */
+.leaflet-overlay-pane path.via-clickeable {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.leaflet-overlay-pane path.via-clickeable:hover {
+  stroke-opacity: 1 !important;
+  filter: brightness(1.2);
+}
+
+/* Estilos para iconos personalizados */
+.custom-emoji-icon {
+  transition: transform 0.2s ease;
+}
+
+.custom-emoji-icon:hover {
+  transform: scale(1.1);
+}
+
+.custom-category-icon {
+  transition: all 0.2s ease;
+}
+
+.custom-category-icon:hover {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+.custom-range-icon {
+  transition: all 0.2s ease;
+}
+
+.custom-range-icon:hover {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+}
+
+.custom-shape-icon {
+  transition: all 0.2s ease;
+}
+
+.custom-shape-icon:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+/* Estilos específicos para formas */
+.custom-shape-circle {
+  border-radius: 50%;
+}
+
+.custom-shape-triangle {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.custom-shape-star svg {
+  overflow: visible;
+}
+
+/* Estilos para el panel de simbología */
+.symbology-panel {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.symbology-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.symbology-panel::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.symbology-panel::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.symbology-panel::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Estilos para controles deslizantes personalizados */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #3B82F6;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
+}
+
+.slider::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #3B82F6;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
+}
+
+/* Animaciones para botones de aplicar/descartar */
+.apply-button {
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.apply-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+}
+
+.apply-button:active {
+  transform: translateY(0);
+}
+
+.discard-button {
+  transition: all 0.2s ease;
+}
+
+.discard-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.discard-button:active {
+  transform: translateY(0);
+}
+
+/* Estilos para indicadores de cambios pendientes */
+.pending-changes-indicator {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Responsividad para el panel de simbología */
+@media (max-width: 768px) {
+  .symbology-panel {
+    max-height: calc(100vh - 150px);
+  }
+  
+  .custom-emoji-icon,
+  .custom-category-icon,
+  .custom-range-icon,
+  .custom-shape-icon {
+    transform: scale(0.9);
+  }
+}
+
+/* Tema oscuro */
+@media (prefers-color-scheme: dark) {
+  .symbology-panel::-webkit-scrollbar-track {
+    background: #374151;
+  }
+  
+  .symbology-panel::-webkit-scrollbar-thumb {
+    background: #6B7280;
+  }
+  
+  .symbology-panel::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
+  }
+}

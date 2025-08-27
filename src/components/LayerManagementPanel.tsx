@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { Settings, Palette, Eye, EyeOff, Circle, ChevronDown, ChevronUp, Check, RotateCcw } from 'lucide-react'
+import { Settings, Eye, EyeOff, Circle, ChevronDown, ChevronUp, Check, RotateCcw } from 'lucide-react'
 
 interface LayerConfig {
   id: string
@@ -26,14 +26,6 @@ const LayerManagementPanel: React.FC<LayerManagementPanelProps> = ({
   className = ''
 }) => {
   const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set())
-  const [pendingChanges, setPendingChanges] = useState<Record<string, Partial<LayerConfig>>>({})
-
-  // Colores predefinidos para fácil selección - adaptados para tema oscuro
-  const presetColors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57',
-    '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43',
-    '#3742FA', '#2F3542', '#F8B500', '#EB4D4B', '#6C5CE7'
-  ]
 
   // Modos de representación disponibles
   const representationModes = [
@@ -53,10 +45,6 @@ const LayerManagementPanel: React.FC<LayerManagementPanelProps> = ({
   }
 
   // Funciones para manejar cambios inmediatos (sin sistema de pendientes)
-  const handleColorChange = useCallback((layerId: string, color: string) => {
-    onLayerUpdate(layerId, { color })
-  }, [onLayerUpdate])
-
   const handleVisibilityToggle = useCallback((layerId: string) => {
     const layer = layers.find(l => l.id === layerId)
     if (layer) {
@@ -132,38 +120,6 @@ const LayerManagementPanel: React.FC<LayerManagementPanelProps> = ({
               {/* Expanded Layer Controls */}
               {expandedLayers.has(layer.id) && (
                 <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-800/50 space-y-4">
-                  {/* Color Selection */}
-                  <div>
-                    <label className="text-xs text-gray-600 dark:text-gray-400 block mb-2">
-                      <Palette className="w-3 h-3 inline mr-1" />
-                      Color de Capa
-                    </label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {presetColors.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => handleColorChange(layer.id, color)}
-                          className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-105 ${
-                            layer.color === color 
-                              ? 'border-gray-800 dark:border-gray-200 scale-110 shadow-lg' 
-                              : 'border-gray-300 dark:border-gray-600'
-                          }`}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
-                    
-                    {/* Custom Color Input */}
-                    <div className="mt-2">
-                      <input
-                        type="color"
-                        value={layer.color}
-                        onChange={(e) => handleColorChange(layer.id, e.target.value)}
-                        className="w-full h-8 rounded border border-gray-300 dark:border-gray-600 cursor-pointer bg-white dark:bg-gray-700"
-                      />
-                    </div>
-                  </div>
-
                   {/* Opacity Control */}
                   <div>
                     <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">

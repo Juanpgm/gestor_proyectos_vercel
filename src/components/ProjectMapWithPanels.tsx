@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic'
 import { useTheme } from '@/context/ThemeContext'
 import { useUnidadesProyecto, UnidadProyecto } from '@/hooks/useUnidadesProyecto'
 import { useDashboardFilters } from '@/context/DashboardContext'
-import LayerManagementPanel from './LayerManagementPanel'
+import NewLayerManagementPanel from './NewLayerManagementPanel'
 import PropertiesPanel from './PropertiesPanel'
 import UnifiedFilters from './UnifiedFilters'
 import ProgressGaugeChart from './ProgressGaugeChart'
@@ -87,7 +87,8 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
       visible: true,
       color: '#10B981',
       opacity: 0.8,
-      representationMode: 'clase_obra' as const
+      representationMode: 'clase_obra' as const,
+      data: null as any // Se actualizará cuando se carguen los datos
     },
     {
       id: 'infraestructura_vial',
@@ -95,7 +96,8 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
       visible: true,
       color: '#F59E0B',
       opacity: 0.8,
-      representationMode: 'tipo_intervencion' as const
+      representationMode: 'tipo_intervencion' as const,
+      data: null as any // Se actualizará cuando se carguen los datos
     }
   ])
   const [activeChart, setActiveChart] = useState<'gauge' | 'interventions'>('gauge')
@@ -329,7 +331,13 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
 
   // Inicializar configuración de capas cuando hay datos
   useEffect(() => {
-    if (geoJSONMetrics.length > 0) {
+    if (Object.keys(unidadesState.allGeoJSONData || {}).length > 0) {
+      // Actualizar layerConfigs con los datos GeoJSON
+      setLayerConfigs(prev => prev.map(config => ({
+        ...config,
+        data: unidadesState.allGeoJSONData?.[config.id] || null
+      })))
+      
       // Configuración inicial de visibilidad de capas
       setLayerVisibility({
         equipamientos: true,
@@ -340,7 +348,7 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
         infraestructura_vial: 0.8
       })
     }
-  }, [geoJSONMetrics.length])
+  }, [unidadesState.allGeoJSONData])
 
   // Funciones de manejo de capas
   const toggleLayer = (layerId: string) => {
@@ -476,6 +484,39 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     setSelectedLayerType('')
   }
 
+  // Función para manejar la aplicación de cambios de simbología
+  const handleApplySymbologyChanges = (layerId: string) => {
+    console.log(`🎨 Aplicando cambios de simbología para la capa: ${layerId}`)
+    
+    // Crear un timestamp único para forzar re-renderización completa del mapa
+    const timestamp = Date.now()
+    
+    // Forzar re-renderización del mapa agregando timestamp
+    setLayerConfigs(prev => prev.map(config => 
+      config.id === layerId 
+        ? { 
+            ...config, 
+            lastUpdate: timestamp, // Agregar timestamp para forzar actualización
+            visible: config.visible 
+          }
+        : config
+    ))
+    
+    // También forzar actualización del estado de visibilidad para triggear re-render
+    setLayerVisibility(prev => ({
+      ...prev,
+      [layerId]: prev[layerId] // Mantener el mismo valor pero forzar update
+    }))
+    
+    // Forzar actualización de la opacidad también
+    setLayerOpacity(prev => ({
+      ...prev,
+      [`${layerId}_timestamp`]: timestamp // Agregar timestamp para forzar actualización
+    }))
+    
+    console.log(`✅ Cambios de simbología aplicados para: ${layerId} - timestamp: ${timestamp}`)
+  }
+
   // Función para aplicar cambios de capas al mapa
   const handleApplyLayerChanges = () => {
     console.log('🎨 Aplicando cambios de capas al mapa')
@@ -599,10 +640,10 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
                       <ChevronDown className="w-3 h-3" />
                     </button>
                   </div>
-                  <LayerManagementPanel
+                  <NewLayerManagementPanel
                     layers={layerConfigs}
                     onLayerUpdate={updateLayerConfig}
-                    onApplyChanges={handleApplyLayerChanges}
+                    onApplySymbologyChanges={handleApplySymbologyChanges}
                     className="w-full"
                   />
                 </div>
@@ -689,7 +730,7 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
             onFeatureClick={handleFeatureClick}
             height="100%"
             theme={theme}
-            key={`map-${Object.keys(unidadesState.allGeoJSONData || {}).join('-')}-${Object.values(layerVisibility).join('-')}`}
+            key={`map-${Object.keys(unidadesState.allGeoJSONData || {}).join('-')}-${Object.values(layerVisibility).join('-')}-${layerConfigs.map(l => (l as any).lastUpdate || 0).join('-')}`}
           />
         </div>
 

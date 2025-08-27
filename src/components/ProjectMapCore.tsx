@@ -4,7 +4,6 @@ import React, { useMemo, useCallback } from 'react'
 import UniversalMapCore, { MapLayer } from './UniversalMapCore'
 import { ProjectMapData } from './ProjectMapUnified'
 import type { GeographicFilters } from './MapLayerFilters'
-import type { LayerColors } from './ColorCustomizationControl'
 
 export interface ProjectMapCoreProps {
   data: ProjectMapData
@@ -26,7 +25,6 @@ export interface ProjectMapCoreProps {
   height: string
   theme: string
   geographicFilters?: GeographicFilters
-  layerColors?: Record<string, LayerColors>
 }
 
 const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
@@ -37,8 +35,7 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
   onFeatureClick,
   height,
   theme,
-  geographicFilters,
-  layerColors
+  geographicFilters
 }) => {
   // Función para filtrar features GeoJSON por ubicación geográfica (memoizada)
   const filterGeoJSONByGeography = useCallback((geoJSONData: any, layerId: string) => {
@@ -150,22 +147,6 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
     })
   }, [geographicFilters])
 
-  // Función para obtener colores de capa (memoizada)
-  const getLayerColors = useCallback((layerId: string) => {
-    if (layerColors && layerColors[layerId]) {
-      return layerColors[layerId]
-    }
-    
-    // Colores por defecto
-    const defaultColors: Record<string, LayerColors> = {
-      unidades_proyecto: { fill: '#3B82F6', stroke: '#1D4ED8' },
-      equipamientos: { fill: '#10B981', stroke: '#059669' },
-      infraestructura_vial: { fill: '#F59E0B', stroke: '#D97706' }
-    }
-    
-    return defaultColors[layerId] || { fill: '#6B7280', stroke: '#374151' }
-  }, [layerColors])
-
   // Convertir datos a formato de capas unificado con filtros aplicados
   const layers: MapLayer[] = useMemo(() => {
     const mapLayers: MapLayer[] = []
@@ -206,8 +187,17 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
         // Aplicar filtros geográficos
         const filteredGeoJSON = filterGeoJSONByGeography(geoJSONData, fileName)
         
-        // Obtener colores personalizados
-        const colors = getLayerColors(fileName)
+        // Colores por defecto según el tipo de capa
+        const getDefaultColors = (layerId: string) => {
+          const defaultColors: Record<string, { fill: string, stroke: string }> = {
+            unidades_proyecto: { fill: '#3B82F6', stroke: '#1D4ED8' },
+            equipamientos: { fill: '#10B981', stroke: '#059669' },
+            infraestructura_vial: { fill: '#F59E0B', stroke: '#D97706' }
+          }
+          return defaultColors[layerId] || { fill: '#6B7280', stroke: '#374151' }
+        }
+        
+        const colors = getDefaultColors(fileName)
         
         mapLayers.push({
           id: fileName,
@@ -238,7 +228,7 @@ const ProjectMapCore: React.FC<ProjectMapCoreProps> = ({
     console.log('🔍 Estado completo de layerVisibility:', layerVisibility)
     
     return mapLayers
-  }, [data, layerVisibility, filterGeoJSONByGeography, filterUnidadesByGeography, getLayerColors])
+  }, [data, layerVisibility, filterGeoJSONByGeography, filterUnidadesByGeography])
 
   // Función adaptadora para onFeatureClick
   const handleFeatureClick = useCallback((feature: any, layer: any) => {
