@@ -440,12 +440,14 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         fill: layer.color,
         stroke: layer.color
       }
+      console.log(`🎨 [${layer.id}] Usando color de layer.color:`, layer.color)
     } else if (layerConfig && layerConfig.color) {
       // Usar color personalizado de la configuración
       baseColors = {
         fill: layerConfig.color,
         stroke: layerConfig.color
       }
+      console.log(`🎨 [${layer.id}] Usando color de layerConfig:`, layerConfig.color)
     } else {
       // Usar colores predefinidos específicos para cada capa
       const predefinedColors = {
@@ -458,6 +460,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
       baseColors = predefinedColors[layer.id as keyof typeof predefinedColors] || 
                    dynamicLayerColors[layer.id] || 
                    LAYER_COLOR_PALETTE[0]
+      console.log(`🎨 [${layer.id}] Usando colores predefinidos:`, baseColors)
     }
     
     // Configuración especial para vías/infraestructura para mejorar la clickeabilidad
@@ -509,11 +512,13 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         fill: layer.color,
         stroke: layer.color
       }
+      console.log(`🔘 [${layer.id}] Punto usando color de layer.color:`, layer.color)
     } else if (layerConfig && layerConfig.color) {
       baseColors = {
         fill: layerConfig.color,
         stroke: layerConfig.color
       }
+      console.log(`🔘 [${layer.id}] Punto usando color de layerConfig:`, layerConfig.color)
     } else {
       // Usar colores predefinidos específicos para cada capa
       const predefinedColors = {
@@ -526,6 +531,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
       baseColors = predefinedColors[layer.id as keyof typeof predefinedColors] || 
                    dynamicLayerColors[layer.id] || 
                    LAYER_COLOR_PALETTE[0]
+      console.log(`🔘 [${layer.id}] Punto usando colores predefinidos:`, baseColors)
     }
     
     // Obtener opacidad de la configuración
