@@ -17,8 +17,6 @@ export const useDataFilters = () => {
   useEffect(() => {
     const dataFilters = {
       search: dashboardFilters.search || '',
-      periodo: dashboardFilters.periodos?.[0] || '', // Usar el primer período seleccionado
-      periodos: dashboardFilters.periodos || [], // Enviar todos los períodos
       // Incluir otros filtros relevantes sin duplicar 'search'
       estado: dashboardFilters.estado,
       comunas: dashboardFilters.comunas || [],

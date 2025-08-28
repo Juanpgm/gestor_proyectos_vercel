@@ -6,31 +6,26 @@ import { loadGeoJSON, loadMapDataWithFallback } from '@/utils/geoJSONLoader'
 // Tipos para cada fuente de datos
 interface Proyecto {
   bpin: number
-  periodo?: string
   [key: string]: any
 }
 
 interface UnidadProyecto {
   bpin?: number
-  periodo?: string
   [key: string]: any
 }
 
 interface Producto {
   bpin: number
-  periodo?: string
   [key: string]: any
 }
 
 interface Actividad {
   bpin: number
-  periodo?: string
   [key: string]: any
 }
 
 interface Contrato {
   bpin?: number
-  periodo?: string
   [key: string]: any
 }
 
@@ -81,8 +76,6 @@ interface ActividadPa {
 interface SearchFilters {
   search: string
   bpin?: string
-  periodo?: string
-  periodos?: string[]
   centroGestor?: string[]
   comunas?: string[]
   barrios?: string[]
@@ -255,8 +248,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     loadAllData()
   }, [])
 
-// Función para filtrar datos por BPIN, período y otros filtros
-  const filterDataByFilters = <T extends { bpin?: number; periodo?: string; [key: string]: any }>(
+// Función para filtrar datos por BPIN y otros filtros
+  const filterDataByFilters = <T extends { bpin?: number; [key: string]: any }>(
     data: T[],
     searchFilters: SearchFilters
   ): T[] => {
@@ -283,17 +276,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         const centroGestorField = item.nombre_centro_gestor || item.responsible || item.centro_gestor
         if (centroGestorField && !searchFilters.centroGestor.includes(centroGestorField)) {
           return false
-        }
-      }
-
-      // Filtro por período específico (desde filtros de período)
-      if (searchFilters.periodos && searchFilters.periodos.length > 0) {
-        const periodoField = item.periodo_corte || item.periodo || item.anio?.toString()
-        if (periodoField) {
-          const matchesPeriodo = searchFilters.periodos.some((periodo: string) => 
-            periodoField.toString().includes(periodo.toString())
-          )
-          if (!matchesPeriodo) return false
         }
       }
 

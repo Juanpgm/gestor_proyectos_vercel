@@ -132,126 +132,116 @@ export default function CentrosGravedadMetrics() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <div className="bg-purple-500 p-2 rounded-lg">
-          <Target className="w-5 h-5 text-white" />
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+      {/* Header compacto */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="bg-purple-500 p-1.5 rounded">
+          <Target className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
             Centros de Gravedad
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Análisis de puntos críticos urbanos ({metrics.total} registros)
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            {metrics.total.toLocaleString()} registros
           </p>
         </div>
       </div>
 
-      {/* Métricas Rápidas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-            <span className="text-xs font-medium text-red-600 dark:text-red-400">Total Registros</span>
+      {/* Métricas compactas */}
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-200 dark:border-red-700">
+          <div className="text-center">
+            <p className="text-sm font-bold text-red-900 dark:text-red-100">{metrics.total > 999 ? (metrics.total/1000).toFixed(1)+'K' : metrics.total}</p>
+            <p className="text-xs text-red-700 dark:text-red-300">Total</p>
           </div>
-          <p className="text-xl font-bold text-red-900 dark:text-red-100">{metrics.total.toLocaleString()}</p>
         </div>
         
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Tipos Novedad</span>
+        <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-700">
+          <div className="text-center">
+            <p className="text-sm font-bold text-green-900 dark:text-green-100">
+              {metrics.promedioRegistrosPorDia.toFixed(1)}
+            </p>
+            <p className="text-xs text-green-700 dark:text-green-300">Prom/Día</p>
           </div>
-          <p className="text-xl font-bold text-blue-900 dark:text-blue-100">
-            {Object.keys(metrics.novedadesPorTipo).length}
-          </p>
         </div>
 
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
-            <span className="text-xs font-medium text-green-600 dark:text-green-400">Promedio/Día</span>
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-700">
+          <div className="text-center">
+            <p className="text-sm font-bold text-blue-900 dark:text-blue-100">{Object.keys(metrics.novedadesPorTipo).length}</p>
+            <p className="text-xs text-blue-700 dark:text-blue-300">Tipos</p>
           </div>
-          <p className="text-xl font-bold text-green-900 dark:text-green-100">
-            {metrics.promedioRegistrosPorDia.toFixed(1)}
-          </p>
         </div>
 
-        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-            <span className="text-xs font-medium text-orange-600 dark:text-orange-400">Sitios Activos</span>
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded border border-purple-200 dark:border-purple-700">
+          <div className="text-center">
+            <p className="text-sm font-bold text-purple-900 dark:text-purple-100">{Object.keys(metrics.sitiosPorZona).length}</p>
+            <p className="text-xs text-purple-700 dark:text-purple-300">Sitios</p>
           </div>
-          <p className="text-xl font-bold text-orange-900 dark:text-orange-100">
-            {Object.keys(metrics.sitiosPorZona).length}
-          </p>
         </div>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Gráficos restaurados - Versión compacta */}
+      <div className="space-y-4">
         {/* Gráfico de Barras - Top Novedades */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
+          <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
             Top Tipos de Novedades
           </h4>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={chartData.novedades} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={chartData.novedades.slice(0, 6)} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
                 dataKey="tipo" 
                 angle={-45}
                 textAnchor="end"
-                height={80}
-                fontSize={10}
+                height={50}
+                fontSize={8}
                 stroke="currentColor"
                 className="text-gray-600 dark:text-gray-400"
               />
               <YAxis 
-                fontSize={11}
+                fontSize={8}
                 stroke="currentColor"
                 className="text-gray-600 dark:text-gray-400"
               />
               <Tooltip 
                 labelFormatter={(label) => chartData.novedades.find(n => n.tipo === label)?.fullTipo || label}
-                formatter={(value: any, name: string) => [
-                  `${value} registros`, 
-                  'Cantidad'
-                ]}
+                formatter={(value: any) => [`${value} registros`, 'Cantidad']}
                 contentStyle={{
                   backgroundColor: 'var(--tw-bg-opacity-50)',
                   border: '1px solid var(--tw-border-opacity-50)',
-                  borderRadius: '6px'
+                  borderRadius: '6px',
+                  fontSize: '11px'
                 }}
               />
-              <Bar dataKey="cantidad" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="cantidad" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Gráfico de Línea Temporal */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
+          <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" />
             Tendencia Temporal (cada 4 horas)
           </h4>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={chartData.temporal} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={chartData.temporal} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
                 dataKey="fecha" 
-                fontSize={10}
+                fontSize={8}
                 stroke="currentColor"
                 className="text-gray-600 dark:text-gray-400"
                 angle={-45}
                 textAnchor="end"
-                height={60}
-                interval={Math.max(0, Math.floor(chartData.temporal.length / 8))} // Mostrar máximo 8 etiquetas
+                height={40}
+                interval={Math.max(0, Math.floor(chartData.temporal.length / 6))}
               />
               <YAxis 
-                fontSize={11}
+                fontSize={8}
                 stroke="currentColor"
                 className="text-gray-600 dark:text-gray-400"
               />
@@ -267,7 +257,8 @@ export default function CentrosGravedadMetrics() {
                 contentStyle={{
                   backgroundColor: 'var(--tw-bg-opacity-50)',
                   border: '1px solid var(--tw-border-opacity-50)',
-                  borderRadius: '6px'
+                  borderRadius: '6px',
+                  fontSize: '11px'
                 }}
               />
               <Line 
@@ -275,31 +266,33 @@ export default function CentrosGravedadMetrics() {
                 dataKey="cantidad" 
                 stroke="#10B981" 
                 strokeWidth={2}
-                dot={{ fill: '#10B981', strokeWidth: 1, r: 3 }}
-                activeDot={{ r: 5, stroke: '#10B981', strokeWidth: 2, fill: '#ffffff' }}
+                dot={{ fill: '#10B981', strokeWidth: 1, r: 2 }}
+                activeDot={{ r: 4, stroke: '#10B981', strokeWidth: 2, fill: '#ffffff' }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Lista de Top Novedades */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Principales Tipos de Novedades
+      {/* Listas compactas en dos columnas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+        {/* Columna izquierda: Top Novedades */}
+        <div className="space-y-2">
+          <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            Top Novedades
           </h5>
-          <div className="space-y-2">
-            {chartData.novedades.map((novedad, index) => (
-              <div key={novedad.fullTipo} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{getNovedadIcon(novedad.fullTipo)}</span>
-                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+          <div className="space-y-0.5">
+            {chartData.novedades.slice(0, 4).map((novedad, index) => (
+              <div key={novedad.fullTipo} className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-gray-700 rounded">
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  <span className="text-sm flex-shrink-0">{getNovedadIcon(novedad.fullTipo)}</span>
+                  <span className="text-xs text-gray-700 dark:text-gray-300 break-words leading-tight" title={novedad.fullTipo}>
                     {novedad.fullTipo}
                   </span>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="text-right flex-shrink-0 ml-1">
+                  <div className="text-xs font-semibold text-gray-900 dark:text-white">
                     {novedad.cantidad}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -311,68 +304,43 @@ export default function CentrosGravedadMetrics() {
           </div>
         </div>
 
-        <div>
-          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Sitios Más Activos
+        {/* Columna derecha: Sitios Más Activos */}
+        <div className="space-y-2">
+          <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+            <div 
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: COLORS[0] }}
+            ></div>
+            Sitios Activos
           </h5>
-          <div className="space-y-2">
-            {chartData.sitios.map((sitio, index) => (
-              <div key={sitio.fullSitio} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                <div className="flex items-center gap-2">
+          <div className="space-y-0.5">
+            {chartData.sitios.slice(0, 4).map((sitio, index) => (
+              <div key={sitio.fullSitio} className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-gray-700 rounded">
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   <div 
-                    className="w-3 h-3 rounded-full"
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   ></div>
-                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate" title={sitio.fullSitio}>
-                    {sitio.sitio}
+                  <span className="text-xs text-gray-700 dark:text-gray-300 break-words leading-tight" title={sitio.fullSitio}>
+                    {sitio.fullSitio}
                   </span>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                <div className="text-right flex-shrink-0 ml-1">
+                  <div className="text-xs font-semibold text-gray-900 dark:text-white">
                     {sitio.cantidad}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    registros
                   </div>
                 </div>
               </div>
             ))}
+            {chartData.sitios.length > 4 && (
+              <div className="text-xs text-gray-500 text-center pt-1">
+                +{chartData.sitios.length - 4} más...
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Estadísticas adicionales */}
-      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-        <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Estadísticas Temporales
-        </h5>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {chartData.temporal.length}
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Intervalos de 4h</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {chartData.temporal.length > 0 ? Math.max(...chartData.temporal.map(t => t.cantidad)) : 0}
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Pico máximo</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {chartData.temporal.length > 0 ? (chartData.temporal.reduce((sum, t) => sum + t.cantidad, 0) / chartData.temporal.length).toFixed(1) : '0'}
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Promedio por período</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              {metrics.topNovedades[0]?.tipo.split(' ')[0] || 'N/A'}
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">Problema más común</p>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

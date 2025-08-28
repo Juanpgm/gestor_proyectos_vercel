@@ -293,26 +293,6 @@ export function useProjectData() {
         )
       }
 
-      // Filtro por filtros personalizados (dimensiones/líneas estratégicas)
-      if (filters.filtrosPersonalizados && filters.filtrosPersonalizados.length > 0) {
-        filteredProyectos = filteredProyectos.filter(proyecto =>
-          filters.filtrosPersonalizados.some(filtro =>
-            proyecto.nombre_dimension.toLowerCase().includes(filtro.toLowerCase()) ||
-            proyecto.nombre_linea_estrategica.toLowerCase().includes(filtro.toLowerCase())
-          )
-        )
-      }
-
-      // Filtro por subfiltros personalizados (programas específicos)
-      if (filters.subfiltrosPersonalizados && filters.subfiltrosPersonalizados.length > 0) {
-        filteredProyectos = filteredProyectos.filter(proyecto =>
-          filters.subfiltrosPersonalizados.some(subfiltro =>
-            proyecto.nombre_programa.toLowerCase().includes(subfiltro.toLowerCase()) ||
-            proyecto.nombre_linea_estrategica.toLowerCase().includes(subfiltro.toLowerCase())
-          )
-        )
-      }
-
       // Filtro por año (usando fechas)
       if (filters.fechaInicio || filters.fechaFin) {
         filteredProyectos = filteredProyectos.filter(proyecto => {

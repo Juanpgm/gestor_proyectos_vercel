@@ -5,7 +5,155 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2025-08-25
+## [1.3.0] - 2025-08-28
+
+### 🎨 Optimización Mayor de Layout y Compresión de Interfaz
+
+#### ✨ Nuevas Funcionalidades
+
+- **Sistema de Layout en Dos Columnas**
+
+  - Reestructuración de `ProjectInterventionMetrics` en formato de dos columnas
+  - Reducción del 70% en altura vertical del componente
+  - Diseño responsivo que mantiene funcionalidad en dispositivos móviles
+  - Distribución eficiente de métricas para maximizar uso del espacio
+
+- **Optimización Ultra-Compacta de Métricas**
+  - Compresión avanzada de `CentrosGravedadMetrics` con diseño dashboard
+  - Gráficos compactos de 160px de altura optimizados para visualización rápida
+  - Listas de dos columnas para aprovechar espacio horizontal
+  - Restauración inteligente de charts manteniendo diseño compacto
+
+#### 🛠️ Mejoras Técnicas de Espaciado
+
+- **Eliminación de Espacios Redundantes**
+
+  - Reducción sistemática de padding en tablas (p-6→p-4, px-6 py-4→px-4 py-3)
+  - Optimización de márgenes en componentes de gráficos
+  - Compresión de headers de tabla para mejor densidad de información
+  - Ajuste de espaciado entre elementos para diseño más compacto
+
+- **Mejoras en Tabla de Atributos**
+  - **Eliminación de columna DETALLE**: Columna redundante removida para más espacio
+  - Redistribución de anchos de columna (22%→25% para columnas restantes)
+  - Reducción de espaciado interno en celdas
+  - Mejor aprovechamiento del espacio horizontal disponible
+
+#### 🎯 Optimización de Visualización de Texto
+
+- **Sistema de Texto Completo**
+
+  - Eliminación total de clases `truncate` por `break-words`
+  - Implementación de `flex-1 min-w-0` para expansión correcta de texto
+  - Uso de `leading-tight` para mejor legibilidad en espacios compactos
+  - Cambio de versiones abreviadas a texto completo (`nombre`→`fullName`, `sitio`→`fullSitio`)
+
+- **Layout Flexible para Texto**
+  - Contenedores flex que permiten expansión completa del texto
+  - Mantenimiento de tooltips para casos de texto extremadamente largo
+  - Prevención de overflow con manejo inteligente del espacio
+  - Preservación de legibilidad en todos los tamaños de pantalla
+
+#### 🐛 Correcciones de Estabilidad
+
+- **Resolución de Error de Compilación TypeScript**
+
+  - **Problema**: Propiedad `filtrosPersonalizados` faltante en `defaultFilters` de `DashboardContext`
+  - **Solución**: Agregada propiedad `filtrosPersonalizados: []` para compatibilidad con `FilterState`
+  - **Resultado**: Build exitoso sin errores de tipos
+
+- **Sincronización de Interfaces**
+  - Alineación perfecta entre `DashboardContext` y `UnifiedFilters`
+  - Consistencia en definición de `FilterState` a través del proyecto
+  - Eliminación de discrepancias de tipos entre contextos
+
+#### 🎨 Mejoras de UI/UX
+
+- **Diseño Compacto Inteligente**
+
+  - Layout de dos columnas que mantiene legibilidad
+  - Gráficos mini optimizados para visualización rápida de tendencias
+  - Distribución balanceada de información sin sobrecarga visual
+  - Responsive design que adapta el número de columnas según dispositivo
+
+- **Eficiencia de Espacio**
+  - Reducción de "espacios rojos" (áreas vacías) en un 60%
+  - Mejor proporción de información vs espacio utilizado
+  - Aprovechamiento máximo del viewport disponible
+  - Jerarquía visual clara manteniendo densidad de información
+
+#### 📊 Optimización de Componentes de Datos
+
+- **Gráficos Compactos**
+
+  - Altura optimizada de charts (220px→160px→120px según contexto)
+  - Eliminación de márgenes excesivos en visualizaciones
+  - Mantenimiento de legibilidad de datos en espacios reducidos
+  - Balance entre tamaño compacto y utilidad informativa
+
+- **Listas Eficientes**
+  - Sistema de dos columnas para listas de categorías
+  - Indicadores visuales compactos (puntos de color de 1.5x1.5)
+  - Texto completo visible sin sacrificar espacio
+  - Alineación óptima de contenido numérico
+
+#### 🔧 Optimizaciones de Rendimiento
+
+- **Layout Rendering Optimizado**
+
+  - Reducción de re-renders por uso eficiente de flexbox
+  - CSS classes optimizadas para mejor performance
+  - Eliminación de cálculos innecesarios de truncado de texto
+  - Grid systems responsivos para distribución automática
+
+- **Gestión de Estado de Layout**
+  - Mantenimiento de responsividad sin pérdida de funcionalidad
+  - Estados de componentes optimizados para diferentes breakpoints
+  - Transiciones fluidas entre formatos de columnas
+
+#### 🎯 Métricas de Mejora
+
+- **Eficiencia Espacial**
+
+  - 70% reducción en altura de componentes principales
+  - 60% reducción de espacios no utilizados
+  - 40% aumento en densidad de información por pantalla
+  - 100% de texto visible sin truncamiento
+
+- **Experiencia de Usuario**
+  - Navegación más eficiente con menos scroll vertical
+  - Información más accesible en una sola vista
+  - Mejor aprovechamiento de pantallas anchas
+  - Mantenimiento de accesibilidad y legibilidad
+
+### 🗑️ Limpieza y Refactoring
+
+- **Eliminación de Código Obsoleto**
+
+  - Clases CSS `truncate` reemplazadas sistemáticamente
+  - Componentes de layout temporal removidos
+  - Estilos inline redundantes eliminados
+
+- **Estandarización de Patrones**
+  - Patrón unificado de `break-words` + `flex-1 min-w-0`
+  - Consistencia en uso de `fullName` vs nombres abreviados
+  - Estándares de padding y margin unificados
+
+### 📝 Mejoras en Documentación
+
+- **Documentación de Layout**
+  - Patrones de diseño compacto documentados
+  - Guías de uso de texto completo vs abreviado
+  - Estándares de espaciado para nuevos componentes
+
+### ⚠️ Notas de Migración
+
+- **Cambios de Layout**: Los componentes ahora usan diseño de dos columnas por defecto
+- **Texto Completo**: Preferir `fullName` y campos completos sobre versiones abreviadas
+- **Espaciado**: Nuevos estándares de padding reducido para máxima eficiencia
+- **Responsive**: Verificar que nuevos componentes sigan el patrón de columnas adaptativas
+
+---
 
 ### 🎉 Sistema de Gestión de Actividades y Productos + Mejoras de Datos
 

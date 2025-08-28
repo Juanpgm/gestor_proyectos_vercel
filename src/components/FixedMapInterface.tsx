@@ -62,16 +62,6 @@ export interface UnifiedMapInterfaceProps {
   initialPropertiesPanelCollapsed?: boolean
 }
 
-export interface UniversalMapCoreProps {
-  center: [number, number]; // Center coordinates of the map
-  zoom: number;
-  baseMapUrl: string;
-  attribution: string;
-  onFeatureClick: (feature: any, layerType: string) => void;
-  height: string;
-  directDataLoad: boolean;
-}
-
 export default function FixedMapInterface({
   className = '',
   height = '600px',
@@ -103,14 +93,11 @@ export default function FixedMapInterface({
       {/* Mapa principal */}
       <div className="absolute inset-0 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         <UniversalMapCore
-          center={mapCenter}
-          zoom={mapZoom}
+          layers={[]}
           baseMapUrl={baseMaps[currentBaseMap as keyof typeof baseMaps].url}
-          attribution={baseMaps[currentBaseMap as keyof typeof baseMaps].attribution}
+          baseMapAttribution={baseMaps[currentBaseMap as keyof typeof baseMaps].attribution}
           onFeatureClick={handleFeatureClick}
           height={height}
-          // Este componente tiene su propia lógica de carga de datos
-          directDataLoad={true}
         />
       </div>
 

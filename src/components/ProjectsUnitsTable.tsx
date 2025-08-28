@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { 
   Download, 
   Eye, 
@@ -133,199 +132,185 @@ const ProjectsUnitsTable: React.FC<ProjectsUnitsTableProps> = ({
   }, [filteredProjectUnits.length])
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.6 }}
-      className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 transition-colors duration-300 ${className}`}
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 transition-colors duration-300 h-full flex flex-col ${className}`}
     >
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-start justify-between mb-4">
+      {/* Header - Reducido */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-start justify-between mb-2">
           <div>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">
               Unidades de Proyecto - Tabla de Atributos
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               {sortedProjects.length} unidades de proyecto encontradas
             </p>
           </div>
-          <button className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+          <button className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors duration-200">
             <Download className="w-4 h-4" />
-            <span>Exportar</span>
+            <span className="text-sm">Exportar</span>
           </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('name')}
-                style={{ width: '22%' }}
-              >
-                <div className="flex items-center space-x-1">
-                  <span>Unidad de Proyecto</span>
-                  {getSortIcon('name')}
-                </div>
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('tipoIntervencion')}
-              >
-                <div className="flex items-center space-x-1">
-                  <span>Tipo Intervención</span>
-                  {getSortIcon('tipoIntervencion')}
-                </div>
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('comuna')}
-              >
-                <div className="flex items-center space-x-1">
-                  <span>Ubicación</span>
-                  {getSortIcon('comuna')}
-                </div>
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('progress')}
-              >
-                <div className="flex items-center space-x-1">
-                  <span>Progreso</span>
-                  {getSortIcon('progress')}
-                </div>
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                DETALLE
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-      {paginatedProjects.map((project) => (
-              <motion.tr
-                key={project.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-              >
-        <td className="px-6 py-4 whitespace-nowrap align-middle" style={{ width: '22%' }}>
-                  <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {project.name}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {project.bpin}
-                    </div>
-
-                    {/* Texto compacto gris: Presupuesto y Beneficiarios */}
-                    <div className="mt-2 text-sm text-gray-400 dark:text-gray-500">
-                      <div className="font-semibold text-indigo-700 dark:text-indigo-200">{formatCurrencyFull(project.budget)}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Beneficiarios: {formatNumber(project.beneficiaries)}</div>
-                    </div>
+      {/* Table Container - Flexible height */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Table */}
+        <div className="flex-1 overflow-auto">
+          <table className="w-full h-full">
+            <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+              <tr>
+                <th 
+                  className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  onClick={() => handleSort('name')}
+                  style={{ width: '25%' }}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Unidad de Proyecto</span>
+                    {getSortIcon('name')}
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getInterventionColor(project.tipoIntervencion)}`}>
-                    {project.tipoIntervencion || 'No definido'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  <div>
-                    <div className="font-medium">
-                      {project.comuna && `${project.comuna}`}
-                      {project.corregimiento && `${project.corregimiento}`}
-                    </div>
-                    {(project.barrio || project.vereda) && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {project.barrio || project.vereda}
+                </th>
+                <th 
+                  className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  onClick={() => handleSort('tipoIntervencion')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Tipo Intervención</span>
+                    {getSortIcon('tipoIntervencion')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  onClick={() => handleSort('comuna')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Ubicación</span>
+                    {getSortIcon('comuna')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  onClick={() => handleSort('progress')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Progreso</span>
+                    {getSortIcon('progress')}
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {paginatedProjects.map((project) => (
+                <tr
+                  key={project.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  <td className="px-4 py-3 whitespace-nowrap align-middle" style={{ width: '25%' }}>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {project.name}
                       </div>
-                    )}
-                  </div>
-                </td>
-                {/* Progreso: solo avance físico de obra */}
-                <td className="px-6 py-4 whitespace-nowrap align-top">
-                  <div>
-                    {(() => {
-                      const physicalPct = Number(project.progress)
-                      const physicalDisplay = physicalPct.toFixed(1)
-                      const physicalAria = Number(physicalDisplay)
-                      return (
-                        <>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">{physicalDisplay}%</div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2" role="progressbar" aria-label={`Progreso físico de ${project.name}`} aria-valuenow={physicalAria} aria-valuemin={0} aria-valuemax={100}>
-                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${physicalPct}%` }} />
-                          </div>
-                          <span className="sr-only">Progreso físico {physicalDisplay} por ciento</span>
-                        </>
-                      )
-                    })()}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center justify-center align-middle">
-                  <button 
-                    onClick={() => handleViewProject(project)}
-                    aria-label={`Ver detalle del proyecto ${project.name}`} 
-                    className="text-blue-600 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100 transition-colors duration-200 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg"
-                  >
-                    <Eye className="w-5 h-5" />
-                  </button>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {project.bpin}
+                      </div>
 
-      {/* Pagination */}
-      <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, sortedProjects.length)} de {sortedProjects.length} resultados
-            </span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value))
-                setCurrentPage(1)
-              }}
-              className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+                      {/* Texto compacto gris: Presupuesto y Beneficiarios */}
+                      <div className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                        <div className="font-semibold text-indigo-700 dark:text-indigo-200">{formatCurrencyFull(project.budget)}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Beneficiarios: {formatNumber(project.beneficiaries)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getInterventionColor(project.tipoIntervencion)}`}>
+                      {project.tipoIntervencion || 'No definido'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <div>
+                      <div className="font-medium">
+                        {project.comuna && `${project.comuna}`}
+                        {project.corregimiento && `${project.corregimiento}`}
+                      </div>
+                      {(project.barrio || project.vereda) && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {project.barrio || project.vereda}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  {/* Progreso: solo avance físico de obra */}
+                  <td className="px-4 py-3 whitespace-nowrap align-top">
+                    <div>
+                      {(() => {
+                        const physicalPct = Number(project.progress)
+                        const physicalDisplay = physicalPct.toFixed(1)
+                        const physicalAria = Number(physicalDisplay)
+                        return (
+                          <>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">{physicalDisplay}%</div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2" role="progressbar" aria-label={`Progreso físico de ${project.name}`} aria-valuenow={physicalAria} aria-valuemin={0} aria-valuemax={100}>
+                              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${physicalPct}%` }} />
+                            </div>
+                            <span className="sr-only">Progreso físico {physicalDisplay} por ciento</span>
+                          </>
+                        )
+                      })()}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination - Compacta */}
+        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-700 dark:text-gray-300">
+                Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, sortedProjects.length)} de {sortedProjects.length} resultados
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
             
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              Página {currentPage} de {totalPages}
-            </span>
-            
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              <span className="text-xs text-gray-700 dark:text-gray-300">
+                Página {currentPage} de {totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 

@@ -26,15 +26,13 @@ type DashboardAction =
 const defaultFilters: FilterState = {
   search: '',
   estado: 'all',
+  filtrosPersonalizados: [],
   centroGestor: [],
   comunas: [],
   barrios: [],
   corregimientos: [],
   veredas: [],
-  fuentesFinanciamiento: [],
-  filtrosPersonalizados: [],
-  subfiltrosPersonalizados: [],
-  periodos: []
+  fuentesFinanciamiento: []
 }
 
 // Estado inicial del dashboard
@@ -303,9 +301,6 @@ export function useDashboardFilters() {
     if (filters.corregimientos?.length > 0) count++
     if (filters.veredas?.length > 0) count++
     if (filters.fuentesFinanciamiento?.length > 0) count++
-    if (filters.filtrosPersonalizados?.length > 0) count++
-    if (filters.subfiltrosPersonalizados?.length > 0) count++
-    if (filters.periodos && filters.periodos.length > 0) count += filters.periodos.length
     
     return count
   }

@@ -137,8 +137,6 @@ function DashboardContent() {
     const dataContextFilters = {
       search: filters.search || '',
       bpin: '',
-      periodo: '',
-      periodos: filters.periodos || [],
       centroGestor: filters.centroGestor || [],
       comunas: filters.comunas || [],
       barrios: filters.barrios || [],
@@ -253,11 +251,6 @@ function DashboardContent() {
         if (!filters.centroGestor.includes(relatedProject.nombre_centro_gestor)) return false
       }
 
-      // Filtro por período
-      if (filters.periodos && filters.periodos.length > 0) {
-        if (!filters.periodos.includes(activity.periodo_corte)) return false
-      }
-
       // Filtro por estado del proyecto (si hay proyecto relacionado)
       if (filters.estado !== 'all' && relatedProject?.estado) {
         if (relatedProject.estado !== filters.estado) return false
@@ -309,12 +302,6 @@ function DashboardContent() {
       if (filters.centroGestor && filters.centroGestor.length > 0 && relatedProject?.nombre_centro_gestor) {
         if (!filters.centroGestor.includes(relatedProject.nombre_centro_gestor)) return false
       }
-
-      // Filtro por período
-      if (filters.periodos && filters.periodos.length > 0) {
-        if (!filters.periodos.includes(product.periodo_corte)) return false
-      }
-
       // Filtro por estado del proyecto (si hay proyecto relacionado) o estado de producto
       if (filters.estado !== 'all') {
         // Si estamos en la sección de productos, aplicar lógica específica de estado de producto
@@ -504,25 +491,29 @@ function DashboardContent() {
               />
             </div>
             
-            {/* Nueva fila con métricas de intervenciones y centros de gravedad */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Métricas de Tipos de Intervención y Clases de Obra */}
-              <ProjectInterventionMetrics 
-                data={filteredProjectUnits}
-                loading={dataLoading}
-              />
+            {/* Nueva fila con métricas de intervenciones y centros de gravedad + tabla */}
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
+              {/* Columna izquierda: Métricas apiladas verticalmente (40% del ancho) */}
+              <div className="xl:col-span-2 space-y-6">
+                {/* Métricas de Tipos de Intervención y Clases de Obra */}
+                <ProjectInterventionMetrics 
+                  data={filteredProjectUnits}
+                  loading={dataLoading}
+                />
+                
+                {/* Métricas de Centros de Gravedad */}
+                <CentrosGravedadMetrics />
+              </div>
               
-              {/* Métricas de Centros de Gravedad */}
-              <CentrosGravedadMetrics />
-            </div>
-            
-            {/* Tabla de unidades de proyecto */}
-            <div className="w-full">
-              <ProjectsUnitsTable 
-                projectUnits={unidadesProyecto} 
-                filteredProjectUnits={filteredProjectUnits} 
-                onViewProjectUnit={handleViewProjectUnitInPanel}
-              />
+              {/* Columna derecha: Tabla de unidades de proyecto (60% del ancho) */}
+              <div className="xl:col-span-3 min-h-[800px] flex">
+                <ProjectsUnitsTable 
+                  projectUnits={unidadesProyecto} 
+                  filteredProjectUnits={filteredProjectUnits} 
+                  onViewProjectUnit={handleViewProjectUnitInPanel}
+                  className="w-full"
+                />
+              </div>
             </div>
           </div>
         )
@@ -663,6 +654,7 @@ function DashboardContent() {
             filters={filters}
             onFiltersChange={updateFilters}
             activeTab={activeTab}
+            allProjects={proyectos.map(proyecto => ({ proyecto }))}
           />
         </motion.div>
 

@@ -57,14 +57,14 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
     unidadesProyecto, 
     loading: unidadesLoading, 
     error: unidadesError,
-    allGeoJSONData,
-    loadingStates
+    allGeoJSONData
   } = useUnidadesProyecto()
 
   // Hook para manejo unificado de capas
   const {
     layers,
-    activeBaseMap,
+    layerFilters,
+    baseMapConfig,
     updateLayer,
     toggleLayerVisibility,
     updateLayerData,
@@ -81,6 +81,7 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
   const [propertiesPanelCollapsed, setPropertiesPanelCollapsed] = useState(initialPropertiesPanelCollapsed)
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
   const [selectedLayerType, setSelectedLayerType] = useState<string>('')
+  const [selectedLayerForSymbology, setSelectedLayerForSymbology] = useState<string | null>(null)
 
   // Estado para forzar re-render del mapa
   const [mapKey, setMapKey] = useState(0)
@@ -125,8 +126,8 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
   // Memoizar datos estadísticos
   const memoizedStats = useMemo(() => {
     if (!showStats) return null
-    return getUnidadesProyectoStats(unidadesProyecto)
-  }, [unidadesProyecto, showStats])
+    return getUnidadesProyectoStats()
+  }, [showStats])
 
   console.log('📊 Estado actual de capas:', layers.length)
   console.log('🗃️ Datos GeoJSON disponibles:', Object.keys(allGeoJSONData || {}).length)
@@ -169,14 +170,14 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
               <div className="flex-1 overflow-hidden">
                 <LayerControlAdvanced
                   layers={memoizedLayers}
-                  activeBaseMap={activeBaseMap}
-                  onToggleLayer={toggleLayerVisibility}
-                  onUpdateBaseMap={updateBaseMap}
-                  onUpdateFilters={updateFilters}
+                  onLayerUpdate={updateLayer}
+                  onToggleVisibility={toggleLayerVisibility}
+                  onOpenSymbology={(layerId) => setSelectedLayerForSymbology(layerId)}
+                  filters={layerFilters}
+                  onFiltersChange={updateFilters}
                   onClearFilters={clearFilters}
-                  onResetLayers={resetLayersToDefault}
                   stats={stats}
-                  loadingStates={loadingStates}
+                  onResetLayers={resetLayersToDefault}
                 />
               </div>
             </div>
@@ -191,9 +192,10 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
           <UniversalMapCore
             key={mapKey}
             layers={memoizedLayers}
-            activeBaseMap={activeBaseMap}
+            baseMapUrl={baseMapConfig.url}
+            baseMapAttribution={baseMapConfig.attribution}
             onFeatureClick={handleFeatureClick}
-            className="w-full h-full"
+            height="100%"
           />
         </div>
 
@@ -239,7 +241,6 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
                 feature={selectedFeature}
                 layerType={selectedLayerType}
                 onClose={() => setPropertiesPanelCollapsed(true)}
-                stats={memoizedStats}
               />
             </div>
           </motion.div>
@@ -274,9 +275,9 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
         <div className="absolute bottom-4 right-4 z-[1001]">
           <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 border border-gray-200 dark:border-gray-600">
             <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-              <div>Total proyectos: {memoizedStats.total}</div>
-              <div>En ejecución: {memoizedStats.enEjecucion}</div>
-              <div>Completados: {memoizedStats.completados}</div>
+              <div>Total unidades: {memoizedStats.totalUnidades}</div>
+              <div>Total archivos: {memoizedStats.totalGeoJSONFiles}</div>
+              <div>Cache: {memoizedStats.cacheSize} items</div>
             </div>
           </div>
         </div>
