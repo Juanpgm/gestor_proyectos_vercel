@@ -25,6 +25,7 @@ import LayerControlAdvanced from './LayerControlAdvanced'
 import PropertiesPanel from './PropertiesPanel'
 import { useLayerSymbology } from '@/hooks/useLayerSymbology'
 import LayerSymbologyModal from './LayerSymbologyModal'
+import { useTheme } from '@/context/ThemeContext'
 
 // Importación dinámica del componente del mapa para evitar problemas de SSR
 const UniversalMapCore = dynamic(() => import('./UniversalMapCore'), {
@@ -123,6 +124,9 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
     stats
   } = useUnifiedLayerManagement()
 
+  // Hook para el tema actual
+  const { theme } = useTheme()
+
   // Hook para simbología personalizada
   const { 
     getFeatureStyle, 
@@ -142,6 +146,31 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
 
   // Estado para forzar re-render del mapa cuando cambie la simbología
   const [mapKey, setMapKey] = useState(0)
+
+  // Efecto para adaptar el mapa base al tema actual
+  useEffect(() => {
+    const getThemeBasedBaseMap = () => {
+      // Si el tema es 'system', detectar el tema del sistema
+      if (theme === 'system') {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        return systemTheme
+      }
+      return theme
+    }
+
+    const currentTheme = getThemeBasedBaseMap()
+    console.log('🎨 UnifiedMapInterface: Adaptando mapa al tema:', currentTheme)
+    
+    // Cambiar automáticamente el mapa base según el tema
+    const baseMap = baseMaps[currentTheme as keyof typeof baseMaps]
+    if (baseMap && baseMapConfig.type !== currentTheme) {
+      console.log('🗺️ UnifiedMapInterface: Cambiando mapa base a:', currentTheme)
+      updateBaseMap(currentTheme, baseMap.url, baseMap.attribution)
+      
+      // Forzar re-render del mapa para aplicar el cambio inmediatamente
+      setMapKey(prev => prev + 1)
+    }
+  }, [theme, updateBaseMap, baseMapConfig.type])
 
   // Actualizar datos de capas cuando se cargan los GeoJSON
   useEffect(() => {
@@ -259,7 +288,10 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
   const handleBaseMapChange = useCallback((type: string) => {
     const baseMap = baseMaps[type as keyof typeof baseMaps]
     if (baseMap) {
+      console.log('🎯 UnifiedMapInterface: Cambio manual de mapa base a:', type)
       updateBaseMap(type, baseMap.url, baseMap.attribution)
+      // Forzar re-render del mapa para aplicar el cambio inmediatamente
+      setMapKey(prev => prev + 1)
     }
   }, [updateBaseMap])
 
@@ -342,6 +374,11 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
                     Mapa Base
+                    {(theme === 'system' || baseMapConfig.type === theme) && (
+                      <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full">
+                        Auto {theme === 'system' ? '(Sistema)' : `(${theme === 'dark' ? 'Oscuro' : 'Claro'})`}
+                      </span>
+                    )}
                   </label>
                   <select
                     value={baseMapConfig.type}

@@ -62,6 +62,16 @@ export interface UnifiedMapInterfaceProps {
   initialPropertiesPanelCollapsed?: boolean
 }
 
+export interface UniversalMapCoreProps {
+  center: [number, number]; // Center coordinates of the map
+  zoom: number;
+  baseMapUrl: string;
+  attribution: string;
+  onFeatureClick: (feature: any, layerType: string) => void;
+  height: string;
+  directDataLoad: boolean;
+}
+
 export default function FixedMapInterface({
   className = '',
   height = '600px',
@@ -77,7 +87,7 @@ export default function FixedMapInterface({
   const [layersPanelOpen, setLayersPanelOpen] = useState(!initialLayersPanelCollapsed)
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(!initialPropertiesPanelCollapsed)
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
-  const [mapCenter, setMapCenter] = useState(CALI_COORDINATES)
+  const [mapCenter, setMapCenter] = useState<[number, number]>(CALI_COORDINATES.CENTER_LAT_LNG)
   const [mapZoom, setMapZoom] = useState(12)
 
   // Manejo de clics en features
