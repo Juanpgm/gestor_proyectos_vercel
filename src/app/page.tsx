@@ -26,6 +26,8 @@ import ActividadesCharts from '@/components/ActividadesCharts'
 import ProductosTable from '@/components/ProductosTable'
 import ProductosStats from '@/components/ProductosStats'
 import ProductosCharts from '@/components/ProductosCharts'
+import ProjectInterventionMetrics from '@/components/ProjectInterventionMetrics'
+import CentrosGravedadMetrics from '@/components/CentrosGravedadMetrics'
 import { 
   BarChart3, 
   Map as MapIcon, 
@@ -500,6 +502,18 @@ function DashboardContent() {
                 initialLayersPanelCollapsed={false}
                 initialPropertiesPanelCollapsed={true}
               />
+            </div>
+            
+            {/* Nueva fila con métricas de intervenciones y centros de gravedad */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Métricas de Tipos de Intervención y Clases de Obra */}
+              <ProjectInterventionMetrics 
+                data={filteredProjectUnits}
+                loading={dataLoading}
+              />
+              
+              {/* Métricas de Centros de Gravedad */}
+              <CentrosGravedadMetrics />
             </div>
             
             {/* Tabla de unidades de proyecto */}
