@@ -23,6 +23,7 @@ import {
   useLayerSymbology 
 } from '@/hooks/useLayerSymbology'
 import SymbologyDiagnostics from './SymbologyDiagnostics'
+import ColorDiagnostics from './ColorDiagnostics'
 
 interface LayerSymbologyModalProps {
   isOpen: boolean

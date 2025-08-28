@@ -147,12 +147,25 @@ export const useLayerSymbology = () => {
   // Función para obtener la configuración de una capa (incluyendo cambios pendientes)
   const getLayerSymbology = useCallback((layerId: string, includePending: boolean = false, defaultColor?: string): SymbologyConfig => {
     try {
+      // Determinar color por defecto específico para cada capa
+      const getDefaultColorForLayer = (id: string): string => {
+        const layerDefaults = {
+          'equipamientos': '#10B981',
+          'infraestructura_vial': '#F59E0B', 
+          'infraestructura': '#F59E0B',
+          'centros_gravedad_unificado': '#8B5CF6'
+        }
+        return layerDefaults[id as keyof typeof layerDefaults] || defaultColor || '#3B82F6'
+      }
+      
+      const layerDefaultColor = getDefaultColorForLayer(layerId)
+      
       const appliedConfig = symbologyState[layerId] || {
         mode: 'fixed',
-        fixedColor: defaultColor || '#3B82F6',
+        fixedColor: layerDefaultColor,
         opacity: 0.7,
         strokeWidth: 2,
-        strokeColor: defaultColor || '#1D4ED8',
+        strokeColor: layerDefaultColor,
         lineStyle: 'solid',
         lineCap: 'round',
         lineJoin: 'round',
@@ -173,12 +186,22 @@ export const useLayerSymbology = () => {
       return appliedConfig
     } catch (error) {
       console.error('❌ Error obteniendo configuración de simbología:', error)
+      
+      // Usar color específico de la capa en caso de error
+      const layerDefaults = {
+        'equipamientos': '#10B981',
+        'infraestructura_vial': '#F59E0B', 
+        'infraestructura': '#F59E0B',
+        'centros_gravedad_unificado': '#8B5CF6'
+      }
+      const errorDefaultColor = layerDefaults[layerId as keyof typeof layerDefaults] || defaultColor || '#3B82F6'
+      
       return {
         mode: 'fixed',
-        fixedColor: defaultColor || '#3B82F6',
+        fixedColor: errorDefaultColor,
         opacity: 0.7,
         strokeWidth: 2,
-        strokeColor: defaultColor || '#1D4ED8',
+        strokeColor: errorDefaultColor,
         lineStyle: 'solid',
         lineCap: 'round',
         lineJoin: 'round',
@@ -232,13 +255,13 @@ export const useLayerSymbology = () => {
     const config = getLayerSymbology(layerId, includePending)
     const properties = feature.properties || {}
     
-    // Estilo base
+    // Estilo base - usar los colores de la configuración actual que ya tienen los valores correctos
     let style: any = {
       weight: config.strokeWidth || 2,
       opacity: config.opacity || 0.7,
       fillOpacity: config.opacity || 0.7,
-      color: config.strokeColor || '#1D4ED8',
-      fillColor: config.fixedColor || '#3B82F6'
+      color: config.strokeColor || config.fixedColor,
+      fillColor: config.fixedColor
     }
     
     // Aplicar estilos según el modo

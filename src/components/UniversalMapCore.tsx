@@ -80,7 +80,33 @@ const DEFAULT_STYLES = {
   }
 }
 
-// Configuraciones de colores por tipo
+// Paleta de colores únicos para las capas
+const LAYER_COLOR_PALETTE = [
+  { fill: '#3B82F6', stroke: '#1D4ED8' }, // Azul
+  { fill: '#10B981', stroke: '#059669' }, // Verde
+  { fill: '#F59E0B', stroke: '#D97706' }, // Naranja
+  { fill: '#8B5CF6', stroke: '#7C3AED' }, // Púrpura
+  { fill: '#EF4444', stroke: '#DC2626' }, // Rojo
+  { fill: '#6366F1', stroke: '#4F46E5' }, // Índigo
+  { fill: '#EC4899', stroke: '#DB2777' }, // Rosa
+  { fill: '#14B8A6', stroke: '#0F766E' }, // Teal
+  { fill: '#06B6D4', stroke: '#0E7490' }, // Cian
+  { fill: '#10D27F', stroke: '#047857' }  // Esmeralda
+]
+
+// Función para obtener colores únicos por capa
+const getLayerColors = (layers: MapLayer[]) => {
+  const layerColors: Record<string, { fill: string; stroke: string }> = {}
+  
+  layers.forEach((layer, index) => {
+    const colorIndex = index % LAYER_COLOR_PALETTE.length
+    layerColors[layer.id] = LAYER_COLOR_PALETTE[colorIndex]
+  })
+  
+  return layerColors
+}
+
+// Configuraciones de colores por tipo (mantenido para compatibilidad)
 const LAYER_COLORS = {
   unidadesProyecto: { fill: '#3B82F6', stroke: '#1D4ED8' },
   equipamientos: { fill: '#10B981', stroke: '#059669' },
@@ -363,6 +389,9 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
   // Hook de simbología personalizada
   const { getFeatureStyle, getFeatureIcon, getLayerSymbology } = useLayerSymbology()
 
+  // Calcular colores dinámicos para cada capa
+  const dynamicLayerColors = useMemo(() => getLayerColors(layers), [layers])
+
   // Verificar que Leaflet esté cargado
   useEffect(() => {
     if (typeof window !== 'undefined' && window.L) {
@@ -403,24 +432,39 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     // Buscar configuración específica de la capa
     const layerConfig = layers.find(l => l.id === layer.id)
     
-    // Colores base: usar configuración específica o por defecto
+    // COLORES CORREGIDOS: usar configuración específica de la capa o colores predefinidos
     let baseColors
-    if (layerConfig && layerConfig.color) {
+    if (layer.color) {
+      // Usar color del prop MapLayer (viene de useUnifiedLayerManagement)
+      baseColors = {
+        fill: layer.color,
+        stroke: layer.color
+      }
+    } else if (layerConfig && layerConfig.color) {
       // Usar color personalizado de la configuración
       baseColors = {
         fill: layerConfig.color,
         stroke: layerConfig.color
       }
     } else {
-      // Usar colores base por defecto
-      baseColors = LAYER_COLORS[layer.id as keyof typeof LAYER_COLORS] || LAYER_COLORS.unidadesProyecto
+      // Usar colores predefinidos específicos para cada capa
+      const predefinedColors = {
+        'equipamientos': { fill: '#10B981', stroke: '#059669' },
+        'infraestructura_vial': { fill: '#F59E0B', stroke: '#D97706' },
+        'infraestructura': { fill: '#F59E0B', stroke: '#D97706' },
+        'centros_gravedad_unificado': { fill: '#8B5CF6', stroke: '#7C3AED' }
+      }
+      
+      baseColors = predefinedColors[layer.id as keyof typeof predefinedColors] || 
+                   dynamicLayerColors[layer.id] || 
+                   LAYER_COLOR_PALETTE[0]
     }
     
     // Configuración especial para vías/infraestructura para mejorar la clickeabilidad
     const isInfraestructura = layer.id.includes('infraestructura') || layer.id.includes('vias')
     
     // Obtener opacidad de la configuración
-    const opacity = layerConfig?.opacity ?? (isInfraestructura ? 0.9 : 0.8)
+    const opacity = layer.opacity ?? layerConfig?.opacity ?? (isInfraestructura ? 0.9 : 0.8)
     
     // Estilo base que se puede sobrescribir por la simbología personalizada
     const baseStyle = {
@@ -447,7 +491,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     }
 
     return baseStyle
-  }, [layers])
+  }, [layers, dynamicLayerColors])
 
   // Obtener estilo de puntos
   const getPointStyle = useCallback((layer: MapLayer) => {
@@ -457,19 +501,35 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     // Buscar configuración específica de la capa
     const layerConfig = layers.find(l => l.id === layer.id)
     
-    // Colores base: usar configuración específica o por defecto
+    // COLORES CORREGIDOS: usar configuración específica de la capa o colores predefinidos
     let baseColors
-    if (layerConfig && layerConfig.color) {
+    if (layer.color) {
+      // Usar color del prop MapLayer (viene de useUnifiedLayerManagement)
+      baseColors = {
+        fill: layer.color,
+        stroke: layer.color
+      }
+    } else if (layerConfig && layerConfig.color) {
       baseColors = {
         fill: layerConfig.color,
         stroke: layerConfig.color
       }
     } else {
-      baseColors = LAYER_COLORS[layer.id as keyof typeof LAYER_COLORS] || LAYER_COLORS.unidadesProyecto
+      // Usar colores predefinidos específicos para cada capa
+      const predefinedColors = {
+        'equipamientos': { fill: '#10B981', stroke: '#059669' },
+        'infraestructura_vial': { fill: '#F59E0B', stroke: '#D97706' },
+        'infraestructura': { fill: '#F59E0B', stroke: '#D97706' },
+        'centros_gravedad_unificado': { fill: '#8B5CF6', stroke: '#7C3AED' }
+      }
+      
+      baseColors = predefinedColors[layer.id as keyof typeof predefinedColors] || 
+                   dynamicLayerColors[layer.id] || 
+                   LAYER_COLOR_PALETTE[0]
     }
     
     // Obtener opacidad de la configuración
-    const opacity = layerConfig?.opacity ?? 0.8
+    const opacity = layer.opacity ?? layerConfig?.opacity ?? 0.8
     
     return {
       ...DEFAULT_STYLES.points,
@@ -478,7 +538,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
       fillOpacity: opacity,
       opacity: opacity
     }
-  }, [layers])
+  }, [layers, dynamicLayerColors])
 
   // Función helper para crear gauge chart HTML
   const createGaugeChartHTML = useCallback((progress: number) => {
@@ -539,6 +599,38 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         </div>
       </div>
     `
+  }, [])
+
+  // Función para convertir URL de Google Drive a formato de imagen directa
+  const convertGoogleDriveUrl = useCallback((url: string): string => {
+    if (!url || typeof url !== 'string') return ''
+    
+    // Verificar si es una URL de Google Drive
+    if (url.includes('drive.google.com')) {
+      // Extraer el ID del archivo de diferentes formatos de URL de Google Drive
+      let fileId = ''
+      
+      // Formato: https://drive.google.com/open?id=FILE_ID
+      if (url.includes('open?id=')) {
+        fileId = url.split('open?id=')[1].split('&')[0]
+      }
+      // Formato: https://drive.google.com/file/d/FILE_ID/view
+      else if (url.includes('/file/d/')) {
+        fileId = url.split('/file/d/')[1].split('/')[0]
+      }
+      // Formato: https://drive.google.com/uc?id=FILE_ID
+      else if (url.includes('uc?id=')) {
+        fileId = url.split('uc?id=')[1].split('&')[0]
+      }
+      
+      // Si encontramos un ID válido, convertir a URL de imagen directa
+      if (fileId) {
+        return `https://drive.google.com/uc?export=view&id=${fileId}`
+      }
+    }
+    
+    // Si no es de Google Drive o no se puede convertir, devolver la URL original
+    return url
   }, [])
 
   // Crear popup para features GeoJSON con todas las propiedades
@@ -619,6 +711,11 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     const categorizeProperty = (key: string) => {
       const keyLower = key.toLowerCase()
       
+      // Excluir la propiedad imagen ya que se muestra por separado
+      if (keyLower === 'imagen') {
+        return 'excluded'
+      }
+      
       if (keyLower.includes('bpin') || keyLower.includes('identificador') || keyLower.includes('id')) {
         return 'identification'
       }
@@ -640,8 +737,11 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
     // Agrupar propiedades por categoría
     const categorizedProps = Object.entries(properties).reduce((acc, [key, value]) => {
       const category = categorizeProperty(key)
-      if (!acc[category]) acc[category] = []
-      acc[category].push([key, value])
+      // Excluir categorías marcadas como 'excluded'
+      if (category !== 'excluded') {
+        if (!acc[category]) acc[category] = []
+        acc[category].push([key, value])
+      }
       return acc
     }, {} as Record<string, [string, any][]>)
     
@@ -775,6 +875,68 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
             .join('')}
         </div>
         
+        ${properties.imagen ? `
+          <div style="margin-top: 12px;">
+            <h5 style="
+              margin: 0 0 8px 0;
+              color: #374151;
+              font-size: 13px;
+              font-weight: 600;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              border-bottom: 1px solid #E5E7EB;
+              padding-bottom: 2px;
+            ">
+              📷 Imagen
+            </h5>
+            <div style="
+              border-radius: 8px;
+              overflow: hidden;
+              border: 1px solid #E5E7EB;
+              background: #F9FAFB;
+            ">
+              <img 
+                src="${convertGoogleDriveUrl(properties.imagen)}" 
+                alt="Imagen del centro de gravedad"
+                style="
+                  width: 100%;
+                  max-width: 380px;
+                  height: auto;
+                  max-height: 200px;
+                  object-fit: cover;
+                  display: block;
+                  cursor: pointer;
+                "
+                onclick="window.open('${convertGoogleDriveUrl(properties.imagen)}', '_blank')"
+                onerror="this.parentElement.innerHTML='<div style=\\"padding: 16px; text-align: center; color: #6B7280;\\"><span style=\\"font-size: 24px;\\">📷</span><br><span style=\\"font-size: 12px;\\">Error cargando imagen</span></div>'"
+              />
+            </div>
+            <div style="
+              margin-top: 4px;
+              text-align: center;
+            ">
+              <a 
+                href="${convertGoogleDriveUrl(properties.imagen)}" 
+                target="_blank" 
+                style="
+                  color: #3B82F6;
+                  text-decoration: none;
+                  font-size: 11px;
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  background: rgba(59, 130, 246, 0.1);
+                  transition: all 0.2s ease;
+                "
+                onmouseover="this.style.background='rgba(59, 130, 246, 0.2)'"
+                onmouseout="this.style.background='rgba(59, 130, 246, 0.1)'"
+              >
+                🔗 Ver imagen completa
+              </a>
+            </div>
+          </div>
+        ` : ''}
+        
         <div style="
           margin-top: 12px;
           padding: 8px;
@@ -793,7 +955,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         </div>
       </div>
     `
-  }, [createGaugeChartHTML])
+  }, [createGaugeChartHTML, convertGoogleDriveUrl])
 
   // Crear popup para puntos (CircleMarkers) con todas las propiedades
   const createPointPopup = useCallback((point: any) => {
@@ -1500,11 +1662,27 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
           <div className="space-y-3">
             {layers
               .filter(layer => layer.id !== 'unidadesProyecto') // Excluir Unidades de Proyecto
-              .map(layer => {
+              .map((layer, index) => {
                 const layerName = layer.id === 'infraestructura' ? 'Vías' : layer.name
-                const iconColor = layer.visible ? 'text-green-500' : 'text-gray-400'
+                
+                // Colores únicos para cada capa
+                const layerColors = [
+                  { bg: 'bg-blue-500', bgLight: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-700', text: 'text-blue-500' },
+                  { bg: 'bg-green-500', bgLight: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-700', text: 'text-green-500' },
+                  { bg: 'bg-orange-500', bgLight: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-700', text: 'text-orange-500' },
+                  { bg: 'bg-purple-500', bgLight: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-700', text: 'text-purple-500' },
+                  { bg: 'bg-red-500', bgLight: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-700', text: 'text-red-500' },
+                  { bg: 'bg-indigo-500', bgLight: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-200 dark:border-indigo-700', text: 'text-indigo-500' },
+                  { bg: 'bg-pink-500', bgLight: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-200 dark:border-pink-700', text: 'text-pink-500' },
+                  { bg: 'bg-teal-500', bgLight: 'bg-teal-50 dark:bg-teal-900/20', border: 'border-teal-200 dark:border-teal-700', text: 'text-teal-500' },
+                  { bg: 'bg-cyan-500', bgLight: 'bg-cyan-50 dark:bg-cyan-900/20', border: 'border-cyan-200 dark:border-cyan-700', text: 'text-cyan-500' },
+                  { bg: 'bg-emerald-500', bgLight: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-700', text: 'text-emerald-500' }
+                ]
+                
+                const colorScheme = layerColors[index % layerColors.length]
+                const iconColor = layer.visible ? colorScheme.text : 'text-gray-400'
                 const bgColor = layer.visible 
-                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' 
+                  ? `${colorScheme.bgLight} ${colorScheme.border}` 
                   : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600'
                 
                 return (
@@ -1516,9 +1694,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full transition-colors duration-200 ${
                         layer.visible 
-                          ? layer.id === 'equipamientos' 
-                            ? 'bg-green-500' 
-                            : 'bg-orange-500'
+                          ? colorScheme.bg
                           : 'bg-gray-300'
                       }`} />
                       <span className={`text-sm font-medium transition-colors duration-200 ${

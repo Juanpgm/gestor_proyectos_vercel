@@ -186,8 +186,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   // Agrupar propiedades por categoría
   const categorizedProps = Object.entries(properties).reduce((acc, [key, value]) => {
-    // Filtrar propiedades internas y dataframe
-    if (key.startsWith('_') || key === 'geometry' || key === 'lat' || key === 'lng' || key.toLowerCase() === 'dataframe') {
+    // Filtrar propiedades internas, dataframe y imagen (se muestra por separado)
+    if (key.startsWith('_') || key === 'geometry' || key === 'lat' || key === 'lng' || 
+        key.toLowerCase() === 'dataframe' || key.toLowerCase() === 'imagen') {
       return acc
     }
     
@@ -248,6 +249,50 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const presupuestoBase = getPresupuestoBase()
   const locationInfo = getLocationInfo()
   const bpinValue = getBPIN()
+
+  // Función para convertir URL de Google Drive a formato de imagen directa
+  const convertGoogleDriveUrl = (url: string): string => {
+    if (!url || typeof url !== 'string') return ''
+    
+    // Verificar si es una URL de Google Drive
+    if (url.includes('drive.google.com')) {
+      // Extraer el ID del archivo de diferentes formatos de URL de Google Drive
+      let fileId = ''
+      
+      // Formato: https://drive.google.com/open?id=FILE_ID
+      if (url.includes('open?id=')) {
+        fileId = url.split('open?id=')[1].split('&')[0]
+      }
+      // Formato: https://drive.google.com/file/d/FILE_ID/view
+      else if (url.includes('/file/d/')) {
+        fileId = url.split('/file/d/')[1].split('/')[0]
+      }
+      // Formato: https://drive.google.com/uc?id=FILE_ID
+      else if (url.includes('uc?id=')) {
+        fileId = url.split('uc?id=')[1].split('&')[0]
+      }
+      
+      // Si encontramos un ID válido, convertir a URL de imagen directa
+      if (fileId) {
+        return `https://drive.google.com/uc?export=view&id=${fileId}`
+      }
+    }
+    
+    // Si no es de Google Drive o no podemos extraer el ID, devolver la URL original
+    return url
+  }
+
+  // Obtener imagen para centros de gravedad
+  const getImageInfo = () => {
+    if (layerType.includes('centros_gravedad') && properties.imagen) {
+      const originalUrl = properties.imagen
+      const directImageUrl = convertGoogleDriveUrl(originalUrl)
+      return { originalUrl, directImageUrl }
+    }
+    return null
+  }
+
+  const imageInfo = getImageInfo()
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
@@ -354,6 +399,52 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           })
         }
       </div>
+
+      {/* Sección de imagen para Centros de Gravedad */}
+      {imageInfo && (
+        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-3">
+            <span className="text-base">📷</span>
+            Imagen de referencia
+          </h4>
+          
+          {/* Contenedor horizontal para imagen y enlace */}
+          <div className="flex items-center gap-3">
+            {/* Imagen compacta */}
+            <div className="flex-shrink-0">
+              <div className="w-20 h-20 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
+                <img 
+                  src={imageInfo.directImageUrl}
+                  alt="Imagen del centro de gravedad"
+                  className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => window.open(imageInfo.originalUrl, '_blank')}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500';
+                    errorDiv.innerHTML = '<span class="text-sm">📷</span>';
+                    target.parentElement?.appendChild(errorDiv);
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* Enlace para ver imagen completa */}
+            <div className="flex-1">
+              <button
+                onClick={() => window.open(imageInfo.originalUrl, '_blank')}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              >
+                🔗 Ver imagen completa
+              </button>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Haz clic para ampliar
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-b-lg border-t border-gray-200 dark:border-gray-700">
