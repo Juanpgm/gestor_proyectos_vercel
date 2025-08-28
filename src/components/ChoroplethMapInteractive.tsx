@@ -2,11 +2,25 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import { useTheme } from '@/context/ThemeContext'
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyecto'
 import { loadMultipleGeoJSON } from '@/utils/geoJSONLoader'
-import UniversalMapCore, { MapLayer } from './UniversalMapCore'
+import { MapLayer } from './UniversalMapCore'
 import 'leaflet/dist/leaflet.css'
+
+// Importación dinámica del componente del mapa para evitar problemas de SSR
+const UniversalMapCore = dynamic(() => import('./UniversalMapCore'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+        <p className="text-gray-600 dark:text-gray-400">Cargando mapa...</p>
+      </div>
+    </div>
+  )
+})
 
 export interface ChoroplethMapProps {
   className?: string

@@ -52,10 +52,6 @@ const LayerManagementPanel: React.FC<LayerManagementPanelProps> = ({
     }
   }, [layers, onLayerUpdate])
 
-  const handleOpacityChange = useCallback((layerId: string, opacity: number) => {
-    onLayerUpdate(layerId, { opacity })
-  }, [onLayerUpdate])
-
   const handleRepresentationChange = useCallback((layerId: string, mode: string) => {
     onLayerUpdate(layerId, { representationMode: mode as LayerConfig['representationMode'] })
   }, [onLayerUpdate])
@@ -120,22 +116,6 @@ const LayerManagementPanel: React.FC<LayerManagementPanelProps> = ({
               {/* Expanded Layer Controls */}
               {expandedLayers.has(layer.id) && (
                 <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-800/50 space-y-4">
-                  {/* Opacity Control */}
-                  <div>
-                    <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
-                      Opacidad ({Math.round(layer.opacity * 100)}%)
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={layer.opacity}
-                      onChange={(e) => handleOpacityChange(layer.id, parseFloat(e.target.value))}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider-thumb"
-                    />
-                  </div>
-
                   {/* Representation Mode */}
                   <div>
                     <label className="text-xs text-gray-600 dark:text-gray-400 block mb-2">

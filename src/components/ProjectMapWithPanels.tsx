@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Settings, ChevronDown, MapPin, BarChart3, Activity, Layers } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -72,6 +72,10 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   const [propertiesCollapsed, setPropertiesCollapsed] = useState(false)
   const [selectedFeature, setSelectedFeature] = useState<any>(null)
   const [selectedLayerType, setSelectedLayerType] = useState<string>('')
+  
+  // Referencia para la función de centrado del mapa
+  const centerMapFunction = useRef<(() => void) | null>(null)
+  
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({
     equipamientos: true,
     infraestructura_vial: true
@@ -350,6 +354,27 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     }
   }, [unidadesState.allGeoJSONData])
 
+  // Efecto para forzar redimensionado del mapa cuando cambien los paneles
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Trigger para que Leaflet recalcule el tamaño del mapa
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('resize'))
+        console.log('🗺️ Notificando redimensionamiento del mapa por cambio de paneles')
+      }
+      
+      // Centrar el mapa en las capas visibles después del redimensionamiento
+      if (centerMapFunction.current) {
+        setTimeout(() => {
+          centerMapFunction.current?.()
+          console.log('🎯 Centrando mapa en capas visibles tras cambio de paneles')
+        }, 100) // Pequeño delay adicional para que termine el resize
+      }
+    }, 350) // Pequeño delay para que termine la animación
+
+    return () => clearTimeout(timer)
+  }, [leftPanelCollapsed, rightPanelCollapsed])
+
   // Funciones de manejo de capas
   const toggleLayer = (layerId: string) => {
     setLayerConfigs(prev => prev.map(layer => 
@@ -571,7 +596,11 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
           <div className="text-red-500 mb-2">⚠️</div>
           <p className="text-red-700 dark:text-red-400">Error: {unidadesState.error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.reload()
+              }
+            }}
             className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
           >
             Reintentar
@@ -589,8 +618,8 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
       className={`w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden ${className}`}
       style={{ height }}
     >
-      {/* Layout principal - Tres columnas sin panel inferior */}
-      <div className="flex h-full">
+      {/* Layout principal - Flexible con paneles laterales */}
+      <div className="flex h-full overflow-hidden">
 
         {/* Panel Izquierdo - Control de Capas + Propiedades debajo */}
         <motion.div
@@ -598,8 +627,12 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
           animate={{ 
             width: leftPanelCollapsed ? '40px' : '350px'
           }}
-          transition={{ duration: 0.3 }}
-          className="bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col z-10"
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col z-10 flex-shrink-0"
+          style={{
+            minWidth: leftPanelCollapsed ? '40px' : '350px',
+            maxWidth: leftPanelCollapsed ? '40px' : '350px'
+          }}
         >
           {/* Header del panel izquierdo */}
           <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
@@ -717,8 +750,12 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
           )}
         </motion.div>
 
-        {/* Sección Central - Mapa */}
-        <div className="flex-1 relative bg-gray-50 dark:bg-gray-800">
+        {/* Sección Central - Mapa Adaptativo */}
+        <motion.div 
+          className="flex-1 relative bg-gray-50 dark:bg-gray-800 min-w-0"
+          initial={false}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
           <DynamicProjectMap
             data={{
               allGeoJSONData: unidadesState.allGeoJSONData || {},
@@ -730,18 +767,27 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
             onFeatureClick={handleFeatureClick}
             height="100%"
             theme={theme}
+            onMapReady={(centerFunction) => {
+              centerMapFunction.current = centerFunction
+              console.log('🎯 Función de centrado del mapa configurada')
+            }}
             key={`map-${Object.keys(unidadesState.allGeoJSONData || {}).join('-')}-${Object.values(layerVisibility).join('-')}-${layerConfigs.map(l => (l as any).lastUpdate || 0).join('-')}`}
           />
-        </div>
+        </motion.div>
 
-        {/* Panel Derecho - Métricas */}
+        {/* Panel Derecho - Métricas - Sidebar deslizante */}
         <motion.div
           initial={false}
           animate={{ 
-            width: rightPanelCollapsed ? '40px' : '300px'
+            width: rightPanelCollapsed ? '40px' : '320px',
+            x: 0 // Siempre visible, solo cambia el ancho
           }}
-          transition={{ duration: 0.3 }}
-          className="bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex flex-col"
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0"
+          style={{ 
+            minWidth: rightPanelCollapsed ? '40px' : '320px',
+            maxWidth: rightPanelCollapsed ? '40px' : '320px'
+          }}
         >
           {/* Header del panel derecho */}
           <div className="p-2 border-b border-gray-200 dark:border-gray-700">

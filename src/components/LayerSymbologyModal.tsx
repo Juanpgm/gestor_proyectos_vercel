@@ -22,6 +22,7 @@ import {
   RangeColorConfig,
   useLayerSymbology 
 } from '@/hooks/useLayerSymbology'
+import SymbologyDiagnostics from './SymbologyDiagnostics'
 
 interface LayerSymbologyModalProps {
   isOpen: boolean
@@ -56,36 +57,87 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
     generateCategoryColors,
     generateRanges,
     resetLayerSymbology,
-    symbologyState
+    symbologyState,
+    pendingChanges,
+    lastUpdateTimestamp
   } = useLayerSymbology()
+
+  // Estado local para forzar re-renders
+  const [modalKey, setModalKey] = useState(0)
+
+  // Efecto para reinicializar cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && layerId) {
+      console.log(`🔓 Modal abierto para: ${layerId}`)
+      setModalKey(prev => prev + 1)
+      
+      // Limpiar cualquier cambio pendiente al abrir
+      discardPendingChanges(layerId)
+      
+      console.log('🔍 Estado inicial de simbología:', symbologyState[layerId])
+    }
+  }, [isOpen, layerId, discardPendingChanges, symbologyState])
 
   // Obtener atributos disponibles para la capa
   const availableAttributes = useMemo(() => {
-    if (!layerData) return []
+    if (!layerData) {
+      console.log('⚠️ No hay datos de capa disponibles para', layerId)
+      return []
+    }
 
     let attributes: string[] = []
     
-    // Para datos GeoJSON
-    if (layerData.features && Array.isArray(layerData.features)) {
-      const firstFeature = layerData.features[0]
-      if (firstFeature && firstFeature.properties) {
-        attributes = Object.keys(firstFeature.properties)
+    try {
+      // Para datos GeoJSON
+      if (layerData.features && Array.isArray(layerData.features)) {
+        const firstFeature = layerData.features[0]
+        if (firstFeature && firstFeature.properties) {
+          attributes = Object.keys(firstFeature.properties)
+        }
       }
-    }
-    // Para arrays de puntos
-    else if (Array.isArray(layerData) && layerData.length > 0) {
-      attributes = Object.keys(layerData[0]).filter(key => 
-        !['lat', 'lng', 'geometry', '_id'].includes(key)
-      )
-    }
+      // Para arrays de puntos
+      else if (Array.isArray(layerData) && layerData.length > 0) {
+        attributes = Object.keys(layerData[0]).filter(key => 
+          !['lat', 'lng', 'geometry', '_id'].includes(key)
+        )
+      }
 
-    return attributes.filter(attr => attr && typeof attr === 'string')
-  }, [layerData])
+      const validAttributes = attributes.filter(attr => attr && typeof attr === 'string')
+      console.log('📋 Atributos disponibles para', layerId, ':', validAttributes)
+      return validAttributes
+    } catch (error) {
+      console.error('❌ Error obteniendo atributos:', error)
+      return []
+    }
+  }, [layerData, layerId])
 
   // Obtener configuración actual de la capa
   const currentConfig = useMemo(() => {
-    return getLayerSymbology(layerId, true, layerConfig?.color)
-  }, [layerId, getLayerSymbology, layerConfig?.color])
+    try {
+      // Forzar recálculo siempre que sea necesario
+      const config = getLayerSymbology(layerId, true, layerConfig?.color)
+      console.log('🔄 Modal: Recalculando configuración actual para', layerId, config)
+      return config
+    } catch (error) {
+      console.error('❌ Error obteniendo configuración actual:', error)
+      return {
+        mode: 'fixed' as SymbologyMode,
+        fixedColor: layerConfig?.color || '#3B82F6',
+        opacity: 0.7,
+        strokeWidth: 2,
+        strokeColor: layerConfig?.color || '#1D4ED8',
+        lineStyle: 'solid' as const,
+        lineCap: 'round' as const,
+        lineJoin: 'round' as const,
+        pointSize: 8,
+        pointShape: 'circle' as const,
+        categoryColors: undefined,
+        rangeColors: undefined,
+        iconMappings: undefined,
+        attribute: undefined
+      }
+    }
+  }, [layerId, getLayerSymbology, layerConfig?.color, lastUpdateTimestamp]) // Usar timestamp para detectar cambios
 
   // Detectar tipo de geometría principal de la capa
   const getLayerGeometryType = (data: any) => {
@@ -106,32 +158,51 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
   // Inicializar simbología cuando se abre el modal
   useEffect(() => {
     if (isOpen && layerConfig) {
-      const currentSymbology = getLayerSymbology(layerId, true, layerConfig.color)
-      
-      // Solo inicializar si no existe configuración previa o si el color fijo coincide con el por defecto
-      const hasCustomConfig = symbologyState[layerId] && 
-                             symbologyState[layerId].fixedColor && 
-                             symbologyState[layerId].fixedColor !== '#3B82F6'
-      
-      if (!hasCustomConfig) {
-        console.log(`🎨 Inicializando simbología para ${layerId} con color: ${layerConfig.color}`)
+      try {
+        console.log('🚀 Inicializando modal de simbología para:', layerId, 'con config:', layerConfig)
+        
+        const currentSymbology = getLayerSymbology(layerId, true, layerConfig.color)
+        
+        // Solo inicializar si no existe configuración previa o si el color fijo coincide con el por defecto
+        const hasCustomConfig = symbologyState[layerId] && 
+                               symbologyState[layerId].fixedColor && 
+                               symbologyState[layerId].fixedColor !== '#3B82F6'
+        
+        if (!hasCustomConfig) {
+          console.log(`🎨 Inicializando simbología para ${layerId} con color: ${layerConfig.color}`)
+          updatePendingChanges(layerId, {
+            mode: 'fixed',
+            fixedColor: layerConfig.color || '#3B82F6',
+            opacity: layerConfig.opacity || 0.7,
+            strokeWidth: 2,
+            strokeColor: layerConfig.color || '#3B82F6',
+            lineStyle: 'solid',
+            lineCap: 'round',
+            lineJoin: 'round',
+            pointSize: 8,
+            pointShape: 'circle'
+          })
+        } else {
+          // Si ya hay configuración, asegurar que los cambios pendientes reflejen la configuración actual
+          console.log(`🔄 Cargando simbología existente para ${layerId}:`, currentSymbology)
+          updatePendingChanges(layerId, {
+            ...currentSymbology
+          })
+        }
+      } catch (error) {
+        console.error('❌ Error inicializando modal de simbología:', error)
+        // Configuración de emergencia
         updatePendingChanges(layerId, {
           mode: 'fixed',
-          fixedColor: layerConfig.color || '#3B82F6',
-          opacity: layerConfig.opacity || 0.7,
+          fixedColor: '#3B82F6',
+          opacity: 0.7,
           strokeWidth: 2,
-          strokeColor: layerConfig.color || '#3B82F6',
+          strokeColor: '#3B82F6',
           lineStyle: 'solid',
           lineCap: 'round',
           lineJoin: 'round',
           pointSize: 8,
           pointShape: 'circle'
-        })
-      } else {
-        // Si ya hay configuración, asegurar que los cambios pendientes reflejen la configuración actual
-        console.log(`🔄 Cargando simbología existente para ${layerId}:`, currentSymbology)
-        updatePendingChanges(layerId, {
-          ...currentSymbology
         })
       }
     }
@@ -174,7 +245,9 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
 
   // Actualizar color fijo
   const handleFixedColorChange = (color: string) => {
+    console.log(`🎨 Cambiando color fijo a: ${color} para capa: ${layerId}`)
     updatePendingChanges(layerId, { fixedColor: color })
+    console.log('✅ Color actualizado en pendingChanges')
   }
 
   // Actualizar color de categoría
@@ -209,17 +282,62 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
     updatePendingChanges(layerId, { rangeColors })
   }
 
-  // Aplicar cambios
+  // Aplicar cambios - VERSIÓN MEJORADA
   const handleApplyChanges = () => {
-    applyPendingChanges(layerId)
-    onApplyChanges?.(layerId)
+    try {
+      console.log(`🔥 MODAL: Aplicando cambios para ${layerId}`)
+      console.log('📊 Cambios pendientes antes:', pendingChanges[layerId])
+      
+      // Si no hay cambios pendientes, simplemente cerrar
+      if (!pendingChanges[layerId]) {
+        console.log('⚠️ No hay cambios pendientes para aplicar')
+        onClose()
+        return
+      }
+      
+      // 1. Aplicar cambios al estado de simbología
+      applyPendingChanges(layerId)
+      
+      // 2. Dar tiempo al estado para propagarse antes de notificar al padre
+      setTimeout(() => {
+        console.log('📊 Estado después de aplicar:', symbologyState[layerId])
+        
+        // 3. Notificar al componente padre para re-renderizar el mapa
+        if (onApplyChanges) {
+          onApplyChanges(layerId)
+        }
+        
+        // 4. Cerrar modal después de aplicar
+        onClose()
+        
+        console.log(`✅ Simbología aplicada exitosamente para: ${layerId}`)
+      }, 100) // Pequeño delay para asegurar propagación del estado
+      
+    } catch (error) {
+      console.error('❌ Error aplicando cambios de simbología:', error)
+      // Mantener el modal abierto en caso de error para que el usuario pueda reintentar
+    }
+  }
+
+  // Descartar cambios - VERSIÓN MEJORADA
+  const handleDiscardChanges = () => {
+    console.log(`❌ Descartando cambios para: ${layerId}`)
+    discardPendingChanges(layerId)
     onClose()
   }
 
-  // Descartar cambios
-  const handleDiscardChanges = () => {
-    discardPendingChanges(layerId)
-    onClose()
+  // Cerrar modal con confirmación si hay cambios pendientes
+  const handleCloseModal = () => {
+    if (hasPendingChanges(layerId)) {
+      const confirmDiscard = window.confirm(
+        '¿Estás seguro de cerrar sin aplicar los cambios? Se perderán todas las modificaciones.'
+      )
+      if (confirmDiscard) {
+        handleDiscardChanges()
+      }
+    } else {
+      onClose()
+    }
   }
 
   if (!isOpen) return null
@@ -231,7 +349,7 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 symbology-modal-overlay"
-        onClick={onClose}
+        onClick={handleCloseModal}
         style={{ zIndex: 9999 }}
       >
         <motion.div
@@ -256,7 +374,7 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
               </div>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleCloseModal}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
@@ -265,6 +383,31 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
 
           {/* Content */}
           <div className="p-4 overflow-y-auto max-h-[calc(90vh-180px)] space-y-6">
+            
+            {/* Diagnóstico de depuración MEJORADO */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="space-y-3">
+                <SymbologyDiagnostics
+                  layerId={layerId}
+                  layerData={layerData}
+                  layerConfig={layerConfig}
+                  symbologyState={symbologyState}
+                  pendingChanges={pendingChanges}
+                />
+                
+                {/* Estado en tiempo real */}
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <h5 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Estado del Modal</h5>
+                  <div className="text-xs font-mono space-y-1 text-yellow-700 dark:text-yellow-300">
+                    <div>⏰ Timestamp: {lastUpdateTimestamp}</div>
+                    <div>🔧 Modal Key: {modalKey}</div>
+                    <div>📋 Cambios Pendientes: {hasPendingChanges(layerId) ? '✅ SÍ' : '❌ NO'}</div>
+                    <div>⚙️ Modo Actual: {currentConfig.mode}</div>
+                    <div>🎨 Color Actual: {currentConfig.fixedColor || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Selector de modo */}
             <div>
@@ -601,6 +744,8 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
   )
 
   // Renderizar el modal usando portal para asegurar que esté en el nivel más alto del DOM
+  if (!isOpen) return null
+
   return typeof document !== 'undefined' 
     ? createPortal(modalContent, document.body)
     : null

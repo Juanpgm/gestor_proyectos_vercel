@@ -40,6 +40,9 @@ const NewLayerManagementPanel: React.FC<NewLayerManagementPanelProps> = ({
 
   // Abrir modal de simbología
   const openSymbologyModal = (layerId: string) => {
+    console.log('🔧 Abriendo modal de simbología para:', layerId)
+    const layer = layers.find(l => l.id === layerId)
+    console.log('📋 Datos de la capa:', layer)
     setSelectedLayerId(layerId)
     setSymbologyModalOpen(true)
   }

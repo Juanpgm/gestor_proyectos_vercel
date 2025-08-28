@@ -225,12 +225,118 @@ function featureToUnidadProyecto(feature: GeoJSONFeature, source: 'equipamientos
   }
 }
 
-// Estado global para evitar cargas múltiples
+// Estado global para evitar cargas múltiples - MEJORADO con lógica del sistema dinámico
 let globalUnidadesState: UnidadesProyectoState | null = null
 let globalUnidadesPromise: Promise<UnidadesProyectoState> | null = null
 let globalListeners: Set<(state: UnidadesProyectoState) => void> = new Set()
 
-// Función para cargar datos de manera singleton
+// Cache para prevenir cargas duplicadas de archivos específicos - NUEVO
+const fileCache = new Map<string, any>()
+const loadingPromises = new Map<string, Promise<any>>()
+
+/**
+ * Cargar un archivo GeoJSON específico con cache inteligente
+ * Inspirado en el sistema dinámico pero adaptado para el sistema existente
+ */
+async function loadGeoJSONFileWithCache(filePath: string): Promise<any> {
+  console.log(`📡 Cargando archivo: ${filePath}`)
+
+  // Si ya está en cache, retornar inmediatamente
+  if (fileCache.has(filePath)) {
+    console.log(`📦 Usando cache para: ${filePath}`)
+    return fileCache.get(filePath)
+  }
+
+  // Si ya está en proceso de carga, esperar la promesa existente
+  if (loadingPromises.has(filePath)) {
+    console.log(`⏳ Esperando carga en proceso para: ${filePath}`)
+    return await loadingPromises.get(filePath)!
+  }
+
+  // Crear nueva promesa de carga
+  const loadPromise = (async () => {
+    try {
+      console.log(`🔄 Iniciando carga de: ${filePath}`)
+
+      // Crear AbortController para timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 segundos timeout
+
+      const response = await fetch(filePath, {
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText} para ${filePath}`)
+      }
+
+      const data = await response.json()
+
+      // Validar estructura GeoJSON
+      if (!data || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
+        throw new Error(`Archivo GeoJSON inválido: ${filePath}`)
+      }
+
+      console.log(`✅ ${filePath} cargado: ${data.features.length} features`)
+
+      // Procesar coordenadas usando la función existente
+      const processedData = processGeoJSONCoordinates(data)
+      
+      // Guardar en cache
+      fileCache.set(filePath, processedData)
+
+      return processedData
+
+    } catch (error) {
+      console.error(`❌ Error cargando ${filePath}:`, error)
+      throw error
+    } finally {
+      // Limpiar promesa del mapa
+      loadingPromises.delete(filePath)
+    }
+  })()
+
+  // Guardar promesa para evitar cargas duplicadas
+  loadingPromises.set(filePath, loadPromise)
+
+  return loadPromise
+}
+
+/**
+ * Cargar múltiples archivos GeoJSON secuencialmente para evitar sobrecarga
+ * Mejora del sistema dinámico aplicada al sistema existente
+ */
+async function loadMultipleGeoJSONFiles(filePaths: string[]): Promise<Record<string, any>> {
+  console.log(`🗺️ Cargando múltiples archivos GeoJSON:`, filePaths)
+
+  const results: Record<string, any> = {}
+  const errors: string[] = []
+
+  // Cargar archivos secuencialmente para evitar saturar el servidor
+  for (const filePath of filePaths) {
+    try {
+      const data = await loadGeoJSONFileWithCache(filePath)
+      const fileName = filePath.split('/').pop()?.replace('.geojson', '') || filePath
+      results[fileName] = data
+    } catch (error: any) {
+      console.warn(`⚠️ Error cargando ${filePath}:`, error)
+      errors.push(`${filePath}: ${error.message}`)
+      // Continuar con los demás archivos
+    }
+  }
+
+  console.log(`✅ ${Object.keys(results).length}/${filePaths.length} archivos cargados exitosamente`)
+  
+  if (errors.length > 0) {
+    console.warn(`⚠️ Errores en carga:`, errors)
+  }
+
+  return results
+}
+
+// Función para cargar datos de manera singleton - MEJORADA
 async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
   if (globalUnidadesPromise) {
     console.log('🔄 Esperando carga global existente...')
@@ -239,23 +345,29 @@ async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
 
   globalUnidadesPromise = (async () => {
     try {
-      console.log('🔄 === INICIANDO CARGA GLOBAL UNIDADES DE PROYECTO ===')
+      console.log('🔄 === INICIANDO CARGA GLOBAL UNIDADES DE PROYECTO (MEJORADA) ===')
 
       // Verificar que estamos en el cliente
       if (typeof window === 'undefined') {
         throw new Error('Componente ejecutándose en servidor')
       }
 
-      // Usar sistema de carga con fallback más robusto
-      console.log('📡 Iniciando carga de archivos GeoJSON...')
-      const allGeoJSONData = await loadMapDataWithFallback()
+      // Definir archivos a cargar (mejora: lista explícita y ordenada por prioridad)
+      const filesToLoad = [
+        '/data/unidades_proyecto/equipamientos.geojson',
+        '/data/unidades_proyecto/infraestructura_vial.geojson',
+        '/data/geodata/comunas.geojson',
+        '/data/geodata/barrios.geojson',
+        '/data/geodata/corregimientos.geojson',
+        '/data/geodata/veredas.geojson'
+      ]
 
-      console.log('🔍 Resultado de carga:', allGeoJSONData)
+      console.log('� Iniciando carga secuencial de archivos GeoJSON...')
+      
+      // Usar el nuevo sistema de carga mejorado
+      const allGeoJSONData = await loadMultipleGeoJSONFiles(filesToLoad)
 
-      // Validar datos
-      if (!validateMapData(allGeoJSONData)) {
-        console.warn('⚠️ Datos no válidos, usando estructura vacía')
-      }
+      console.log('🔍 Resultado de carga mejorada:', Object.keys(allGeoJSONData))
 
       // Verificar que se cargaron datos válidos
       const validFiles = Object.entries(allGeoJSONData).filter(([fileName, data]: [string, any]) => 
@@ -300,7 +412,7 @@ async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
       }
 
       globalUnidadesState = finalState
-      console.log('✅ === CARGA GLOBAL COMPLETA ===')
+      console.log('✅ === CARGA GLOBAL COMPLETA (MEJORADA) ===')
       
       // Notificar a todos los listeners
       globalListeners.forEach(listener => listener(finalState))
@@ -332,19 +444,78 @@ async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
   return globalUnidadesPromise
 }
 
+/**
+ * Obtener estadísticas del sistema de cache - NUEVA función inspirada en el sistema dinámico
+ */
+export function getUnidadesProyectoStats() {
+  const cacheSize = fileCache.size
+  const loadingCount = loadingPromises.size
+  const globalState = globalUnidadesState
+
+  return {
+    cacheSize,
+    loadingCount,
+    hasGlobalData: !!globalState,
+    isLoading: !!globalUnidadesPromise && !globalState,
+    totalUnidades: globalState?.unidadesProyecto.length || 0,
+    totalGeoJSONFiles: Object.keys(globalState?.allGeoJSONData || {}).length,
+    error: globalState?.error || null
+  }
+}
+
+/**
+ * Limpiar cache de archivos - NUEVA función para management de memoria
+ */
+export function clearUnidadesProyectoCache() {
+  fileCache.clear()
+  loadingPromises.clear()
+  globalUnidadesState = null
+  globalUnidadesPromise = null
+  console.log('🧹 Cache de unidades de proyecto limpiado')
+}
+
+/**
+ * Suscribirse a cambios en el estado global - NUEVA función para reactivity
+ */
+export function subscribeToUnidadesProyectoChanges(listener: (state: UnidadesProyectoState) => void): () => void {
+  globalListeners.add(listener)
+  
+  // Si ya hay datos, notificar inmediatamente
+  if (globalUnidadesState) {
+    listener(globalUnidadesState)
+  }
+  
+  // Retornar función de limpieza
+  return () => {
+    globalListeners.delete(listener)
+  }
+}
+
 export function useUnidadesProyecto(): UnidadesProyectoState {
-  console.log('🚀 useUnidadesProyecto: Hook START')
+  console.log('🚀 useUnidadesProyecto: Hook START (HYDRATION FIX)')
+  
+  // Track if we're on client side
+  const [isClient, setIsClient] = useState(false)
   
   const [state, setState] = useState<UnidadesProyectoState>(() => {
     console.log('🏗️ useState inicializado - verificando si hay datos globales')
+    console.log('🏗️ globalUnidadesState existe:', !!globalUnidadesState)
+    console.log('🏗️ window disponible:', typeof window !== 'undefined')
     
     // Si ya tenemos datos globales cargados, úsalos inmediatamente
     if (globalUnidadesState && !globalUnidadesState.loading) {
       console.log('🎯 Datos globales encontrados, usando estado existente')
+      console.log('🎯 Estado global:', {
+        unidades: globalUnidadesState.unidadesProyecto.length,
+        geoJSONKeys: Object.keys(globalUnidadesState.allGeoJSONData),
+        loading: globalUnidadesState.loading,
+        error: globalUnidadesState.error
+      })
       return globalUnidadesState
     }
     
     // Estado inicial de carga
+    console.log('🎯 Retornando estado inicial de carga')
     return {
       equipamientos: null,
       infraestructura: null,
@@ -355,39 +526,67 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
     }
   })
 
-  console.log('🎯 BEFORE useEffect, state:', state.loading)
-
-  // Test useEffect INMEDIATAMENTE después del useState
+  // Effect to detect client-side hydration
   useEffect(() => {
-    console.log('� TEST EFFECT EJECUTADO!')
-    console.log('🔥 Window available:', typeof window !== 'undefined')
-    
-    // Cargar datos directamente sin complicaciones
-    if (typeof window !== 'undefined') {
-      console.log('🔥 Iniciando carga simple...')
-      
-      // Usar la función de carga existente
-      loadUnidadesProyectoGlobal()
-        .then(result => {
-          console.log('� Carga exitosa:', result.unidadesProyecto.length, 'unidades')
-          setState(result)
-        })
-        .catch(error => {
-          console.error('� Error en carga:', error)
-          setState(prev => ({ 
-            ...prev, 
-            loading: false, 
-            error: error.message 
-          }))
-        })
-    }
-    
-    return () => {
-      console.log('🔥 TEST EFFECT CLEANUP')
-    }
-  }, []) // Sin dependencias
+    console.log('� HYDRATION EFFECT: Setting isClient to true')
+    setIsClient(true)
+  }, [])
 
-  console.log('🎯 AFTER useEffect setup, returning state:', state.loading)
+  console.log('�🎯 BEFORE main useEffect, isClient:', isClient)
+  console.log('🎯 BEFORE main useEffect, state loading:', state.loading)
+  console.log('🎯 BEFORE main useEffect, state unidades:', state.unidadesProyecto.length)
+
+  // Main data loading effect - now depends on isClient
+  useEffect(() => {
+    if (!isClient) {
+      console.log('🔥 EFFECT SKIPPED: Not on client side yet')
+      return
+    }
+
+    console.log('🔥 EFFECT EJECUTADO (CLIENT-SIDE)!')
+    console.log('🔥 isClient:', isClient)
+    console.log('🔥 Window available:', typeof window !== 'undefined')
+    console.log('🔥 Global state exists:', !!globalUnidadesState)
+    console.log('🔥 Global state loading:', globalUnidadesState?.loading)
+    console.log('🔥 Global promise exists:', !!globalUnidadesPromise)
+    
+    // Suscribirse a cambios globales para reactivity automática
+    const unsubscribe = subscribeToUnidadesProyectoChanges((newState) => {
+      console.log('📢 Cambio global detectado, actualizando estado local')
+      console.log('📢 Nuevo estado tiene datos:', {
+        unidades: newState.unidadesProyecto.length,
+        geoJSONKeys: Object.keys(newState.allGeoJSONData),
+        loading: newState.loading,
+        error: newState.error
+      })
+      setState(newState)
+    })
+    
+    // Cargar datos ahora que estamos en client-side
+    console.log('🔥 INICIANDO CARGA CLIENT-SIDE...')
+    
+    loadUnidadesProyectoGlobal()
+      .then(result => {
+        console.log('✅ Carga exitosa desde useEffect:', {
+          unidades: result.unidadesProyecto.length,
+          geoJSONKeys: Object.keys(result.allGeoJSONData),
+          error: result.error
+        })
+      })
+      .catch(error => {
+        console.error('❌ Error en carga desde useEffect:', error)
+      })
+    
+    // Cleanup function mejorada
+    return () => {
+      console.log('🔥 EFFECT CLEANUP (CLIENT-SIDE)')
+      unsubscribe()
+    }
+  }, [isClient]) // Depende de isClient para ejecutarse solo en cliente
+
+  console.log('🎯 AFTER useEffect setup, isClient:', isClient)
+  console.log('🎯 AFTER useEffect setup, returning state loading:', state.loading)
+  console.log('🎯 AFTER useEffect setup, returning state unidades:', state.unidadesProyecto.length)
 
   return state
 }

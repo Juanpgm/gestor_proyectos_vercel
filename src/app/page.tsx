@@ -6,14 +6,14 @@ import Header from '@/components/Header'
 import StatsCards from '@/components/StatsCards'
 import BudgetChart from '@/components/BudgetChart'
 import dynamic from 'next/dynamic'
-import ProjectMapWithPanels from '@/components/ProjectMapWithPanels'
+import UnifiedMapInterface from '@/components/UnifiedMapInterface'
 import SimpleMapLayout from '@/components/SimpleMapLayout'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
 import ProjectsUnitsTable, { ProjectUnit } from '@/components/ProjectsUnitsTable'
 import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
-import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyecto'
+import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyectoWorking'
 // import { useUnidadesProyectoOptimized } from '@/hooks/useUnidadesProyectoOptimized'
 // import { useGlobalDataPreloader } from '@/hooks/useGlobalDataPreloader'
 // import { useUnidadesProyectoSimple } from '@/hooks/useUnidadesProyectoSimple'
@@ -53,6 +53,16 @@ export default function Dashboard() {
 
 function DashboardContent() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview') // Vista General por defecto
+  
+  // Detectar parámetros URL para activar el fix
+  const [useFix, setUseFix] = useState(false)
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      setUseFix(urlParams.has('fix'))
+    }
+  }, [])
   
   // Estado para la unidad de proyecto seleccionada desde la tabla
   const [selectedProjectUnitFromTable, setSelectedProjectUnitFromTable] = useState<UnidadProyecto | null>(null)
@@ -98,14 +108,6 @@ function DashboardContent() {
     loading: proyectosLoading 
   } = useDataContext()
 
-  // PRUEBA: Solo usar el hook principal para evitar conflictos
-  // const forcedState = useUnidadesProyectoForced()
-  // console.log('🔥 MAIN: Forced hook result:', {
-  //   loading: forcedState.loading,
-  //   error: forcedState.error,
-  //   dataKeys: Object.keys(forcedState.allGeoJSONData)
-  // })
-
   // Usar el hook principal para obtener datos de unidades de proyecto
   const unidadesState = useUnidadesProyecto()
   const { unidadesProyecto, loading: dataLoading, error: dataError } = unidadesState
@@ -147,13 +149,12 @@ function DashboardContent() {
     setDataContextFilters(dataContextFilters)
   }, [filters, setDataContextFilters])
 
-  // Lógica de filtrado para unidades de proyecto usando datos optimizados del preloader global
+  // Lógica de filtrado para unidades de proyecto usando datos del hook principal
   const filteredProjectUnits: UnidadProyecto[] = useMemo(() => {
-    // Usar datos del preloader global que están siempre disponibles
-    // Usar datos del hook principal en lugar del global preloader
+    // Usar datos del hook principal
     const sourceUnidades = unidadesProyecto
     
-    return sourceUnidades.filter(unit => {
+    return sourceUnidades.filter((unit: UnidadProyecto) => {
       // Filtro por búsqueda de texto (solo se aplica si NO hay filtros específicos activos)
       if (filters.search && filters.comunas.length === 0 && filters.barrios.length === 0 && filters.corregimientos.length === 0) {
         const searchTerm = filters.search.toLowerCase()
@@ -486,13 +487,18 @@ function DashboardContent() {
       case 'project_units':
         return (
           <div className="space-y-8">
-            {/* Mapa con paneles integrado */}
+            {/* Mapa unificado con paneles integrados */}
             <div className="w-full">
-              <ProjectMapWithPanels 
+              <UnifiedMapInterface 
                 className="w-full" 
                 height="800px"
                 selectedProjectUnitFromTable={selectedProjectUnitFromTable}
-                optimizedGeoJSONData={unidadesState.allGeoJSONData}
+                onFeatureClick={(feature, layerType) => {
+                  console.log('🗺️ Feature clicked:', feature, 'Layer:', layerType)
+                }}
+                enablePanels={true}
+                initialLayersPanelCollapsed={false}
+                initialPropertiesPanelCollapsed={true}
               />
             </div>
             

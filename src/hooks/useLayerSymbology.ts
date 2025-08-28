@@ -59,33 +59,47 @@ const DEFAULT_ICONS = {
 export const useLayerSymbology = () => {
   const [symbologyState, setSymbologyState] = useState<LayerSymbologyState>({})
   const [pendingChanges, setPendingChanges] = useState<PendingChangesState>({})
+  const [lastUpdateTimestamp, setLastUpdateTimestamp] = useState(0)
 
   // Función para actualizar cambios pendientes (no aplicados aún)
   const updatePendingChanges = useCallback((layerId: string, config: Partial<SymbologyConfig>) => {
-    setPendingChanges(prev => ({
-      ...prev,
-      [layerId]: {
-        ...prev[layerId],
-        ...config
+    console.log('🔄 Actualizando cambios pendientes:', layerId, config)
+    setPendingChanges(prev => {
+      const newChanges = {
+        ...prev,
+        [layerId]: {
+          ...prev[layerId],
+          ...config
+        }
       }
-    }))
+      console.log('📝 Nuevos cambios pendientes:', newChanges)
+      return newChanges
+    })
   }, [])
 
   // Función para aplicar cambios pendientes
   const applyPendingChanges = useCallback((layerId?: string) => {
+    const timestamp = Date.now()
+    console.log(`🔥 Hook: Aplicando cambios pendientes para ${layerId || 'todas las capas'} - timestamp: ${timestamp}`)
+    
     if (layerId) {
       // Aplicar cambios de una capa específica
       const pendingConfig = pendingChanges[layerId]
       if (pendingConfig) {
-        setSymbologyState(prev => ({
-          ...prev,
-          [layerId]: pendingConfig
-        }))
+        setSymbologyState(prev => {
+          const newState = {
+            ...prev,
+            [layerId]: pendingConfig
+          }
+          console.log('🔄 Nuevo estado de simbología:', newState)
+          return newState
+        })
         setPendingChanges(prev => {
           const newPending = { ...prev }
           delete newPending[layerId]
           return newPending
         })
+        setLastUpdateTimestamp(timestamp)
       }
     } else {
       // Aplicar todos los cambios pendientes
@@ -94,6 +108,7 @@ export const useLayerSymbology = () => {
         ...pendingChanges
       }))
       setPendingChanges({})
+      setLastUpdateTimestamp(timestamp)
     }
   }, [pendingChanges])
 
@@ -131,27 +146,46 @@ export const useLayerSymbology = () => {
 
   // Función para obtener la configuración de una capa (incluyendo cambios pendientes)
   const getLayerSymbology = useCallback((layerId: string, includePending: boolean = false, defaultColor?: string): SymbologyConfig => {
-    const appliedConfig = symbologyState[layerId] || {
-      mode: 'fixed',
-      fixedColor: defaultColor || '#3B82F6',
-      opacity: 0.7,
-      strokeWidth: 2,
-      strokeColor: defaultColor || '#1D4ED8',
-      lineStyle: 'solid',
-      lineCap: 'round',
-      lineJoin: 'round',
-      pointSize: 8,
-      pointShape: 'circle'
-    }
-    
-    if (includePending && pendingChanges[layerId]) {
+    try {
+      const appliedConfig = symbologyState[layerId] || {
+        mode: 'fixed',
+        fixedColor: defaultColor || '#3B82F6',
+        opacity: 0.7,
+        strokeWidth: 2,
+        strokeColor: defaultColor || '#1D4ED8',
+        lineStyle: 'solid',
+        lineCap: 'round',
+        lineJoin: 'round',
+        pointSize: 8,
+        pointShape: 'circle'
+      }
+      
+      if (includePending && pendingChanges[layerId]) {
+        const mergedConfig = {
+          ...appliedConfig,
+          ...pendingChanges[layerId]
+        }
+        console.log('🔍 Configuración obtenida (con pendientes):', layerId, mergedConfig)
+        return mergedConfig
+      }
+      
+      console.log('🔍 Configuración obtenida (aplicada):', layerId, appliedConfig)
+      return appliedConfig
+    } catch (error) {
+      console.error('❌ Error obteniendo configuración de simbología:', error)
       return {
-        ...appliedConfig,
-        ...pendingChanges[layerId]
+        mode: 'fixed',
+        fixedColor: defaultColor || '#3B82F6',
+        opacity: 0.7,
+        strokeWidth: 2,
+        strokeColor: defaultColor || '#1D4ED8',
+        lineStyle: 'solid',
+        lineCap: 'round',
+        lineJoin: 'round',
+        pointSize: 8,
+        pointShape: 'circle'
       }
     }
-    
-    return appliedConfig
   }, [symbologyState, pendingChanges])
 
   // Función para generar colores automáticos por categorías
@@ -347,6 +381,7 @@ export const useLayerSymbology = () => {
     generateCategoryColors,
     generateRanges,
     resetLayerSymbology,
+    lastUpdateTimestamp,
     DEFAULT_CATEGORY_COLORS,
     DEFAULT_ICONS
   }

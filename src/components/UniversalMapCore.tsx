@@ -58,6 +58,7 @@ export interface UniversalMapCoreProps {
   enableFullscreen?: boolean
   enableCenterView?: boolean
   enableLayerControls?: boolean
+  onMapReady?: (centerFunction: () => void) => void // Nueva prop para exponer función de centrado
 }
 
 // Configuraciones de estilo por defecto
@@ -351,7 +352,8 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
   theme = 'light',
   enableFullscreen = true,
   enableCenterView = true,
-  enableLayerControls = true
+  enableLayerControls = true,
+  onMapReady
 }) => {
   const mapRef = useRef<L.Map | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -1114,6 +1116,63 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
           if (mapRef.current) {
             mapRef.current.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
             console.log('🎯 Mapa centrado en Cali')
+            
+            // Exponer función de centrado al componente padre
+            if (onMapReady) {
+              const centerFunction = () => {
+                const visibleLayers = layers.filter(layer => layer.visible && layer.data)
+                
+                if (visibleLayers.length === 0) {
+                  mapRef.current?.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
+                  return
+                }
+                
+                const bounds = L.latLngBounds([])
+                let hasValidBounds = false
+                
+                visibleLayers.forEach(layer => {
+                  if (layer.type === 'geojson' && layer.data?.features) {
+                    try {
+                      const tempLayer = L.geoJSON(layer.data)
+                      const layerBounds = tempLayer.getBounds()
+                      if (layerBounds.isValid()) {
+                        bounds.extend(layerBounds)
+                        hasValidBounds = true
+                      }
+                    } catch (error) {
+                      console.warn('Error obteniendo bounds de capa:', error)
+                    }
+                  } else if (layer.type === 'points' && Array.isArray(layer.data)) {
+                    layer.data.forEach((point: any) => {
+                      if (point.lat && point.lng) {
+                        bounds.extend([point.lat, point.lng])
+                        hasValidBounds = true
+                      }
+                    })
+                  }
+                })
+                
+                if (hasValidBounds) {
+                  const caliBounds = L.latLngBounds([
+                    [3.2, -76.8], // Southwest corner
+                    [3.7, -76.3]  // Northeast corner
+                  ])
+                  
+                  if (!caliBounds.intersects(bounds)) {
+                    mapRef.current?.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
+                  } else {
+                    bounds.extend(CALI_COORDINATES.CENTER_LAT_LNG)
+                    mapRef.current?.fitBounds(bounds, { 
+                      padding: [30, 30],
+                      maxZoom: 15
+                    })
+                  }
+                } else {
+                  mapRef.current?.setView(CALI_COORDINATES.CENTER_LAT_LNG, CALI_COORDINATES.DEFAULT_ZOOM)
+                }
+              }
+              onMapReady(centerFunction)
+            }
             
             // Configurar eventos globales para mejor detección de clics
             mapRef.current.on('click', (e) => {
