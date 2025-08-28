@@ -10,7 +10,7 @@ interface LayerConfig {
   visible: boolean
   color: string
   opacity: number
-  representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado'
+  representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado' | 'novedad'
   data?: any
 }
 
@@ -103,7 +103,8 @@ const NewLayerManagementPanel: React.FC<NewLayerManagementPanelProps> = ({
                         </h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {layer.representationMode === 'clase_obra' ? 'Clase de Obra' : 
-                           layer.representationMode === 'tipo_intervencion' ? 'Tipo Intervención' : 
+                           layer.representationMode === 'tipo_intervencion' ? 'Tipo Intervención' :
+                           layer.representationMode === 'novedad' ? 'Novedad' :
                            'Estado Proyecto'}
                         </p>
                       </div>

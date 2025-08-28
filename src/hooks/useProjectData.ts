@@ -190,8 +190,8 @@ export function useProjectData() {
           fetch('/data/ejecucion_presupuestal/movimientos_presupuestales.json'),
           fetch('/data/contratos/contratos.json'),
           fetch('/data/contratos/contratos_valores.json'),
-          fetch('/data/unidades_proyecto/equipamientos.geojson'),
-          fetch('/data/unidades_proyecto/infraestructura_vial.geojson')
+          fetch('/data/geodata/unidades_proyecto/equipamientos.geojson'),
+          fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
         ])
 
         if (!proyectosRes.ok || !ejecucionRes.ok || !seguimientoRes.ok || !movimientosRes.ok ||

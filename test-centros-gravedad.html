@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Centros de Gravedad</title>
+</head>
+<body>
+    <h1>Test de Carga de Centros de Gravedad</h1>
+    <div id="status">Cargando...</div>
+    
+    <script>
+        async function testLoadCentrosGravedad() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                statusDiv.innerHTML = 'Intentando cargar centros_gravedad_unificado.geojson...';
+                
+                const response = await fetch('/data/geodata/centros_gravedad/centros_gravedad_unificado.geojson');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                statusDiv.innerHTML = `
+                    <h2>✅ Éxito!</h2>
+                    <p>Archivo cargado correctamente</p>
+                    <p>Tipo: ${data.type}</p>
+                    <p>Número de features: ${data.features ? data.features.length : 'N/A'}</p>
+                    <p>Primera feature:</p>
+                    <pre>${JSON.stringify(data.features[0], null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <h2>❌ Error</h2>
+                    <p>Error cargando archivo: ${error.message}</p>
+                `;
+            }
+        }
+        
+        // Cargar inmediatamente
+        testLoadCentrosGravedad();
+    </script>
+</body>
+</html>

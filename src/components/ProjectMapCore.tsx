@@ -33,7 +33,7 @@ export interface ProjectMapCoreProps {
     visible: boolean
     color: string
     opacity: number
-    representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado'
+    representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado' | 'novedad'
   }>
   onFeatureClick?: (feature: any, layerType: string) => void
   height: string

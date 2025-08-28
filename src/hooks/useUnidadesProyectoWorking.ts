@@ -188,7 +188,7 @@ export function useUnidadesProyectoWorking(): UnidadesProyectoState {
         const equipController = new AbortController()
         const equipTimeout = setTimeout(() => equipController.abort(), 15000)
         
-        const equipResponse = await fetch('/data/unidades_proyecto/equipamientos.geojson', {
+        const equipResponse = await fetch('/data/geodata/unidades_proyecto/equipamientos.geojson', {
           signal: equipController.signal,
           cache: 'no-cache',
           headers: {
@@ -207,7 +207,7 @@ export function useUnidadesProyectoWorking(): UnidadesProyectoState {
         const infraController = new AbortController()
         const infraTimeout = setTimeout(() => infraController.abort(), 15000)
         
-        const infraResponse = await fetch('/data/unidades_proyecto/infraestructura_vial.geojson', {
+        const infraResponse = await fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson', {
           signal: infraController.signal,
           cache: 'no-cache',
           headers: {
@@ -221,9 +221,29 @@ export function useUnidadesProyectoWorking(): UnidadesProyectoState {
         }
         const infraestructuraData = await infraResponse.json()
 
+        // Cargar centros de gravedad con timeout
+        console.log('🎯 WORKING: Cargando centros de gravedad...')
+        const centrosController = new AbortController()
+        const centrosTimeout = setTimeout(() => centrosController.abort(), 15000)
+        
+        const centrosResponse = await fetch('/data/geodata/centros_gravedad/centros_gravedad_unificado.geojson', {
+          signal: centrosController.signal,
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+        clearTimeout(centrosTimeout)
+        
+        if (!centrosResponse.ok) {
+          throw new Error(`Error cargando centros de gravedad: ${centrosResponse.status}`)
+        }
+        const centrosGravedadData = await centrosResponse.json()
+
         console.log('✅ WORKING: Datos cargados exitosamente - Enhanced')
         console.log('📊 WORKING: Equipamientos features:', equipamientosData.features?.length || 0)
         console.log('📊 WORKING: Infraestructura features:', infraestructuraData.features?.length || 0)
+        console.log('📊 WORKING: Centros Gravedad features:', centrosGravedadData.features?.length || 0)
 
         // Procesar y convertir a UnidadProyecto
         const equipamientosUnidades = convertGeoJSONToUnidadesProyecto(equipamientosData, 'equipamientos')
@@ -239,7 +259,8 @@ export function useUnidadesProyectoWorking(): UnidadesProyectoState {
           unidadesProyecto: allUnidades,
           allGeoJSONData: {
             equipamientos: equipamientosData,
-            infraestructura_vial: infraestructuraData
+            infraestructura_vial: infraestructuraData,
+            centros_gravedad_unificado: centrosGravedadData
           },
           loading: false,
           error: null

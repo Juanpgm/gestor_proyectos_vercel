@@ -45,7 +45,7 @@ export interface OptimizedMapLayer {
   type: 'geojson' | 'points'
   color?: string
   opacity?: number
-  representationMode?: 'clase_obra' | 'tipo_intervencion' | 'estado'
+  representationMode?: 'clase_obra' | 'tipo_intervencion' | 'estado' | 'novedad'
   style?: any
   pointStyle?: {
     radius: number
@@ -370,13 +370,13 @@ const OptimizedUniversalMapCore = forwardRef<OptimizedMapRef, OptimizedUniversal
       if (bounds.isValid()) {
         mapRef.current.fitBounds(bounds, { 
           padding: [20, 20],
-          maxZoom: 15
+          maxZoom: 12 // Limitar zoom máximo similar al botón centrar vista
         })
       }
     } catch (error) {
       console.warn('Error centrando en capas:', error)
-      // Fallback a Cali
-      mapRef.current.setView(CALI_COORDINATES.CENTER_LAT_LNG, 12)
+      // Fallback a Cali con zoom limitado
+      mapRef.current.setView(CALI_COORDINATES.CENTER_LAT_LNG, 10)
     }
   }, [layers])
 
@@ -479,7 +479,7 @@ const OptimizedUniversalMapCore = forwardRef<OptimizedMapRef, OptimizedUniversal
     >
       <MapContainer
         center={CALI_COORDINATES.CENTER_LAT_LNG}
-        zoom={12}
+        zoom={10} // Zoom inicial limitado para mejor vista del área metropolitana
         className="w-full h-full"
         zoomControl={true}
         scrollWheelZoom={true}

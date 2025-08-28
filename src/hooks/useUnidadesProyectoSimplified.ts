@@ -116,8 +116,8 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
         try {
           // Lista de archivos a cargar
           const filesToLoad = [
-            '/data/unidades_proyecto/equipamientos.geojson',
-            '/data/unidades_proyecto/infraestructura_vial.geojson',
+            '/data/geodata/unidades_proyecto/equipamientos.geojson',
+            '/data/geodata/unidades_proyecto/infraestructura_vial.geojson',
             '/data/geodata/comunas.geojson',
             '/data/geodata/barrios.geojson',
             '/data/geodata/corregimientos.geojson',

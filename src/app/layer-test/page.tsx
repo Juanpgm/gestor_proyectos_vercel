@@ -9,7 +9,7 @@ interface LayerConfig {
   visible: boolean
   color: string
   opacity: number
-  representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado'
+  representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado' | 'novedad'
 }
 
 export default function LayerTestPage() {

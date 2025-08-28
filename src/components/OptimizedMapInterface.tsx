@@ -13,6 +13,8 @@ import { Map, Layers, Settings, Activity, BarChart3 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 import { useOptimizedMapData } from '@/hooks/useOptimizedMapData'
+import { useUnifiedLayerManagement } from '@/hooks/useUnifiedLayerManagement'
+import { loadOptimizedGeodata, getGeodataStats } from '@/utils/optimizedGeodataLoader'
 import type { OptimizedMapLayer } from './OptimizedUniversalMapCore'
 
 // Lazy loading optimizado de componentes pesados
@@ -118,7 +120,7 @@ const OptimizedMapInterface: React.FC<OptimizedMapInterfaceProps> = memo((props)
       
       Object.keys(mapData.allGeoJSONData).forEach(layerId => {
         // Capas principales visibles por defecto
-        initialVisibility[layerId] = ['equipamientos', 'infraestructura_vial'].includes(layerId)
+        initialVisibility[layerId] = ['equipamientos', 'infraestructura_vial', 'centros_gravedad_unificado'].includes(layerId)
       })
       
       setLayerVisibility(prev => ({ ...initialVisibility, ...prev }))
@@ -132,6 +134,7 @@ const OptimizedMapInterface: React.FC<OptimizedMapInterfaceProps> = memo((props)
     const displayNames: Record<string, string> = {
       equipamientos: 'Equipamientos',
       infraestructura_vial: 'Infraestructura Vial',
+      centros_gravedad_unificado: 'Centros de Gravedad',
       comunas: 'Comunas',
       barrios: 'Barrios',
       corregimientos: 'Corregimientos'
@@ -144,6 +147,7 @@ const OptimizedMapInterface: React.FC<OptimizedMapInterfaceProps> = memo((props)
     const modes: Record<string, any> = {
       equipamientos: 'clase_obra',
       infraestructura_vial: 'tipo_intervencion',
+      centros_gravedad_unificado: 'novedad',
       default: undefined
     }
     return modes[layerId] || modes.default
@@ -165,9 +169,10 @@ const OptimizedMapInterface: React.FC<OptimizedMapInterfaceProps> = memo((props)
           switch (id) {
             case 'equipamientos': return '#10B981'
             case 'infraestructura_vial': return '#F59E0B'
-            case 'comunas': return '#8B5CF6'
+            case 'centros_gravedad_unificado': return '#8B5CF6'
+            case 'comunas': return '#3B82F6'
             case 'barrios': return '#EF4444'
-            default: return '#3B82F6'
+            default: return '#6B7280'
           }
         }
 

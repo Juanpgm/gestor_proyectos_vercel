@@ -20,7 +20,7 @@ export function useTestDataLoader() {
     console.log('🧪 TEST HOOK: Client side, loading data...')
     
     // Simple fetch test
-    fetch('/data/unidades_proyecto/equipamientos.geojson')
+    fetch('/data/geodata/unidades_proyecto/equipamientos.geojson')
       .then(response => {
         console.log('🧪 TEST HOOK: Response received:', response.status)
         if (!response.ok) {

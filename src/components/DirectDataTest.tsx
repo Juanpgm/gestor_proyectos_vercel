@@ -11,7 +11,7 @@ export default function DirectDataTest() {
   const loadDataDirectly = async () => {
     try {
       setStatus('Cargando equipamientos...')
-      const equipResponse = await fetch('/data/unidades_proyecto/equipamientos.geojson')
+      const equipResponse = await fetch('/data/geodata/unidades_proyecto/equipamientos.geojson')
       
       if (!equipResponse.ok) {
         throw new Error(`Equipamientos HTTP ${equipResponse.status}`)
@@ -20,7 +20,7 @@ export default function DirectDataTest() {
       const equipData = await equipResponse.json()
       
       setStatus('Cargando infraestructura...')
-      const infraResponse = await fetch('/data/unidades_proyecto/infraestructura_vial.geojson')
+      const infraResponse = await fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
       
       if (!infraResponse.ok) {
         throw new Error(`Infraestructura HTTP ${infraResponse.status}`)

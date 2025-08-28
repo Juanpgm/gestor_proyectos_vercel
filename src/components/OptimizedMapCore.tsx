@@ -6,10 +6,11 @@ import { Maximize2, Target } from 'lucide-react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { configureLeafletIcons } from '@/utils/leafletConfig'
+import { generateLayerStyle, getCategoryColor } from '@/utils/mapStyleUtils'
 
 // Coordenadas de Cali
 const CALI_CENTER: [number, number] = [3.4516, -76.5320]
-const CALI_ZOOM = 11
+const CALI_ZOOM = 10 // Zoom máximo limitado para mejor vista del área metropolitana
 
 // Tipos para el mapa optimizado
 interface LayerConfig {
@@ -19,6 +20,11 @@ interface LayerConfig {
   color: string
   opacity: number
   type: 'geojson' | 'points'
+  categorization?: {
+    type: string
+    property: string
+    config: any
+  }
 }
 
 interface OptimizedMapCoreProps {
@@ -147,11 +153,26 @@ const OptimizedMapCore: React.FC<OptimizedMapCoreProps> = ({
     }
   }, [])
 
-  // Crear estilos para cada capa basado en su configuración
-  const getLayerStyle = useCallback((layerId: string) => {
+  // Crear estilos para cada capa basado en su configuración y categorización
+  const getLayerStyle = useCallback((layerId: string, feature?: any) => {
     const config = layerConfigs.find(c => c.id === layerId)
     if (!config) return {}
 
+    // Si hay categorización, usar color dinámico
+    if (config.categorization && feature) {
+      const categoryColor = getCategoryColor(feature, config.categorization.config, config.color)
+      return {
+        color: categoryColor,
+        fillColor: categoryColor,
+        weight: layerId.includes('infraestructura') ? 4 : 2,
+        opacity: config.opacity,
+        fillOpacity: config.opacity * 0.6,
+        lineCap: 'round' as const,
+        lineJoin: 'round' as const
+      }
+    }
+
+    // Estilo por defecto
     return {
       color: config.color,
       fillColor: config.color,
@@ -174,6 +195,8 @@ const OptimizedMapCore: React.FC<OptimizedMapCoreProps> = ({
         ref={mapRef}
         center={CALI_CENTER}
         zoom={CALI_ZOOM}
+        minZoom={9} // Zoom mínimo para evitar salirse demasiado del área de interés
+        maxZoom={18} // Zoom máximo para permitir ver detalles
         style={{ height: '100%', width: '100%' }}
         className="rounded-xl"
       >
@@ -196,9 +219,9 @@ const OptimizedMapCore: React.FC<OptimizedMapCoreProps> = ({
 
           return (
             <GeoJSON
-              key={`${layerId}-${config.color}-${config.opacity}-${config.visible}`}
+              key={`${layerId}-${config.color}-${config.opacity}-${config.visible}-${config.categorization?.type || 'none'}`}
               data={geoJSONData}
-              style={() => getLayerStyle(layerId)}
+              style={(feature) => getLayerStyle(layerId, feature)}
               onEachFeature={(feature, layer) => {
                 if (onFeatureClick) {
                   layer.on('click', () => {
@@ -220,7 +243,7 @@ const OptimizedMapCore: React.FC<OptimizedMapCoreProps> = ({
                   layer.on('mouseout', () => {
                     const pathLayer = layer as any
                     if (pathLayer.setStyle) {
-                      pathLayer.setStyle(getLayerStyle(layerId))
+                      pathLayer.setStyle(getLayerStyle(layerId, feature))
                     }
                   })
                 }

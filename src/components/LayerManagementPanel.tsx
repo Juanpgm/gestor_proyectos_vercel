@@ -9,7 +9,7 @@ interface LayerConfig {
   visible: boolean
   color: string
   opacity: number
-  representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado'
+  representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado' | 'novedad'
 }
 
 interface LayerManagementPanelProps {
@@ -31,7 +31,8 @@ const LayerManagementPanel: React.FC<LayerManagementPanelProps> = ({
   const representationModes = [
     { key: 'clase_obra', label: 'Clase de Obra' },
     { key: 'tipo_intervencion', label: 'Tipo Intervención' },
-    { key: 'estado', label: 'Estado Proyecto' }
+    { key: 'estado', label: 'Estado Proyecto' },
+    { key: 'novedad', label: 'Novedad' }
   ]
 
   const toggleLayerExpansion = (layerId: string) => {

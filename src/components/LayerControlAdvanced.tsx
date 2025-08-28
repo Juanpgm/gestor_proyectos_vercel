@@ -14,9 +14,18 @@ import {
   BarChart3,
   RefreshCw,
   Download,
-  Upload
+  Upload,
+  ChevronDown,
+  ChevronRight,
+  Info
 } from 'lucide-react'
 import { LayerConfig, LayerFilters } from '@/hooks/useUnifiedLayerManagement'
+import { 
+  generateLegend, 
+  extractCategories, 
+  PREDEFINED_CATEGORIZATIONS,
+  CategoryConfig
+} from '@/utils/mapStyleUtils'
 
 interface LayerControlAdvancedProps {
   layers: LayerConfig[]
@@ -62,6 +71,92 @@ const LayerControlAdvanced: React.FC<LayerControlAdvancedProps> = ({
 }) => {
   const [filtersPanelOpen, setFiltersPanelOpen] = useState(false)
   const [searchText, setSearchText] = useState(filters.search || '')
+  const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set())
+  const [activeTab, setActiveTab] = useState<'layers' | 'legend'>('layers')
+
+  // Toggle expansión de capa
+  const toggleLayerExpanded = (layerId: string) => {
+    const newExpanded = new Set(expandedLayers)
+    if (newExpanded.has(layerId)) {
+      newExpanded.delete(layerId)
+    } else {
+      newExpanded.add(layerId)
+    }
+    setExpandedLayers(newExpanded)
+  }
+
+  // Aplicar categorización a una capa
+  const applyCategorization = useCallback((layerId: string, categorizationType: string) => {
+    const layer = layers.find(l => l.id === layerId)
+    if (!layer || !layer.data) return
+
+    let config: CategoryConfig | undefined
+
+    // Obtener configuración predefinida
+    if (layerId === 'equipamientos') {
+      const equipConfigs = PREDEFINED_CATEGORIZATIONS.equipamientos as any
+      config = equipConfigs[categorizationType]
+    } else if (layerId === 'infraestructura_vial') {
+      const infraConfigs = PREDEFINED_CATEGORIZATIONS.infraestructura as any
+      config = infraConfigs[categorizationType]
+    } else if (['comunas', 'barrios', 'corregimientos', 'veredas'].includes(layerId)) {
+      const cartoConfigs = PREDEFINED_CATEGORIZATIONS.cartografia as any
+      config = cartoConfigs[categorizationType]
+    }
+
+    if (config) {
+      onLayerUpdate(layerId, {
+        categorization: {
+          type: categorizationType,
+          property: config.property,
+          config
+        }
+      })
+    }
+  }, [layers, onLayerUpdate])
+
+  // Remover categorización
+  const removeCategorization = useCallback((layerId: string) => {
+    onLayerUpdate(layerId, {
+      categorization: undefined
+    })
+  }, [onLayerUpdate])
+
+  // Obtener opciones de categorización para una capa
+  const getCategorizationOptions = useCallback((layerId: string): Array<{key: string, label: string}> => {
+    if (layerId === 'equipamientos') {
+      return [
+        { key: 'byStatus', label: 'Por Estado' },
+        { key: 'byIntervention', label: 'Por Tipo de Intervención' },
+        { key: 'byFunding', label: 'Por Fuente de Financiamiento' },
+        { key: 'byCommune', label: 'Por Comuna/Corregimiento' }
+      ]
+    }
+    
+    if (layerId === 'infraestructura_vial') {
+      return [
+        { key: 'byType', label: 'Por Tipo de Vía' },
+        { key: 'byStatus', label: 'Por Estado' }
+      ]
+    }
+    
+    if (['comunas', 'barrios', 'corregimientos', 'veredas'].includes(layerId)) {
+      return [
+        { key: 'byArea', label: 'Por Área' },
+        { key: 'byName', label: 'Por Nombre' }
+      ]
+    }
+
+    return []
+  }, [])
+
+  // Generar leyenda para capas categorizadas
+  const generateLayerLegend = useCallback((layer: LayerConfig) => {
+    if (!layer.categorization || !layer.data) return []
+
+    const categories = extractCategories(layer.data, layer.categorization.property)
+    return generateLegend(categories, layer.categorization.config)
+  }, [])
 
   // Manejar búsqueda con debounce
   const handleSearchChange = useCallback((value: string) => {
@@ -306,15 +401,35 @@ const LayerControlAdvanced: React.FC<LayerControlAdvancedProps> = ({
                   
                   {/* Información de la capa */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
-                      <span>{layer.icon}</span>
-                      <span className="truncate">{layer.name}</span>
-                    </h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                        <span>{layer.icon}</span>
+                        <span className="truncate">{layer.name}</span>
+                      </h4>
+                      {layer.categorization && (
+                        <Palette className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                      )}
+                      <button
+                        onClick={() => toggleLayerExpanded(layer.id)}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {expandedLayers.has(layer.id) ? (
+                          <ChevronDown className="w-3 h-3" />
+                        ) : (
+                          <ChevronRight className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <span>{layer.data?.features?.length || 0} elementos</span>
                       {layer.data && (
                         <span className="px-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded">
                           Cargado
+                        </span>
+                      )}
+                      {layer.categorization && (
+                        <span className="px-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded">
+                          {getCategorizationOptions(layer.id).find(o => o.key === layer.categorization?.type)?.label}
                         </span>
                       )}
                     </div>
@@ -331,8 +446,103 @@ const LayerControlAdvanced: React.FC<LayerControlAdvancedProps> = ({
                 </button>
               </div>
 
-              {/* Controles de opacidad cuando la capa está visible */}
-              {layer.visible && (
+              {/* Panel expandido para categorización */}
+              <AnimatePresence>
+                {expandedLayers.has(layer.id) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3"
+                  >
+                    <div className="space-y-3">
+                      {/* Control de opacidad */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Opacidad: {Math.round(layer.opacity * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={layer.opacity}
+                          onChange={(e) => onLayerUpdate(layer.id, { opacity: parseFloat(e.target.value) })}
+                          className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Categorización */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Categorización por Color
+                        </label>
+                        
+                        {layer.categorization ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                                {getCategorizationOptions(layer.id).find(o => o.key === layer.categorization?.type)?.label}
+                              </span>
+                              <button
+                                onClick={() => removeCategorization(layer.id)}
+                                className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                            
+                            {/* Mini leyenda */}
+                            <div className="space-y-1 max-h-20 overflow-y-auto">
+                              {generateLayerLegend(layer).slice(0, 5).map((item, index) => (
+                                <div key={index} className="flex items-center gap-2 text-xs">
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: item.color }}
+                                  />
+                                  <span className="text-gray-700 dark:text-gray-300 truncate flex-1">
+                                    {item.label}
+                                  </span>
+                                  <span className="text-gray-500 dark:text-gray-400">
+                                    ({item.count})
+                                  </span>
+                                </div>
+                              ))}
+                              {generateLayerLegend(layer).length > 5 && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                                  +{generateLayerLegend(layer).length - 5} más...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <select
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  applyCategorization(layer.id, e.target.value)
+                                }
+                              }}
+                              className="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              defaultValue=""
+                            >
+                              <option value="">Seleccionar...</option>
+                              {getCategorizationOptions(layer.id).map(option => (
+                                <option key={option.key} value={option.key}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Controles de opacidad cuando la capa está visible y no expandida */}
+              {layer.visible && !expandedLayers.has(layer.id) && (
                 <div className="mt-3">
                   {/* La barra de opacidad ha sido eliminada para simplificar la interfaz */}
                   {/* Los controles avanzados de opacidad están disponibles en el modal de simbología */}

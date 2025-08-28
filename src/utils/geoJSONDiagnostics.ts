@@ -53,7 +53,7 @@ export async function diagnoseGeoJSON(
     console.log(`🔍 Diagnosticando ${fileName}...`)
     
     // Intentar cargar el archivo
-    const response = await fetch(`/data/unidades_proyecto/${fileName}.geojson`)
+    const response = await fetch(`/data/geodata/unidades_proyecto/${fileName}.geojson`)
       .catch(() => fetch(`/data/geodata/${fileName}.geojson`))
     
     if (!response.ok) {
@@ -62,7 +62,7 @@ export async function diagnoseGeoJSON(
         status: 'error',
         message: `Archivo ${fileName}.geojson no encontrado`,
         error: `HTTP ${response.status}`,
-        suggestedFix: 'Verificar que el archivo existe en /data/unidades_proyecto/ o /data/geodata/'
+        suggestedFix: 'Verificar que el archivo existe en /data/geodata/unidades_proyecto/ o /data/geodata/'
       }
     }
 

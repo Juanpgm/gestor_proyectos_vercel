@@ -10,11 +10,16 @@ export interface LayerConfig {
   opacity: number
   color: string
   icon: string
-  representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado'
+  representationMode: 'clase_obra' | 'tipo_intervencion' | 'estado' | 'novedad'
   data?: any
   type: 'geojson' | 'points'
   customStyles?: any
   lastUpdated?: number
+  categorization?: {
+    type: string
+    property: string
+    config: any
+  }
 }
 
 export interface LayerFilters {
@@ -49,6 +54,16 @@ export function useUnifiedLayerManagement() {
       color: '#F59E0B',
       icon: '🛣️',
       representationMode: 'tipo_intervencion',
+      type: 'geojson'
+    },
+    {
+      id: 'centros_gravedad_unificado',
+      name: 'Centros de Gravedad',
+      visible: true,
+      opacity: 0.8,
+      color: '#8B5CF6',
+      icon: '🎯',
+      representationMode: 'estado',
       type: 'geojson'
     }
   ])
@@ -142,6 +157,17 @@ export function useUnifiedLayerManagement() {
         color: '#F59E0B',
         icon: '🛣️',
         representationMode: 'tipo_intervencion',
+        type: 'geojson',
+        lastUpdated: Date.now()
+      },
+      {
+        id: 'centros_gravedad_unificado',
+        name: 'Centros de Gravedad',
+        visible: true,
+        opacity: 0.8,
+        color: '#8B5CF6',
+        icon: '🎯',
+        representationMode: 'estado',
         type: 'geojson',
         lastUpdated: Date.now()
       }

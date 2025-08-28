@@ -28,10 +28,10 @@ export function useDirectDataLoader() {
       try {
         console.log('🔥 DIRECT: Fetching data...')
         
-        const equipamientosResponse = await fetch('/data/unidades_proyecto/equipamientos.geojson')
+        const equipamientosResponse = await fetch('/data/geodata/unidades_proyecto/equipamientos.geojson')
         const equipamientosData = await equipamientosResponse.json()
         
-        const infraResponse = await fetch('/data/unidades_proyecto/infraestructura_vial.geojson')
+        const infraResponse = await fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
         const infraData = await infraResponse.json()
 
         console.log('🔥 DIRECT: Data loaded successfully!')

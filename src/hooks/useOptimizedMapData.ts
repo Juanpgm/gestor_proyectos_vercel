@@ -402,12 +402,12 @@ async function loadOptimizedMapData(): Promise<OptimizedMapState> {
   // Archivos a cargar con prioridad
   const filesToLoad = [
     { 
-      path: '/data/unidades_proyecto/equipamientos.geojson', 
+      path: '/data/geodata/unidades_proyecto/equipamientos.geojson', 
       name: 'equipamientos',
       priority: 1
     },
     { 
-      path: '/data/unidades_proyecto/infraestructura_vial.geojson', 
+      path: '/data/geodata/unidades_proyecto/infraestructura_vial.geojson', 
       name: 'infraestructura_vial',
       priority: 1
     },

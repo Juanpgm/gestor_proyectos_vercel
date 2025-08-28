@@ -35,7 +35,7 @@ export interface MapLayer {
   type: 'geojson' | 'points'
   color?: string
   opacity?: number
-  representationMode?: 'clase_obra' | 'tipo_intervencion' | 'estado'
+  representationMode?: 'clase_obra' | 'tipo_intervencion' | 'estado' | 'novedad'
   style?: any
   pointStyle?: {
     radius: number

@@ -52,6 +52,7 @@ export async function loadGeoJSON(
   const defaultTimeouts: Record<string, number> = {
     'equipamientos': 30000, // 30 segundos para equipamientos (archivo grande)
     'infraestructura_vial': 20000, // 20 segundos para infraestructura
+    'centros_gravedad_unificado': 25000, // 25 segundos para centros_gravedad
     'barrios': 15000, // 15 segundos para barrios (archivo mediano)
     'comunas': 10000, // 10 segundos para archivos pequeños
     'corregimientos': 10000,
@@ -73,18 +74,22 @@ export async function loadGeoJSON(
   }
 
   try {
-    // Configuración de archivos y rutas
+    // Configuración de archivos y rutas actualizada para nueva estructura
     const fileMapping: Record<string, string> = {
       'infraestructura': 'infraestructura_vial'
     }
 
     const pathMapping: Record<string, string> = {
-      'barrios': '/data/geodata',
-      'comunas': '/data/geodata', 
-      'corregimientos': '/data/geodata',
-      'veredas': '/data/geodata',
-      'equipamientos': '/data/unidades_proyecto',
-      'infraestructura_vial': '/data/unidades_proyecto'
+      // Cartografía base
+      'barrios': '/data/geodata/cartografia_base',
+      'comunas': '/data/geodata/cartografia_base', 
+      'corregimientos': '/data/geodata/cartografia_base',
+      'veredas': '/data/geodata/cartografia_base',
+      // Unidades de proyecto
+      'equipamientos': '/data/geodata/unidades_proyecto',
+      'infraestructura_vial': '/data/geodata/unidades_proyecto',
+      // Centros de gravedad
+      'centros_gravedad_unificado': '/data/geodata/centros_gravedad'
     }
 
     const actualFileName = fileMapping[fileName] || fileName
@@ -215,7 +220,8 @@ export async function loadMultipleGeoJSON(
  */
 const UNIDADES_PROYECTO_FILES = [
   'equipamientos',
-  'infraestructura_vial'
+  'infraestructura_vial',
+  'centros_gravedad_unificado'
 ]
 
 /**
@@ -365,12 +371,16 @@ export async function checkGeoJSONAvailability(fileNames: string[]): Promise<Rec
   }
 
   const pathMapping: Record<string, string> = {
-    'barrios': '/data/geodata',
-    'comunas': '/data/geodata', 
-    'corregimientos': '/data/geodata',
-    'veredas': '/data/geodata',
-    'equipamientos': '/data/unidades_proyecto',
-    'infraestructura_vial': '/data/unidades_proyecto'
+    // Cartografía base
+    'barrios': '/data/geodata/cartografia_base',
+    'comunas': '/data/geodata/cartografia_base', 
+    'corregimientos': '/data/geodata/cartografia_base',
+    'veredas': '/data/geodata/cartografia_base',
+    // Unidades de proyecto
+    'equipamientos': '/data/geodata/unidades_proyecto',
+    'infraestructura_vial': '/data/geodata/unidades_proyecto',
+    // Centros de gravedad
+    'centros_gravedad_unificado': '/data/geodata/centros_gravedad'
   }
 
   await Promise.all(
