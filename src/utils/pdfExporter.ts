@@ -42,34 +42,35 @@ export async function exportProjectToPDF(project: Project, callbacks?: PDFExport
     // Llamar callback de inicio de captura
     callbacks?.onCaptureStart?.()
     
-    // Detectar y guardar el estado del modo oscuro
+    // Detectar el modo oscuro actual
     wasInDarkMode = htmlElement.classList.contains('dark') || bodyElement.classList.contains('dark')
-    
     console.log(`🌙 Modo oscuro detectado: ${wasInDarkMode ? 'SÍ' : 'NO'}`)
     
-    // Forzar modo claro temporalmente para la exportación
+    // Estrategia simplificada: capturar el modal original y procesar la imagen
+    let modalForCapture = modalContent
+    
+    // Si está en modo oscuro, haremos el cambio muy rápido
     if (wasInDarkMode) {
-      console.log('☀️ Cambiando temporalmente a modo claro para exportación...')
+      console.log('☀️ Aplicando cambio temporal a modo claro (optimizado)...')
+      
+      // Cambio muy rápido del tema global
       htmlElement.classList.remove('dark')
       bodyElement.classList.remove('dark')
       
-      // Forzar también en el modal específico si tiene clases dark
-      modalContent.classList.remove('dark')
-      
-      // Esperar un momento para que se apliquen los cambios de tema
-      await new Promise(resolve => setTimeout(resolve, 200))
+      // Esperar mínimo para renderizado
+      await new Promise(resolve => setTimeout(resolve, 50))
     }
     
-    // Guardar el estado original del scroll y overflow
-    const originalOverflow = modalContent.style.overflow
-    const originalMaxHeight = modalContent.style.maxHeight
-    const scrollContainer = modalContent.querySelector('[class*="overflow-y-auto"]') as HTMLElement
+    // Guardar el estado original del scroll y overflow del modal que se va a capturar
+    const originalOverflow = modalForCapture.style.overflow
+    const originalMaxHeight = modalForCapture.style.maxHeight
+    const scrollContainer = modalForCapture.querySelector('[class*="overflow-y-auto"]') as HTMLElement
     const originalScrollOverflow = scrollContainer?.style.overflow
     const originalScrollMaxHeight = scrollContainer?.style.maxHeight
     
-    // Temporalmente mostrar todo el contenido sin scroll
-    modalContent.style.overflow = 'visible'
-    modalContent.style.maxHeight = 'none'
+    // Temporalmente mostrar todo el contenido sin scroll en el modal de captura
+    modalForCapture.style.overflow = 'visible'
+    modalForCapture.style.maxHeight = 'none'
     if (scrollContainer) {
       scrollContainer.style.overflow = 'visible'
       scrollContainer.style.maxHeight = 'none'
@@ -79,13 +80,21 @@ export async function exportProjectToPDF(project: Project, callbacks?: PDFExport
     await new Promise(resolve => setTimeout(resolve, 100))
 
     // Configuración para html2canvas - captura completa de alta resolución
-    const canvas = await html2canvas(modalContent, {
+    console.log('🖼️ Iniciando captura con html2canvas...')
+    console.log('📐 Dimensiones para captura:', {
+      width: modalForCapture.scrollWidth,
+      height: modalForCapture.scrollHeight,
+      offsetWidth: modalForCapture.offsetWidth,
+      offsetHeight: modalForCapture.offsetHeight
+    })
+    
+    const canvas = await html2canvas(modalForCapture, {
       scale: 3, // Resolución muy alta para PDFs nítidos
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      width: modalContent.scrollWidth,
-      height: modalContent.scrollHeight,
+      width: modalForCapture.scrollWidth,
+      height: modalForCapture.scrollHeight,
       scrollX: 0,
       scrollY: 0,
       ignoreElements: (element) => {
@@ -94,18 +103,24 @@ export async function exportProjectToPDF(project: Project, callbacks?: PDFExport
                element.classList.contains('webkit-scrollbar')
       }
     })
+    
+    console.log('🖼️ Canvas generado:', {
+      width: canvas.width,
+      height: canvas.height,
+      hasContent: canvas.width > 0 && canvas.height > 0
+    })
 
-    // Restaurar el estado original
-    modalContent.style.overflow = originalOverflow
-    modalContent.style.maxHeight = originalMaxHeight
+    // Restaurar el estado original del modal de captura
+    modalForCapture.style.overflow = originalOverflow
+    modalForCapture.style.maxHeight = originalMaxHeight
     if (scrollContainer) {
       scrollContainer.style.overflow = originalScrollOverflow || 'auto'
       scrollContainer.style.maxHeight = originalScrollMaxHeight || ''
     }
     
-    // Restaurar el modo oscuro si estaba activado
+    // Restaurar el modo oscuro inmediatamente después de la captura
     if (wasInDarkMode) {
-      console.log('🌙 Restaurando modo oscuro original...')
+      console.log('🌙 Restaurando modo oscuro inmediatamente...')
       htmlElement.classList.add('dark')
       bodyElement.classList.add('dark')
     }
@@ -194,7 +209,7 @@ export async function exportProjectToPDF(project: Project, callbacks?: PDFExport
     console.error('❌ Stack trace:', (error as Error)?.stack)
     
     // Restaurar el modo oscuro en caso de error
-    if (wasInDarkMode && htmlElement && bodyElement) {
+    if (wasInDarkMode) {
       console.log('🌙 Restaurando modo oscuro debido a error...')
       htmlElement.classList.add('dark')
       bodyElement.classList.add('dark')
