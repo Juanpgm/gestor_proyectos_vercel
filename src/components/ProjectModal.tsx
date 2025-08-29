@@ -5,17 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Download, DollarSign, Building, PieChart as PieChartIcon, Activity, Info, ChevronDown, ChevronUp, MapPin, Calendar, Package, Users } from 'lucide-react'
 import { Project } from './ProjectsTable'
 import { useDataContext } from '../context/DataContext'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
-import BudgetChart from './BudgetChart'
 import { ActivityProgressGauge, ProductProgressGauge, BudgetExecutionGauge } from './GaugeChart'
-
-// Extend jsPDF interface for autotable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
+import { exportProjectToPDF } from '../utils/pdfExporter'
 
 interface ProjectModalProps {
   isOpen: boolean
@@ -235,6 +226,20 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
     }
   }
 
+  const getProgressTextColor = (type: 'physical' | 'financial', progress: number) => {
+    if (type === 'physical') {
+      if (progress < 30) return 'text-red-500'
+      if (progress < 60) return 'text-amber-500'
+      if (progress < 90) return 'text-blue-500'
+      return 'text-emerald-500'
+    } else {
+      if (progress < 30) return 'text-red-600'
+      if (progress < 60) return 'text-orange-500'
+      if (progress < 90) return 'text-emerald-600'
+      return 'text-green-600'
+    }
+  }
+
   const getBPFromBPIN = (bpin: string) => {
     // Obtener BP desde el contexto de datos si está disponible
     const proyectoData = dataContext.proyectos?.find(p => p.bpin === Number(bpin))
@@ -243,162 +248,10 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
 
   // Función para exportar PDF
   const handleExportPDF = () => {
-    try {
-      const doc = new jsPDF('p', 'mm', 'a4')
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
-      const fileName = `bpin-${project.bpin}-${project.name.replace(/[^a-zA-Z0-9]/g, '_')}-${timestamp}`
-      
-      // Configuración de estilos
-      const primaryColor: [number, number, number] = [59, 130, 246] // Blue-600
-      const textColor: [number, number, number] = [31, 41, 55] // Gray-800
-      const lightGray: [number, number, number] = [243, 244, 246] // Gray-100
-      
-      // Header del PDF
-      doc.setFillColor(...primaryColor)
-      doc.rect(0, 0, 210, 30, 'F')
-      
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(18)
-      doc.setFont('helvetica', 'bold')
-      doc.text('FICHA DE PROYECTO', 20, 15)
-      
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'normal')
-      doc.text(`BPIN: ${project.bpin}`, 20, 22)
-      doc.text(`BP: ${getBPFromBPIN(project.bpin)}`, 120, 22)
-      
-      let yPosition = 40
-      
-      // Título del proyecto
-      doc.setTextColor(...textColor)
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'bold')
-      const splitTitle = doc.splitTextToSize(project.name, 170)
-      doc.text(splitTitle, 20, yPosition)
-      yPosition += splitTitle.length * 5 + 10
-      
-      // Información básica
-      const infoBasica = [
-        ['Centro Gestor', project.responsible],
-        ['Comuna', project.comuna || 'No especificada'],
-        ['Estado', project.status],
-        ['Progreso Físico', `${getProgresoFisico(Number(project.bpin)).toFixed(1)}%`],
-        ['Progreso Financiero', `${getProgresoFinanciero(Number(project.bpin)).toFixed(1)}%`]
-      ]
-
-      doc.autoTable({
-        startY: yPosition,
-        head: [['Campo', 'Valor']],
-        body: infoBasica,
-        theme: 'striped',
-        headStyles: { fillColor: primaryColor },
-        styles: { fontSize: 10 },
-        margin: { left: 20, right: 20 }
-      })
-
-      yPosition = (doc as any).lastAutoTable.finalY + 10
-
-      // Información financiera
-      const infoFinanciera = [
-        ['Presupuesto Total', formatCurrency(project.budget)],
-        ['Ejecutado', formatCurrency(project.executed)],
-        ['Pagado', formatCurrency(project.pagado)],
-        ['Disponible', formatCurrency(project.budget - project.executed)]
-      ]
-
-      doc.autoTable({
-        startY: yPosition,
-        head: [['Concepto', 'Valor']],
-        body: infoFinanciera,
-        theme: 'striped',
-        headStyles: { fillColor: [16, 185, 129] }, // Green-600
-        styles: { fontSize: 10 },
-        margin: { left: 20, right: 20 }
-      })
-
-      yPosition = (doc as any).lastAutoTable.finalY + 10
-
-      // Productos
-      const productos = getProductosByBpin(Number(project.bpin))
-      if (productos.length > 0) {
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        doc.text('PRODUCTOS', 20, yPosition)
-        yPosition += 8
-
-        const productosData = productos.slice(0, 10).map((producto, index) => [
-          (index + 1).toString(),
-          producto.nombre_producto || 'Sin nombre',
-          producto.ponderacion_producto ? `${producto.ponderacion_producto}%` : 'N/A'
-        ])
-
-        doc.autoTable({
-          startY: yPosition,
-          head: [['#', 'Nombre del Producto', 'Ponderación']],
-          body: productosData,
-          theme: 'striped',
-          headStyles: { fillColor: [139, 92, 246] }, // Purple-600
-          styles: { fontSize: 9 },
-          margin: { left: 20, right: 20 }
-        })
-
-        yPosition = (doc as any).lastAutoTable.finalY + 10
-      }
-
-      // Actividades
-      const actividades = getActividadesByBpin(Number(project.bpin))
-      if (actividades.length > 0) {
-        // Nueva página si es necesario
-        if (yPosition > 240) {
-          doc.addPage()
-          yPosition = 20
-        }
-
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        doc.text('ACTIVIDADES', 20, yPosition)
-        yPosition += 8
-
-        const actividadesData = actividades.slice(0, 10).map((actividad, index) => [
-          (index + 1).toString(),
-          actividad.nombre_actividad || 'Sin nombre',
-          actividad.fecha_inicio_actividad ? formatDate(actividad.fecha_inicio_actividad) : 'N/A',
-          actividad.fecha_fin_actividad ? formatDate(actividad.fecha_fin_actividad) : 'N/A',
-          actividad.ppto_inicial_actividad ? formatCurrency(actividad.ppto_inicial_actividad) : 'N/A'
-        ])
-
-        doc.autoTable({
-          startY: yPosition,
-          head: [['#', 'Actividad', 'Inicio', 'Fin', 'Presupuesto']],
-          body: actividadesData,
-          theme: 'striped',
-          headStyles: { fillColor: [34, 197, 94] }, // Green-600
-          styles: { fontSize: 8 },
-          columnStyles: { 1: { cellWidth: 60 } },
-          margin: { left: 20, right: 20 }
-        })
-
-        yPosition = (doc as any).lastAutoTable.finalY + 10
-      }
-
-      // Footer
-      const pageCount = doc.getNumberOfPages()
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i)
-        doc.setFontSize(8)
-        doc.setTextColor(128, 128, 128)
-        doc.text(`Generado el ${new Date().toLocaleDateString('es-CO')} - Página ${i} de ${pageCount}`, 20, 285)
-        doc.text('Sistema de Gestión de Proyectos - Alcaldía de Medellín', 20, 290)
-      }
-
-      // Guardar el archivo
-      doc.save(`${fileName}.pdf`)
-    } catch (error) {
-      console.error('Error generando PDF:', error)
-      alert('Error al generar el PDF. Por favor, intente nuevamente.')
+    if (project) {
+      exportProjectToPDF(project)
     }
   }
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -414,28 +267,28 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-4xl w-full max-h-[90vh] overflow-hidden"
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
             id="project-modal-content"
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white p-4">
               <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h2 className="text-3xl font-bold mb-2 text-white">{project.name}</h2>
-                  <div className="flex items-center space-x-4 text-blue-100 text-base mb-2">
+                <div className="flex-1 pr-4">
+                  <h2 className="text-3xl font-bold mb-2 text-white break-words leading-tight">{project.name}</h2>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-blue-100 text-base mb-2">
                     <span className="flex items-center">
-                      <Building className="w-4 h-4 mr-1" />
+                      <Building className="w-4 h-4 mr-1 flex-shrink-0" />
                       BPIN: {project.bpin}
                     </span>
                     <span className="flex items-center">
-                      <Info className="w-4 h-4 mr-1" />
+                      <Info className="w-4 h-4 mr-1 flex-shrink-0" />
                       BP: {getBPFromBPIN(project.bpin)}
                     </span>
                   </div>
                   <div className="text-blue-200 text-base">
                     <span className="font-medium">Centro Gestor:</span>
-                    <span className="text-blue-100 ml-1">{project.responsible}</span>
+                    <span className="text-blue-100 ml-1 break-words">{project.responsible}</span>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -451,7 +304,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(90vh-180px)] bg-white dark:bg-gray-900">
+                        {/* Contenido */}
+            <div className="overflow-y-auto max-h-[calc(95vh-200px)] bg-white dark:bg-gray-900 flex-1">
               <div className="p-3 space-y-3">
                 
                 {/* Progreso */}
@@ -465,7 +319,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                     <div className="bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-600 rounded-lg p-3">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-base font-medium text-gray-700 dark:text-gray-300">Progreso Físico</span>
-                        <span className="text-base font-semibold text-gray-900 dark:text-white">
+                        <span className={`text-base font-semibold ${getProgressTextColor('physical', getProgresoFisico(Number(project.bpin)))} dark:${getProgressTextColor('physical', getProgresoFisico(Number(project.bpin)))}`}>
                           {formatPercentage(getProgresoFisico(Number(project.bpin)))}
                         </span>
                       </div>
@@ -481,7 +335,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                     <div className="bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-600 rounded-lg p-3">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-base font-medium text-gray-700 dark:text-gray-300">Progreso Financiero</span>
-                        <span className="text-base font-semibold text-gray-900 dark:text-white">
+                        <span className={`text-base font-semibold ${getProgressTextColor('financial', getProgresoFinanciero(Number(project.bpin)))} dark:${getProgressTextColor('financial', getProgresoFinanciero(Number(project.bpin)))}`}>
                           {formatPercentage(getProgresoFinanciero(Number(project.bpin)))}
                         </span>
                       </div>
@@ -528,15 +382,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                           {formatCurrency(Math.max(0, project.budget - project.executed))}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Gráficas de ejecución presupuestal */}
-                    <div className="bg-white dark:bg-gray-700 rounded-lg border p-4">
-                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                        <PieChartIcon className="w-4 h-4 mr-2 text-blue-600" />
-                        Ejecución Presupuestal del Proyecto
-                      </h4>
-                      <BudgetChart project={project} />
                     </div>
                   </div>
                 </CollapsibleSection>
@@ -650,14 +495,14 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                                     <div className="space-y-3 text-left">
                                       {/* Título */}
                                       <div>
-                                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight text-left">
+                                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight text-left break-words hyphens-auto">
                                           {producto.nombre_producto || 'Sin nombre'}
                                         </h4>
                                       </div>
                                       
                                       {/* Descripción completa */}
                                       {producto.descripcion_avance_producto && (
-                                        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-left">
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-left break-words hyphens-auto">
                                           {producto.descripcion_avance_producto}
                                         </p>
                                       )}
@@ -668,9 +513,9 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                                   <td className="px-4 py-5 align-top border-l border-orange-200 dark:border-orange-600 w-[30%]">
                                     <div className="space-y-3">
                                       {/* Estado */}
-                                      <div className="flex justify-between items-center">
+                                      <div className="flex flex-col space-y-1">
                                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Estado:</span>
-                                        <span className={`text-xs font-medium ${statusColors[statusKey]} flex-shrink-0`}>
+                                        <span className={`text-xs font-medium ${statusColors[statusKey]} break-words`}>
                                           {statusInfo.status}
                                         </span>
                                       </div>
@@ -817,14 +662,14 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                                       <div className="space-y-3 text-left">
                                         {/* Título */}
                                         <div>
-                                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight text-left">
+                                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight text-left break-words hyphens-auto">
                                             {actividad.nombre_actividad || 'Sin nombre'}
                                           </h4>
                                         </div>
                                         
                                         {/* Descripción completa */}
                                         {actividad.descripcion_actividad && (
-                                          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-left">
+                                          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-left break-words hyphens-auto">
                                             {actividad.descripcion_actividad}
                                           </p>
                                         )}
@@ -835,7 +680,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                                     <td className="border border-red-200 dark:border-red-700 px-3 py-4 w-[30%]">
                                       <div className="space-y-3">
                                         {/* Estado */}
-                                        <div className="flex justify-between items-center">
+                                        <div className="flex flex-col space-y-1">
                                           <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Estado:</span>
                                           <span className={`text-xs font-medium ${
                                             statusInfo.status === 'Completada' 
@@ -847,7 +692,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                                               : statusInfo.status === 'A Tiempo'
                                               ? 'text-blue-600 dark:text-blue-400'
                                               : 'text-yellow-600 dark:text-yellow-400'
-                                          } flex-shrink-0`}>
+                                          } break-words`}>
                                             {statusInfo.status}
                                           </span>
                                         </div>
@@ -993,14 +838,15 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
             {/* Footer */}
             <div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/70">
               <div className="flex justify-between items-center">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-gray-500 dark:text-gray-400 flex-1">
                   Ficha generada el {new Date().toLocaleDateString('es-CO')} a las {new Date().toLocaleTimeString('es-CO', { hour12: false })}
                 </div>
                 <button
                   onClick={handleExportPDF}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm flex items-center space-x-1 transition-colors"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors shadow-md hover:shadow-lg font-medium"
+                  title="Exportar ficha de proyecto como PDF"
                 >
-                  <Download className="w-3 h-3" />
+                  <Download className="w-4 h-4" />
                   <span>Exportar PDF</span>
                 </button>
               </div>
