@@ -220,6 +220,21 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
     return [...equipamientosDelProyecto, ...infraestructuraDelProyecto]
   }
 
+  // Función para obtener el color de la barra de progreso basado en el tipo y porcentaje
+  const getProgressBarColor = (type: 'physical' | 'financial', progress: number) => {
+    if (type === 'physical') {
+      if (progress < 30) return 'bg-red-500'
+      if (progress < 60) return 'bg-amber-500'
+      if (progress < 90) return 'bg-blue-500'
+      return 'bg-emerald-500'
+    } else {
+      if (progress < 30) return 'bg-red-600'
+      if (progress < 60) return 'bg-orange-500'
+      if (progress < 90) return 'bg-emerald-600'
+      return 'bg-green-600'
+    }
+  }
+
   const getBPFromBPIN = (bpin: string) => {
     // Obtener BP desde el contexto de datos si está disponible
     const proyectoData = dataContext.proyectos?.find(p => p.bpin === Number(bpin))
@@ -442,37 +457,37 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                 {/* Progreso */}
                 <CollapsibleSection
                   title="Progreso del Proyecto"
-                  icon={<Activity className="w-4 h-4 text-green-600" />}
+                  icon={<Activity className="w-4 h-4 text-blue-600" />}
                   defaultOpen={true}
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-3 bg-blue-50/30 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
                     {/* Progreso Físico */}
-                    <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <div className="bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-600 rounded-lg p-3">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-base font-medium text-gray-700 dark:text-gray-300">Progreso Físico</span>
-                        <span className="text-base font-semibold text-green-600 dark:text-green-400">
+                        <span className="text-base font-semibold text-gray-900 dark:text-white">
                           {formatPercentage(getProgresoFisico(Number(project.bpin)))}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                         <div 
-                          className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-300"
+                          className={`${getProgressBarColor('physical', getProgresoFisico(Number(project.bpin)))} h-2 rounded-full transition-all duration-300`}
                           style={{ width: `${Math.min(getProgresoFisico(Number(project.bpin)), 100)}%` }}
                         ></div>
                       </div>
                     </div>
 
                     {/* Progreso Financiero */}
-                    <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                    <div className="bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-600 rounded-lg p-3">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-base font-medium text-gray-700 dark:text-gray-300">Progreso Financiero</span>
-                        <span className="text-base font-semibold text-blue-600 dark:text-blue-400">
+                        <span className="text-base font-semibold text-gray-900 dark:text-white">
                           {formatPercentage(getProgresoFinanciero(Number(project.bpin)))}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                         <div 
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                          className={`${getProgressBarColor('financial', getProgresoFinanciero(Number(project.bpin)))} h-2 rounded-full transition-all duration-300`}
                           style={{ width: `${Math.min(getProgresoFinanciero(Number(project.bpin)), 100)}%` }}
                         ></div>
                       </div>
@@ -532,44 +547,44 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                   icon={<Info className="w-4 h-4 text-blue-600" />}
                   defaultOpen={true}
                 >
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-sm bg-blue-50/30 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
                     {(() => {
                       const proyectoData = dataContext.proyectos?.find(p => p.bpin === Number(project.bpin))
                       return proyectoData && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {proyectoData.nombre_centro_gestor && (
-                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
-                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Centro Gestor</span>
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border border-blue-200 dark:border-blue-600">
+                              <span className="text-blue-700 dark:text-blue-300 font-medium text-xs block">Centro Gestor</span>
                               <span className="font-semibold text-gray-900 dark:text-white text-xs">{proyectoData.nombre_centro_gestor}</span>
                             </div>
                           )}
                           {proyectoData.nombre_programa && (
-                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
-                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Programa</span>
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border border-blue-200 dark:border-blue-600">
+                              <span className="text-blue-700 dark:text-blue-300 font-medium text-xs block">Programa</span>
                               <span className="font-semibold text-gray-900 dark:text-white text-xs">{proyectoData.nombre_programa}</span>
                             </div>
                           )}
                           {proyectoData.nombre_dimension && (
-                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
-                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Dimensión</span>
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border border-blue-200 dark:border-blue-600">
+                              <span className="text-blue-700 dark:text-blue-300 font-medium text-xs block">Dimensión</span>
                               <span className="font-semibold text-gray-900 dark:text-white text-xs">{proyectoData.nombre_dimension}</span>
                             </div>
                           )}
                           {proyectoData.nombre_fondo && (
-                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
-                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Fuente de Financiación</span>
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border border-blue-200 dark:border-blue-600">
+                              <span className="text-blue-700 dark:text-blue-300 font-medium text-xs block">Fuente de Financiación</span>
                               <span className="font-semibold text-gray-900 dark:text-white text-xs">{proyectoData.nombre_fondo}</span>
                             </div>
                           )}
                           {project.status && (
-                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
-                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Estado</span>
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border border-blue-200 dark:border-blue-600">
+                              <span className="text-blue-700 dark:text-blue-300 font-medium text-xs block">Estado</span>
                               <span className="font-semibold text-gray-900 dark:text-white text-xs">{project.status}</span>
                             </div>
                           )}
                           {project.comuna && (
-                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
-                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Comuna</span>
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border border-blue-200 dark:border-blue-600">
+                              <span className="text-blue-700 dark:text-blue-300 font-medium text-xs block">Comuna</span>
                               <span className="font-semibold text-gray-900 dark:text-white text-xs">{project.comuna}</span>
                             </div>
                           )}
@@ -591,97 +606,151 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                             onClick={() => {
                               window.location.href = `/?tab=products&bpin=${project.bpin}#products`
                             }}
-                            className="ml-4 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-lg transition-colors"
+                            className="ml-4 px-3 py-1.5 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 text-xs font-medium rounded-lg transition-colors"
                           >
                             Ver Productos
                           </button>
                         </div>
                       }
-                      icon={<Package className="w-4 h-4 text-purple-600" />}
+                      icon={<Package className="w-4 h-4 text-orange-600" />}
                       defaultOpen={true}
                     >
-                      <div className="space-y-3">
-                        {productos.map((producto, index) => {
-                          const statusInfo = getProductStatus(producto)
-                          const statusColors = {
-                            'Completado': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-                            'En Progreso': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-                            'No Iniciado': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                          } as const
-                          
-                          const statusKey = statusInfo.status as keyof typeof statusColors
-                          
-                          return (
-                            <div key={index} className="p-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 shadow-sm">
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-semibold text-gray-900 dark:text-white">
-                                  {producto.nombre_producto || 'Sin nombre'}
-                                </h4>
-                                <div className="flex justify-center">
-                                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${statusColors[statusKey]}`}>
-                                    {statusInfo.status}
-                                  </span>
-                                </div>
-                              </div>
+                      {/* Tabla real de productos */}
+                      <div className="overflow-hidden border border-orange-200 dark:border-orange-700 rounded-lg bg-orange-50/30 dark:bg-orange-900/10">
+                        <table className="min-w-full divide-y divide-orange-200 dark:divide-orange-600">
+                          <thead className="bg-orange-50 dark:bg-orange-900/30">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-orange-700 dark:text-orange-300 uppercase tracking-wider w-[70%]">
+                                PRODUCTO
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-orange-700 dark:text-orange-300 uppercase tracking-wider w-[30%]">
+                                SEGUIMIENTO
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-orange-200 dark:divide-orange-600">
+                            {productos.map((producto, index) => {
+                              const statusInfo = getProductStatus(producto)
+                              const statusColors = {
+                                'Completado': 'text-green-600 dark:text-green-400',
+                                'En Progreso': 'text-blue-600 dark:text-blue-400',
+                                'No Iniciado': 'text-gray-600 dark:text-gray-400'
+                              } as const
                               
-                              {producto.descripcion_avance_producto && (
-                                <p className="text-base text-gray-700 dark:text-gray-200 mb-3 leading-relaxed">
-                                  {producto.descripcion_avance_producto}
-                                </p>
-                              )}
+                              const statusKey = statusInfo.status as keyof typeof statusColors
+                              const progresoProducto = (producto.avance_real_producto || 0) * 100
+                              const ejecucionProducto = producto.ejecucion_ppto_producto && producto.ppto_inicial_producto 
+                                ? (producto.ejecucion_ppto_producto / producto.ppto_inicial_producto) * 100 
+                                : 0
                               
-                              <div className="grid grid-cols-3 gap-6 text-base">
-                                <div className="text-center">
-                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Meta</span>
-                                  <span className="text-gray-900 dark:text-white font-semibold">
-                                    {producto.cantidad_programada_producto ? producto.cantidad_programada_producto.toLocaleString() : '—'}
-                                  </span>
-                                </div>
-                                <div className="text-center">
-                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Periodo</span>
-                                  <span className="text-gray-900 dark:text-white font-semibold">
-                                    {formatPeriod(producto.periodo_corte)}
-                                  </span>
-                                </div>
-                                <div className="text-center">
-                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Ponderación Producto</span>
-                                  <span className="text-gray-900 dark:text-white font-semibold">
-                                    {producto.ponderacion_producto !== undefined ? formatPercentageFromDecimal(producto.ponderacion_producto) : '—'}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-500">
-                                <div className="grid grid-cols-2 gap-6 text-base">
-                                  <div className="flex flex-col items-center justify-center text-center">
-                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Avance Producto</div>
-                                    {producto.avance_real_producto !== undefined ? (
-                                      <ProductProgressGauge 
-                                        value={(producto.avance_real_producto || 0) * 100} 
-                                        className="mb-2"
-                                      />
-                                    ) : (
-                                      <div className="font-semibold text-gray-900 dark:text-white">—</div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col items-center justify-center text-center">
-                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Ejecución Presupuesto Producto</div>
-                                    {producto.ejecucion_ppto_producto && producto.ppto_inicial_producto ? (
-                                      <BudgetExecutionGauge 
-                                        value={(producto.ejecucion_ppto_producto / producto.ppto_inicial_producto) * 100} 
-                                        className="mb-2"
-                                      />
-                                    ) : (
-                                      <div className="font-semibold text-gray-900 dark:text-white">
-                                        {producto.ejecucion_ppto_producto ? formatCurrency(producto.ejecucion_ppto_producto) : '—'}
+                              return (
+                                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                  {/* Columna PRODUCTO (70%) */}
+                                  <td className="px-4 py-5 align-top w-[70%]">
+                                    <div className="space-y-3 text-left">
+                                      {/* Título */}
+                                      <div>
+                                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight text-left">
+                                          {producto.nombre_producto || 'Sin nombre'}
+                                        </h4>
                                       </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
+                                      
+                                      {/* Descripción completa */}
+                                      {producto.descripcion_avance_producto && (
+                                        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-left">
+                                          {producto.descripcion_avance_producto}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </td>
+                                  
+                                  {/* Columna SEGUIMIENTO (30%) */}
+                                  <td className="px-4 py-5 align-top border-l border-orange-200 dark:border-orange-600 w-[30%]">
+                                    <div className="space-y-3">
+                                      {/* Estado */}
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Estado:</span>
+                                        <span className={`text-xs font-medium ${statusColors[statusKey]} flex-shrink-0`}>
+                                          {statusInfo.status}
+                                        </span>
+                                      </div>
+                                      
+                                      {/* Información básica */}
+                                      <div className="space-y-2 text-xs">
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-500 dark:text-gray-400">Meta:</span>
+                                          <span className="font-medium text-gray-900 dark:text-white">
+                                            {producto.cantidad_programada_producto ? producto.cantidad_programada_producto.toLocaleString() : '—'}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-500 dark:text-gray-400">Periodo:</span>
+                                          <span className="font-medium text-gray-900 dark:text-white">
+                                            {formatPeriod(producto.periodo_corte)}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-500 dark:text-gray-400">Ponderación:</span>
+                                          <span className="font-medium text-gray-900 dark:text-white">
+                                            {producto.ponderacion_producto !== undefined ? formatPercentageFromDecimal(producto.ponderacion_producto) : '—'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Progreso Físico */}
+                                      <div className="pt-2 border-t border-gray-100 dark:border-gray-600">
+                                        <div className="flex justify-between items-center mb-1">
+                                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Progreso Físico</span>
+                                          <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                                            {progresoProducto.toFixed(1)}%
+                                          </span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                                          <div 
+                                            className={`${getProgressBarColor('physical', progresoProducto)} h-1.5 rounded-full transition-all duration-300`}
+                                            style={{ width: `${Math.min(progresoProducto, 100)}%` }}
+                                          ></div>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Ejecución Presupuestal */}
+                                      <div>
+                                        <div className="flex justify-between items-center mb-1">
+                                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Ejecución Presup.</span>
+                                          <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                                            {ejecucionProducto.toFixed(1)}%
+                                          </span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                                          <div 
+                                            className={`${getProgressBarColor('financial', ejecucionProducto)} h-1.5 rounded-full transition-all duration-300`}
+                                            style={{ width: `${Math.min(ejecucionProducto, 100)}%` }}
+                                          ></div>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Presupuesto */}
+                                      <div className="pt-1 text-xs">
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-500 dark:text-gray-400">Total:</span>
+                                          <span className="font-medium text-gray-900 dark:text-white">
+                                            {producto.ppto_inicial_producto ? formatCurrency(producto.ppto_inicial_producto) : '—'}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-500 dark:text-gray-400">Ejecutado:</span>
+                                          <span className="font-medium text-gray-900 dark:text-white">
+                                            {producto.ejecucion_ppto_producto ? formatCurrency(producto.ejecucion_ppto_producto) : '—'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     </CollapsibleSection>
                   )
@@ -699,117 +768,167 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                             onClick={() => {
                               window.location.href = `/?tab=activities&bpin=${project.bpin}#activities`
                             }}
-                            className="ml-4 px-3 py-1.5 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 text-xs font-medium rounded-lg transition-colors"
+                            className="ml-4 px-3 py-1.5 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium rounded-lg transition-colors"
                           >
                             Ver Actividades
                           </button>
                         </div>
                       }
-                      icon={<Activity className="w-4 h-4 text-green-600" />}
+                      icon={<Activity className="w-4 h-4 text-red-600" />}
                       defaultOpen={true}
                     >
-                      <div className="space-y-3">
-                        {actividades.map((actividad, index) => {
-                          const statusInfo = getActivityStatus(actividad)
-                          const statusColors = {
-                            'Completada': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-                            'No Iniciada': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
-                            'Demorada': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-                            'A Tiempo': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-                            'La tarea no posee fecha de inicio o fin': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                          } as const
-                          
-                          const statusKey = statusInfo.status as keyof typeof statusColors
-                          
-                          // Calcular duración
-                          const calculateDuration = () => {
-                            if (!actividad.fecha_inicio_actividad || !actividad.fecha_fin_actividad) {
-                              return '—'
-                            }
-                            const startDate = new Date(actividad.fecha_inicio_actividad)
-                            const endDate = new Date(actividad.fecha_fin_actividad)
-                            const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                            return `${diffDays} días`
-                          }
-                          
-                          return (
-                            <div key={index} className="p-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 shadow-sm">
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-semibold text-gray-900 dark:text-white">
-                                  {actividad.nombre_actividad || 'Sin nombre'}
-                                </h4>
-                                <div className="flex justify-center">
-                                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${statusColors[statusKey]}`}>
-                                    {statusInfo.status}
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              {actividad.descripcion_actividad && (
-                                <p className="text-sm text-gray-700 dark:text-gray-200 mb-3 leading-relaxed">
-                                  {actividad.descripcion_actividad}
-                                </p>
-                              )}
-                              
-                              <div className="grid grid-cols-3 gap-6 text-sm">
-                                <div className="text-center">
-                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Fecha de Inicio</span>
-                                  <span className="text-gray-900 dark:text-white font-semibold">
-                                    {actividad.fecha_inicio_actividad ? formatDate(actividad.fecha_inicio_actividad) : '—'}
-                                  </span>
-                                </div>
-                                <div className="text-center">
-                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Fecha de Fin</span>
-                                  <span className="text-gray-900 dark:text-white font-semibold">
-                                    {actividad.fecha_fin_actividad ? formatDate(actividad.fecha_fin_actividad) : '—'}
-                                  </span>
-                                </div>
-                                <div className="text-center">
-                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Duración</span>
-                                  <span className="text-gray-900 dark:text-white font-semibold">
-                                    {calculateDuration()}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-500">
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-base">
-                                  <div className="flex flex-col items-center justify-center text-center">
-                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Inicial</div>
-                                    <div className="font-semibold text-gray-900 dark:text-white">
-                                      {actividad.ppto_inicial_actividad ? formatCurrency(actividad.ppto_inicial_actividad) : '—'}
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col items-center justify-center text-center">
-                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Modificado</div>
-                                    <div className="font-semibold text-gray-900 dark:text-white">
-                                      {actividad.ppto_modificado_actividad ? formatCurrency(actividad.ppto_modificado_actividad) : '—'}
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col items-center justify-center text-center">
-                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Ejecutado</div>
-                                    <div className="font-semibold text-gray-900 dark:text-white">
-                                      {actividad.ejecucion_actividad ? formatCurrency(actividad.ejecucion_actividad) : '—'}
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col items-center justify-center text-center">
-                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Avance de Actividad</div>
-                                    {actividad.avance_actividad_acumulado !== undefined ? (
-                                      <ActivityProgressGauge 
-                                        value={(actividad.avance_actividad_acumulado || 0) * 100} 
-                                        className="mb-2"
-                                      />
-                                    ) : (
-                                      <div className="font-semibold text-gray-900 dark:text-white">—</div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
+                      {/* Tabla de actividades */}
+                      <div className="overflow-x-auto bg-red-50/30 dark:bg-red-900/10 border border-red-200 dark:border-red-700 rounded-lg">
+                        <table className="w-full border-collapse border border-red-200 dark:border-red-700">
+                            <thead>
+                              <tr className="bg-red-50 dark:bg-red-900/30">
+                                <th className="border border-red-200 dark:border-red-700 px-3 py-2 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider w-[70%]">
+                                  Actividad
+                                </th>
+                                <th className="border border-red-200 dark:border-red-700 px-3 py-2 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider w-[30%]">
+                                  Seguimiento
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-900 divide-y divide-red-200 dark:divide-red-700">
+                              {actividades.map((actividad, index) => {
+                                const statusInfo = getActivityStatus(actividad)
+                                const progresoActividad = (actividad.avance_actividad_acumulado || 0) * 100
+                                const ejecucionActividad = actividad.ejecucion_actividad && actividad.ppto_inicial_actividad 
+                                  ? (actividad.ejecucion_actividad / actividad.ppto_inicial_actividad) * 100 
+                                  : 0
+                                
+                                // Calcular duración
+                                const calculateDuration = () => {
+                                  if (!actividad.fecha_inicio_actividad || !actividad.fecha_fin_actividad) {
+                                    return '—'
+                                  }
+                                  const startDate = new Date(actividad.fecha_inicio_actividad)
+                                  const endDate = new Date(actividad.fecha_fin_actividad)
+                                  const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+                                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                                  return `${diffDays} días`
+                                }
+                                
+                                return (
+                                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
+                                    {/* Información Principal - 70% del ancho */}
+                                    <td className="border border-red-200 dark:border-red-700 px-3 py-4 w-[70%]">
+                                      <div className="space-y-3 text-left">
+                                        {/* Título */}
+                                        <div>
+                                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight text-left">
+                                            {actividad.nombre_actividad || 'Sin nombre'}
+                                          </h4>
+                                        </div>
+                                        
+                                        {/* Descripción completa */}
+                                        {actividad.descripcion_actividad && (
+                                          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-left">
+                                            {actividad.descripcion_actividad}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </td>
+                                    
+                                    {/* Métricas y seguimiento - 30% del ancho */}
+                                    <td className="border border-red-200 dark:border-red-700 px-3 py-4 w-[30%]">
+                                      <div className="space-y-3">
+                                        {/* Estado */}
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Estado:</span>
+                                          <span className={`text-xs font-medium ${
+                                            statusInfo.status === 'Completada' 
+                                              ? 'text-green-600 dark:text-green-400' 
+                                              : statusInfo.status === 'No Iniciada'
+                                              ? 'text-gray-600 dark:text-gray-400'
+                                              : statusInfo.status === 'Demorada'
+                                              ? 'text-red-600 dark:text-red-400'
+                                              : statusInfo.status === 'A Tiempo'
+                                              ? 'text-blue-600 dark:text-blue-400'
+                                              : 'text-yellow-600 dark:text-yellow-400'
+                                          } flex-shrink-0`}>
+                                            {statusInfo.status}
+                                          </span>
+                                        </div>
+                                        
+                                        {/* Información de fechas */}
+                                        <div className="space-y-2 text-xs">
+                                          <div className="flex justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">Inicio:</span>
+                                            <span className="font-medium text-gray-900 dark:text-white">
+                                              {actividad.fecha_inicio_actividad ? formatDate(actividad.fecha_inicio_actividad) : '—'}
+                                            </span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">Fin:</span>
+                                            <span className="font-medium text-gray-900 dark:text-white">
+                                              {actividad.fecha_fin_actividad ? formatDate(actividad.fecha_fin_actividad) : '—'}
+                                            </span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">Duración:</span>
+                                            <span className="font-medium text-gray-900 dark:text-white">
+                                              {calculateDuration()}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Progreso Físico */}
+                                        <div className="pt-2 border-t border-gray-100 dark:border-gray-600">
+                                          <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Progreso Físico</span>
+                                            <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                                              {progresoActividad.toFixed(1)}%
+                                            </span>
+                                          </div>
+                                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                                            <div 
+                                              className={`${getProgressBarColor('physical', progresoActividad)} h-1.5 rounded-full transition-all duration-300`}
+                                              style={{ width: `${Math.min(progresoActividad, 100)}%` }}
+                                            ></div>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Progreso Financiero */}
+                                        <div>
+                                          <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Progreso Financiero</span>
+                                            <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                                              {ejecucionActividad.toFixed(1)}%
+                                            </span>
+                                          </div>
+                                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                                            <div 
+                                              className={`${getProgressBarColor('financial', ejecucionActividad)} h-1.5 rounded-full transition-all duration-300`}
+                                              style={{ width: `${Math.min(ejecucionActividad, 100)}%` }}
+                                            ></div>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Presupuesto */}
+                                        <div className="pt-1 text-xs">
+                                          <div className="flex justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">Inicial:</span>
+                                            <span className="font-medium text-gray-900 dark:text-white">
+                                              {actividad.ppto_inicial_actividad ? formatCurrency(actividad.ppto_inicial_actividad) : '—'}
+                                            </span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-gray-500 dark:text-gray-400">Ejecutado:</span>
+                                            <span className="font-medium text-gray-900 dark:text-white">
+                                              {actividad.ejecucion_actividad ? formatCurrency(actividad.ejecucion_actividad) : '—'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                     </CollapsibleSection>
                   )
                 })()}

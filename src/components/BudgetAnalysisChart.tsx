@@ -26,16 +26,24 @@ interface BudgetAnalysisChartProps {
   showMetrics?: boolean
   orientation?: 'horizontal' | 'vertical'
   chartType?: 'line' | 'bar'
+  // Props opcionales para datos específicos (para filtrar por proyecto)
+  customMovimientos?: any[]
+  customEjecucion?: any[]
 }
 
 const BudgetAnalysisChart: React.FC<BudgetAnalysisChartProps> = ({ 
   className = '', 
   showMetrics = true,
   orientation = 'vertical',
-  chartType = 'line'
+  chartType = 'line',
+  customMovimientos,
+  customEjecucion
 }) => {
   const dataContext = useDataContext()
-  const { filteredMovimientosPresupuestales, filteredEjecucionPresupuestal } = dataContext
+  
+  // Usar datos personalizados si se proporcionan, de lo contrario usar los del contexto
+  const movimientosData = customMovimientos || dataContext.filteredMovimientosPresupuestales
+  const ejecucionData = customEjecucion || dataContext.filteredEjecucionPresupuestal
   
   // Estado para años seleccionados
   const [selectedYears, setSelectedYears] = useState<string[]>(['2024', '2025'])
@@ -64,37 +72,37 @@ const BudgetAnalysisChart: React.FC<BudgetAnalysisChartProps> = ({
   // Obtener años disponibles de los datos
   const availableYears = useMemo(() => {
     const years = new Set<string>()
-    if (filteredMovimientosPresupuestales) {
-      filteredMovimientosPresupuestales.forEach((item: any) => {
+    if (movimientosData) {
+      movimientosData.forEach((item: any) => {
         const year = item.periodo_corte?.substring(0, 4)
         if (year) years.add(year)
       })
     }
-    if (filteredEjecucionPresupuestal) {
-      filteredEjecucionPresupuestal.forEach((item: any) => {
+    if (ejecucionData) {
+      ejecucionData.forEach((item: any) => {
         const year = item.periodo_corte?.substring(0, 4)
         if (year) years.add(year)
       })
     }
     return Array.from(years).sort()
-  }, [filteredMovimientosPresupuestales, filteredEjecucionPresupuestal])
+  }, [movimientosData, ejecucionData])
 
   // Filtrar datos por años seleccionados
   const yearFilteredMovimientos = useMemo(() => {
-    if (!filteredMovimientosPresupuestales) return []
-    return filteredMovimientosPresupuestales.filter((item: any) => {
+    if (!movimientosData) return []
+    return movimientosData.filter((item: any) => {
       const year = item.periodo_corte?.substring(0, 4)
       return year && selectedYears.includes(year)
     })
-  }, [filteredMovimientosPresupuestales, selectedYears])
+  }, [movimientosData, selectedYears])
 
   const yearFilteredEjecucion = useMemo(() => {
-    if (!filteredEjecucionPresupuestal) return []
-    return filteredEjecucionPresupuestal.filter((item: any) => {
+    if (!ejecucionData) return []
+    return ejecucionData.filter((item: any) => {
       const year = item.periodo_corte?.substring(0, 4)
       return year && selectedYears.includes(year)
     })
-  }, [filteredEjecucionPresupuestal, selectedYears])
+  }, [ejecucionData, selectedYears])
 
   // Procesar datos de líneas presupuestales
   const budgetLineData = useMemo(() => {

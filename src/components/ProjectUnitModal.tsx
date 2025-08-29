@@ -102,6 +102,36 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
     }
   }
 
+  // Función para obtener colores de progreso basados en la tabla
+  const getProgressBarColor = (type: 'physical' | 'financial', progress: number) => {
+    if (type === 'physical') {
+      if (progress < 30) return 'from-red-500 to-red-600'
+      if (progress < 60) return 'from-amber-500 to-amber-600'
+      if (progress < 90) return 'from-blue-500 to-blue-600'
+      return 'from-emerald-500 to-emerald-600'
+    } else {
+      if (progress < 30) return 'from-red-600 to-red-700'
+      if (progress < 60) return 'from-orange-500 to-orange-600'
+      if (progress < 90) return 'from-emerald-600 to-emerald-700'
+      return 'from-green-600 to-green-700'
+    }
+  }
+
+  // Función para obtener color del texto basado en el progreso
+  const getProgressTextColor = (type: 'physical' | 'financial', progress: number) => {
+    if (type === 'physical') {
+      if (progress < 30) return 'text-red-600 dark:text-red-400'
+      if (progress < 60) return 'text-amber-600 dark:text-amber-400'
+      if (progress < 90) return 'text-blue-600 dark:text-blue-400'
+      return 'text-emerald-600 dark:text-emerald-400'
+    } else {
+      if (progress < 30) return 'text-red-700 dark:text-red-400'
+      if (progress < 60) return 'text-orange-600 dark:text-orange-400'
+      if (progress < 90) return 'text-emerald-700 dark:text-emerald-400'
+      return 'text-green-700 dark:text-green-400'
+    }
+  }
+
   // Datos para análisis presupuestario específico de la unidad
   const metricColors = {
     presupuestoTotal: '#3B82F6',
@@ -374,13 +404,13 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progreso Físico</span>
-                        <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                        <span className={`text-sm font-semibold ${getProgressTextColor('physical', projectUnit.progress)}`}>
                           {formatPercentage(projectUnit.progress)}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
-                          className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-300"
+                          className={`bg-gradient-to-r ${getProgressBarColor('physical', projectUnit.progress)} h-2 rounded-full transition-all duration-300`}
                           style={{ width: `${Math.min(projectUnit.progress, 100)}%` }}
                         ></div>
                       </div>
@@ -390,13 +420,13 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progreso Financiero</span>
-                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        <span className={`text-sm font-semibold ${getProgressTextColor('financial', (projectUnit.executed / projectUnit.budget) * 100)}`}>
                           {formatPercentage((projectUnit.executed / projectUnit.budget) * 100)}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                          className={`bg-gradient-to-r ${getProgressBarColor('financial', (projectUnit.executed / projectUnit.budget) * 100)} h-2 rounded-full transition-all duration-300`}
                           style={{ width: `${Math.min((projectUnit.executed / projectUnit.budget) * 100, 100)}%` }}
                         ></div>
                       </div>

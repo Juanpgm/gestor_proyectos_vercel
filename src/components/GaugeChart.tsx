@@ -182,3 +182,77 @@ export function BudgetExecutionGauge({ value, className = '', size = 'medium' }:
     />
   )
 }
+
+// Componente especializado para progreso físico con colores de la tabla
+export function PhysicalProgressGauge({ value, className = '', size = 'medium' }: { 
+  value: number, 
+  className?: string,
+  size?: 'small' | 'medium' | 'large'
+}) {
+  // Colores basados en la lógica de la tabla para progreso físico
+  const getColor = (progress: number) => {
+    if (progress < 30) return '#EF4444' // Rojo
+    if (progress < 60) return '#F59E0B' // Amarillo
+    if (progress < 90) return '#3B82F6' // Azul
+    return '#10B981' // Verde
+  }
+
+  const sizeMap = {
+    small: { diameter: 80, thickness: 12 },
+    medium: { diameter: 100, thickness: 15 },
+    large: { diameter: 120, thickness: 18 }
+  }
+
+  const { diameter, thickness } = sizeMap[size]
+
+  return (
+    <GaugeChart
+      value={value}
+      size={diameter}
+      thickness={thickness}
+      showValue={true}
+      colors={{
+        active: getColor(value),
+        inactive: '#E5E7EB'
+      }}
+      className={className}
+    />
+  )
+}
+
+// Componente especializado para progreso financiero con colores de la tabla
+export function FinancialProgressGauge({ value, className = '', size = 'medium' }: { 
+  value: number, 
+  className?: string,
+  size?: 'small' | 'medium' | 'large'
+}) {
+  // Colores basados en la lógica de la tabla para progreso financiero
+  const getColor = (progress: number) => {
+    if (progress < 30) return '#DC2626' // Rojo oscuro
+    if (progress < 60) return '#EA580C' // Naranja
+    if (progress < 90) return '#059669' // Verde esmeralda
+    return '#16A34A' // Verde
+  }
+
+  const sizeMap = {
+    small: { diameter: 80, thickness: 12 },
+    medium: { diameter: 100, thickness: 15 },
+    large: { diameter: 120, thickness: 18 }
+  }
+
+  const { diameter, thickness } = sizeMap[size]
+
+  return (
+    <GaugeChart
+      value={value}
+      size={diameter}
+      thickness={thickness}
+      showValue={true}
+      colors={{
+        active: getColor(value),
+        inactive: '#E5E7EB'
+      }}
+      className={className}
+    />
+  )
+}
