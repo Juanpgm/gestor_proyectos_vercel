@@ -68,7 +68,7 @@ export async function exportProjectToPDF(project: Project) {
       scrollContainer.style.maxHeight = originalScrollMaxHeight || ''
     }
 
-    console.log('📄 Creando documento PDF tamaño carta...')
+    console.log('📄 Creando documento PDF tamaño carta optimizado...')
     
     const imgData = canvas.toDataURL('image/png')
     const pdf = new jsPDF('p', 'mm', 'letter') // Tamaño carta (letter)
@@ -76,9 +76,9 @@ export async function exportProjectToPDF(project: Project) {
     // Dimensiones de la página carta en mm
     const pageWidth = pdf.internal.pageSize.getWidth()  // ~215.9 mm
     const pageHeight = pdf.internal.pageSize.getHeight() // ~279.4 mm
-    const margin = 10 // Margen de 10mm
+    const margin = 5 // Margen mínimo de 5mm para aprovechar más espacio
     
-    // Área útil para el contenido
+    // Área útil para el contenido - maximizando el uso del espacio
     const contentWidth = pageWidth - (margin * 2)
     const contentHeight = pageHeight - (margin * 2)
     
@@ -87,25 +87,30 @@ export async function exportProjectToPDF(project: Project) {
     const imgWidth = imgProps.width
     const imgHeight = imgProps.height
     
-    // Calcular el ratio para ajustar la imagen al área de contenido
+    // Priorizar el ancho completo - usar todo el ancho disponible
     const widthRatio = contentWidth / imgWidth
     const heightRatio = contentHeight / imgHeight
-    const ratio = Math.min(widthRatio, heightRatio)
     
-    const finalWidth = imgWidth * ratio
+    // Usar el ratio de ancho para maximizar el uso horizontal del espacio
+    const ratio = widthRatio
+    
+    const finalWidth = contentWidth // Usar todo el ancho disponible
     const finalHeight = imgHeight * ratio
     
-    console.log('📏 Ajustando contenido a tamaño carta...')
+    console.log(`📏 Optimizando para máximo aprovechamiento del espacio:`)
+    console.log(`   - Ancho página: ${pageWidth}mm, Alto: ${pageHeight}mm`)
+    console.log(`   - Área contenido: ${contentWidth}mm x ${contentHeight}mm`)
+    console.log(`   - Imagen final: ${finalWidth}mm x ${finalHeight}mm`)
     
     // Si la imagen ajustada cabe en una página
     if (finalHeight <= contentHeight) {
-      // Centrar la imagen en la página
-      const x = margin + (contentWidth - finalWidth) / 2
+      // Usar todo el ancho, centrar verticalmente si es necesario
+      const x = margin
       const y = margin + (contentHeight - finalHeight) / 2
       
       pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight)
     } else {
-      // Si es muy alta, dividir en múltiples páginas
+      // Si es muy alta, dividir en múltiples páginas maximizando el ancho
       let currentPosition = 0
       let pageNumber = 1
       
@@ -141,12 +146,13 @@ export async function exportProjectToPDF(project: Project) {
             const sectionData = tempCanvas.toDataURL('image/png')
             const sectionFinalHeight = clipHeight * ratio
             
+            // Usar todo el ancho disponible en cada página
             pdf.addImage(
               sectionData, 
               'PNG', 
-              margin, 
-              margin, 
-              finalWidth, 
+              margin,  // Comenzar desde el margen izquierdo
+              margin,  // Comenzar desde el margen superior
+              finalWidth,  // Usar todo el ancho disponible
               sectionFinalHeight
             )
             
