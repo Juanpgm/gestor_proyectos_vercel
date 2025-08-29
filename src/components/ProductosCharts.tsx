@@ -167,10 +167,10 @@ export default function ProductosCharts({ productos, loading = false }: Producto
             return (
               <div key={tipo.tipo} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-xs">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 pr-2">
                     {tipo.tipo}
                   </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
                     {tipo.total}
                   </span>
                 </div>

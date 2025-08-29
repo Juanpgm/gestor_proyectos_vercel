@@ -216,12 +216,12 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
               return (
                 <div key={status.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div 
+                    <div
                       className="w-4 h-4 rounded-full flex-shrink-0"
                       style={{ backgroundColor: status.color }}
                     />
                     <IconComponent className="w-4 h-4 flex-shrink-0" style={{ color: status.color }} />
-                    <span className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 flex-1 break-words">
                       {status.name}
                     </span>
                   </div>

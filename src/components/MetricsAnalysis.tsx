@@ -116,7 +116,7 @@ const MetricsAnalysis: React.FC<MetricsAnalysisProps> = ({
                   >
                     {index + 1}
                   </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white flex-1 break-words">
                     {metric.location}
                   </span>
                 </div>
@@ -212,7 +212,7 @@ const MetricsAnalysis: React.FC<MetricsAnalysisProps> = ({
           {metrics.map((metric, index) => (
             <div key={metric.location} className="bg-gray-50 dark:bg-gray-700 p-2 rounded">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                <span className="text-xs font-medium text-gray-900 dark:text-white flex-1 break-words">
                   {index + 1}. {metric.location}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">

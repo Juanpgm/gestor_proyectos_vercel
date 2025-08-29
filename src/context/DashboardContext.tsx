@@ -32,7 +32,8 @@ const defaultFilters: FilterState = {
   barrios: [],
   corregimientos: [],
   veredas: [],
-  fuentesFinanciamiento: []
+  fuentesFinanciamiento: [],
+  periodos: []
 }
 
 // Estado inicial del dashboard

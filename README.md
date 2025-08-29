@@ -47,6 +47,27 @@ Un dashboard interactivo optimizado para la gestión y visualización de proyect
 - **Filtros personalizados optimizados**: Categorías específicas con visualización eficiente
 - **Gestión de filtros activos**: Eliminación individual sin desperdicio de espacio
 
+### 🎯 Sistema de Búsqueda Inteligente v2.1.0
+
+- **Búsqueda Comprehensiva Multi-Categoría**:
+
+  - Búsqueda optimizada por BPIN (detección automática numérica)
+  - Búsqueda en nombres completos de proyectos sin truncamiento
+  - Búsqueda en centros gestores, comunas, barrios y fuentes de financiamiento
+  - Búsqueda en actividades, productos y datos generales de proyectos
+
+- **Sugerencias Inteligentes con Auto-Aplicación**:
+
+  - **16 sugerencias máximo** con distribución balanceada por categoría
+  - **Aplicación automática de filtros**: Seleccionar una comuna agrega automáticamente al filtro de comunas
+  - **Categorización visual**: Tags de colores distintivos por tipo (BPIN: cyan, Proyecto: rosa, Comuna: azul, etc.)
+  - **Sistema robusto de ocultamiento**: Múltiples estrategias para ocultar sugerencias (timer, mouse events, botones de emergencia)
+
+- **Filtro Multi-Período Avanzado**:
+  - Selección múltiple de años específicos (2024, 2025, 2026, 2027)
+  - Selección de períodos administrativos completos (2024-2027, 2020-2023, 2016-2019)
+  - Validación inteligente usando rangos startDate-endDate de proyectos
+
 ## 🛠️ Tecnologías Utilizadas
 
 ### Frontend Framework
@@ -293,6 +314,7 @@ Para reportar problemas o solicitar características:
 
 ---
 
-**Versión**: 2.0.0  
+**Versión**: 2.1.0  
 **Última actualización**: Agosto 2025  
+**Última corrección crítica**: Filtro por nombre_proyecto - Sugerencias ya no se quedan fijas  
 **Desarrollado con**: ❤️ para la gestión pública eficiente y optimizada

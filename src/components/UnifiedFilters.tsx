@@ -168,7 +168,7 @@ export default function UnifiedFilters({
     }
   }, [])
 
-  // Generar sugerencias de búsqueda comprehensiva
+  // Generar sugerencias de búsqueda comprehensiva ADAPTADAS A LA SECCIÓN ACTIVA
   useEffect(() => {
     const searchTerm = safeFilters.search.trim().toLowerCase()
     
@@ -186,6 +186,8 @@ export default function UnifiedFilters({
 
     const suggestions: Array<{value: string, type: string, label: string}> = []
     const isNumericSearch = /^\d+$/.test(searchTerm)
+    
+    console.log(`🔍 Generando sugerencias para sección: ${activeTab}, término: "${searchTerm}"`)
     
     if (isNumericSearch) {
       // Búsqueda prioritaria por BPIN para valores numéricos
@@ -209,11 +211,77 @@ export default function UnifiedFilters({
         suggestions.splice(8)
       }
     } else {
-      // Búsqueda comprehensiva para texto
+      // NUEVA LÓGICA: Priorizar según sección activa
       
-      // 1. Búsqueda en nombres de proyectos (máxima prioridad)
+      // 1. SECCIÓN ACTIVIDADES: Priorizar actividades
+      if (activeTab === 'activities') {
+        console.log('🎯 Priorizando búsqueda en actividades')
+        allProjects.forEach(projectData => {
+          if (suggestions.length >= 8) return
+          
+          const actividades = projectData.actividades || []
+          const bpin = projectData.proyecto?.bpin?.toString() || ''
+          const nombreProyecto = projectData.proyecto?.nombre_proyecto || ''
+          
+          actividades.forEach((actividad: any) => {
+            if (suggestions.length >= 8) return
+            
+            const nombreActividad = actividad.nombre_actividad || ''
+            const descripcionActividad = actividad.descripcion_actividad || ''
+            const codigoActividad = actividad.cod_actividad || ''
+            
+            // Buscar en todos los campos de actividad
+            if (nombreActividad.toLowerCase().includes(searchTerm) || 
+                descripcionActividad.toLowerCase().includes(searchTerm) ||
+                codigoActividad.toString().includes(searchTerm)) {
+              
+              suggestions.push({
+                value: nombreActividad,
+                type: 'Actividad',
+                label: `Actividad: ${nombreActividad} (${nombreProyecto} - BPIN: ${bpin})`
+              })
+            }
+          })
+        })
+      }
+      
+      // 2. SECCIÓN PRODUCTOS: Priorizar productos
+      else if (activeTab === 'products') {
+        console.log('🎯 Priorizando búsqueda en productos')
+        allProjects.forEach(projectData => {
+          if (suggestions.length >= 8) return
+          
+          const productos = projectData.productos || []
+          const bpin = projectData.proyecto?.bpin?.toString() || ''
+          const nombreProyecto = projectData.proyecto?.nombre_proyecto || ''
+          
+          productos.forEach((producto: any) => {
+            if (suggestions.length >= 8) return
+            
+            const nombreProducto = producto.nombre_producto || ''
+            const descripcionProducto = producto.descripcion_producto || producto.descripcion_avance_producto || ''
+            const codigoProducto = producto.cod_producto || ''
+            const tipoMeta = producto.tipo_meta_producto || ''
+            
+            // Buscar en todos los campos de producto
+            if (nombreProducto.toLowerCase().includes(searchTerm) || 
+                descripcionProducto.toLowerCase().includes(searchTerm) ||
+                codigoProducto.toString().includes(searchTerm) ||
+                tipoMeta.toLowerCase().includes(searchTerm)) {
+              
+              suggestions.push({
+                value: nombreProducto,
+                type: 'Producto',
+                label: `Producto: ${nombreProducto} (${nombreProyecto} - BPIN: ${bpin})`
+              })
+            }
+          })
+        })
+      }
+      
+      // 3. BÚSQUEDA EN PROYECTOS (siempre relevante)
       allProjects.forEach(projectData => {
-        if (suggestions.length >= 4) return
+        if (suggestions.length >= (activeTab === 'projects' ? 8 : 4)) return
         
         const nombreProyecto = projectData.proyecto?.nombre_proyecto || ''
         const bpin = projectData.proyecto?.bpin?.toString() || ''
@@ -223,14 +291,14 @@ export default function UnifiedFilters({
           suggestions.push({
             value: nombreProyecto,
             type: 'Proyecto',
-            label: `${nombreProyecto} (BPIN: ${bpin})`
+            label: `Proyecto: ${nombreProyecto} (BPIN: ${bpin})`
           })
         }
       })
 
-      // 2. Búsqueda en centros gestores (prioridad alta)
+      // 4. Búsqueda en centros gestores (prioridad alta)
       centrosGestores.forEach(centro => {
-        if (centro.toLowerCase().includes(searchTerm) && suggestions.length < 6) {
+        if (centro.toLowerCase().includes(searchTerm) && suggestions.length < 12) {
           suggestions.push({
             value: centro,
             type: 'Centro Gestor',
@@ -239,9 +307,9 @@ export default function UnifiedFilters({
         }
       })
 
-      // 3. Búsqueda en ubicaciones (comunas/barrios) - prioridad alta
+      // 5. Búsqueda en ubicaciones (comunas/barrios) - prioridad alta
       getComunas().forEach(comuna => {
-        if (comuna.toLowerCase().includes(searchTerm) && suggestions.length < 8) {
+        if (comuna.toLowerCase().includes(searchTerm) && suggestions.length < 14) {
           suggestions.push({
             value: comuna,
             type: 'Comuna',
@@ -250,9 +318,9 @@ export default function UnifiedFilters({
         }
       })
 
-      // 4. Búsqueda en fuentes de financiamiento
+      // 6. Búsqueda en fuentes de financiamiento
       fuentesFinanciamiento.forEach(fuente => {
-        if (fuente.toLowerCase().includes(searchTerm) && suggestions.length < 10) {
+        if (fuente.toLowerCase().includes(searchTerm) && suggestions.length < 16) {
           suggestions.push({
             value: fuente,
             type: 'Fuente',
@@ -261,90 +329,48 @@ export default function UnifiedFilters({
         }
       })
 
-      // 5. Búsqueda en actividades
-      allProjects.forEach(projectData => {
-        if (suggestions.length >= 12) return
-        
-        const actividades = projectData.actividades || []
-        const bpin = projectData.proyecto?.bpin?.toString() || ''
-        
-        actividades.forEach((actividad: any) => {
-          if (suggestions.length >= 12) return
-          
-          const nombreActividad = actividad.nombre_actividad || ''
-          const descripcionActividad = actividad.descripcion_actividad || ''
-          
-          // Buscar en nombre y descripción de actividad
-          if (nombreActividad.toLowerCase().includes(searchTerm) || 
-              descripcionActividad.toLowerCase().includes(searchTerm)) {
-            
-            suggestions.push({
-              value: nombreActividad,
-              type: 'Actividad',
-              label: `Actividad: ${nombreActividad} (BPIN: ${bpin})`
-            })
-          }
-        })
-      })
-
-      // 6. Búsqueda en productos
-      allProjects.forEach(projectData => {
-        if (suggestions.length >= 14) return
-        
-        const productos = projectData.productos || []
-        const bpin = projectData.proyecto?.bpin?.toString() || ''
-        
-        productos.forEach((producto: any) => {
-          if (suggestions.length >= 14) return
-          
-          const nombreProducto = producto.nombre_producto || ''
-          const descripcionProducto = producto.descripcion_producto || ''
-          
-          // Buscar en nombre y descripción de producto
-          if (nombreProducto.toLowerCase().includes(searchTerm) || 
-              descripcionProducto.toLowerCase().includes(searchTerm)) {
-            
-            suggestions.push({
-              value: nombreProducto,
-              type: 'Producto',
-              label: `Producto: ${nombreProducto} (BPIN: ${bpin})`
-            })
-          }
-        })
-      })
-
-      // 7. Búsqueda en barrios (después de comunas para menor prioridad)
-      const allBarrios = comunasBarrios.flatMap(item => item.barrios)
-      allBarrios.forEach(barrio => {
-        if (barrio.toLowerCase().includes(searchTerm) && suggestions.length < 16) {
-          suggestions.push({
-            value: barrio,
-            type: 'Barrio',
-            label: `Barrio: ${barrio}`
-          })
-        }
-      })
-
-      // 8. Búsqueda general en cualquier campo de texto de los proyectos (menor prioridad)
-      if (suggestions.length < 16) {
+      // 7. Búsqueda secundaria en otras secciones (solo si no es la sección activa)
+      if (activeTab !== 'activities') {
         allProjects.forEach(projectData => {
           if (suggestions.length >= 16) return
           
-          const proyecto = projectData.proyecto || {}
-          const bpin = proyecto.bpin?.toString() || ''
+          const actividades = projectData.actividades || []
+          const bpin = projectData.proyecto?.bpin?.toString() || ''
           
-          // Buscar en todos los campos de texto del proyecto
-          Object.entries(proyecto).forEach(([key, value]) => {
+          actividades.forEach((actividad: any) => {
             if (suggestions.length >= 16) return
-            if (typeof value === 'string' && value.toLowerCase().includes(searchTerm)) {
-              // Evitar duplicados con campos ya buscados específicamente
-              if (!['nombre_proyecto', 'nombre_centro_gestor'].includes(key)) {
-                suggestions.push({
-                  value: value,
-                  type: 'Datos',
-                  label: `${key.replace(/_/g, ' ')}: ${value} (BPIN: ${bpin})`
-                })
-              }
+            
+            const nombreActividad = actividad.nombre_actividad || ''
+            
+            if (nombreActividad.toLowerCase().includes(searchTerm)) {
+              suggestions.push({
+                value: nombreActividad,
+                type: 'Actividad',
+                label: `Actividad: ${nombreActividad} (BPIN: ${bpin})`
+              })
+            }
+          })
+        })
+      }
+      
+      if (activeTab !== 'products') {
+        allProjects.forEach(projectData => {
+          if (suggestions.length >= 16) return
+          
+          const productos = projectData.productos || []
+          const bpin = projectData.proyecto?.bpin?.toString() || ''
+          
+          productos.forEach((producto: any) => {
+            if (suggestions.length >= 16) return
+            
+            const nombreProducto = producto.nombre_producto || ''
+            
+            if (nombreProducto.toLowerCase().includes(searchTerm)) {
+              suggestions.push({
+                value: nombreProducto,
+                type: 'Producto',
+                label: `Producto: ${nombreProducto} (BPIN: ${bpin})`
+              })
             }
           })
         })
@@ -359,7 +385,7 @@ export default function UnifiedFilters({
     setSearchSuggestions(uniqueSuggestions.slice(0, 16))
     setShowSuggestions(uniqueSuggestions.length > 0)
     setSelectedSuggestionIndex(-1)
-  }, [safeFilters.search, centrosGestores, getComunas, comunasBarrios, fuentesFinanciamiento, allProjects])
+  }, [safeFilters.search, centrosGestores, getComunas, comunasBarrios, fuentesFinanciamiento, allProjects, activeTab])
 
   // Effect para debugging del estado de sugerencias
   useEffect(() => {
@@ -693,6 +719,24 @@ export default function UnifiedFilters({
     }
   }
 
+  // Generar placeholder dinámico según sección activa
+  const getSearchPlaceholder = () => {
+    switch (activeTab) {
+      case 'projects':
+        return 'Buscar proyectos por BPIN, nombre, centro gestor, comuna, barrio, fuente...'
+      case 'project_units':
+        return 'Buscar unidades de proyecto por BPIN, tipo, ubicación, centro gestor...'
+      case 'activities':
+        return 'Buscar actividades por nombre, descripción, código, proyecto (BPIN)...'
+      case 'products':
+        return 'Buscar productos por nombre, descripción, tipo de meta, proyecto (BPIN)...'
+      case 'contracts':
+        return 'Buscar contratos por BPIN, contratista, objeto contractual...'
+      default:
+        return 'Buscar por BPIN (optimizado), nombre del proyecto, centro gestor, comuna, barrio, fuente...'
+    }
+  }
+
   const getActiveFiltersCount = () => {
     let count = 0
     if (safeFilters.search) count++
@@ -1016,7 +1060,7 @@ export default function UnifiedFilters({
                     // Programar ocultamiento con delay para permitir clicks en sugerencias
                     scheduleAutoHide(200)
                   }}
-                  placeholder="Buscar por BPIN (optimizado), nombre del proyecto, centro gestor, comuna, barrio, fuente..."
+                  placeholder={getSearchPlaceholder()}
                   className="w-full border-0 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-0 text-sm"
                 />
                 

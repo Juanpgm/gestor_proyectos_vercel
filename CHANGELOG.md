@@ -5,6 +5,87 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-08-29
+
+### 🎯 Optimización de Tablas y Visualización de Contenido
+
+#### ✨ Mejoras en Visualización de Texto
+
+- **Eliminación Completa de Truncamiento de Texto**
+
+  - Removida restricción `line-clamp-2` en descripciones de Productos
+  - Removido `truncate max-w-xs` en múltiples componentes de visualización
+  - **Componentes actualizados**:
+    - `ProductosStats.tsx`: Texto completo en estadísticas de productos
+    - `ProductosCharts.tsx`: Títulos completos en gráficos de productos
+    - `InterventionMetrics.tsx`: Nombres completos de ubicaciones
+    - `CompactProjectMetrics.tsx`: Estados de proyectos sin truncar
+    - `MetricsChart.tsx`: Leyendas de gráficos completamente visibles
+    - `MetricsAnalysis.tsx`: Análisis de ubicaciones sin cortes
+
+- **Implementación de Layout Responsivo Mejorado**
+  - Reemplazado `truncate` por `flex-1 break-words` para texto expandible
+  - Agregado `flex-shrink-0` para elementos que no deben comprimirse
+  - Uso de `break-words` para salto de línea natural en textos largos
+
+#### 🗂️ Simplificación de Tablas de Actividades y Productos
+
+- **Eliminación Completa de Columna "Ver"**
+
+  - **ActividadesTable.tsx**:
+
+    - Removida columna "VER" con icono de ojo (`Eye`)
+    - Eliminadas funciones `onViewActivity` y `handleViewActivity`
+    - Redistribuido ancho de columnas: Actividad (55%), Fechas (25%), Estado (20%)
+    - Removidas importaciones innecesarias de `Eye` de lucide-react
+
+  - **ProductosTable.tsx**:
+    - Removida columna "VER" con icono de ojo (`Eye`)
+    - Eliminadas funciones `onViewProduct` y `handleViewProduct`
+    - Redistribuido ancho de columnas: Producto (50%), Período (25%), Estado (25%)
+    - Removidas importaciones innecesarias de `Eye` de lucide-react
+
+- **Optimización de Interfaces TypeScript**
+  - Removidas propiedades opcionales `onViewActivity` y `onViewProduct`
+  - Eliminados estados obsoletos `selectedActivity` y `selectedProduct`
+  - Limpieza de funciones handlers no utilizadas en `page.tsx`
+
+#### 🎨 Mejoras en Experiencia de Usuario
+
+- **Descripciones Completas Visibles**
+
+  - Las descripciones de actividades y productos se muestran completamente
+  - Texto envolvente natural sin cortes artificiales
+  - Mejor legibilidad en todos los componentes de visualización
+
+- **Tablas Más Limpias y Eficientes**
+  - Eliminación de funcionalidad redundante de "Ver detalles"
+  - Mejor uso del espacio horizontal en las tablas
+  - Enfoque en información esencial sin elementos distractores
+
+#### 🛠️ Mejoras Técnicas
+
+- **Optimización de Bundle**
+
+  - Reducción de importaciones innecesarias
+  - Eliminación de código muerto (funciones y estados no utilizados)
+  - Simplificación de interfaces de componentes
+
+- **Consistencia en Layout**
+  - Estandarización de técnicas de layout flexbox
+  - Uso consistente de `break-words` para manejo de texto
+  - Distribución equilibrada de anchos de columna
+
+### 🔧 Cambios Técnicos
+
+- Removidas funciones: `handleViewActivity`, `handleViewProduct`
+- Removidos estados: `selectedActivity`, `selectedProduct`
+- Removidas propiedades: `onViewActivity`, `onViewProduct`
+- Actualizadas interfaces: `ActividadesTableProps`, `ProductosTableProps`
+- Optimizada distribución de columnas en ambas tablas
+
+---
+
 ## [2.1.0] - 2025-08-29
 
 ### 🔍 Sistema de Búsqueda y Filtros Inteligente
@@ -119,6 +200,35 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0
     - Detección de click global con captura
     - Botones de emergencia para casos extremos
   - **Solución Robusta**: Sistema de ocultamiento por múltiples vías con fallbacks
+
+- **🔥 CORRECCIÓN CRÍTICA: Sugerencias Persistentes en Filtros por nombre_proyecto**
+
+  - **Problema Específico Identificado**:
+
+    - Las sugerencias se mantenían visibles únicamente al filtrar por `nombre_proyecto`
+    - Otros tipos de filtros funcionaban correctamente
+    - El dropdown de sugerencias se "quedaba fijo" después de seleccionar nombres de proyectos
+
+  - **Causa Raíz Descubierta**:
+
+    - `forceHideSuggestions()` se ejecutaba ANTES de `updateFilters()`
+    - Al actualizar filtros con nombre completo del proyecto (>2 caracteres), `useEffect` regeneraba sugerencias
+    - Ciclo infinito: ocultar → actualizar → regenerar → mostrar
+
+  - **Solución Técnica Implementada**:
+
+    - **Reordenamiento de Timing**: Ocultamiento DESPUÉS de actualización para tipos de texto
+    - **Flag de Supresión Temporal**: `suppressSuggestionsRef` previene regeneración por 1 segundo
+    - **Diferenciación por Tipo de Sugerencia**:
+      - Proyectos/BPIN/Actividades: `setTimeout()` para ocultamiento diferido (100ms)
+      - Centros Gestores/Comunas/Fuentes: Ocultamiento inmediato + limpieza de búsqueda
+    - **Sistema de Supresión**: Flag temporal que bloquea generación de sugerencias durante 1000ms
+
+  - **Resultado Final**:
+    - ✅ Filtro por nombre_proyecto ahora oculta sugerencias correctamente
+    - ✅ Todos los demás tipos de filtros mantienen funcionalidad óptima
+    - ✅ Sistema robusto contra regeneración accidental de sugerencias
+    - ✅ Logs de debug mejorrados para seguimiento de comportamiento
 
 - **Mejoras en Responsividad de Controles**
 

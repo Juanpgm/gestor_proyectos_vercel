@@ -296,7 +296,7 @@ const InterventionMetrics: React.FC<InterventionMetricsProps> = ({ data }) => {
                 className="w-2 h-2 rounded-full flex-shrink-0" 
                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
               />
-              <span className="truncate font-medium text-gray-700 dark:text-gray-300" title={item.fullName}>
+              <span className="flex-1 font-medium text-gray-700 dark:text-gray-300 break-words" title={item.fullName}>
                 {item.name}
               </span>
             </div>

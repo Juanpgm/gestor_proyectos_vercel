@@ -91,25 +91,10 @@ function DashboardContent() {
   // Estado para la unidad de proyecto seleccionada desde la tabla
   const [selectedProjectUnitFromTable, setSelectedProjectUnitFromTable] = useState<UnidadProyecto | null>(null)
   
-  // Estados para actividades y productos seleccionados
-  const [selectedActivity, setSelectedActivity] = useState<Actividad | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null)
-  
   // Función para manejar cuando se hace clic en el ojito en la tabla
   const handleViewProjectUnitInPanel = (projectUnit: UnidadProyecto) => {
     console.log('👁️ Mostrando unidad de proyecto en panel:', projectUnit)
     setSelectedProjectUnitFromTable(projectUnit)
-  }
-  
-  // Funciones para manejar actividades y productos
-  const handleViewActivity = (activity: Actividad) => {
-    console.log('👁️ Mostrando actividad:', activity)
-    setSelectedActivity(activity)
-  }
-  
-  const handleViewProduct = (product: Producto) => {
-    console.log('👁️ Mostrando producto:', product)
-    setSelectedProduct(product)
   }
 
   // TEMPORALMENTE COMENTADO: Pre-carga de datos al iniciar la aplicación
@@ -616,7 +601,6 @@ function DashboardContent() {
               actividades={actividadesState.actividades}
               filteredActividades={filteredActividades}
               loading={actividadesState.loading}
-              onViewActivity={handleViewActivity}
             />
           </div>
         )
@@ -646,7 +630,6 @@ function DashboardContent() {
               productos={productosState.productos}
               filteredProductos={filteredProductos}
               loading={productosState.loading}
-              onViewProduct={handleViewProduct}
             />
           </div>
         )

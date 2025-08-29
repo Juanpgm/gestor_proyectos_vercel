@@ -65,7 +65,6 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
   const [isMobileView, setIsMobileView] = useState(false)
 
   useEffect(() => {
@@ -178,20 +177,6 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
     return projectsArray
   }, [filteredMovimientosPresupuestales, filteredProyectos, ejecucionPresupuestal, seguimientoPa])
 
-  // Filtrar proyectos por término de búsqueda
-  const filteredProjects = useMemo(() => {
-    if (!searchTerm.trim()) return projects
-    
-    const term = searchTerm.toLowerCase().trim()
-    return projects.filter(project => 
-      project.name.toLowerCase().includes(term) ||
-      project.bpin.toLowerCase().includes(term) ||
-      project.responsible.toLowerCase().includes(term) ||
-      project.comuna?.toLowerCase().includes(term) ||
-      project.status.toLowerCase().includes(term)
-    )
-  }, [projects, searchTerm])
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'En Ejecución': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
@@ -239,7 +224,7 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
   }
 
   const sortedProjects = useMemo(() => {
-    const sorted = [...filteredProjects].sort((a, b) => {
+    const sorted = [...projects].sort((a, b) => {
       const aValue = a[sortKey]
       const bValue = b[sortKey]
 
@@ -261,16 +246,16 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
     })
 
     return sorted
-  }, [filteredProjects, sortKey, sortDirection])
+  }, [projects, sortKey, sortDirection])
 
   const totalPages = Math.ceil(sortedProjects.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedProjects = sortedProjects.slice(startIndex, startIndex + itemsPerPage)
 
-  // Reset page when filtered projects change
+  // Reset page when projects change
   useEffect(() => {
     setCurrentPage(1)
-  }, [filteredProjects.length, searchTerm])
+  }, [projects.length])
 
   // Componente de tarjeta de proyecto para vista responsiva
   if (!mounted) {

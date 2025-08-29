@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  Eye,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
@@ -18,7 +17,6 @@ interface ActividadesTableProps {
   actividades: Actividad[]
   filteredActividades: Actividad[]
   loading?: boolean
-  onViewActivity?: (actividad: Actividad) => void
 }
 
 type SortKey = keyof Actividad
@@ -27,8 +25,7 @@ type SortDirection = 'asc' | 'desc'
 export default function ActividadesTable({ 
   actividades,
   filteredActividades,
-  loading = false,
-  onViewActivity
+  loading = false
 }: ActividadesTableProps) {
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -174,7 +171,7 @@ export default function ActividadesTable({
                 {/* Columna principal: Información de actividad */}
                 <th 
                   className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                  style={{ width: '42%' }}
+                  style={{ width: '55%' }}
                   onClick={() => handleSort('nombre_actividad')}
                 >
                   <div className="flex items-center space-x-1">
@@ -186,7 +183,7 @@ export default function ActividadesTable({
                 {/* Columna de fechas */}
                 <th 
                   className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                  style={{ width: '20%' }}
+                  style={{ width: '25%' }}
                   onClick={() => handleSort('fecha_inicio_actividad')}
                 >
                   <div className="flex items-center justify-center space-x-1">
@@ -199,21 +196,13 @@ export default function ActividadesTable({
                 {/* Columna de estado y progreso */}
                 <th 
                   className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                  style={{ width: '22%' }}
+                  style={{ width: '20%' }}
                   onClick={() => handleSort('avance_actividad')}
                 >
                   <div className="flex items-center justify-center space-x-1">
                     <span>Estado y Progreso</span>
                     {getSortIcon('avance_actividad')}
                   </div>
-                </th>
-
-                {/* Columna de acción */}
-                <th 
-                  className="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                  style={{ width: '6%' }}
-                >
-                  VER
                 </th>
               </tr>
             </thead>
@@ -230,7 +219,7 @@ export default function ActividadesTable({
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                   >
                     {/* Columna principal: Información de actividad */}
-                    <td className="px-3 py-3 align-top" style={{ width: '42%' }}>
+                    <td className="px-3 py-3 align-top" style={{ width: '55%' }}>
                       <div>
                         {/* Nombre de la actividad */}
                         <div className="text-sm font-semibold text-gray-900 dark:text-white leading-tight mb-1 break-words">
@@ -258,7 +247,7 @@ export default function ActividadesTable({
                         
                         {/* Descripción */}
                         {actividad.descripcion_actividad && (
-                          <div className="text-xs text-gray-600 dark:text-gray-400 font-medium italic break-words line-clamp-2">
+                          <div className="text-xs text-gray-600 dark:text-gray-400 font-medium italic break-words">
                             {actividad.descripcion_actividad}
                           </div>
                         )}
@@ -266,7 +255,7 @@ export default function ActividadesTable({
                     </td>
 
                     {/* Columna de fechas */}
-                    <td className="px-2 py-3 align-middle text-center" style={{ width: '20%' }}>
+                    <td className="px-2 py-3 align-middle text-center" style={{ width: '25%' }}>
                       <div className="space-y-1">
                         <div className="text-xs">
                           <div className="text-green-600 dark:text-green-400 font-medium">
@@ -284,7 +273,7 @@ export default function ActividadesTable({
                     </td>
 
                     {/* Columna de estado y progreso */}
-                    <td className="px-2 py-3 align-middle" style={{ width: '22%' }}>
+                    <td className="px-2 py-3 align-middle" style={{ width: '20%' }}>
                       <div className="space-y-2">
                         {/* Estado */}
                         <div className="flex justify-center">
@@ -306,17 +295,6 @@ export default function ActividadesTable({
                           </div>
                         </div>
                       </div>
-                    </td>
-
-                    {/* Columna de acción */}
-                    <td className="px-1 py-3 text-center align-middle" style={{ width: '6%' }}>
-                      <button
-                        onClick={() => onViewActivity?.(actividad)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                        title="Ver detalles"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
                     </td>
                   </motion.tr>
                 )

@@ -202,7 +202,7 @@ const MetricsChart: React.FC<MetricsChartProps> = ({
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: COLORS[index % COLORS.length] }}
                 />
-                <span className="text-gray-600 dark:text-gray-400 truncate flex-1">
+                <span className="text-gray-600 dark:text-gray-400 flex-1 break-words">
                   {formatLabel(entry.name, 25)}
                 </span>
               </div>

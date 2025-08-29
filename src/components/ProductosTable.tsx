@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  Eye,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
@@ -21,7 +20,6 @@ interface ProductosTableProps {
   productos: Producto[]
   filteredProductos: Producto[]
   loading?: boolean
-  onViewProduct?: (producto: Producto) => void
 }
 
 type SortKey = keyof Producto
@@ -30,8 +28,7 @@ type SortDirection = 'asc' | 'desc'
 export default function ProductosTable({ 
   productos,
   filteredProductos,
-  loading = false,
-  onViewProduct
+  loading = false
 }: ProductosTableProps) {
   const [mounted, setMounted] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -189,7 +186,7 @@ export default function ProductosTable({
                 {/* Columna principal: Información de producto */}
                 <th 
                   className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                  style={{ width: '42%' }}
+                  style={{ width: '50%' }}
                   onClick={() => handleSort('nombre_producto')}
                 >
                   <div className="flex items-center space-x-1">
@@ -202,7 +199,7 @@ export default function ProductosTable({
                 {/* Columna de fechas */}
                 <th 
                   className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                  style={{ width: '20%' }}
+                  style={{ width: '25%' }}
                   onClick={() => handleSort('periodo_corte')}
                 >
                   <div className="flex items-center justify-center space-x-1">
@@ -215,21 +212,13 @@ export default function ProductosTable({
                 {/* Columna de estado y progreso */}
                 <th 
                   className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                  style={{ width: '22%' }}
+                  style={{ width: '25%' }}
                   onClick={() => handleSort('avance_producto')}
                 >
                   <div className="flex items-center justify-center space-x-1">
                     <span>Estado y Progreso</span>
                     {getSortIcon('ponderacion_producto')}
                   </div>
-                </th>
-
-                {/* Columna de acción */}
-                <th 
-                  className="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                  style={{ width: '6%' }}
-                >
-                  VER
                 </th>
               </tr>
             </thead>
@@ -247,7 +236,7 @@ export default function ProductosTable({
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                   >
                     {/* Columna principal: Información de producto */}
-                    <td className="px-3 py-3 align-top" style={{ width: '42%' }}>
+                    <td className="px-3 py-3 align-top" style={{ width: '50%' }}>
                       <div>
                         {/* Nombre del producto */}
                         <div className="text-sm font-semibold text-gray-900 dark:text-white leading-tight mb-1 break-words">
@@ -307,7 +296,7 @@ export default function ProductosTable({
                         
                         {/* Descripción */}
                         {producto.descripcion_avance_producto && (
-                          <div className="text-xs text-gray-600 dark:text-gray-400 font-medium italic break-words line-clamp-2 mt-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-400 font-medium italic break-words mt-1">
                             {producto.descripcion_avance_producto}
                           </div>
                         )}
@@ -315,7 +304,7 @@ export default function ProductosTable({
                     </td>
 
                     {/* Columna de fechas */}
-                    <td className="px-2 py-3 align-middle text-center" style={{ width: '20%' }}>
+                    <td className="px-2 py-3 align-middle text-center" style={{ width: '25%' }}>
                       <div className="space-y-1">
                         <div className="text-xs">
                           <div className="text-blue-600 dark:text-blue-400 font-medium">
@@ -330,7 +319,7 @@ export default function ProductosTable({
                     </td>
 
                     {/* Columna de estado y progreso */}
-                    <td className="px-2 py-3 align-middle" style={{ width: '22%' }}>
+                    <td className="px-2 py-3 align-middle" style={{ width: '25%' }}>
                       <div className="space-y-2">
                         {/* Estado */}
                         <div className="flex justify-center">
@@ -347,17 +336,6 @@ export default function ProductosTable({
                           />
                         </div>
                       </div>
-                    </td>
-
-                    {/* Columna de acción */}
-                    <td className="px-1 py-3 text-center align-middle" style={{ width: '6%' }}>
-                      <button
-                        onClick={() => onViewProduct?.(producto)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                        title="Ver detalles"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
                     </td>
                   </motion.tr>
                 )

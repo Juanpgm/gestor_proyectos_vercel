@@ -194,10 +194,10 @@ export default function ProductosStats({
                 <div key={type} className="flex items-center space-x-3">
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-xs">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 pr-2">
                         {type}
                       </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                      <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
                         {count} ({percentage.toFixed(1)}%)
                       </span>
                     </div>

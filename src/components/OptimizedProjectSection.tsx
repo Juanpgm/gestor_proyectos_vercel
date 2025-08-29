@@ -59,7 +59,6 @@ const OptimizedProjectSection: React.FC = () => {
             showControls={true}
             showChartsPanel={true}
             defaultLayer="comunas"
-            defaultMetric="contratos"
           />
         </div>
       </motion.section>
