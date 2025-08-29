@@ -1,12 +1,26 @@
 import { Project } from '../components/ProjectsTable'
 
-export async function exportProjectToPDF(project: Project) {
+interface PDFExportCallbacks {
+  onCaptureStart?: () => void
+  onGenerateStart?: () => void
+  onDownloadStart?: () => void
+  onComplete?: () => void
+  onError?: () => void
+}
+
+export async function exportProjectToPDF(project: Project, callbacks?: PDFExportCallbacks) {
   console.log('🚀 Iniciando exportación PDF para proyecto:', project?.name)
+  
+  // Variables para manejar el modo oscuro - inicializar inmediatamente
+  const htmlElement = document.documentElement
+  const bodyElement = document.body
+  let wasInDarkMode = false
   
   try {
     if (!project) {
       console.error('❌ No hay proyecto seleccionado')
       alert('Error: No hay proyecto seleccionado')
+      callbacks?.onError?.()
       return
     }
 
@@ -24,6 +38,27 @@ export async function exportProjectToPDF(project: Project) {
     }
 
     console.log('📷 Preparando captura completa del modal...')
+    
+    // Llamar callback de inicio de captura
+    callbacks?.onCaptureStart?.()
+    
+    // Detectar y guardar el estado del modo oscuro
+    wasInDarkMode = htmlElement.classList.contains('dark') || bodyElement.classList.contains('dark')
+    
+    console.log(`🌙 Modo oscuro detectado: ${wasInDarkMode ? 'SÍ' : 'NO'}`)
+    
+    // Forzar modo claro temporalmente para la exportación
+    if (wasInDarkMode) {
+      console.log('☀️ Cambiando temporalmente a modo claro para exportación...')
+      htmlElement.classList.remove('dark')
+      bodyElement.classList.remove('dark')
+      
+      // Forzar también en el modal específico si tiene clases dark
+      modalContent.classList.remove('dark')
+      
+      // Esperar un momento para que se apliquen los cambios de tema
+      await new Promise(resolve => setTimeout(resolve, 200))
+    }
     
     // Guardar el estado original del scroll y overflow
     const originalOverflow = modalContent.style.overflow
@@ -43,9 +78,9 @@ export async function exportProjectToPDF(project: Project) {
     // Esperar un momento para que se renderice
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    // Configuración para html2canvas - captura completa
+    // Configuración para html2canvas - captura completa de alta resolución
     const canvas = await html2canvas(modalContent, {
-      scale: 2, // Alta calidad
+      scale: 3, // Resolución muy alta para PDFs nítidos
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
@@ -67,104 +102,68 @@ export async function exportProjectToPDF(project: Project) {
       scrollContainer.style.overflow = originalScrollOverflow || 'auto'
       scrollContainer.style.maxHeight = originalScrollMaxHeight || ''
     }
-
-    console.log('📄 Creando documento PDF tamaño carta optimizado...')
     
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF('p', 'mm', 'letter') // Tamaño carta (letter)
-    
-    // Dimensiones de la página carta en mm
-    const pageWidth = pdf.internal.pageSize.getWidth()  // ~215.9 mm
-    const pageHeight = pdf.internal.pageSize.getHeight() // ~279.4 mm
-    const margin = 5 // Margen mínimo de 5mm para aprovechar más espacio
-    
-    // Área útil para el contenido - maximizando el uso del espacio
-    const contentWidth = pageWidth - (margin * 2)
-    const contentHeight = pageHeight - (margin * 2)
-    
-    // Calcular dimensiones de la imagen
-    const imgProps = pdf.getImageProperties(imgData)
-    const imgWidth = imgProps.width
-    const imgHeight = imgProps.height
-    
-    // Priorizar el ancho completo - usar todo el ancho disponible
-    const widthRatio = contentWidth / imgWidth
-    const heightRatio = contentHeight / imgHeight
-    
-    // Usar el ratio de ancho para maximizar el uso horizontal del espacio
-    const ratio = widthRatio
-    
-    const finalWidth = contentWidth // Usar todo el ancho disponible
-    const finalHeight = imgHeight * ratio
-    
-    console.log(`📏 Optimizando para máximo aprovechamiento del espacio:`)
-    console.log(`   - Ancho página: ${pageWidth}mm, Alto: ${pageHeight}mm`)
-    console.log(`   - Área contenido: ${contentWidth}mm x ${contentHeight}mm`)
-    console.log(`   - Imagen final: ${finalWidth}mm x ${finalHeight}mm`)
-    
-    // Si la imagen ajustada cabe en una página
-    if (finalHeight <= contentHeight) {
-      // Usar todo el ancho, centrar verticalmente si es necesario
-      const x = margin
-      const y = margin + (contentHeight - finalHeight) / 2
-      
-      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight)
-    } else {
-      // Si es muy alta, dividir en múltiples páginas maximizando el ancho
-      let currentPosition = 0
-      let pageNumber = 1
-      
-      while (currentPosition < finalHeight) {
-        if (pageNumber > 1) {
-          pdf.addPage()
-        }
-        
-        // Calcular qué parte de la imagen mostrar en esta página
-        const remainingHeight = finalHeight - currentPosition
-        const currentPageHeight = Math.min(contentHeight, remainingHeight)
-        
-        // Calcular la posición Y del clip
-        const clipY = (currentPosition / finalHeight) * imgHeight
-        const clipHeight = (currentPageHeight / finalHeight) * imgHeight
-        
-        // Crear un canvas temporal para esta sección
-        const tempCanvas = document.createElement('canvas')
-        const tempCtx = tempCanvas.getContext('2d')
-        const img = new Image()
-        
-        await new Promise((resolve) => {
-          img.onload = () => {
-            tempCanvas.width = imgWidth
-            tempCanvas.height = clipHeight
-            
-            tempCtx?.drawImage(
-              img,
-              0, clipY, imgWidth, clipHeight,  // source
-              0, 0, imgWidth, clipHeight       // destination
-            )
-            
-            const sectionData = tempCanvas.toDataURL('image/png')
-            const sectionFinalHeight = clipHeight * ratio
-            
-            // Usar todo el ancho disponible en cada página
-            pdf.addImage(
-              sectionData, 
-              'PNG', 
-              margin,  // Comenzar desde el margen izquierdo
-              margin,  // Comenzar desde el margen superior
-              finalWidth,  // Usar todo el ancho disponible
-              sectionFinalHeight
-            )
-            
-            resolve(null)
-          }
-          img.src = imgData
-        })
-        
-        currentPosition += currentPageHeight
-        pageNumber++
-      }
+    // Restaurar el modo oscuro si estaba activado
+    if (wasInDarkMode) {
+      console.log('🌙 Restaurando modo oscuro original...')
+      htmlElement.classList.add('dark')
+      bodyElement.classList.add('dark')
     }
+
+    console.log('📄 Creando documento PDF dinámico y alta resolución...')
+    
+    // Llamar callback de inicio de generación
+    callbacks?.onGenerateStart?.()
+    
+    // Aumentar la resolución para mejor calidad (debe coincidir con el scale de html2canvas)
+    const highResScale = 3 // Factor de escala para mejor resolución
+    const imgData = canvas.toDataURL('image/png', 1.0) // Máxima calidad PNG
+    
+    // Crear un PDF temporal para obtener las propiedades de la imagen
+    const tempPdf = new jsPDF()
+    const imgProps = tempPdf.getImageProperties(imgData)
+    
+    // Calcular dimensiones optimizadas basadas en el contenido real
+    const imgWidth = imgProps.width / highResScale // Ajustar por el factor de escala
+    const imgHeight = imgProps.height / highResScale
+    
+    // Definir el ancho máximo deseado en mm (A4 width como referencia, pero sin limitarlo)
+    const maxContentWidth = 200 // 200mm de ancho máximo para buena legibilidad
+    const margin = 10 // Margen de 10mm
+    
+    // Calcular el ratio para mantener proporciones
+    const widthRatio = maxContentWidth / imgWidth
+    
+    // Dimensiones finales del contenido
+    const finalContentWidth = Math.min(imgWidth, maxContentWidth)
+    const finalContentHeight = imgHeight * (finalContentWidth / imgWidth)
+    
+    // Dimensiones totales del documento (contenido + márgenes)
+    const documentWidth = finalContentWidth + (margin * 2)
+    const documentHeight = finalContentHeight + (margin * 2)
+    
+    console.log(`📏 Dimensiones dinámicas calculadas:`)
+    console.log(`   - Contenido original: ${imgWidth}mm x ${imgHeight}mm`)
+    console.log(`   - Contenido final: ${finalContentWidth}mm x ${finalContentHeight}mm`)
+    console.log(`   - Documento total: ${documentWidth}mm x ${documentHeight}mm`)
+    console.log(`   - Escala de resolución: ${highResScale}x`)
+    
+    // Crear el PDF con dimensiones personalizadas [ancho, alto]
+    const pdf = new jsPDF({
+      orientation: documentWidth > documentHeight ? 'landscape' : 'portrait',
+      unit: 'mm',
+      format: [documentWidth, documentHeight] // Tamaño personalizado dinámico
+    })
+    
+    // Agregar la imagen con las dimensiones calculadas
+    pdf.addImage(
+      imgData, 
+      'PNG', 
+      margin,  // x: margen izquierdo
+      margin,  // y: margen superior  
+      finalContentWidth,  // ancho del contenido
+      finalContentHeight  // alto del contenido
+    )
 
     // Generar nombre del archivo con valores reales
     const now = new Date()
@@ -179,14 +178,31 @@ export async function exportProjectToPDF(project: Project) {
     const fileName = `bpin-${project.bpin}-${proyectoNombre}-${timestamp}.pdf`
     
     console.log('📁 Nombre del archivo:', fileName)
-    console.log('💾 Guardando archivo PDF tamaño carta...')
+    console.log('💾 Guardando archivo PDF dinámico...')
+    
+    // Callback antes de iniciar la descarga
+    callbacks?.onDownloadStart?.()
     
     pdf.save(fileName)
-    console.log('✅ PDF generado exitosamente en tamaño carta')
+    console.log('✅ PDF generado exitosamente con tamaño dinámico y alta resolución')
+    
+    // Callback al completar exitosamente
+    callbacks?.onComplete?.()
     
   } catch (error) {
     console.error('❌ Error generando PDF:', error)
     console.error('❌ Stack trace:', (error as Error)?.stack)
+    
+    // Restaurar el modo oscuro en caso de error
+    if (wasInDarkMode && htmlElement && bodyElement) {
+      console.log('🌙 Restaurando modo oscuro debido a error...')
+      htmlElement.classList.add('dark')
+      bodyElement.classList.add('dark')
+    }
+    
+    // Callback en caso de error
+    callbacks?.onError?.()
+    
     alert(`Error al generar el PDF: ${(error as Error)?.message || 'Error desconocido'}`)
   }
 }

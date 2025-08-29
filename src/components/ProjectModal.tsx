@@ -7,6 +7,7 @@ import { Project } from './ProjectsTable'
 import { useDataContext } from '../context/DataContext'
 import { ActivityProgressGauge, ProductProgressGauge, BudgetExecutionGauge } from './GaugeChart'
 import { exportProjectToPDF } from '../utils/pdfExporter'
+import PDFLoadingIndicator from './PDFLoadingIndicator'
 
 interface ProjectModalProps {
   isOpen: boolean
@@ -62,6 +63,11 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ title, icon, ch
 const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project }) => {
   const { seguimientoPa, ejecucionPresupuestal, productosPa, actividadesPa, equipamientos, infraestructuraVial } = useDataContext()
   const dataContext = useDataContext()
+
+  // Estados para el indicador de progreso del PDF
+  const [isPDFLoading, setIsPDFLoading] = useState(false)
+  const [pdfProgress, setPdfProgress] = useState(0)
+  const [pdfStage, setPdfStage] = useState<'preparing' | 'capturing' | 'generating' | 'downloading' | 'completed'>('preparing')
 
   if (!project) return null
 
@@ -246,10 +252,56 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
     return proyectoData?.bp || bpin.substring(0, 8) // Fallback: primeros 8 dígitos del BPIN
   }
 
-  // Función para exportar PDF
-  const handleExportPDF = () => {
-    if (project) {
-      exportProjectToPDF(project)
+  // Función para exportar PDF con indicador de progreso
+  const handleExportPDF = async () => {
+    if (!project) return
+
+    try {
+      // Iniciar el indicador de progreso
+      setIsPDFLoading(true)
+      setPdfProgress(0)
+      setPdfStage('preparing')
+
+      // Simular progreso de la preparación
+      await new Promise(resolve => setTimeout(resolve, 300))
+      setPdfProgress(20)
+      setPdfStage('capturing')
+
+      // Llamar a la función de exportación con callbacks de progreso
+      await exportProjectToPDF(project, {
+        onCaptureStart: () => {
+          setPdfProgress(40)
+          setPdfStage('capturing')
+        },
+        onGenerateStart: () => {
+          setPdfProgress(70)
+          setPdfStage('generating')
+        },
+        onDownloadStart: () => {
+          setPdfProgress(90)
+          setPdfStage('downloading')
+        },
+        onComplete: () => {
+          setPdfProgress(100)
+          setPdfStage('completed')
+          // Ocultar el indicador después de 2 segundos
+          setTimeout(() => {
+            setIsPDFLoading(false)
+            setPdfProgress(0)
+            setPdfStage('preparing')
+          }, 2000)
+        },
+        onError: () => {
+          setIsPDFLoading(false)
+          setPdfProgress(0)
+          setPdfStage('preparing')
+        }
+      })
+    } catch (error) {
+      console.error('Error en handleExportPDF:', error)
+      setIsPDFLoading(false)
+      setPdfProgress(0)
+      setPdfStage('preparing')
     }
   }
   return (
@@ -852,6 +904,13 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
               </div>
             </div>
           </motion.div>
+          
+          {/* Indicador de progreso para PDF - Fuera del contenido capturable */}
+          <PDFLoadingIndicator 
+            isVisible={isPDFLoading}
+            progress={pdfStage === 'preparing' ? 10 : pdfStage === 'capturing' ? 30 : pdfStage === 'generating' ? 60 : pdfStage === 'downloading' ? 90 : 100}
+            stage={pdfStage}
+          />
         </motion.div>
       )}
     </AnimatePresence>
