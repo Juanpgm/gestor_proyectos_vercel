@@ -95,6 +95,64 @@ export function useMapFilters(
         }
       }
 
+      // Filtro por períodos
+      if (filters.periodos.length > 0) {
+        let matchesPeriod = false
+        
+        for (const periodo of filters.periodos) {
+          // Verificar si es un año específico
+          if (/^\d{4}$/.test(periodo)) {
+            const year = parseInt(periodo)
+            
+            if (unit.startDate) {
+              const startDate = new Date(unit.startDate)
+              if (!isNaN(startDate.getTime()) && startDate.getFullYear() === year) {
+                matchesPeriod = true
+                break
+              }
+            }
+            
+            if (unit.endDate) {
+              const endDate = new Date(unit.endDate)
+              if (!isNaN(endDate.getTime()) && endDate.getFullYear() === year) {
+                matchesPeriod = true
+                break
+              }
+            }
+          }
+          // Verificar si es un rango de períodos (e.g., "2024-2027")
+          else if (/^\d{4}-\d{4}$/.test(periodo)) {
+            const [startYear, endYear] = periodo.split('-').map(y => parseInt(y))
+            
+            if (unit.startDate) {
+              const startDate = new Date(unit.startDate)
+              if (!isNaN(startDate.getTime())) {
+                const unitYear = startDate.getFullYear()
+                if (unitYear >= startYear && unitYear <= endYear) {
+                  matchesPeriod = true
+                  break
+                }
+              }
+            }
+            
+            if (unit.endDate) {
+              const endDate = new Date(unit.endDate)
+              if (!isNaN(endDate.getTime())) {
+                const unitYear = endDate.getFullYear()
+                if (unitYear >= startYear && unitYear <= endYear) {
+                  matchesPeriod = true
+                  break
+                }
+              }
+            }
+          }
+        }
+        
+        if (!matchesPeriod) {
+          return false
+        }
+      }
+
       return true
     })
   }, [unidadesProyecto, filters])

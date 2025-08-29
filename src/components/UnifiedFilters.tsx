@@ -22,7 +22,7 @@ interface FilterState {
   fuentesFinanciamiento: string[]
   fechaInicio?: string | null
   fechaFin?: string | null
-  año?: string
+  periodos: string[] // Cambiado de año: string a periodos: string[] para múltiples selecciones
 }
 
 interface FilterProps {
@@ -46,7 +46,7 @@ const defaultFilters: FilterState = {
   fuentesFinanciamiento: [],
   fechaInicio: null,
   fechaFin: null,
-  año: ''
+  periodos: []
 }
 
 export default function UnifiedFilters({ 
@@ -61,8 +61,10 @@ export default function UnifiedFilters({
   const [searchSuggestions, setSearchSuggestions] = useState<Array<{value: string, type: string, label: string}>>([])
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
   
-  // NUEVO ENFOQUE: un solo estado que controla todo
-  const [searchDropdownState, setSearchDropdownState] = useState<'hidden' | 'visible' | 'force-hidden'>('hidden')
+  // NUEVO ENFOQUE SIMPLIFICADO: solo visible/oculto + timer de auto-ocultamiento
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const suppressSuggestionsRef = useRef(false) // Nuevo flag para suprimir sugerencias temporalmente
   
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
@@ -74,7 +76,7 @@ export default function UnifiedFilters({
     fuente_financiamiento: false,
     filtros_personalizados: false,
     centro_gestor: false,
-    año: false
+    periodo: false
   })
   const [comunasSearch, setComunasSearch] = useState('')
   const [barriosSearch, setBarriosSearch] = useState('')
@@ -117,12 +119,14 @@ export default function UnifiedFilters({
     ...filters
   }
 
-  // Cerrar dropdowns al hacer click fuera
+  // Cerrar dropdowns al hacer click fuera - SIMPLIFICADO
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+    const handleGlobalClick = (event: Event) => {
       const target = event.target as Element
       
-      // Verificar si el click está en algún dropdown (buscar por clases)
+      console.log('🌍 Click global detectado')
+      
+      // Para dropdowns normales
       const isInDropdown = target.closest('[data-dropdown]') || 
                           target.closest('.absolute.top-full') ||
                           target.closest('button[aria-expanded]') ||
@@ -136,25 +140,31 @@ export default function UnifiedFilters({
           fuente_financiamiento: false,
           filtros_personalizados: false,
           centro_gestor: false,
-          año: false
+          periodo: false
         })
       }
       
-      // NUEVO MANEJO SIMPLE para sugerencias de búsqueda
-      const isInSearchArea = searchInputRef.current?.contains(target as Node) || 
-                            suggestionsDropdownRef.current?.contains(target as Node)
+      // Para sugerencias - SIMPLIFICADO
+      const isInSearchInput = searchInputRef.current?.contains(target as Node)
+      const isInSuggestions = suggestionsDropdownRef.current?.contains(target as Node)
       
-      if (!isInSearchArea) {
-        setSearchDropdownState('force-hidden')
+      if (!isInSearchInput && !isInSuggestions) {
+        console.log('❌ Click fuera - programando auto-ocultamiento')
+        scheduleAutoHide(100) // Ocultar rápido
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
+    // Solo un evento
+    document.addEventListener('click', handleGlobalClick, true)
     
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
+      document.removeEventListener('click', handleGlobalClick, true)
+      if (autoHideTimerRef.current) {
+        clearTimeout(autoHideTimerRef.current)
+        autoHideTimerRef.current = null
+      }
+      // Limpiar flag de supresión
+      suppressSuggestionsRef.current = false
     }
   }, [])
 
@@ -162,15 +172,15 @@ export default function UnifiedFilters({
   useEffect(() => {
     const searchTerm = safeFilters.search.trim().toLowerCase()
     
-    // NUEVO CONTROL: Si está forzadamente oculto, no mostrar sugerencias
-    if (searchDropdownState === 'force-hidden') {
-      setSearchSuggestions([])
+    // NUEVA VERIFICACIÓN: Si las sugerencias están suprimidas, no generar
+    if (suppressSuggestionsRef.current) {
+      console.log('🔇 Sugerencias suprimidas temporalmente')
       return
     }
     
     if (searchTerm.length < 2) {
       setSearchSuggestions([])
-      setSearchDropdownState('hidden')
+      setShowSuggestions(false)
       return
     }
 
@@ -218,15 +228,48 @@ export default function UnifiedFilters({
         }
       })
 
-      // 2. Búsqueda en actividades
+      // 2. Búsqueda en centros gestores (prioridad alta)
+      centrosGestores.forEach(centro => {
+        if (centro.toLowerCase().includes(searchTerm) && suggestions.length < 6) {
+          suggestions.push({
+            value: centro,
+            type: 'Centro Gestor',
+            label: `Centro Gestor: ${centro}`
+          })
+        }
+      })
+
+      // 3. Búsqueda en ubicaciones (comunas/barrios) - prioridad alta
+      getComunas().forEach(comuna => {
+        if (comuna.toLowerCase().includes(searchTerm) && suggestions.length < 8) {
+          suggestions.push({
+            value: comuna,
+            type: 'Comuna',
+            label: `Comuna: ${comuna}`
+          })
+        }
+      })
+
+      // 4. Búsqueda en fuentes de financiamiento
+      fuentesFinanciamiento.forEach(fuente => {
+        if (fuente.toLowerCase().includes(searchTerm) && suggestions.length < 10) {
+          suggestions.push({
+            value: fuente,
+            type: 'Fuente',
+            label: `Fuente de Financiamiento: ${fuente}`
+          })
+        }
+      })
+
+      // 5. Búsqueda en actividades
       allProjects.forEach(projectData => {
-        if (suggestions.length >= 6) return
+        if (suggestions.length >= 12) return
         
         const actividades = projectData.actividades || []
         const bpin = projectData.proyecto?.bpin?.toString() || ''
         
         actividades.forEach((actividad: any) => {
-          if (suggestions.length >= 6) return
+          if (suggestions.length >= 12) return
           
           const nombreActividad = actividad.nombre_actividad || ''
           const descripcionActividad = actividad.descripcion_actividad || ''
@@ -244,15 +287,15 @@ export default function UnifiedFilters({
         })
       })
 
-      // 3. Búsqueda en productos
+      // 6. Búsqueda en productos
       allProjects.forEach(projectData => {
-        if (suggestions.length >= 8) return
+        if (suggestions.length >= 14) return
         
         const productos = projectData.productos || []
         const bpin = projectData.proyecto?.bpin?.toString() || ''
         
         productos.forEach((producto: any) => {
-          if (suggestions.length >= 8) return
+          if (suggestions.length >= 14) return
           
           const nombreProducto = producto.nombre_producto || ''
           const descripcionProducto = producto.descripcion_producto || ''
@@ -270,57 +313,36 @@ export default function UnifiedFilters({
         })
       })
 
-      // 4. Búsqueda en centros gestores
-      centrosGestores.forEach(centro => {
-        if (centro.toLowerCase().includes(searchTerm) && suggestions.length < 9) {
+      // 7. Búsqueda en barrios (después de comunas para menor prioridad)
+      const allBarrios = comunasBarrios.flatMap(item => item.barrios)
+      allBarrios.forEach(barrio => {
+        if (barrio.toLowerCase().includes(searchTerm) && suggestions.length < 16) {
           suggestions.push({
-            value: centro,
-            type: 'Centro Gestor',
-            label: centro
+            value: barrio,
+            type: 'Barrio',
+            label: `Barrio: ${barrio}`
           })
         }
       })
 
-      // 5. Búsqueda en ubicaciones (comunas/barrios)
-      getComunas().forEach(comuna => {
-        if (comuna.toLowerCase().includes(searchTerm) && suggestions.length < 10) {
-          suggestions.push({
-            value: comuna,
-            type: 'Comuna',
-            label: comuna
-          })
-        }
-      })
-
-      // 6. Búsqueda en fuentes de financiamiento
-      fuentesFinanciamiento.forEach(fuente => {
-        if (fuente.toLowerCase().includes(searchTerm) && suggestions.length < 10) {
-          suggestions.push({
-            value: fuente,
-            type: 'Fuente',
-            label: fuente
-          })
-        }
-      })
-
-      // 7. Búsqueda general en cualquier campo de texto de los proyectos
-      if (suggestions.length < 10) {
+      // 8. Búsqueda general en cualquier campo de texto de los proyectos (menor prioridad)
+      if (suggestions.length < 16) {
         allProjects.forEach(projectData => {
-          if (suggestions.length >= 10) return
+          if (suggestions.length >= 16) return
           
           const proyecto = projectData.proyecto || {}
           const bpin = proyecto.bpin?.toString() || ''
           
           // Buscar en todos los campos de texto del proyecto
           Object.entries(proyecto).forEach(([key, value]) => {
-            if (suggestions.length >= 10) return
+            if (suggestions.length >= 16) return
             if (typeof value === 'string' && value.toLowerCase().includes(searchTerm)) {
               // Evitar duplicados con campos ya buscados específicamente
               if (!['nombre_proyecto', 'nombre_centro_gestor'].includes(key)) {
                 suggestions.push({
                   value: value,
                   type: 'Datos',
-                  label: `${value} (BPIN: ${bpin})`
+                  label: `${key.replace(/_/g, ' ')}: ${value} (BPIN: ${bpin})`
                 })
               }
             }
@@ -329,37 +351,90 @@ export default function UnifiedFilters({
       }
     }
 
-    // Eliminar duplicados y mostrar hasta 10 sugerencias máximo
+    // Eliminar duplicados y mostrar hasta 16 sugerencias máximo con mejor organización
     const uniqueSuggestions = suggestions.filter((suggestion, index, self) => 
       self.findIndex(s => s.value === suggestion.value && s.type === suggestion.type) === index
     )
     
-    setSearchSuggestions(uniqueSuggestions.slice(0, 10))
-    setSearchDropdownState(uniqueSuggestions.length > 0 ? 'visible' : 'hidden')
+    setSearchSuggestions(uniqueSuggestions.slice(0, 16))
+    setShowSuggestions(uniqueSuggestions.length > 0)
     setSelectedSuggestionIndex(-1)
-  }, [safeFilters.search, centrosGestores, getComunas, comunasBarrios, fuentesFinanciamiento, allProjects, searchDropdownState])
+  }, [safeFilters.search, centrosGestores, getComunas, comunasBarrios, fuentesFinanciamiento, allProjects])
 
-  // Effect para limpiar cuando el dropdown está forzadamente oculto
+  // Effect para debugging del estado de sugerencias
   useEffect(() => {
-    if (searchDropdownState === 'force-hidden') {
-      setSearchSuggestions([])
+    console.log('🔍 Estado showSuggestions cambió a:', showSuggestions)
+    console.log('📝 Número de sugerencias:', searchSuggestions.length)
+    
+    // Si showSuggestions es false, asegurar que todo esté limpio
+    if (!showSuggestions) {
       setSelectedSuggestionIndex(-1)
-      
-      // Volver a estado normal después de un breve momento
-      const timer = setTimeout(() => {
-        setSearchDropdownState('hidden')
-      }, 100)
-      
-      return () => clearTimeout(timer)
+      // No limpiar searchSuggestions aquí para evitar parpadeos
     }
-  }, [searchDropdownState])
+  }, [showSuggestions, searchSuggestions.length])
 
-  // Effect adicional para ocultar sugerencias cuando no hay búsqueda activa
+  // Effect adicional para cleanup agresivo
+  useEffect(() => {
+    // Si no hay sugerencias visibles pero el array no está vacío, limpiarlo
+    if (!showSuggestions && searchSuggestions.length > 0) {
+      console.log('🧹 Limpieza agresiva de sugerencias')
+      setTimeout(() => {
+        if (!showSuggestions) { // Verificar nuevamente después del timeout
+          setSearchSuggestions([])
+        }
+      }, 500) // Delay para evitar parpadeos
+    }
+  }, [showSuggestions, searchSuggestions.length])
+
+  // Effect para limpiar las sugerencias cuando no hay búsqueda activa
   useEffect(() => {
     if (!safeFilters.search || safeFilters.search.trim().length < 2) {
-      setSearchDropdownState('hidden')
+      hideSuggestions()
     }
   }, [safeFilters.search])
+
+  // Función simplificada para ocultar sugerencias
+  const hideSuggestions = () => {
+    console.log('🔥 Ocultando sugerencias')
+    setShowSuggestions(false)
+    setSelectedSuggestionIndex(-1)
+    setSearchSuggestions([])
+    
+    // Limpiar timer si existe
+    if (autoHideTimerRef.current) {
+      clearTimeout(autoHideTimerRef.current)
+      autoHideTimerRef.current = null
+    }
+  }
+
+  // Función para forzar ocultamiento inmediato
+  const forceHideSuggestions = () => {
+    console.log('🚨 Forzando ocultamiento de sugerencias')
+    hideSuggestions()
+    // Quitar foco del input si está activo
+    if (searchInputRef.current) {
+      searchInputRef.current.blur()
+    }
+    
+    // NUEVO: Suprimir sugerencias temporalmente
+    suppressSuggestionsRef.current = true
+    setTimeout(() => {
+      suppressSuggestionsRef.current = false
+      console.log('🔊 Supresión de sugerencias desactivada')
+    }, 1000) // Suprimir por 1 segundo
+  }
+
+  // Función para programar auto-ocultamiento
+  const scheduleAutoHide = (delay = 300) => {
+    if (autoHideTimerRef.current) {
+      clearTimeout(autoHideTimerRef.current)
+    }
+    
+    autoHideTimerRef.current = setTimeout(() => {
+      console.log('⏰ Auto-ocultamiento por timer')
+      hideSuggestions()
+    }, delay)
+  }
 
   // Opciones dinámicas de estado basadas en la sección activa
   const getEstadosOptions = () => {
@@ -472,29 +547,82 @@ export default function UnifiedFilters({
     if (onFiltersChange) {
       onFiltersChange({ ...safeFilters, ...newFilters })
     }
+    
+    // NUEVO: Si se actualiza cualquier filtro, ocultar sugerencias
+    if (showSuggestions) {
+      console.log('🔄 Filtros actualizados - ocultando sugerencias')
+      hideSuggestions()
+    }
   }
 
   // NUEVA función simplificada para forzar ocultamiento
-  const forceHideSuggestions = () => {
-    setSearchDropdownState('force-hidden')
-    setSelectedSuggestionIndex(-1)
-    setSearchSuggestions([])
-  }
-
   const handleSuggestionSelect = (suggestion: {value: string, type: string, label: string}) => {
-    console.log('Seleccionando sugerencia:', suggestion)
+    console.log('✅ Seleccionando sugerencia:', suggestion)
     
-    // NUEVO OCULTAMIENTO INMEDIATO Y SIMPLE
-    setSearchDropdownState('force-hidden')
-    setSelectedSuggestionIndex(-1)
-    setSearchSuggestions([])
-    
-    // Usar el valor de la sugerencia como término de búsqueda
-    updateFilters({ search: suggestion.value })
-    
-    // Quitar foco del input inmediatamente
-    if (searchInputRef.current) {
-      searchInputRef.current.blur()
+    // NUEVA LÓGICA: Generar filtros específicos basados en el tipo de sugerencia
+    switch (suggestion.type) {
+      case 'BPIN':
+      case 'Proyecto':
+      case 'Actividad':
+      case 'Producto':
+      case 'Datos':
+        // Para estos tipos, mantener como búsqueda de texto
+        updateFilters({ search: suggestion.value })
+        // OCULTAR DESPUÉS de actualizar filtros para tipos de búsqueda de texto
+        setTimeout(() => {
+          console.log('🎯 Ocultando sugerencias después de seleccionar proyecto/texto')
+          forceHideSuggestions()
+        }, 100)
+        break
+        
+      case 'Centro Gestor':
+        // Agregar al filtro de centro gestor
+        const currentCentros = safeFilters.centroGestor || []
+        if (!currentCentros.includes(suggestion.value)) {
+          updateFilters({ 
+            centroGestor: [...currentCentros, suggestion.value],
+            search: '' // Limpiar búsqueda
+          })
+        }
+        // Ocultar inmediatamente para filtros específicos
+        forceHideSuggestions()
+        break
+        
+      case 'Comuna':
+        // Agregar al filtro de comunas
+        const currentComunas = safeFilters.comunas || []
+        if (!currentComunas.includes(suggestion.value)) {
+          updateFilters({ 
+            comunas: [...currentComunas, suggestion.value],
+            search: '' // Limpiar búsqueda
+          })
+        }
+        // Ocultar inmediatamente para filtros específicos
+        forceHideSuggestions()
+        break
+        
+      case 'Fuente':
+        // Agregar al filtro de fuentes de financiamiento
+        const currentFuentes = safeFilters.fuentesFinanciamiento || []
+        if (!currentFuentes.includes(suggestion.value)) {
+          updateFilters({ 
+            fuentesFinanciamiento: [...currentFuentes, suggestion.value],
+            search: '' // Limpiar búsqueda
+          })
+        }
+        // Ocultar inmediatamente para filtros específicos
+        forceHideSuggestions()
+        break
+        
+      default:
+        // Para tipos no reconocidos, usar como búsqueda de texto
+        updateFilters({ search: suggestion.value })
+        // OCULTAR DESPUÉS de actualizar filtros para tipos de búsqueda de texto
+        setTimeout(() => {
+          console.log('🎯 Ocultando sugerencias después de seleccionar default/texto')
+          forceHideSuggestions()
+        }, 100)
+        break
     }
   }
 
@@ -502,14 +630,22 @@ export default function UnifiedFilters({
     updateFilters({ search: value })
     setSelectedSuggestionIndex(-1)
     
-    // Resetear estado a normal cuando el usuario escriba
-    if (searchDropdownState === 'force-hidden') {
-      setSearchDropdownState('hidden')
+    // Cancelar timer de auto-ocultamiento si existe
+    if (autoHideTimerRef.current) {
+      clearTimeout(autoHideTimerRef.current)
+      autoHideTimerRef.current = null
+    }
+    
+    // Mostrar sugerencias si hay suficiente texto
+    if (value.trim().length >= 2) {
+      setShowSuggestions(true)
+    } else {
+      hideSuggestions()
     }
   }
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (!showSearchSuggestions || searchSuggestions.length === 0) return
+    if (!showSuggestions || searchSuggestions.length === 0) return
 
     switch (e.key) {
       case 'ArrowDown':
@@ -530,11 +666,11 @@ export default function UnifiedFilters({
           handleSuggestionSelect(searchSuggestions[selectedSuggestionIndex])
         } else {
           // Si no hay sugerencia seleccionada, solo ocultar las sugerencias
-          setSearchDropdownState('force-hidden')
+          forceHideSuggestions()
         }
         break
       case 'Escape':
-        setSearchDropdownState('force-hidden')
+        forceHideSuggestions()
         break
     }
   }
@@ -543,7 +679,7 @@ export default function UnifiedFilters({
     if (onFiltersChange) {
       onFiltersChange(defaultFilters)
       // cerrar dropdowns al limpiar
-      setOpenDropdowns({ estado: false, comunas_barrios: false, corregimientos_veredas: false, fuente_financiamiento: false, filtros_personalizados: false, centro_gestor: false, año: false })
+      setOpenDropdowns({ estado: false, comunas_barrios: false, corregimientos_veredas: false, fuente_financiamiento: false, filtros_personalizados: false, centro_gestor: false, periodo: false })
       // limpiar valores de búsqueda
       setComunasSearch('')
       setBarriosSearch('')
@@ -553,7 +689,7 @@ export default function UnifiedFilters({
       setCentroGestorSearch('')
       setFiltrosPersonalizadosSearch('')
       // ocultar sugerencias de búsqueda
-      setSearchDropdownState('hidden')
+      setShowSuggestions(false)
     }
   }
 
@@ -567,6 +703,7 @@ export default function UnifiedFilters({
     if (safeFilters.corregimientos && safeFilters.corregimientos.length > 0) count++
     if (safeFilters.veredas && safeFilters.veredas.length > 0) count++
     if (safeFilters.fuentesFinanciamiento && safeFilters.fuentesFinanciamiento.length > 0) count++
+    if (safeFilters.periodos && safeFilters.periodos.length > 0) count++
     return count
   }
 
@@ -641,6 +778,13 @@ export default function UnifiedFilters({
           updateFilters({ filtrosPersonalizados: [] })
         }
         break
+      case 'periodos':
+        if (value) {
+          updateFilters({ periodos: safeFilters.periodos.filter(p => p !== value) })
+        } else {
+          updateFilters({ periodos: [] })
+        }
+        break
     }
   }
 
@@ -657,7 +801,7 @@ export default function UnifiedFilters({
     }
   }
 
-  const toggleDropdown = (type: 'estado' | 'comunas_barrios' | 'corregimientos_veredas' | 'fuente_financiamiento' | 'filtros_personalizados' | 'centro_gestor' | 'año') => {
+  const toggleDropdown = (type: 'estado' | 'comunas_barrios' | 'corregimientos_veredas' | 'fuente_financiamiento' | 'filtros_personalizados' | 'centro_gestor' | 'periodo') => {
     setOpenDropdowns(prev => {
       const newValue = !prev[type]
       return {
@@ -680,9 +824,16 @@ export default function UnifiedFilters({
     }
   }
 
-  const handleAñoChange = (año: string) => {
-    updateFilters({ año })
-    setOpenDropdowns(prev => ({ ...prev, año: false }))
+  const handlePeriodoChange = (periodo: string, checked: boolean) => {
+    const currentPeriodos = safeFilters.periodos || []
+    
+    if (checked) {
+      const updatedPeriodos = [...currentPeriodos, periodo]
+      updateFilters({ periodos: updatedPeriodos })
+    } else {
+      const updatedPeriodos = currentPeriodos.filter(p => p !== periodo)
+      updateFilters({ periodos: updatedPeriodos })
+    }
   }
 
   const handleComunaChange = (comuna: string, checked: boolean) => {
@@ -848,62 +999,73 @@ export default function UnifiedFilters({
                   onChange={(e) => handleSearchInputChange(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   onFocus={() => {
-                    // Permitir mostrar sugerencias solo si no estamos en estado force-hidden
-                    if (searchDropdownState !== 'force-hidden' && 
-                        safeFilters.search.trim().length >= 2 && 
-                        searchSuggestions.length > 0) {
-                      setSearchDropdownState('visible')
+                    console.log('🎯 Input enfocado')
+                    // Cancelar auto-ocultamiento
+                    if (autoHideTimerRef.current) {
+                      clearTimeout(autoHideTimerRef.current)
+                      autoHideTimerRef.current = null
+                    }
+                    
+                    // Mostrar sugerencias si hay suficiente texto y hay sugerencias disponibles
+                    if (safeFilters.search.trim().length >= 2 && searchSuggestions.length > 0) {
+                      setShowSuggestions(true)
                     }
                   }}
-                  onBlur={(e) => {
-                    // Verificar si el focus se está moviendo a una sugerencia
-                    const relatedTarget = e.relatedTarget as Element
-                    const isMovingToSuggestion = relatedTarget && 
-                      suggestionsDropdownRef.current?.contains(relatedTarget as Node)
-                    
-                    if (!isMovingToSuggestion) {
-                      // Si no se está moviendo a una sugerencia, ocultar inmediatamente
-                      setTimeout(() => {
-                        setSearchDropdownState('force-hidden')
-                      }, 100)
-                    }
+                  onBlur={() => {
+                    console.log('😴 Input desenfocado')
+                    // Programar ocultamiento con delay para permitir clicks en sugerencias
+                    scheduleAutoHide(200)
                   }}
                   placeholder="Buscar por BPIN (optimizado), nombre del proyecto, centro gestor, comuna, barrio, fuente..."
                   className="w-full border-0 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-0 text-sm"
                 />
                 
-                {/* Dropdown de sugerencias */}
-                {searchDropdownState === 'visible' && searchSuggestions.length > 0 && (
+                {/* Dropdown de sugerencias - SIMPLIFICADO */}
+                {showSuggestions && searchSuggestions.length > 0 && (
                   <div 
                     ref={suggestionsDropdownRef} 
                     className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-2xl z-[99999] max-h-80 overflow-y-auto ring-1 ring-black ring-opacity-5 backdrop-blur-sm"
-                    onMouseDown={(e) => {
-                      // Prevenir que el mousedown en el dropdown oculte prematuramente
-                      e.preventDefault()
+                    onMouseEnter={() => {
+                      console.log('🐭 Mouse entró en sugerencias')
+                      // Cancelar auto-ocultamiento cuando el mouse está sobre las sugerencias
+                      if (autoHideTimerRef.current) {
+                        clearTimeout(autoHideTimerRef.current)
+                        autoHideTimerRef.current = null
+                      }
                     }}
-                    onBlur={() => {
-                      // Ocultamiento agresivo en blur
-                      setTimeout(() => setSearchDropdownState('force-hidden'), 100)
+                    onMouseLeave={() => {
+                      console.log('🐭 Mouse salió de sugerencias')
+                      // Programar ocultamiento cuando el mouse sale
+                      scheduleAutoHide(300)
                     }}
                   >
                     <div className="p-2">
-                      <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-1 uppercase tracking-wide">
-                        {/^\d+$/.test(safeFilters.search.trim()) ? 'Resultados BPIN (Optimizado)' : 'Filtros Sugeridos'}
+                      <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-1 uppercase tracking-wide border-b border-gray-200 dark:border-gray-600 mb-2">
+                        <span>
+                          {/^\d+$/.test(safeFilters.search.trim()) ? 'Resultados BPIN (Optimizado)' : 'Filtros Sugeridos - Click para Aplicar'}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            console.log('❌ Botón cerrar clickeado')
+                            e.preventDefault()
+                            e.stopPropagation()
+                            forceHideSuggestions()
+                          }}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                          title="Cerrar sugerencias"
+                        >
+                          ✕
+                        </button>
                       </div>
                       {searchSuggestions.map((suggestion, index) => (
                         <button
                           key={`${suggestion.type}-${suggestion.value}-${index}`}
-                          onMouseDown={(e) => {
-                            // Prevenir comportamiento por defecto
+                          onClick={(e) => {
+                            console.log('✅ Click en sugerencia:', suggestion.type)
                             e.preventDefault()
                             e.stopPropagation()
                             
                             // Ejecutar selección inmediatamente
-                            handleSuggestionSelect(suggestion)
-                          }}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
                             handleSuggestionSelect(suggestion)
                           }}
                           className={`w-full text-left px-3 py-3 rounded-md transition-colors duration-200 flex items-start gap-3 group ${
@@ -920,12 +1082,14 @@ export default function UnifiedFilters({
                           <div className="flex-shrink-0">
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               suggestion.type === 'BPIN' ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300 border border-cyan-300 font-semibold' :
-                              suggestion.type === 'Centro Gestor' ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300' :
-                              suggestion.type === 'Comuna' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                              suggestion.type === 'Barrio' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
-                              suggestion.type === 'Fuente' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' :
-                              suggestion.type === 'Proyecto' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-300' :
-                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                              suggestion.type === 'Centro Gestor' ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300 border border-teal-300' :
+                              suggestion.type === 'Comuna' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 border border-blue-300' :
+                              suggestion.type === 'Barrio' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 border border-green-300' :
+                              suggestion.type === 'Fuente' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300 border border-purple-300' :
+                              suggestion.type === 'Proyecto' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-300 border border-pink-300' :
+                              suggestion.type === 'Actividad' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300 border border-orange-300' :
+                              suggestion.type === 'Producto' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300 border border-yellow-600' :
+                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border border-gray-300'
                             }`}>
                               {suggestion.type}
                             </span>
@@ -937,16 +1101,34 @@ export default function UnifiedFilters({
                 )}
               </div>
               {safeFilters.search && (
-                <button
-                  onClick={() => {
-                    updateFilters({ search: '' })
-                    setSearchDropdownState('hidden')
-                  }}
-                  className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
-                  aria-label="Limpiar búsqueda"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      updateFilters({ search: '' })
+                      forceHideSuggestions()
+                    }}
+                    className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  
+                  {/* BOTÓN DE EMERGENCIA para cerrar sugerencias */}
+                  {showSuggestions && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        console.log('🚨 BOTÓN DE EMERGENCIA clickeado')
+                        forceHideSuggestions()
+                      }}
+                      className="flex-shrink-0 bg-red-100 hover:bg-red-200 text-red-600 text-xs px-2 py-1 rounded transition-colors duration-200"
+                      title="Cerrar sugerencias (emergencia)"
+                    >
+                      ✕ Cerrar
+                    </button>
+                  )}
+                </div>
               )}
             </div>
             {safeFilters.search && (
@@ -1024,50 +1206,72 @@ export default function UnifiedFilters({
               )}
             </div>
 
-            {/* Dropdown de Año - 20% del espacio */}
-            <div className="relative w-1/5" data-dropdown="año">
+            {/* Dropdown de Período - 20% del espacio */}
+            <div className="relative w-1/5" data-dropdown="periodo">
               <button
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  toggleDropdown('año')
+                  toggleDropdown('periodo')
                 }}
                 className="flex items-center justify-between w-full px-2 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
-                aria-expanded={openDropdowns.año}
+                aria-expanded={openDropdowns.periodo}
               >
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                  Año {safeFilters.año ? `(${safeFilters.año})` : ''}
+                  Período {safeFilters.periodos && safeFilters.periodos.length > 0 ? `(${safeFilters.periodos.length})` : ''}
                 </span>
-                <ChevronDown className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ml-1 flex-shrink-0 ${openDropdowns.año ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ml-1 flex-shrink-0 ${openDropdowns.periodo ? 'rotate-180' : ''}`} />
               </button>
 
-              {openDropdowns.año && (
+              {openDropdowns.periodo && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-60 overflow-y-auto">
                   <div className="p-2">
                     <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1 border-b border-gray-200 dark:border-gray-600">
+                        Filtrar por Año
+                      </div>
                       {['2024', '2025', '2026', '2027'].map(año => (
-                        <button
+                        <label
                           key={año}
-                          onClick={() => {
-                            handleAñoChange(año)
-                            setOpenDropdowns(prev => ({ ...prev, año: false }))
-                          }}
-                          className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                            safeFilters.año === año ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
-                          }`}
+                          className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
                         >
-                          {año}
-                        </button>
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            checked={safeFilters.periodos?.includes(año) || false}
+                            onChange={(e) => handlePeriodoChange(año, e.target.checked)}
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{año}</span>
+                        </label>
                       ))}
-                      {safeFilters.año && (
+                      
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1 border-b border-t border-gray-200 dark:border-gray-600 mt-2">
+                        Filtrar por Período
+                      </div>
+                      {['2024-2027', '2020-2023', '2016-2019'].map(periodo => (
+                        <label
+                          key={periodo}
+                          className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                            checked={safeFilters.periodos?.includes(periodo) || false}
+                            onChange={(e) => handlePeriodoChange(periodo, e.target.checked)}
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{periodo}</span>
+                        </label>
+                      ))}
+                      
+                      {safeFilters.periodos && safeFilters.periodos.length > 0 && (
                         <button
                           onClick={() => {
-                            handleAñoChange('')
-                            setOpenDropdowns(prev => ({ ...prev, año: false }))
+                            updateFilters({ periodos: [] })
+                            setOpenDropdowns(prev => ({ ...prev, periodo: false }))
                           }}
-                          className="w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-red-600 dark:text-red-400"
+                          className="w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-red-600 dark:text-red-400 border-t border-gray-200 dark:border-gray-600 mt-1 pt-2"
                         >
-                          Limpiar filtro
+                          Limpiar todos los períodos
                         </button>
                       )}
                     </div>
@@ -1539,6 +1743,16 @@ export default function UnifiedFilters({
                     <Filter className="w-3 h-3" />
                     {filtro}
                     <button onClick={() => removeFilter('filtrosPersonalizados', filtro)} className="hover:bg-pink-200 dark:hover:bg-pink-800 rounded-full p-1 transition-colors duration-200">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+
+                {safeFilters.periodos?.map(periodo => (
+                  <span key={periodo} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-sm rounded-full border border-indigo-200 dark:border-indigo-700">
+                    <Calendar className="w-3 h-3" />
+                    {periodo}
+                    <button onClick={() => removeFilter('periodos', periodo)} className="hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded-full p-1 transition-colors duration-200">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
