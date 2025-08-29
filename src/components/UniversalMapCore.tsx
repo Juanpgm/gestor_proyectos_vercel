@@ -370,7 +370,7 @@ const MapControls: React.FC<{
 // Componente principal
 const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
   layers,
-  baseMapUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  baseMapUrl,
   baseMapAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   height = '600px',
   onLayerToggle,
@@ -391,6 +391,15 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
 
   // Calcular colores dinámicos para cada capa
   const dynamicLayerColors = useMemo(() => getLayerColors(layers), [layers])
+
+  // Determinar URL del mapa base según el tema si no se proporciona una específica
+  const finalBaseMapUrl = useMemo(() => {
+    if (baseMapUrl) return baseMapUrl
+    
+    return theme === 'dark' 
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+  }, [baseMapUrl, theme])
 
   // Verificar que Leaflet esté cargado
   useEffect(() => {
@@ -1367,7 +1376,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
         {/* Capa base */}
         <TileLayer
           attribution={baseMapAttribution}
-          url={baseMapUrl}
+          url={finalBaseMapUrl}
         />
 
         {/* Renderizar capas GeoJSON */}

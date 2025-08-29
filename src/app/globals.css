@@ -4,25 +4,64 @@
 
 @layer base {
   :root {
-    --cali-blue: #1E40AF;
-    --cali-green: #10B981;
-    --cali-red: #EF4444;
-    --cali-yellow: #F59E0B;
-    --cali-gray: #6B7280;
+    /* Sistema de colores principal */
+    --projects-primary: #2563eb;
+    --projects-light: #3b82f6;
+    --projects-bg: #dbeafe;
+    
+    --units-primary: #059669;
+    --units-light: #10b981;
+    --units-bg: #d1fae5;
+    
+    --activities-primary: #dc2626;
+    --activities-light: #ef4444;
+    --activities-bg: #fee2e2;
+    
+    --products-primary: #ea580c;
+    --products-light: #f97316;
+    --products-bg: #fed7aa;
+    
+    --contracts-primary: #7c3aed;
+    --contracts-light: #8b5cf6;
+    --contracts-bg: #ede9fe;
+    
+    /* Variables legacy */
+    --cali-blue: #2563eb;
+    --cali-green: #059669;
+    --cali-red: #dc2626;
+    --cali-orange: #ea580c;
+    --cali-purple: #7c3aed;
+    --cali-gray: #6b7280;
   }
 
   * {
-    @apply border-gray-200;
+    @apply border-gray-200 dark:border-gray-700;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
     font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.6;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   }
 
-  .dark body {
-    @apply bg-gray-900 text-gray-100;
+  /* Tipografía responsiva mejorada */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-gray-900 dark:text-white;
+    line-height: 1.25;
   }
+
+  h1 { @apply text-2xl sm:text-3xl md:text-4xl; }
+  h2 { @apply text-xl sm:text-2xl md:text-3xl; }
+  h3 { @apply text-lg sm:text-xl md:text-2xl; }
+  h4 { @apply text-base sm:text-lg md:text-xl; }
+  h5 { @apply text-sm sm:text-base md:text-lg; }
+  h6 { @apply text-xs sm:text-sm md:text-base; }
+
+  /* Texto responsive */
+  .text-responsive-lg { @apply text-base sm:text-lg md:text-xl; }
+  .text-responsive { @apply text-sm sm:text-base; }
+  .text-responsive-sm { @apply text-xs sm:text-sm; }
 }
 
 @layer utilities {

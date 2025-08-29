@@ -5,6 +5,9 @@ import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import StatsCards from '@/components/StatsCards'
 import BudgetAnalysisChart from '@/components/BudgetAnalysisChart'
+import ModernBudgetAnalysis from '@/components/ModernBudgetAnalysis'
+import IntegratedAnalysisDashboard from '@/components/IntegratedAnalysisDashboard'
+import OptimizedProjectSection from '@/components/OptimizedProjectSection'
 import dynamic from 'next/dynamic'
 import UnifiedMapInterface from '@/components/UnifiedMapInterface'
 import SimpleMapLayout from '@/components/SimpleMapLayout'
@@ -28,18 +31,16 @@ import ProductosStats from '@/components/ProductosStats'
 import ProductosCharts from '@/components/ProductosCharts'
 import ProjectInterventionMetrics from '@/components/ProjectInterventionMetrics'
 import CentrosGravedadMetrics from '@/components/CentrosGravedadMetrics'
-import ProjectsOverviewCompact from '@/components/ProjectsOverviewCompact'
 import { 
   BarChart3, 
   Map as MapIcon, 
   Table, 
   Filter,
   TrendingUp,
-  PieChart,
-  FileText,
-  Activity,
-  Package
+  PieChart
 } from 'lucide-react'
+import { CATEGORIES, ANIMATIONS } from '@/lib/design-system'
+import MobileNavigation from '@/components/MobileNavigation'
 
 // Componentes dinámicos
 const ChoroplethMapInteractive = dynamic(() => import('@/components/ChoroplethMapInteractive'), { ssr: false })
@@ -421,13 +422,7 @@ function DashboardContent() {
     }
   }, [filteredProductos])
 
-  const tabs = [
-    { id: 'projects' as const, label: 'Proyectos', icon: Table },
-    { id: 'project_units' as const, label: 'Unidades de Proyecto', icon: MapIcon },
-    { id: 'activities' as const, label: 'Actividades', icon: Activity },
-    { id: 'products' as const, label: 'Productos', icon: Package },
-    { id: 'contracts' as const, label: 'Contratos', icon: FileText, disabled: true }
-  ]
+
 
   const renderContent = () => {
     // Mostrar estado de carga unificado - usar preloader global como fuente principal
@@ -486,26 +481,6 @@ function DashboardContent() {
               {/* TABLA DE PROYECTOS - Elemento principal (100% del ancho) */}
               <div className="xl:col-span-4 order-1">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col">
-                  {/* Header de la tabla */}
-                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                          <Table className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                            Proyectos de Inversión
-                          </h2>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Gestión y seguimiento de proyectos municipales
-                          </p>
-                        </div>
-                      </div>
-                      <ProjectsOverviewCompact className="w-64" />
-                    </div>
-                  </div>
-                  
                   {/* Contenido de la tabla */}
                   <div className="overflow-hidden">
                     <ProjectsTable className="w-full" />
@@ -514,15 +489,8 @@ function DashboardContent() {
               </div>
             </div>
             
-            {/* Análisis Presupuestal debajo de la tabla */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="xl:col-span-1">
-                <BudgetAnalysisChart />
-              </div>
-              <div className="xl:col-span-1">
-                <ChoroplethMapInteractive />
-              </div>
-            </div>
+            {/* Sección Optimizada de Análisis de Proyectos */}
+            <OptimizedProjectSection />
           </div>
         )
 
@@ -692,52 +660,19 @@ function DashboardContent() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <Header />
       
-      <main className={`px-6 py-8 ${activeTab === 'project_units' ? 'max-w-none mx-4' : 'container mx-auto'}`}>
-        {/* Navigation Tabs */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <div className="flex items-center space-x-1 bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-100 dark:border-gray-700">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isDisabled = tab.disabled
-              
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => !isDisabled && setActiveTab(tab.id)}
-                  disabled={isDisabled}
-                  className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    isDisabled
-                      ? 'text-gray-400 dark:text-gray-600 opacity-50 cursor-not-allowed'
-                      : activeTab === tab.id
-                      ? 'bg-blue-500 text-white shadow-md'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                  title={isDisabled ? 'Disponible próximamente' : ''}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                  {isDisabled && (
-                    <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full ml-1">
-                      Próximamente
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </motion.div>
+      <main className={`px-4 md:px-6 py-6 md:py-8 ${activeTab === 'project_units' ? 'max-w-none mx-2 md:mx-4' : 'container mx-auto'}`}>
+        {/* Navigation Tabs - Ahora responsivo */}
+        <MobileNavigation 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         {/* Filtros Transversales - Aparecen en todas las pestañas */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-8"
+          className="mb-6"
         >
           <UnifiedFilters 
             filters={filters}

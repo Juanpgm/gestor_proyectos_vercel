@@ -45,6 +45,15 @@ const ChoroplethMapInteractive: React.FC<ChoroplethMapProps> = ({
   const projectsData = unidadesState.unidadesProyecto || []
   const projectsLoading = unidadesState.loading
 
+  // URLs de tiles base según el tema
+  const baseMapUrl = useMemo(() => {
+    return theme === 'dark' 
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+  }, [theme])
+
+  const baseMapAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+
   // Cargar datos GeoJSON
   useEffect(() => {
     const loadGeoData = async () => {
@@ -165,6 +174,9 @@ const ChoroplethMapInteractive: React.FC<ChoroplethMapProps> = ({
         height={height}
         enableFullscreen={true}
         enableCenterView={true}
+        baseMapUrl={baseMapUrl}
+        baseMapAttribution={baseMapAttribution}
+        theme={theme}
       />
     </div>
   )
