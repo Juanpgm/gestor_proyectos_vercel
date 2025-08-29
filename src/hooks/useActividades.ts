@@ -32,6 +32,7 @@ interface UseActividadesReturn {
   completedActivities: number
   inProgressActivities: number
   notStartedActivities: number
+  activitiesWithoutDates: number  // Nueva métrica
   averageProgress: number
 }
 
@@ -87,15 +88,26 @@ export function useActividades(): UseActividadesReturn {
         completedActivities: 0,
         inProgressActivities: 0,
         notStartedActivities: 0,
+        activitiesWithoutDates: 0,
         averageProgress: 0
       }
     }
 
     const totalBudget = actividades.reduce((sum, actividad) => sum + actividad.ppto_modificado_actividad, 0)
     
-    const completedActivities = actividades.filter(a => a.avance_actividad === 1).length
-    const inProgressActivities = actividades.filter(a => a.avance_actividad > 0 && a.avance_actividad < 1).length
-    const notStartedActivities = actividades.filter(a => a.avance_actividad === 0).length
+    // Separar actividades sin fechas
+    const activitiesWithoutDates = actividades.filter(a => 
+      !a.fecha_inicio_actividad || !a.fecha_fin_actividad
+    ).length
+    
+    // Para el resto de métricas, considerar solo actividades con fechas
+    const activitiesWithDates = actividades.filter(a => 
+      a.fecha_inicio_actividad && a.fecha_fin_actividad
+    )
+    
+    const completedActivities = activitiesWithDates.filter(a => a.avance_actividad === 1).length
+    const inProgressActivities = activitiesWithDates.filter(a => a.avance_actividad > 0 && a.avance_actividad < 1).length
+    const notStartedActivities = activitiesWithDates.filter(a => a.avance_actividad === 0).length
     
     const averageProgress = actividades.reduce((sum, a) => sum + a.avance_actividad, 0) / actividades.length
 
@@ -104,6 +116,7 @@ export function useActividades(): UseActividadesReturn {
       completedActivities,
       inProgressActivities,
       notStartedActivities,
+      activitiesWithoutDates,
       averageProgress
     }
   }, [actividades])

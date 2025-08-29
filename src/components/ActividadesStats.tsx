@@ -19,6 +19,7 @@ interface ActividadesStatsProps {
   completedActivities: number
   inProgressActivities: number
   notStartedActivities: number
+  activitiesWithoutDates?: number  // Nueva propiedad opcional
   averageProgress: number
   loading?: boolean
 }
@@ -28,6 +29,7 @@ export default function ActividadesStats({
   completedActivities,
   inProgressActivities,
   notStartedActivities,
+  activitiesWithoutDates = 0,
   averageProgress,
   loading = false
 }: ActividadesStatsProps) {
@@ -71,6 +73,16 @@ export default function ActividadesStats({
       iconColor: 'text-red-600 dark:text-red-400',
       textColor: 'text-red-900 dark:text-red-100'
     },
+    ...(activitiesWithoutDates > 0 ? [{
+      title: 'Sin Fechas',
+      value: activitiesWithoutDates.toLocaleString(),
+      subtitle: `${totalActividades > 0 ? ((activitiesWithoutDates / totalActividades) * 100).toFixed(1) : 0}%`,
+      icon: Calendar,
+      color: 'orange',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+      iconColor: 'text-orange-600 dark:text-orange-400',
+      textColor: 'text-orange-900 dark:text-orange-100'
+    }] : []),
     {
       title: 'Progreso Promedio',
       value: `${(averageProgress * 100).toFixed(1)}%`,
@@ -84,8 +96,8 @@ export default function ActividadesStats({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        {[...Array(5)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        {[...Array(6)].map((_, i) => (
           <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 animate-pulse">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -101,7 +113,7 @@ export default function ActividadesStats({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
       {stats.map((stat, index) => {
         const Icon = stat.icon
         return (

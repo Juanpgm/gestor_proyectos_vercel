@@ -81,11 +81,23 @@ export default function ActividadesTable({
     }
   }
 
-  const getActivityState = (progress: number | null | undefined): { label: string, color: string } => {
-    if (!progress) return { label: 'No Iniciada', color: 'bg-gray-100 text-gray-800' }
-    if (progress === 1) return { label: 'Completada', color: 'bg-green-100 text-green-800' }
-    if (progress >= 0.8) return { label: 'Cercana a Terminar', color: 'bg-yellow-100 text-yellow-800' }
-    return { label: 'En Ejecución', color: 'bg-blue-100 text-blue-800' }
+  const getActivityState = (actividad: Actividad): { label: string, color: string } => {
+    const progress = actividad.avance_actividad || 0
+    const startDate = actividad.fecha_inicio_actividad ? new Date(actividad.fecha_inicio_actividad) : null
+    const endDate = actividad.fecha_fin_actividad ? new Date(actividad.fecha_fin_actividad) : null
+
+    // Si no tiene fechas para comparar (cualquiera de las dos fechas faltante)
+    if (!startDate || !endDate) {
+      return { 
+        label: 'La tarea no posee fecha de inicio o fin', 
+        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' 
+      }
+    }
+
+    if (!progress) return { label: 'No Iniciada', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' }
+    if (progress === 1) return { label: 'Completada', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' }
+    if (progress >= 0.8) return { label: 'Cercana a Terminar', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' }
+    return { label: 'En Ejecución', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' }
   }
 
   // Ordenamiento
@@ -207,7 +219,7 @@ export default function ActividadesTable({
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedActividades.map((actividad) => {
-                const activityState = getActivityState(actividad.avance_actividad)
+                const activityState = getActivityState(actividad)
                 const progress = (actividad.avance_actividad || 0) * 100
                 
                 return (

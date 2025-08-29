@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import ProjectModal from './ProjectModal'
 import { useDataContext } from '@/context/DataContext'
+import { formatCurrency, formatCurrencyFull } from '../utils/formatCurrency'
 
 export interface Project {
   id: string
@@ -206,20 +207,6 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
     }
   }
 
-  const formatCurrencyShort = (value: number) => {
-    if (value >= 1000000000) {
-      return `$${(value / 1000000000).toFixed(1).replace('.', ',')}B`
-    } else if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(0)}M`
-    }
-    return `$${value.toLocaleString('de-DE')}`
-  }
-
-  const formatCurrencyFull = (value: number) => {
-    if (!mounted) return value.toString()
-    return `$${value.toLocaleString('de-DE')} COP`
-  }
-
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
@@ -297,27 +284,32 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
       transition={{ duration: 0.6 }}
       className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 transition-colors duration-300 ${className}`}
     >
-      {/* Header */}
+      {/* Header más compacto */}
       <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-        <div className="mb-2">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">
-            Registro de Proyectos
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {sortedProjects.length} proyectos encontrados
-          </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+              Proyectos
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {sortedProjects.length} proyectos encontrados
+            </p>
+          </div>
+          <div className="text-sm text-gray-500">
+            Página {currentPage} de {totalPages}
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto w-full">
+      {/* Table con altura fija y scroll */}
+      <div className="overflow-x-auto w-full max-h-[700px] overflow-y-auto">
         <table className="w-full table-fixed min-w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
             <tr>
               <th 
                 className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('name')}
-                style={{ width: '48%' }}
+                style={{ width: '50%' }}
               >
                 <div className="flex items-center space-x-1">
                   <span>Proyecto</span>
@@ -325,9 +317,9 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                 </div>
               </th>
               <th 
-                className="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('status')}
-                style={{ width: '12%' }}
+                style={{ width: '22%' }}
               >
                 <div className="flex items-center justify-center space-x-1">
                   <span>Estado</span>
@@ -335,19 +327,9 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                 </div>
               </th>
               <th 
-                className="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('comuna')}
-                style={{ width: '14%' }}
-              >
-                <div className="flex items-center justify-center space-x-1">
-                  <span>Ubicación</span>
-                  {getSortIcon('comuna')}
-                </div>
-              </th>
-              <th 
-                className="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('progress')}
-                style={{ width: '20%' }}
+                style={{ width: '21%' }}
               >
                 <div className="flex items-center justify-center space-x-1">
                   <span>Progreso</span>
@@ -355,10 +337,10 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                 </div>
               </th>
               <th 
-                className="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                style={{ width: '6%' }}
+                className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                style={{ width: '7%' }}
               >
-                VER
+                Ver
               </th>
             </tr>
           </thead>
@@ -370,54 +352,53 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                 animate={{ opacity: 1 }}
                 className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
               >
-        <td className="px-3 py-3 align-top" style={{ width: '48%' }}>
+                <td className="px-2 py-3 align-top" style={{ width: '50%' }}>
                   <div>
-                    {/* Nombre del proyecto - comprimido */}
+                    {/* Nombre del proyecto */}
                     <div className="text-sm font-semibold text-gray-900 dark:text-white leading-tight mb-1 break-words">
                       {project.name}
                     </div>
                     
-                    {/* BPIN - más comprimido */}
+                    {/* BPIN */}
                     <div className="text-xs mb-1">
                       <span className="text-gray-500 dark:text-gray-400">BPIN:</span>
                       <span className="ml-1 text-blue-700 dark:text-blue-300 font-medium">{project.bpin}</span>
                     </div>
 
-                    {/* Presupuesto modificado - comprimido */}
+                    {/* Ubicación */}
+                    <div className="text-xs mb-1">
+                      <div className="font-medium text-gray-700 dark:text-gray-300">
+                        {project.comuna && `${project.comuna}`}
+                        {project.corregimiento && `${project.corregimiento}`}
+                      </div>
+                      {(project.barrio || project.vereda) && (
+                        <div className="text-gray-500 dark:text-gray-400">
+                          {project.barrio || project.vereda}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Presupuesto */}
                     <div className="mb-1">
                       <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{formatCurrencyFull(project.budget)}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Beneficiarios: {formatNumber(project.beneficiaries)}</div>
                     </div>
                     
-                    {/* Centro gestor - en cursiva y comprimido */}
+                    {/* Centro gestor */}
                     <div className="text-xs text-gray-600 dark:text-gray-400 font-medium italic break-words">
                       {project.responsible}
                     </div>
                   </div>
                 </td>
-                <td className="px-2 py-3 align-middle text-center" style={{ width: '12%' }}>
+                <td className="px-2 py-3 align-middle text-center" style={{ width: '18%' }}>
                   <div className="flex justify-center">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(project.status)}`}>
                       {project.status}
                     </span>
                   </div>
                 </td>
-                <td className="px-2 py-3 align-middle text-center" style={{ width: '14%' }}>
-                  <div className="mx-auto">
-                    <div className="font-medium break-words text-xs text-gray-900 dark:text-white">
-                      {project.comuna && `${project.comuna}`}
-                      {project.corregimiento && `${project.corregimiento}`}
-                    </div>
-                    {(project.barrio || project.vereda) && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 break-words">
-                        {project.barrio || project.vereda}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                {/* Progreso: física y financiera apiladas en una sola celda (accesible) */}
-                <td className="px-2 py-3 align-middle" style={{ width: '20%' }}>
-                  <div className="space-y-1">
+                {/* Progreso: física y financiera */}
+                <td className="px-2 py-3 align-middle" style={{ width: '25%' }}>
+                  <div className="space-y-2">
                     <div>
                       {(() => {
                         const physicalPct = Number(project.progress)
@@ -425,10 +406,10 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                         const physicalAria = Number(physicalDisplay)
                         return (
                           <>
-                            <div className="text-xs text-gray-500 text-center">Física</div>
-                            <div className="text-xs font-medium text-gray-900 dark:text-white text-center">{physicalDisplay}%</div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1" role="progressbar" aria-label={`Progreso físico de ${project.name}`} aria-valuenow={physicalAria} aria-valuemin={0} aria-valuemax={100}>
-                              <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${physicalPct}%` }} />
+                            <div className="text-xs text-gray-500 text-center mb-1">Física</div>
+                            <div className="text-xs font-medium text-gray-900 dark:text-white text-center mb-1">{physicalDisplay}%</div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2" role="progressbar" aria-label={`Progreso físico de ${project.name}`} aria-valuenow={physicalAria} aria-valuemin={0} aria-valuemax={100}>
+                              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${physicalPct}%` }} />
                             </div>
                             <span className="sr-only">Progreso físico {physicalDisplay} por ciento</span>
                           </>
@@ -458,12 +439,12 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                     </div>
                   </div>
                 </td>
-                <td className="px-2 py-3 text-sm font-medium align-middle" style={{ width: '6%' }}>
+                <td className="px-2 py-3 text-sm font-medium align-middle text-center" style={{ width: '7%' }}>
                   <div className="flex items-center justify-center">
                     <button 
                       onClick={() => handleViewProject(project)}
                       aria-label={`Ver detalle del proyecto ${project.name}`} 
-                      className="text-blue-600 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100 transition-colors duration-200 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1 rounded-lg"
+                      className="text-blue-600 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100 transition-colors duration-200 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
@@ -475,48 +456,86 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+      {/* Controles de paginación */}
+      <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, sortedProjects.length)} de {sortedProjects.length} resultados
+              Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, sortedProjects.length)} de {sortedProjects.length} proyectos
             </span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value))
-                setCurrentPage(1)
-              }}
-              className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              Página {currentPage} de {totalPages}
-            </span>
-            
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Selector de elementos por página */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700 dark:text-gray-300">Mostrar:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            {/* Controles de navegación */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-l-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-700 transition-colors duration-200"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Anterior
+              </button>
+              
+              <div className="flex items-center">
+                {/* Números de página */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNumber
+                  if (totalPages <= 5) {
+                    pageNumber = i + 1
+                  } else if (currentPage <= 3) {
+                    pageNumber = i + 1
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNumber = totalPages - 4 + i
+                  } else {
+                    pageNumber = currentPage - 2 + i
+                  }
+                  
+                  if (pageNumber < 1 || pageNumber > totalPages) return null
+                  
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`px-3 py-2 text-sm font-medium border-t border-b border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${
+                        currentPage === pageNumber
+                          ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 border-blue-500 dark:border-blue-400'
+                          : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  )
+                })}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-r-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-700 transition-colors duration-200"
+              >
+                Siguiente
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

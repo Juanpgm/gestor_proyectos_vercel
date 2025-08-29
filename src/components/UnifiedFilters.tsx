@@ -21,6 +21,7 @@ interface FilterState {
   fuentesFinanciamiento: string[]
   fechaInicio?: string | null
   fechaFin?: string | null
+  año?: string
 }
 
 interface FilterProps {
@@ -28,7 +29,7 @@ interface FilterProps {
   onFiltersChange: (filters: FilterState) => void
   className?: string
   allProjects?: any[] // Para obtener nombres de proyectos para sugerencias
-  activeTab?: 'overview' | 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
+  activeTab?: 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
 }
 
 // Valores por defecto para evitar errores
@@ -43,7 +44,8 @@ const defaultFilters: FilterState = {
   veredas: [],
   fuentesFinanciamiento: [],
   fechaInicio: null,
-  fechaFin: null
+  fechaFin: null,
+  año: ''
 }
 
 export default function UnifiedFilters({ 
@@ -51,7 +53,7 @@ export default function UnifiedFilters({
   onFiltersChange, 
   className = '',
   allProjects = [],
-  activeTab = 'overview'
+  activeTab = 'projects'
 }: FilterProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false)
@@ -70,7 +72,8 @@ export default function UnifiedFilters({
     corregimientos_veredas: false,
     fuente_financiamiento: false,
     filtros_personalizados: false,
-    centro_gestor: false
+    centro_gestor: false,
+    año: false
   })
   const [comunasSearch, setComunasSearch] = useState('')
   const [barriosSearch, setBarriosSearch] = useState('')
@@ -122,7 +125,8 @@ export default function UnifiedFilters({
           corregimientos_veredas: false,
           fuente_financiamiento: false,
           filtros_personalizados: false,
-          centro_gestor: false
+          centro_gestor: false,
+          año: false
         })
       }
       
@@ -557,7 +561,7 @@ export default function UnifiedFilters({
     if (onFiltersChange) {
       onFiltersChange(defaultFilters)
       // cerrar dropdowns al limpiar
-      setOpenDropdowns({ estado: false, comunas_barrios: false, corregimientos_veredas: false, fuente_financiamiento: false, filtros_personalizados: false, centro_gestor: false })
+      setOpenDropdowns({ estado: false, comunas_barrios: false, corregimientos_veredas: false, fuente_financiamiento: false, filtros_personalizados: false, centro_gestor: false, año: false })
       // limpiar valores de búsqueda
       setComunasSearch('')
       setBarriosSearch('')
@@ -671,7 +675,7 @@ export default function UnifiedFilters({
     }
   }
 
-  const toggleDropdown = (type: 'estado' | 'comunas_barrios' | 'corregimientos_veredas' | 'fuente_financiamiento' | 'filtros_personalizados' | 'centro_gestor') => {
+  const toggleDropdown = (type: 'estado' | 'comunas_barrios' | 'corregimientos_veredas' | 'fuente_financiamiento' | 'filtros_personalizados' | 'centro_gestor' | 'año') => {
     setOpenDropdowns(prev => {
       const newValue = !prev[type]
       return {
@@ -692,6 +696,11 @@ export default function UnifiedFilters({
       const updatedCentros = currentCentros.filter(c => c !== centro)
       updateFilters({ centroGestor: updatedCentros })
     }
+  }
+
+  const handleAñoChange = (año: string) => {
+    updateFilters({ año })
+    setOpenDropdowns(prev => ({ ...prev, año: false }))
   }
 
   const handleComunaChange = (comuna: string, checked: boolean) => {
@@ -972,10 +981,10 @@ export default function UnifiedFilters({
             )}
           </div>
 
-          {/* Centro Gestor solamente - Período eliminado */}
+          {/* Centro Gestor y Año */}
           <div className="flex gap-3">
-            {/* Centro Gestor - Ahora usa la estética blanca */}
-            <div className="relative flex-1" data-dropdown="centro_gestor">
+            {/* Centro Gestor - 80% del espacio */}
+            <div className="relative flex-1 w-4/5" data-dropdown="centro_gestor">
               <button
                 onClick={(e) => {
                   e.preventDefault()
@@ -1026,6 +1035,58 @@ export default function UnifiedFilters({
                         <div className="text-sm text-gray-500 text-center py-2">
                           No se encontraron centros gestores
                         </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Dropdown de Año - 20% del espacio */}
+            <div className="relative w-1/5" data-dropdown="año">
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  toggleDropdown('año')
+                }}
+                className="flex items-center justify-between w-full px-2 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
+                aria-expanded={openDropdowns.año}
+              >
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                  Año {safeFilters.año ? `(${safeFilters.año})` : ''}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ml-1 flex-shrink-0 ${openDropdowns.año ? 'rotate-180' : ''}`} />
+              </button>
+
+              {openDropdowns.año && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-60 overflow-y-auto">
+                  <div className="p-2">
+                    <div className="space-y-1">
+                      {['2024', '2025', '2026', '2027'].map(año => (
+                        <button
+                          key={año}
+                          onClick={() => {
+                            handleAñoChange(año)
+                            setOpenDropdowns(prev => ({ ...prev, año: false }))
+                          }}
+                          className={`w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                            safeFilters.año === año ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {año}
+                        </button>
+                      ))}
+                      {safeFilters.año && (
+                        <button
+                          onClick={() => {
+                            handleAñoChange('')
+                            setOpenDropdowns(prev => ({ ...prev, año: false }))
+                          }}
+                          className="w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-red-600 dark:text-red-400"
+                        >
+                          Limpiar filtro
+                        </button>
                       )}
                     </div>
                   </div>

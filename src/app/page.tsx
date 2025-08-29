@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import StatsCards from '@/components/StatsCards'
-import BudgetChart from '@/components/BudgetChart'
+import BudgetAnalysisChart from '@/components/BudgetAnalysisChart'
 import dynamic from 'next/dynamic'
 import UnifiedMapInterface from '@/components/UnifiedMapInterface'
 import SimpleMapLayout from '@/components/SimpleMapLayout'
@@ -28,6 +28,7 @@ import ProductosStats from '@/components/ProductosStats'
 import ProductosCharts from '@/components/ProductosCharts'
 import ProjectInterventionMetrics from '@/components/ProjectInterventionMetrics'
 import CentrosGravedadMetrics from '@/components/CentrosGravedadMetrics'
+import ProjectsOverviewCompact from '@/components/ProjectsOverviewCompact'
 import { 
   BarChart3, 
   Map as MapIcon, 
@@ -43,7 +44,7 @@ import {
 // Componentes dinámicos
 const ChoroplethMapInteractive = dynamic(() => import('@/components/ChoroplethMapInteractive'), { ssr: false })
 
-type ActiveTab = 'overview' | 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
+type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
 
 export default function Dashboard() {
   return (
@@ -54,17 +55,37 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview') // Vista General por defecto
+  const [activeTab, setActiveTab] = useState<ActiveTab>('projects') // Proyectos por defecto
   
   // Detectar parámetros URL para activar el fix
   const [useFix, setUseFix] = useState(false)
   
+  // Usar el contexto global del dashboard
+  const { state, getFilteredCount, exportData } = useDashboard()
+  const { filters, updateFilters, activeFiltersCount } = useDashboardFilters()
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
       setUseFix(urlParams.has('fix'))
+      
+      // Manejar parámetros de navegación desde el modal
+      const tabParam = urlParams.get('tab')
+      const bpinParam = urlParams.get('bpin')
+      
+      if (tabParam && ['activities', 'products'].includes(tabParam)) {
+        setActiveTab(tabParam as ActiveTab)
+        
+        // Si hay BPIN, aplicar filtro
+        if (bpinParam) {
+          updateFilters({
+            ...filters,
+            search: bpinParam // Usar búsqueda para filtrar por BPIN
+          })
+        }
+      }
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   
   // Estado para la unidad de proyecto seleccionada desde la tabla
   const [selectedProjectUnitFromTable, setSelectedProjectUnitFromTable] = useState<UnidadProyecto | null>(null)
@@ -89,10 +110,6 @@ function DashboardContent() {
     console.log('👁️ Mostrando producto:', product)
     setSelectedProduct(product)
   }
-  
-  // Usar el contexto global del dashboard
-  const { state, getFilteredCount, exportData } = useDashboard()
-  const { filters, updateFilters, activeFiltersCount } = useDashboardFilters()
 
   // TEMPORALMENTE COMENTADO: Pre-carga de datos al iniciar la aplicación
   // const globalPreloader = useGlobalDataPreloader()
@@ -335,13 +352,24 @@ function DashboardContent() {
         completedActivities: 0,
         inProgressActivities: 0,
         notStartedActivities: 0,
+        activitiesWithoutDates: 0,
         averageProgress: 0
       }
     }
 
-    const completedActivities = filteredActividades.filter(a => a.avance_actividad === 1).length
-    const inProgressActivities = filteredActividades.filter(a => a.avance_actividad > 0 && a.avance_actividad < 1).length
-    const notStartedActivities = filteredActividades.filter(a => a.avance_actividad === 0).length
+    // Separar actividades sin fechas
+    const activitiesWithoutDates = filteredActividades.filter(a => 
+      !a.fecha_inicio_actividad || !a.fecha_fin_actividad
+    ).length
+    
+    // Para el resto de métricas, considerar solo actividades con fechas
+    const activitiesWithDates = filteredActividades.filter(a => 
+      a.fecha_inicio_actividad && a.fecha_fin_actividad
+    )
+
+    const completedActivities = activitiesWithDates.filter(a => a.avance_actividad === 1).length
+    const inProgressActivities = activitiesWithDates.filter(a => a.avance_actividad > 0 && a.avance_actividad < 1).length
+    const notStartedActivities = activitiesWithDates.filter(a => a.avance_actividad === 0).length
     const averageProgress = filteredActividades.reduce((sum, a) => sum + a.avance_actividad, 0) / filteredActividades.length
 
     return {
@@ -349,6 +377,7 @@ function DashboardContent() {
       completedActivities,
       inProgressActivities,
       notStartedActivities,
+      activitiesWithoutDates,
       averageProgress
     }
   }, [filteredActividades])
@@ -393,7 +422,6 @@ function DashboardContent() {
   }, [filteredProductos])
 
   const tabs = [
-    { id: 'overview' as const, label: 'Vista General', icon: BarChart3 },
     { id: 'projects' as const, label: 'Proyectos', icon: Table },
     { id: 'project_units' as const, label: 'Unidades de Proyecto', icon: MapIcon },
     { id: 'activities' as const, label: 'Actividades', icon: Activity },
@@ -428,7 +456,6 @@ function DashboardContent() {
     const hasError = dataError || 
                     (activeTab === 'activities' && actividadesState.error) || 
                     (activeTab === 'products' && productosState.error)
-                    
     if (hasError) {
       const errorMessage = dataError || actividadesState.error || productosState.error
       return (
@@ -448,65 +475,126 @@ function DashboardContent() {
     }
 
     switch (activeTab) {
-      case 'overview':
-        return (
-          <div className="space-y-8">
-            {/* Stats Cards */}
-            <StatsCards />
-            
-            {/* Charts Row */}
-            <div className="w-full">
-              <BudgetChart />
-            </div>
-            
-            {/* Mapa Coroplético Principal */}
-            <div className="w-full">
-              <ChoroplethMapInteractive />
-            </div>
-          </div>
-        )
-
       case 'projects':
         return (
-          <div className="space-y-8">
-            <ProjectsTable />
+          <div className="space-y-6">
+            {/* Stats Cards mejoradas */}
+            <StatsCards />
+            
+            {/* Layout principal optimizado */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              {/* TABLA DE PROYECTOS - Elemento principal (100% del ancho) */}
+              <div className="xl:col-span-4 order-1">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col">
+                  {/* Header de la tabla */}
+                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                          <Table className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                            Proyectos de Inversión
+                          </h2>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Gestión y seguimiento de proyectos municipales
+                          </p>
+                        </div>
+                      </div>
+                      <ProjectsOverviewCompact className="w-64" />
+                    </div>
+                  </div>
+                  
+                  {/* Contenido de la tabla */}
+                  <div className="overflow-hidden">
+                    <ProjectsTable className="w-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Análisis Presupuestal debajo de la tabla */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="xl:col-span-1">
+                <BudgetAnalysisChart />
+              </div>
+              <div className="xl:col-span-1">
+                <ChoroplethMapInteractive />
+              </div>
+            </div>
           </div>
         )
 
       case 'project_units':
         return (
           <div className="space-y-8">
-            {/* Mapa unificado con paneles integrados */}
-            <div className="w-full">
-              <UnifiedMapInterface 
-                className="w-full" 
-                height="800px"
-                selectedProjectUnitFromTable={selectedProjectUnitFromTable}
-                onFeatureClick={(feature, layerType) => {
-                  console.log('🗺️ Feature clicked:', feature, 'Layer:', layerType)
-                }}
-                enablePanels={true}
-                initialLayersPanelCollapsed={false}
-                initialPropertiesPanelCollapsed={true}
-              />
-            </div>
-            
-            {/* Nueva fila con métricas de intervenciones y centros de gravedad + tabla */}
-            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
-              {/* Columna izquierda: Métricas apiladas verticalmente (40% del ancho) */}
-              <div className="xl:col-span-2 space-y-6">
-                {/* Métricas de Tipos de Intervención y Clases de Obra */}
-                <ProjectInterventionMetrics 
-                  data={filteredProjectUnits}
-                  loading={dataLoading}
+            {/* Contenedor principal que engloba el mapa y las cards de métricas */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Mapa unificado con paneles integrados */}
+              <div className="w-full">
+                <UnifiedMapInterface 
+                  className="w-full" 
+                  height="800px"
+                  selectedProjectUnitFromTable={selectedProjectUnitFromTable}
+                  onFeatureClick={(feature, layerType) => {
+                    console.log('🗺️ Feature clicked:', feature, 'Layer:', layerType)
+                  }}
+                  enablePanels={true}
+                  initialLayersPanelCollapsed={false}
+                  initialPropertiesPanelCollapsed={true}
                 />
-                
-                {/* Métricas de Centros de Gravedad */}
-                <CentrosGravedadMetrics />
               </div>
               
-              {/* Columna derecha: Tabla de unidades de proyecto (60% del ancho) */}
-              <div className="xl:col-span-3 min-h-[800px] flex">
+              {/* Sección de métricas integrada dentro del contenedor del mapa */}
+              <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Análisis de Intervenciones
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Métricas detalladas por tipo de intervención y ubicación
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Grid con las métricas dentro del contenedor */}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {/* Métricas de Tipos de Intervención y Clases de Obra */}
+                    <ProjectInterventionMetrics 
+                      data={filteredProjectUnits}
+                      loading={dataLoading}
+                    />
+                    
+                    {/* Métricas de Centros de Gravedad */}
+                    <CentrosGravedadMetrics />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Tabla de unidades de proyecto en contenedor separado */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <Table className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Unidades de Proyecto
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Detalle completo de todas las unidades de proyecto
+                    </p>
+                  </div>
+                </div>
+                
                 <ProjectsUnitsTable 
                   projectUnits={unidadesProyecto} 
                   filteredProjectUnits={filteredProjectUnits} 
@@ -522,7 +610,7 @@ function DashboardContent() {
         return (
           <div className="space-y-8">
             <div className="w-full">
-              <BudgetChart />
+              <BudgetAnalysisChart />
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               <div className="xl:col-span-2">
@@ -544,6 +632,7 @@ function DashboardContent() {
               completedActivities={filteredActividadesMetrics.completedActivities}
               inProgressActivities={filteredActividadesMetrics.inProgressActivities}
               notStartedActivities={filteredActividadesMetrics.notStartedActivities}
+              activitiesWithoutDates={filteredActividadesMetrics.activitiesWithoutDates}
               averageProgress={filteredActividadesMetrics.averageProgress}
               loading={actividadesState.loading}
             />

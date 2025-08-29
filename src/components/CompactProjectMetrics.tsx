@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { TrendingUp, CheckCircle, Clock, AlertTriangle, Pause, Search } from 'lucide-react'
+import { BudgetExecutionGauge } from './GaugeChart'
 
 interface CompactProjectMetricsProps {
   data: any[]
@@ -32,7 +33,9 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
         statusData: [],
         progressData: [],
         budgetExecuted: 0,
-        totalBudget: 0
+        totalBudget: 0,
+        uniqueCentrosGestores: 0,
+        budgetExecutionPercentage: 0
       }
     }
 
@@ -42,6 +45,16 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
     const averageProgress = validProgress.length > 0 
       ? validProgress.reduce((sum, item) => sum + item.progress, 0) / validProgress.length 
       : 0
+
+    // Contar centros gestores únicos
+    const centrosGestoresSet = new Set<string>()
+    data.forEach(item => {
+      const centroGestor = item.responsible || item.centro_gestor || item.nombre_centro_gestor
+      if (centroGestor && centroGestor.trim() !== '' && centroGestor !== 'No especificado') {
+        centrosGestoresSet.add(centroGestor.trim())
+      }
+    })
+    const uniqueCentrosGestores = centrosGestoresSet.size
 
     // Contar por estados
     const statusMap = new Map<string, number>()
@@ -58,15 +71,16 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
       percentage: Math.round((count / totalProjects) * 100)
     })).filter(item => item.value > 0)
 
-    // Datos de progreso para mini gauge
-    const progressData = [
-      { name: 'Completado', value: averageProgress, color: averageProgress >= 75 ? '#059669' : averageProgress >= 50 ? '#10B981' : averageProgress >= 25 ? '#F59E0B' : '#EF4444' },
-      { name: 'Pendiente', value: 100 - averageProgress, color: '#E5E7EB' }
-    ]
-
     // Métricas presupuestales
     const totalBudget = data.reduce((sum, item) => sum + (item.budget || 0), 0)
     const budgetExecuted = data.reduce((sum, item) => sum + (item.executed || 0), 0)
+    const budgetExecutionPercentage = totalBudget > 0 ? (budgetExecuted / totalBudget) * 100 : 0
+
+    // Datos de progreso para mini gauge - usar ejecución presupuestal
+    const progressData = [
+      { name: 'Ejecutado', value: budgetExecutionPercentage, color: budgetExecutionPercentage >= 75 ? '#059669' : budgetExecutionPercentage >= 50 ? '#10B981' : budgetExecutionPercentage >= 25 ? '#F59E0B' : '#EF4444' },
+      { name: 'Pendiente', value: 100 - budgetExecutionPercentage, color: '#E5E7EB' }
+    ]
 
     return {
       totalProjects,
@@ -74,7 +88,9 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
       statusData,
       progressData,
       budgetExecuted,
-      totalBudget
+      totalBudget,
+      uniqueCentrosGestores,
+      budgetExecutionPercentage: Math.round(budgetExecutionPercentage)
     }
   }, [data])
 
@@ -117,9 +133,9 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-4 space-y-4 ${className}`}>
       
       {/* Header con resumen */}
-      <div className="border-b pb-3">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Dashboard Proyectos</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="border-b pb-4">
+        <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Dashboard Proyectos</h3>
+        <p className="text-base text-gray-600 dark:text-gray-400">
           {metrics.totalProjects} proyectos • {metrics.averageProgress}% progreso promedio
         </p>
       </div>
@@ -127,58 +143,36 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
       {/* Fila superior - Métricas principales */}
       <div className="grid grid-cols-2 gap-4">
         
-        {/* Mini gauge de progreso */}
-        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-          <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Progreso General</h4>
-          <div className="relative h-20">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={metrics.progressData}
-                  cx="50%"
-                  cy="50%"
-                  startAngle={180}
-                  endAngle={0}
-                  innerRadius={20}
-                  outerRadius={35}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {metrics.progressData.map((entry, index) => (
-                    <Cell key={`progress-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center mt-2">
-                <div className="text-lg font-bold text-gray-800 dark:text-white">
-                  {metrics.averageProgress}%
-                </div>
-              </div>
-            </div>
+        {/* Mini gauge de ejecución presupuestal */}
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Ejecución Presupuestal</h4>
+          <div className="flex justify-center">
+            <BudgetExecutionGauge 
+              value={metrics.budgetExecutionPercentage} 
+              size="small"
+            />
           </div>
         </div>
 
         {/* Resumen presupuestal */}
-        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-          <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Presupuesto</h4>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-600 dark:text-gray-400">Total:</span>
-              <span className="font-medium text-gray-800 dark:text-white">
-                {formatCurrency(metrics.totalBudget)}
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Presupuesto</h4>
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Centros Gestores:</span>
+              <span className="font-medium text-gray-800 dark:text-white text-base">
+                {metrics.uniqueCentrosGestores}
               </span>
             </div>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between text-sm">
               <span className="text-gray-600 dark:text-gray-400">Ejecutado:</span>
-              <span className="font-medium text-green-600">
+              <span className="font-medium text-green-600 text-base">
                 {formatCurrency(metrics.budgetExecuted)}
               </span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-3">
               <div 
-                className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
+                className="bg-green-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min((metrics.budgetExecuted / metrics.totalBudget) * 100, 100)}%` }}
               />
             </div>
@@ -188,21 +182,21 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
 
       {/* Estados de proyectos */}
       <div>
-        <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">Estados de Proyectos</h4>
+        <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">Estados de Proyectos</h4>
         
         {/* Gráfico de estados */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           
           {/* Mini pie chart */}
-          <div className="w-24 h-24 flex-shrink-0">
+          <div className="w-32 h-32 flex-shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={metrics.statusData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={15}
-                  outerRadius={35}
+                  innerRadius={20}
+                  outerRadius={50}
                   dataKey="value"
                   stroke="none"
                 >
@@ -216,26 +210,26 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
           </div>
 
           {/* Lista de estados */}
-          <div className="flex-1 space-y-1">
+          <div className="flex-1 space-y-1.5">
             {metrics.statusData.slice(0, 4).map((status) => {
               const IconComponent = STATE_CONFIG[status.name as keyof typeof STATE_CONFIG]?.icon || Clock
               return (
                 <div key={status.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      className="w-4 h-4 rounded-full flex-shrink-0"
                       style={{ backgroundColor: status.color }}
                     />
-                    <IconComponent className="w-3 h-3 flex-shrink-0" style={{ color: status.color }} />
-                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    <IconComponent className="w-4 h-4 flex-shrink-0" style={{ color: status.color }} />
+                    <span className="text-sm text-gray-600 dark:text-gray-400 truncate">
                       {status.name}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-medium text-gray-800 dark:text-white">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-gray-800 dark:text-white">
                       {status.value}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-sm text-gray-500">
                       ({status.percentage}%)
                     </span>
                   </div>
@@ -243,7 +237,7 @@ const CompactProjectMetrics: React.FC<CompactProjectMetricsProps> = ({
               )
             })}
             {metrics.statusData.length > 4 && (
-              <div className="text-xs text-gray-500 text-center pt-1">
+              <div className="text-sm text-gray-500 text-center pt-1">
                 +{metrics.statusData.length - 4} más...
               </div>
             )}

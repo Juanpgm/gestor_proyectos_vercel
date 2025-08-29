@@ -3,22 +3,16 @@
 import React, { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  BarChart, 
-  Bar, 
+  LineChart,
+  Line,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  Area,
-  AreaChart
+  ResponsiveContainer
 } from 'recharts'
-import { Calculator, BarChart3, Activity, AreaChart as AreaChartIcon } from 'lucide-react'
+import { Calculator } from 'lucide-react'
 import { useDataContext } from '../context/DataContext'
-
-type ChartType = 'bar' | 'line' | 'area'
 
 interface BudgetChartProps {
   className?: string
@@ -32,13 +26,11 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
   const dataContext = useDataContext()
   const { filteredMovimientosPresupuestales, filteredEjecucionPresupuestal } = dataContext
   
-  const [chartType, setChartType] = useState<ChartType>('line')
-  const [timeFrame, setTimeFrame] = useState<'monthly' | 'quarterly' | 'semiannual' | 'yearly'>('monthly')
+  const [selectedYears, setSelectedYears] = useState<string[]>([])
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
-  // Procesar datos: Filtrar por BPIN si hay un proyecto específico, sino mostrar totales generales
-  const processedData = useMemo(() => {
-    // Filtrar datos por BPIN si hay un proyecto específico
+  // Obtener años disponibles desde los datos
+  const availableYears = useMemo(() => {
     let dataToProcess = filteredMovimientosPresupuestales
     if (project?.bpin) {
       dataToProcess = filteredMovimientosPresupuestales.filter((item: any) => 
@@ -46,23 +38,69 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
       )
     }
 
-    // Agrupar por período
+    const years = new Set<string>()
+    dataToProcess.forEach((item: any) => {
+      if (item.periodo_corte) {
+        const year = item.periodo_corte.substring(0, 4)
+        years.add(year)
+      }
+    })
+
+    const yearArray = Array.from(years).sort()
+    
+    // Si no hay años seleccionados, seleccionar todos por defecto
+    if (selectedYears.length === 0 && yearArray.length > 0) {
+      setSelectedYears(yearArray)
+    }
+
+    return yearArray
+  }, [filteredMovimientosPresupuestales, project?.bpin])
+
+  // Función para manejar cambios en la selección de años
+  const handleYearToggle = (year: string) => {
+    setSelectedYears(prev => {
+      if (prev.includes(year)) {
+        return prev.filter(y => y !== year)
+      } else {
+        return [...prev, year].sort()
+      }
+    })
+  }
+
+  // Procesar datos: Filtrar por BPIN y años seleccionados
+  const processedData = useMemo(() => {
+    // Filtrar datos por BPIN si hay un proyecto específico
+    let dataToProcess = filteredMovimientosPresupuestales
+    let ejecucionToProcess = filteredEjecucionPresupuestal
+    
+    if (project?.bpin) {
+      dataToProcess = filteredMovimientosPresupuestales.filter((item: any) => 
+        item.bpin === Number(project.bpin)
+      )
+      ejecucionToProcess = filteredEjecucionPresupuestal.filter((item: any) => 
+        item.bpin === Number(project.bpin)
+      )
+    }
+
+    // Filtrar por años seleccionados
+    if (selectedYears.length > 0) {
+      dataToProcess = dataToProcess.filter((item: any) => {
+        if (!item.periodo_corte) return false
+        const year = item.periodo_corte.substring(0, 4)
+        return selectedYears.includes(year)
+      })
+      ejecucionToProcess = ejecucionToProcess.filter((item: any) => {
+        if (!item.periodo_corte) return false
+        const year = item.periodo_corte.substring(0, 4)
+        return selectedYears.includes(year)
+      })
+    }
+
+    // Agrupar por período mensual
     const periodTotals: { [key: string]: any } = {}
     
     dataToProcess.forEach((item: any) => {
-      let period: string
-      
-      if (timeFrame === 'monthly') {
-        period = item.periodo_corte?.substring(0, 7) // YYYY-MM
-      } else if (timeFrame === 'quarterly') {
-        const quarter = Math.ceil(parseInt(item.periodo_corte?.substring(5, 7) || '1') / 3)
-        period = `${item.periodo_corte?.substring(0, 4)}-Q${quarter}`
-      } else if (timeFrame === 'semiannual') {
-        const semester = parseInt(item.periodo_corte?.substring(5, 7) || '1') <= 6 ? 1 : 2
-        period = `${item.periodo_corte?.substring(0, 4)}-S${semester}`
-      } else { // yearly
-        period = item.periodo_corte?.substring(0, 4) || ''
-      }
+      const period = item.periodo_corte?.substring(0, 7) // YYYY-MM
 
       if (!periodTotals[period]) {
         periodTotals[period] = {
@@ -71,7 +109,8 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
           ppto_inicial: 0,
           ppto_modificado: 0,
           adiciones: 0,
-          reducciones: 0
+          reducciones: 0,
+          ejecucion: 0
         }
       }
 
@@ -82,8 +121,28 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
       periodTotals[period].reducciones += item.reducciones || 0
     })
 
+    // Agregar datos de ejecución
+    ejecucionToProcess.forEach((item: any) => {
+      const period = item.periodo_corte?.substring(0, 7) // YYYY-MM
+
+      if (!periodTotals[period]) {
+        periodTotals[period] = {
+          period,
+          name: period,
+          ppto_inicial: 0,
+          ppto_modificado: 0,
+          adiciones: 0,
+          reducciones: 0,
+          ejecucion: 0
+        }
+      }
+
+      // Sumar ejecución para el período
+      periodTotals[period].ejecucion += item.ejecucion || 0
+    })
+
     return Object.values(periodTotals).sort((a: any, b: any) => a.period.localeCompare(b.period))
-  }, [filteredMovimientosPresupuestales, timeFrame, project?.bpin])
+  }, [filteredMovimientosPresupuestales, filteredEjecucionPresupuestal, selectedYears, project?.bpin])
 
   // Colores para las métricas
   const metricColors = {
@@ -91,6 +150,7 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
     ppto_modificado: '#10B981',
     adiciones: '#F59E0B',
     reducciones: '#EF4444',
+    ejecucion: '#8B5CF6',
     creditos: '#8B5CF6',
     contracreditos: '#F97316',
     aplazamiento: '#6B7280',
@@ -123,6 +183,7 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
       ppto_modificado: 'Presupuesto Actual',
       adiciones: 'Total Adiciones',
       reducciones: 'Total Reducciones',
+      ejecucion: 'Ejecución Presupuestal',
       creditos: 'Créditos',
       contracreditos: 'Contracréditos',
       aplazamiento: 'Aplazamiento',
@@ -153,142 +214,68 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
   }
 
   const renderChart = () => {
-    switch (chartType) {
-      case 'bar':
-        return (
-          <BarChart data={processedData} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-            <XAxis 
-              dataKey="name" 
-              className="text-xs"
-              tick={{ fontSize: 10 }}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis 
-              hide={true}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="ppto_inicial" name="Presupuesto Inicial" fill={metricColors.ppto_inicial} />
-            <Bar dataKey="ppto_modificado" name="Presupuesto Actual" fill={metricColors.ppto_modificado} />
-            <Bar dataKey="adiciones" name="Total Adiciones" fill={metricColors.adiciones} />
-            <Bar dataKey="reducciones" name="Total Reducciones" fill={metricColors.reducciones} />
-          </BarChart>
-        )
-      case 'line':
-        return (
-          <LineChart data={processedData} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-            <XAxis 
-              dataKey="name" 
-              className="text-xs"
-              tick={{ fontSize: 10 }}
-              angle={-45}
-              textAnchor="end"
-              height={40}
-            />
-            <YAxis 
-              hide={true}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Line 
-              type="monotone" 
-              dataKey="ppto_inicial" 
-              name="Presupuesto Inicial"
-              stroke={metricColors.ppto_inicial} 
-              strokeWidth={2}
-              dot={{ r: 4 }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="ppto_modificado" 
-              name="Presupuesto Actual"
-              stroke={metricColors.ppto_modificado} 
-              strokeWidth={2}
-              dot={{ r: 4 }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="adiciones" 
-              name="Total Adiciones"
-              stroke={metricColors.adiciones} 
-              strokeWidth={2}
-              dot={{ r: 4 }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="reducciones" 
-              name="Total Reducciones"
-              stroke={metricColors.reducciones} 
-              strokeWidth={2}
-              dot={{ r: 4 }}
-            />
-          </LineChart>
-        )
-      case 'area':
-        return (
-          <AreaChart data={processedData} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-            <XAxis 
-              dataKey="name" 
-              className="text-xs"
-              tick={{ fontSize: 10 }}
-              angle={-45}
-              textAnchor="end"
-              height={40}
-            />
-            <YAxis 
-              hide={true}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Area 
-              type="monotone" 
-              dataKey="ppto_inicial" 
-              name="Presupuesto Inicial"
-              stackId="1"
-              stroke={metricColors.ppto_inicial} 
-              fill={metricColors.ppto_inicial}
-              fillOpacity={0.6}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="ppto_modificado" 
-              name="Presupuesto Actual"
-              stackId="1"
-              stroke={metricColors.ppto_modificado} 
-              fill={metricColors.ppto_modificado}
-              fillOpacity={0.6}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="adiciones" 
-              name="Total Adiciones"
-              stackId="1"
-              stroke={metricColors.adiciones} 
-              fill={metricColors.adiciones}
-              fillOpacity={0.6}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="reducciones" 
-              name="Total Reducciones"
-              stackId="1"
-              stroke={metricColors.reducciones} 
-              fill={metricColors.reducciones}
-              fillOpacity={0.6}
-            />
-          </AreaChart>
-        )
-      default:
-        return null
-    }
-  }
-
-  const chartIcons = {
-    bar: BarChart3,
-    line: Activity,
-    area: AreaChartIcon
+    return (
+      <LineChart data={processedData} margin={{ top: 5, right: 10, left: 0, bottom: 30 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-600 opacity-30" />
+        <XAxis 
+          dataKey="name" 
+          className="text-xs"
+          tick={{ fontSize: 10, fill: '#6b7280' }}
+          axisLine={{ stroke: '#d1d5db' }}
+          tickLine={{ stroke: '#d1d5db' }}
+          angle={-45}
+          textAnchor="end"
+          height={40}
+        />
+        <YAxis 
+          hide={true}
+          tick={{ fill: '#6b7280' }}
+          axisLine={{ stroke: '#d1d5db' }}
+          tickLine={{ stroke: '#d1d5db' }}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Line 
+          type="monotone" 
+          dataKey="ppto_inicial" 
+          name="Presupuesto Inicial"
+          stroke={metricColors.ppto_inicial} 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="ppto_modificado" 
+          name="Presupuesto Actual"
+          stroke={metricColors.ppto_modificado} 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="ejecucion" 
+          name="Ejecución Presupuestal"
+          stroke={metricColors.ejecucion} 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="adiciones" 
+          name="Total Adiciones"
+          stroke={metricColors.adiciones} 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="reducciones" 
+          name="Total Reducciones"
+          stroke={metricColors.reducciones} 
+          strokeWidth={2}
+          dot={{ r: 4 }}
+        />
+      </LineChart>
+    )
   }
 
   return (
@@ -310,46 +297,25 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
             </h3>
           </div>
           
-          <div className="flex gap-4 items-center">
-            {/* Chart Type Selector */}
+          {/* Year Selector */}
+          {availableYears.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Gráfico:</span>
-              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                {(['bar', 'line', 'area'] as ChartType[]).map((type) => {
-                  const Icon = chartIcons[type]
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => setChartType(type)}
-                      className={`p-2 rounded-md transition-colors ${
-                        chartType === type
-                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                      title={type.charAt(0).toUpperCase() + type.slice(1)}
-                    >
-                      <Icon size={16} />
-                    </button>
-                  )
-                })}
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Años:</span>
+              <div className="flex gap-2 flex-wrap">
+                {availableYears.map((year) => (
+                  <label key={year} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedYears.includes(year)}
+                      onChange={() => handleYearToggle(year)}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{year}</span>
+                  </label>
+                ))}
               </div>
             </div>
-
-            {/* Time Frame Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Período:</span>
-              <select
-                value={timeFrame}
-                onChange={(e) => setTimeFrame(e.target.value as any)}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="monthly">Mensual</option>
-                <option value="quarterly">Trimestral</option>
-                <option value="semiannual">Semestral</option>
-                <option value="yearly">Anual</option>
-              </select>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Chart */}
@@ -360,7 +326,7 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           {processedData.length > 0 && (() => {
             // Como los datos son acumulativos, tomamos el último período (más reciente)
             const latestData = processedData[processedData.length - 1]
@@ -376,6 +342,12 @@ const BudgetChart: React.FC<BudgetChartProps> = ({
                   <div className="text-sm text-gray-600 dark:text-gray-400">Presupuesto Actual</div>
                   <div className="text-lg font-semibold text-green-600">
                     {formatCurrencyComplete(latestData?.ppto_modificado || 0)}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Ejecución</div>
+                  <div className="text-lg font-semibold text-purple-600">
+                    {formatCurrencyComplete(latestData?.ejecucion || 0)}
                   </div>
                 </div>
                 <div className="text-center">

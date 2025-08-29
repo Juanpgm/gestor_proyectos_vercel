@@ -2,27 +2,20 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Download, DollarSign, Clock, Building, FolderOpen, Printer, User, BarChart3, PieChart as PieChartIcon, Activity, AreaChart as AreaChartIcon, Info } from 'lucide-react'
+import { X, Download, DollarSign, Building, PieChart as PieChartIcon, Activity, Info, ChevronDown, ChevronUp, MapPin, Calendar, Package, Users } from 'lucide-react'
 import { Project } from './ProjectsTable'
-import BudgetChart from './BudgetChart'
 import { useDataContext } from '../context/DataContext'
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  Area,
-  AreaChart,
-  Legend
-} from 'recharts'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
+import BudgetChart from './BudgetChart'
+import { ActivityProgressGauge, ProductProgressGauge, BudgetExecutionGauge } from './GaugeChart'
+
+// Extend jsPDF interface for autotable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 interface ProjectModalProps {
   isOpen: boolean
@@ -30,57 +23,176 @@ interface ProjectModalProps {
   project: Project | null
 }
 
-type ChartType = 'bar' | 'pie' | 'line' | 'area'
+interface CollapsibleSectionProps {
+  title: string | React.ReactNode
+  icon: React.ReactNode
+  children: React.ReactNode
+  defaultOpen?: boolean
+}
+
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ title, icon, children, defaultOpen = true }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+
+  return (
+    <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      >
+        <div className="flex items-center">
+          {icon}
+          <span className="text-lg font-semibold text-gray-900 dark:text-white ml-2">{title}</span>
+        </div>
+        {isOpen ? (
+          <ChevronUp className="w-4 h-4 text-gray-500" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-gray-500" />
+        )}
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="p-3 pt-0 border-t border-gray-200 dark:border-gray-700">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project }) => {
-  const [chartType, setChartType] = useState<ChartType>('line')
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  const { seguimientoPa, ejecucionPresupuestal, productosPa, actividadesPa } = useDataContext()
+  const { seguimientoPa, ejecucionPresupuestal, productosPa, actividadesPa, equipamientos, infraestructuraVial } = useDataContext()
   const dataContext = useDataContext()
 
   if (!project) return null
 
-  // Debug: verificar datos del proyecto
-  console.log('🔍 ProjectModal - Project data:', {
-    bpin: project.bpin,
-    budget: project.budget,
-    executed: project.executed,
-    progressFinanciero: project.progressFinanciero,
-    progress: project.progress
-  })
-
-  const handleExportPDF = () => {
-    // Aquí implementaremos la exportación a PDF
-    console.log('Exportando ficha a PDF...', project)
-    // TODO: Implementar exportación real con jsPDF o similar
-    alert('Función de exportación a PDF en desarrollo')
-  }
-
-  const handlePrintModal = () => {
-    // Función para imprimir el modal
-    const printContent = document.getElementById('project-modal-content')
-    if (printContent) {
-      const printWindow = window.open('', '', 'height=600,width=800')
-      printWindow?.document.write('<html><head><title>Ficha de Proyecto</title>')
-      printWindow?.document.write('<style>body{font-family:Arial,sans-serif;margin:20px;}</style>')
-      printWindow?.document.write('</head><body>')
-      printWindow?.document.write(printContent.innerHTML)
-      printWindow?.document.write('</body></html>')
-      printWindow?.document.close()
-      printWindow?.print()
-    }
-  }
-
+  // Funciones de utilidad
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
+    return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount).replace('COP', '').trim() + ' COP'
+      maximumFractionDigits: 0,
+    }).format(amount)
   }
 
-  // Funciones para calcular progreso físico y financiero
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  // Función para determinar el estado de una actividad
+  const getActivityStatus = (actividad: any) => {
+    const today = new Date()
+    const startDate = actividad.fecha_inicio_actividad ? new Date(actividad.fecha_inicio_actividad) : null
+    const endDate = actividad.fecha_fin_actividad ? new Date(actividad.fecha_fin_actividad) : null
+    const progress = actividad.avance_actividad_acumulado || 0
+
+    // Si no tiene fechas para comparar (cualquiera de las dos fechas faltante)
+    if (!startDate || !endDate) {
+      return {
+        status: 'La tarea no posee fecha de inicio o fin',
+        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+        icon: '❓'
+      }
+    }
+
+    // Si tiene progreso del 100% (1.0), está completada
+    if (progress >= 1.0) {
+      return {
+        status: 'Completada',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+        icon: '✓'
+      }
+    }
+
+    // No iniciada: avance 0% y fecha de inicio anterior a hoy
+    if (progress === 0 && startDate && startDate < today) {
+      return {
+        status: 'No Iniciada',
+        color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+        icon: '⏸'
+      }
+    }
+
+    // Si ya pasó la fecha de fin y no está completa, está demorada
+    if (endDate && endDate < today && progress < 1.0) {
+      return {
+        status: 'Demorada',
+        color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+        icon: '⚠'
+      }
+    }
+
+    // Si está dentro del rango de fechas, está a tiempo
+    return {
+      status: 'A Tiempo',
+      color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+      icon: '▶'
+    }
+  }
+
+  const formatPercentage = (value: number) => {
+    return value.toFixed(1) + '%'
+  }
+
+  const formatPercentageFromDecimal = (value: number) => {
+    return (value * 100).toFixed(2) + '%'
+  }
+
+  const formatPeriod = (period: string) => {
+    if (!period) return '—'
+    const [year, month] = period.split('-')
+    const months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ]
+    const monthName = months[parseInt(month) - 1] || ''
+    return `${monthName} ${year}`
+  }
+
+  const getProductStatus = (producto: any) => {
+    const avanceReal = producto.avance_real_producto || 0
+    const avanceProducto = producto.avance_producto || 0
+    
+    // Si el avance real es 100% (1.0), está completado
+    if (avanceReal >= 1.0) {
+      return {
+        status: 'Completado',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+        icon: '✓'
+      }
+    }
+
+    // Si tiene avance significativo, está en progreso
+    if (avanceReal > 0.1) {
+      return {
+        status: 'En Progreso',
+        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+        icon: '▶'
+      }
+    }
+
+    // Si no tiene avance, no ha iniciado
+    return {
+      status: 'No Iniciado',
+      color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+      icon: '⏸'
+    }
+  }
+
+  // Funciones para obtener datos específicos
   const getProgresoFisico = (bpin: number) => {
     const seguimiento = seguimientoPa?.find(s => s.bpin === bpin)
     return seguimiento?.avance_proyecto_pa ? (seguimiento.avance_proyecto_pa * 100) : 0
@@ -94,7 +206,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
     return project.progressFinanciero || ((project.executed / project.budget) * 100) || 0
   }
 
-  // Funciones para obtener actividades y productos
   const getActividadesByBpin = (bpin: number) => {
     return actividadesPa?.filter(actividad => actividad.bpin === bpin) || []
   }
@@ -103,266 +214,173 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
     return productosPa?.filter(producto => producto.bpin === bpin) || []
   }
 
-  const formatPercentage = (value: number) => {
-    // Si es un número entero, no mostrar decimales
-    if (value % 1 === 0) {
-      return value.toFixed(0) + '%'
-    }
-    // Si tiene decimales, mostrar máximo 2 cifras
-    return value.toFixed(2).replace(/\.?0+$/, '') + '%'
+  const getUnidadesProyecto = (bpin: number) => {
+    const equipamientosDelProyecto = equipamientos?.filter(eq => eq.bpin === bpin) || []
+    const infraestructuraDelProyecto = infraestructuraVial?.filter(inf => inf.bpin === bpin) || []
+    return [...equipamientosDelProyecto, ...infraestructuraDelProyecto]
   }
 
-  // Función para obtener el nombre del centro gestor
-  const getCentroGestorName = (bpin: string) => {
-    // Simulamos algunos centros gestores basados en el BPIN o proyecto
-    const centrosGestores = [
-      'Secretaría de Infraestructura y Valorización',
-      'Secretaría de Educación Municipal', 
-      'Secretaría de Salud Pública',
-      'Secretaría de Cultura, Recreación y Deporte',
-      'Secretaría de Desarrollo Territorial y Participación',
-      'Secretaría de Bienestar Social',
-      'Secretaría de Gobierno y Gestión del Territorio',
-      'Secretaría de Hacienda Municipal'
-    ]
-    
-    // Usar el BPIN para determinar un centro gestor de forma consistente
-    const index = parseInt(bpin.slice(-1)) % centrosGestores.length
-    return centrosGestores[index]
+  const getBPFromBPIN = (bpin: string) => {
+    // Obtener BP desde el contexto de datos si está disponible
+    const proyectoData = dataContext.proyectos?.find(p => p.bpin === Number(bpin))
+    return proyectoData?.bp || bpin.substring(0, 8) // Fallback: primeros 8 dígitos del BPIN
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'En Ejecución':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700'
-      case 'Planificación':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700'
-      case 'Completado':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
-      case 'Suspendido':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-700'
-      case 'En Evaluación':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700'
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
-    }
-  }
-
-  // Funciones y datos para el análisis presupuestario
-  const metricColors = {
-    presupuestoTotal: '#3B82F6',
-    ejecutado: '#10B981',
-    pagado: '#F59E0B',
-    pendiente: '#EF4444',
-    disponible: '#8B5CF6'
-  }
-
-  const formatCurrencyFull = (value: number): string => {
-    return `$${value.toLocaleString('de-DE', { 
-      minimumFractionDigits: 0, 
-      maximumFractionDigits: 0 
-    })}`;
-  }
-
-  const formatCurrencyShort = (value: number): string => {
-    if (value >= 1e9) {
-      return `$${(value / 1e9).toLocaleString('de-DE', { 
-        minimumFractionDigits: 1, 
-        maximumFractionDigits: 1 
-      })}B`;
-    } else if (value >= 1e6) {
-      return `$${(value / 1e6).toLocaleString('de-DE', { 
-        minimumFractionDigits: 0, 
-        maximumFractionDigits: 0 
-      })}M`;
-    } else if (value >= 1e3) {
-      return `$${(value / 1e3).toLocaleString('de-DE', { 
-        minimumFractionDigits: 0, 
-        maximumFractionDigits: 0 
-      })}K`;
-    } else {
-      return `$${value.toLocaleString('de-DE')}`;
-    }
-  }
-
-  // Generar datos específicos del proyecto para análisis presupuestario
-  const generateProjectBudgetData = () => {
-    const pendiente = project.budget - project.executed
-    const disponible = project.budget - project.pagado
-    
-    // Datos para gráfico de barras/pie
-    const budgetBreakdown = [
-      { name: 'Presupuesto Total', value: project.budget, color: metricColors.presupuestoTotal },
-      { name: 'Ejecutado', value: project.executed, color: metricColors.ejecutado },
-      { name: 'Pagado', value: project.pagado, color: metricColors.pagado },
-      { name: 'Pendiente Ejecución', value: pendiente, color: metricColors.pendiente },
-      { name: 'Disponible', value: disponible, color: metricColors.disponible }
-    ]
-
-    // Generar datos temporales basados en las fechas del proyecto
-    const startDate = new Date(project.startDate)
-    const endDate = new Date(project.endDate)
-    const currentDate = new Date()
-    const totalDuration = endDate.getTime() - startDate.getTime()
-    const elapsedTime = currentDate.getTime() - startDate.getTime()
-    const timeProgress = Math.min(Math.max(elapsedTime / totalDuration, 0), 1)
-
-    const monthlyData = []
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-    
-    for (let i = 0; i < 8; i++) {
-      const progressFactor = (i + 1) / 8
-      const executedAmount = project.executed * progressFactor
-      const paidAmount = project.pagado * progressFactor
-      const monthIndex = (startDate.getMonth() + i) % 12
+  // Función para exportar PDF
+  const handleExportPDF = () => {
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4')
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-')
+      const fileName = `bpin-${project.bpin}-${project.name.replace(/[^a-zA-Z0-9]/g, '_')}-${timestamp}`
       
-      monthlyData.push({
-        month: monthNames[monthIndex],
-        presupuestoTotal: project.budget,
-        ejecutado: executedAmount,
-        pagado: paidAmount,
-        pendiente: project.budget - executedAmount,
-        disponible: project.budget - paidAmount
+      // Configuración de estilos
+      const primaryColor: [number, number, number] = [59, 130, 246] // Blue-600
+      const textColor: [number, number, number] = [31, 41, 55] // Gray-800
+      const lightGray: [number, number, number] = [243, 244, 246] // Gray-100
+      
+      // Header del PDF
+      doc.setFillColor(...primaryColor)
+      doc.rect(0, 0, 210, 30, 'F')
+      
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(18)
+      doc.setFont('helvetica', 'bold')
+      doc.text('FICHA DE PROYECTO', 20, 15)
+      
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`BPIN: ${project.bpin}`, 20, 22)
+      doc.text(`BP: ${getBPFromBPIN(project.bpin)}`, 120, 22)
+      
+      let yPosition = 40
+      
+      // Título del proyecto
+      doc.setTextColor(...textColor)
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      const splitTitle = doc.splitTextToSize(project.name, 170)
+      doc.text(splitTitle, 20, yPosition)
+      yPosition += splitTitle.length * 5 + 10
+      
+      // Información básica
+      const infoBasica = [
+        ['Centro Gestor', project.responsible],
+        ['Comuna', project.comuna || 'No especificada'],
+        ['Estado', project.status],
+        ['Progreso Físico', `${getProgresoFisico(Number(project.bpin)).toFixed(1)}%`],
+        ['Progreso Financiero', `${getProgresoFinanciero(Number(project.bpin)).toFixed(1)}%`]
+      ]
+
+      doc.autoTable({
+        startY: yPosition,
+        head: [['Campo', 'Valor']],
+        body: infoBasica,
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor },
+        styles: { fontSize: 10 },
+        margin: { left: 20, right: 20 }
       })
-    }
 
-    return { budgetBreakdown, monthlyData }
-  }
+      yPosition = (doc as any).lastAutoTable.finalY + 10
 
-  const { budgetBreakdown, monthlyData } = generateProjectBudgetData()
+      // Información financiera
+      const infoFinanciera = [
+        ['Presupuesto Total', formatCurrency(project.budget)],
+        ['Ejecutado', formatCurrency(project.executed)],
+        ['Pagado', formatCurrency(project.pagado)],
+        ['Disponible', formatCurrency(project.budget - project.executed)]
+      ]
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <p className="font-semibold text-gray-900 dark:text-white mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {formatCurrencyShort(entry.value)}
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
+      doc.autoTable({
+        startY: yPosition,
+        head: [['Concepto', 'Valor']],
+        body: infoFinanciera,
+        theme: 'striped',
+        headStyles: { fillColor: [16, 185, 129] }, // Green-600
+        styles: { fontSize: 10 },
+        margin: { left: 20, right: 20 }
+      })
 
-  const renderBudgetChart = () => {
-    switch (chartType) {
-      case 'bar':
-        return (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="month" className="text-sm text-gray-600 dark:text-gray-400" />
-              <YAxis 
-                className="text-sm text-gray-600 dark:text-gray-400"
-                tickFormatter={formatCurrencyShort}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="ejecutado" fill={metricColors.ejecutado} name="Ejecutado" />
-              <Bar dataKey="pagado" fill={metricColors.pagado} name="Pagado" />
-            </BarChart>
-          </ResponsiveContainer>
-        )
+      yPosition = (doc as any).lastAutoTable.finalY + 10
 
-      case 'pie':
-        return (
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={budgetBreakdown.filter(item => item.value > 0)}
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-                onMouseEnter={(_, index) => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(null)}
-              >
-                {budgetBreakdown.filter(item => item.value > 0).map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.color}
-                    stroke={activeIndex === index ? '#ffffff' : 'none'}
-                    strokeWidth={activeIndex === index ? 2 : 0}
-                  />
-                ))}
-              </Pie>
-              <Tooltip 
-                content={({ active, payload }: any) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0];
-                    const percentage = ((data.value / project.budget) * 100).toFixed(1);
-                    return (
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                        <p className="font-semibold text-gray-900 dark:text-white mb-1">{data.name}</p>
-                        <p className="text-sm" style={{ color: data.payload.color }}>
-                          Valor: {formatCurrencyFull(data.value)}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {percentage}% del Presupuesto Total
-                        </p>
-                      </div>
-                    )
-                  }
-                  return null
-                }}
-              />
-              <Legend 
-                verticalAlign="bottom" 
-                height={36}
-                iconType="circle"
-                wrapperStyle={{ fontSize: '11px' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        )
+      // Productos
+      const productos = getProductosByBpin(Number(project.bpin))
+      if (productos.length > 0) {
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.text('PRODUCTOS', 20, yPosition)
+        yPosition += 8
 
-      case 'line':
-        return (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="month" className="text-sm text-gray-600 dark:text-gray-400" />
-              <YAxis 
-                className="text-sm text-gray-600 dark:text-gray-400"
-                tickFormatter={formatCurrencyShort}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="ejecutado" stroke={metricColors.ejecutado} strokeWidth={3} name="Ejecutado" />
-              <Line type="monotone" dataKey="pagado" stroke={metricColors.pagado} strokeWidth={3} name="Pagado" />
-            </LineChart>
-          </ResponsiveContainer>
-        )
+        const productosData = productos.slice(0, 10).map((producto, index) => [
+          (index + 1).toString(),
+          producto.nombre_producto || 'Sin nombre',
+          producto.ponderacion_producto ? `${producto.ponderacion_producto}%` : 'N/A'
+        ])
 
-      case 'area':
-        return (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="month" className="text-sm text-gray-600 dark:text-gray-400" />
-              <YAxis 
-                className="text-sm text-gray-600 dark:text-gray-400"
-                tickFormatter={formatCurrencyShort}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="ejecutado" stackId="1" stroke={metricColors.ejecutado} fill={metricColors.ejecutado + '80'} name="Ejecutado" />
-              <Area type="monotone" dataKey="pagado" stackId="1" stroke={metricColors.pagado} fill={metricColors.pagado + '80'} name="Pagado" />
-            </AreaChart>
-          </ResponsiveContainer>
-        )
+        doc.autoTable({
+          startY: yPosition,
+          head: [['#', 'Nombre del Producto', 'Ponderación']],
+          body: productosData,
+          theme: 'striped',
+          headStyles: { fillColor: [139, 92, 246] }, // Purple-600
+          styles: { fontSize: 9 },
+          margin: { left: 20, right: 20 }
+        })
 
-      default:
-        return null
+        yPosition = (doc as any).lastAutoTable.finalY + 10
+      }
+
+      // Actividades
+      const actividades = getActividadesByBpin(Number(project.bpin))
+      if (actividades.length > 0) {
+        // Nueva página si es necesario
+        if (yPosition > 240) {
+          doc.addPage()
+          yPosition = 20
+        }
+
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.text('ACTIVIDADES', 20, yPosition)
+        yPosition += 8
+
+        const actividadesData = actividades.slice(0, 10).map((actividad, index) => [
+          (index + 1).toString(),
+          actividad.nombre_actividad || 'Sin nombre',
+          actividad.fecha_inicio_actividad ? formatDate(actividad.fecha_inicio_actividad) : 'N/A',
+          actividad.fecha_fin_actividad ? formatDate(actividad.fecha_fin_actividad) : 'N/A',
+          actividad.ppto_inicial_actividad ? formatCurrency(actividad.ppto_inicial_actividad) : 'N/A'
+        ])
+
+        doc.autoTable({
+          startY: yPosition,
+          head: [['#', 'Actividad', 'Inicio', 'Fin', 'Presupuesto']],
+          body: actividadesData,
+          theme: 'striped',
+          headStyles: { fillColor: [34, 197, 94] }, // Green-600
+          styles: { fontSize: 8 },
+          columnStyles: { 1: { cellWidth: 60 } },
+          margin: { left: 20, right: 20 }
+        })
+
+        yPosition = (doc as any).lastAutoTable.finalY + 10
+      }
+
+      // Footer
+      const pageCount = doc.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setFontSize(8)
+        doc.setTextColor(128, 128, 128)
+        doc.text(`Generado el ${new Date().toLocaleDateString('es-CO')} - Página ${i} de ${pageCount}`, 20, 285)
+        doc.text('Sistema de Gestión de Proyectos - Alcaldía de Medellín', 20, 290)
+      }
+
+      // Guardar el archivo
+      doc.save(`${fileName}.pdf`)
+    } catch (error) {
+      console.error('Error generando PDF:', error)
+      alert('Error al generar el PDF. Por favor, intente nuevamente.')
     }
   }
 
@@ -386,63 +404,57 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
             id="project-modal-content"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white p-6 border-b border-blue-500 dark:border-blue-600">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white p-4">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold mb-2 text-white">{project.name}</h2>
-                  <div className="flex items-center space-x-4 text-blue-100 dark:text-blue-200 mb-3">
+                  <h2 className="text-3xl font-bold mb-2 text-white">{project.name}</h2>
+                  <div className="flex items-center space-x-4 text-blue-100 text-base mb-2">
                     <span className="flex items-center">
-                      <Building className="w-5 h-5 mr-2" />
+                      <Building className="w-4 h-4 mr-1" />
                       BPIN: {project.bpin}
                     </span>
+                    <span className="flex items-center">
+                      <Info className="w-4 h-4 mr-1" />
+                      BP: {getBPFromBPIN(project.bpin)}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-blue-200 dark:text-blue-300 text-sm">
-                    <div>
-                      <span className="font-medium block">Centro Gestor:</span>
-                      <span className="text-blue-100 font-semibold text-base">{project.responsible}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium block">Comuna:</span>
-                      <span className="text-blue-100 font-semibold text-base">{project.comuna || 'No especificada'}</span>
-                    </div>
+                  <div className="text-blue-200 text-base">
+                    <span className="font-medium">Centro Gestor:</span>
+                    <span className="text-blue-100 ml-1">{project.responsible}</span>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={handleExportPDF}
-                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
-                    aria-label="Exportar ficha"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span className="text-sm">Exportar</span>
-                  </button>
-                  <button
                     onClick={onClose}
-                    className="text-white hover:text-gray-200 dark:hover:text-gray-300 transition-colors p-2 hover:bg-white/10 dark:hover:bg-white/20 rounded-full"
+                    className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-white/10 rounded-full"
                     aria-label="Cerrar modal"
                   >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(90vh-140px)] bg-white dark:bg-gray-900">
+            <div className="overflow-y-auto max-h-[calc(90vh-180px)] bg-white dark:bg-gray-900">
               <div className="p-3 space-y-3">
-                {/* Información General */}
-                <div className="space-y-3">
-                  {/* Progress Bars */}
-                  <div className="space-y-2">
+                
+                {/* Progreso */}
+                <CollapsibleSection
+                  title="Progreso del Proyecto"
+                  icon={<Activity className="w-4 h-4 text-green-600" />}
+                  defaultOpen={true}
+                >
+                  <div className="space-y-3">
                     {/* Progreso Físico */}
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progreso Físico</span>
-                        <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                          {getProgresoFisico(Number(project.bpin)).toFixed(1)}%
+                    <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-base font-medium text-gray-700 dark:text-gray-300">Progreso Físico</span>
+                        <span className="text-base font-semibold text-green-600 dark:text-green-400">
+                          {formatPercentage(getProgresoFisico(Number(project.bpin)))}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                         <div 
                           className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${Math.min(getProgresoFisico(Number(project.bpin)), 100)}%` }}
@@ -451,14 +463,14 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                     </div>
 
                     {/* Progreso Financiero */}
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progreso Financiero</span>
-                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                          {getProgresoFinanciero(Number(project.bpin)).toFixed(1)}%
+                    <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-base font-medium text-gray-700 dark:text-gray-300">Progreso Financiero</span>
+                        <span className="text-base font-semibold text-blue-600 dark:text-blue-400">
+                          {formatPercentage(getProgresoFinanciero(Number(project.bpin)))}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                         <div 
                           className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${Math.min(getProgresoFinanciero(Number(project.bpin)), 100)}%` }}
@@ -466,266 +478,412 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                       </div>
                     </div>
                   </div>
+                </CollapsibleSection>
 
-                  {/* Información del Proyecto - Formato texto simple */}
-                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                      <Info className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
-                      Información del Proyecto
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      {(() => {
-                        const proyectoData = dataContext.proyectos?.find(p => p.bpin === Number(project.bpin))
-                        return proyectoData && (
-                          <>
-                            {proyectoData.nombre_centro_gestor && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Centro Gestor:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{proyectoData.nombre_centro_gestor}</span>
-                              </div>
-                            )}
-                            {proyectoData.nombre_programa && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Programa:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{proyectoData.nombre_programa}</span>
-                              </div>
-                            )}
-                            {proyectoData.nombre_dimension && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Dimensión:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{proyectoData.nombre_dimension}</span>
-                              </div>
-                            )}
-                            {proyectoData.nombre_linea_estrategica && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Línea Estratégica:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{proyectoData.nombre_linea_estrategica}</span>
-                              </div>
-                            )}
-                            {proyectoData.nombre_fondo && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Fuente de Financiación:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{proyectoData.nombre_fondo}</span>
-                              </div>
-                            )}
-                            {proyectoData.tipo_gasto && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Tipo de Gasto:</span>
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                  proyectoData.tipo_gasto === 'Inversión' 
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                }`}>
-                                  {proyectoData.tipo_gasto}
-                                </span>
-                              </div>
-                            )}
-                            {proyectoData.clasificacion_fondo && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Clasificación del Fondo:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{proyectoData.clasificacion_fondo}</span>
-                              </div>
-                            )}
-                            {proyectoData.nombre_area_funcional && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Área Funcional:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{proyectoData.nombre_area_funcional}</span>
-                              </div>
-                            )}
-                            {proyectoData.anio && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-gray-600 dark:text-gray-300 font-medium">Año:</span>
-                                <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{proyectoData.anio}</span>
-                              </div>
-                            )}
-                          </>
-                        )
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Descripción del Proyecto - Movida aquí */}
-                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
-                      <Building className="w-4 h-4 mr-2 text-indigo-600 dark:text-indigo-400" />
-                      Descripción del Proyecto
-                    </h3>
-                    
-                    {/* Grid de contenido - Una sola columna */}
-                    <div className="space-y-3">
-                      {/* Descripción General */}
-                      {project.descripcion && (
-                        <div>
-                          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1 text-sm">Descripción General</h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed bg-white dark:bg-gray-700 p-2 rounded-lg border">
-                            {project.descripcion}
-                          </p>
+                {/* Información Financiera */}
+                <CollapsibleSection
+                  title="Información Financiera"
+                  icon={<DollarSign className="w-4 h-4 text-green-600" />}
+                  defaultOpen={true}
+                >
+                  <div className="space-y-4">
+                    {/* Métricas financieras */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-gray-700 rounded-lg border">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Presupuesto</div>
+                        <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                          {formatCurrency(project.budget)}
                         </div>
-                      )}
-
-                      {project.texto1 && (
-                        <div>
-                          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1 text-sm">Alcance y Beneficios</h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed bg-white dark:bg-gray-700 p-2 rounded-lg border">
-                            {project.texto1}
-                          </p>
-                        </div>
-                      )}
-
-                      {project.texto2 && (
-                        <div>
-                          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1 text-sm">Componentes Adicionales</h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed bg-white dark:bg-gray-700 p-2 rounded-lg border">
-                            {project.texto2}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Productos */}
-                      {(() => {
-                        const productos = getProductosByBpin(Number(project.bpin))
-                        return productos.length > 0 && (
-                          <div>
-                            <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1 text-sm flex items-center">
-                              <PieChartIcon className="w-4 h-4 mr-1 text-purple-600" />
-                              Productos ({productos.length})
-                            </h4>
-                            <div className="bg-white dark:bg-gray-700 p-2 rounded-lg border max-h-32 overflow-y-auto">
-                              <div className="space-y-1">
-                                {productos.slice(0, 3).map((producto, index) => (
-                                  <div key={index} className="border-l-2 border-purple-400 pl-2">
-                                    <div className="text-xs font-medium text-gray-900 dark:text-white">
-                                      {producto.nombre_producto}
-                                    </div>
-                                    {producto.descripcion_avance_producto && (
-                                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
-                                        {producto.descripcion_avance_producto.substring(0, 100)}...
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                                {productos.length > 3 && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-1">
-                                    +{productos.length - 3} productos más
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })()}
-
-                      {/* Actividades */}
-                      {(() => {
-                        const actividades = getActividadesByBpin(Number(project.bpin))
-                        return actividades.length > 0 && (
-                          <div>
-                            <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1 text-sm flex items-center">
-                              <Activity className="w-4 h-4 mr-1 text-green-600" />
-                              Actividades ({actividades.length})
-                            </h4>
-                            <div className="bg-white dark:bg-gray-700 p-2 rounded-lg border max-h-32 overflow-y-auto">
-                              <div className="space-y-1">
-                                {actividades.slice(0, 3).map((actividad, index) => (
-                                  <div key={index} className="border-l-2 border-green-400 pl-2">
-                                    <div className="text-xs font-medium text-gray-900 dark:text-white">
-                                      {actividad.nombre_actividad}
-                                    </div>
-                                    {actividad.descripcion_actividad && (
-                                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
-                                        {actividad.descripcion_actividad.substring(0, 100)}...
-                                      </p>
-                                    )}
-                                    {actividad.fecha_inicio_actividad && actividad.fecha_fin_actividad && (
-                                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {new Date(actividad.fecha_inicio_actividad).toLocaleDateString('es-CO')} - {new Date(actividad.fecha_fin_actividad).toLocaleDateString('es-CO')}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                                {actividades.length > 3 && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-1">
-                                    +{actividades.length - 3} actividades más
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  </div>                  {/* Información Financiera */}
-                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                      <DollarSign className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
-                      Información Financiera
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ejecutado</div>
+                      </div>
+                      <div className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-gray-700 rounded-lg border">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Ejecutado</div>
                         <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                           {formatCurrency(project.executed)}
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">
-                          {project.budget > 0 && typeof project.progressFinanciero === 'number' 
-                            ? formatPercentage(Math.min(project.progressFinanciero, 100))
-                            : formatPercentage((project.executed / project.budget) * 100)
-                          }
-                        </div>
                       </div>
-                      <div className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pagado</div>
+                      <div className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-gray-700 rounded-lg border">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Pagado</div>
                         <div className="text-lg font-bold text-green-600 dark:text-green-400">
                           {formatCurrency(project.pagado)}
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">
-                          {formatPercentage((project.pagado / project.budget) * 100)}
-                        </div>
                       </div>
-                      <div className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Presupuesto Disponible</div>
+                      <div className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-gray-700 rounded-lg border">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Disponible</div>
                         <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
                           {formatCurrency(Math.max(0, project.budget - project.executed))}
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">
-                          {formatPercentage(Math.max(0, (project.budget - project.executed) / project.budget) * 100)}
-                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Análisis Presupuestario - Métricas del BudgetChart */}
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
-                    <BudgetChart project={project} />
+                    {/* Gráficas de ejecución presupuestal */}
+                    <div className="bg-white dark:bg-gray-700 rounded-lg border p-4">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                        <PieChartIcon className="w-4 h-4 mr-2 text-blue-600" />
+                        Ejecución Presupuestal del Proyecto
+                      </h4>
+                      <BudgetChart project={project} />
+                    </div>
                   </div>
-                </div>
+                </CollapsibleSection>
 
-                {/* Sección de Descripción */}
+                {/* Información del Proyecto */}
+                <CollapsibleSection
+                  title="Información del Proyecto"
+                  icon={<Info className="w-4 h-4 text-blue-600" />}
+                  defaultOpen={true}
+                >
+                  <div className="space-y-2 text-sm">
+                    {(() => {
+                      const proyectoData = dataContext.proyectos?.find(p => p.bpin === Number(project.bpin))
+                      return proyectoData && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {proyectoData.nombre_centro_gestor && (
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
+                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Centro Gestor</span>
+                              <span className="font-semibold text-gray-900 dark:text-white text-xs">{proyectoData.nombre_centro_gestor}</span>
+                            </div>
+                          )}
+                          {proyectoData.nombre_programa && (
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
+                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Programa</span>
+                              <span className="font-semibold text-gray-900 dark:text-white text-xs">{proyectoData.nombre_programa}</span>
+                            </div>
+                          )}
+                          {proyectoData.nombre_dimension && (
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
+                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Dimensión</span>
+                              <span className="font-semibold text-gray-900 dark:text-white text-xs">{proyectoData.nombre_dimension}</span>
+                            </div>
+                          )}
+                          {proyectoData.nombre_fondo && (
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
+                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Fuente de Financiación</span>
+                              <span className="font-semibold text-gray-900 dark:text-white text-xs">{proyectoData.nombre_fondo}</span>
+                            </div>
+                          )}
+                          {project.status && (
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
+                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Estado</span>
+                              <span className="font-semibold text-gray-900 dark:text-white text-xs">{project.status}</span>
+                            </div>
+                          )}
+                          {project.comuna && (
+                            <div className="bg-white dark:bg-gray-700 p-2 rounded border">
+                              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs block">Comuna</span>
+                              <span className="font-semibold text-gray-900 dark:text-white text-xs">{project.comuna}</span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </CollapsibleSection>
+
+                {/* Productos */}
+                {(() => {
+                  const productos = getProductosByBpin(Number(project.bpin))
+                  return productos.length > 0 && (
+                    <CollapsibleSection
+                      title={
+                        <div className="flex items-center justify-between w-full">
+                          <span>{`Productos (${productos.length})`}</span>
+                          <button
+                            onClick={() => {
+                              window.location.href = `/?tab=products&bpin=${project.bpin}#products`
+                            }}
+                            className="ml-4 px-3 py-1.5 bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-lg transition-colors"
+                          >
+                            Ver Productos
+                          </button>
+                        </div>
+                      }
+                      icon={<Package className="w-4 h-4 text-purple-600" />}
+                      defaultOpen={true}
+                    >
+                      <div className="space-y-3">
+                        {productos.map((producto, index) => {
+                          const statusInfo = getProductStatus(producto)
+                          const statusColors = {
+                            'Completado': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                            'En Progreso': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                            'No Iniciado': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                          } as const
+                          
+                          const statusKey = statusInfo.status as keyof typeof statusColors
+                          
+                          return (
+                            <div key={index} className="p-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 shadow-sm">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">
+                                  {producto.nombre_producto || 'Sin nombre'}
+                                </h4>
+                                <div className="flex justify-center">
+                                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${statusColors[statusKey]}`}>
+                                    {statusInfo.status}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {producto.descripcion_avance_producto && (
+                                <p className="text-base text-gray-700 dark:text-gray-200 mb-3 leading-relaxed">
+                                  {producto.descripcion_avance_producto}
+                                </p>
+                              )}
+                              
+                              <div className="grid grid-cols-3 gap-6 text-base">
+                                <div className="text-center">
+                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Meta</span>
+                                  <span className="text-gray-900 dark:text-white font-semibold">
+                                    {producto.cantidad_programada_producto ? producto.cantidad_programada_producto.toLocaleString() : '—'}
+                                  </span>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Periodo</span>
+                                  <span className="text-gray-900 dark:text-white font-semibold">
+                                    {formatPeriod(producto.periodo_corte)}
+                                  </span>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Ponderación Producto</span>
+                                  <span className="text-gray-900 dark:text-white font-semibold">
+                                    {producto.ponderacion_producto !== undefined ? formatPercentageFromDecimal(producto.ponderacion_producto) : '—'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-500">
+                                <div className="grid grid-cols-2 gap-6 text-base">
+                                  <div className="flex flex-col items-center justify-center text-center">
+                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Avance Producto</div>
+                                    {producto.avance_real_producto !== undefined ? (
+                                      <ProductProgressGauge 
+                                        value={(producto.avance_real_producto || 0) * 100} 
+                                        className="mb-2"
+                                      />
+                                    ) : (
+                                      <div className="font-semibold text-gray-900 dark:text-white">—</div>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col items-center justify-center text-center">
+                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Ejecución Presupuesto Producto</div>
+                                    {producto.ejecucion_ppto_producto && producto.ppto_inicial_producto ? (
+                                      <BudgetExecutionGauge 
+                                        value={(producto.ejecucion_ppto_producto / producto.ppto_inicial_producto) * 100} 
+                                        className="mb-2"
+                                      />
+                                    ) : (
+                                      <div className="font-semibold text-gray-900 dark:text-white">
+                                        {producto.ejecucion_ppto_producto ? formatCurrency(producto.ejecucion_ppto_producto) : '—'}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </CollapsibleSection>
+                  )
+                })()}
+
+                {/* Actividades */}
+                {(() => {
+                  const actividades = getActividadesByBpin(Number(project.bpin))
+                  return actividades.length > 0 && (
+                    <CollapsibleSection
+                      title={
+                        <div className="flex items-center justify-between w-full">
+                          <span>{`Actividades (${actividades.length})`}</span>
+                          <button
+                            onClick={() => {
+                              window.location.href = `/?tab=activities&bpin=${project.bpin}#activities`
+                            }}
+                            className="ml-4 px-3 py-1.5 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 text-xs font-medium rounded-lg transition-colors"
+                          >
+                            Ver Actividades
+                          </button>
+                        </div>
+                      }
+                      icon={<Activity className="w-4 h-4 text-green-600" />}
+                      defaultOpen={true}
+                    >
+                      <div className="space-y-3">
+                        {actividades.map((actividad, index) => {
+                          const statusInfo = getActivityStatus(actividad)
+                          const statusColors = {
+                            'Completada': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                            'No Iniciada': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+                            'Demorada': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                            'A Tiempo': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                            'La tarea no posee fecha de inicio o fin': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          } as const
+                          
+                          const statusKey = statusInfo.status as keyof typeof statusColors
+                          
+                          // Calcular duración
+                          const calculateDuration = () => {
+                            if (!actividad.fecha_inicio_actividad || !actividad.fecha_fin_actividad) {
+                              return '—'
+                            }
+                            const startDate = new Date(actividad.fecha_inicio_actividad)
+                            const endDate = new Date(actividad.fecha_fin_actividad)
+                            const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                            return `${diffDays} días`
+                          }
+                          
+                          return (
+                            <div key={index} className="p-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 shadow-sm">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-semibold text-gray-900 dark:text-white">
+                                  {actividad.nombre_actividad || 'Sin nombre'}
+                                </h4>
+                                <div className="flex justify-center">
+                                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${statusColors[statusKey]}`}>
+                                    {statusInfo.status}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {actividad.descripcion_actividad && (
+                                <p className="text-sm text-gray-700 dark:text-gray-200 mb-3 leading-relaxed">
+                                  {actividad.descripcion_actividad}
+                                </p>
+                              )}
+                              
+                              <div className="grid grid-cols-3 gap-6 text-sm">
+                                <div className="text-center">
+                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Fecha de Inicio</span>
+                                  <span className="text-gray-900 dark:text-white font-semibold">
+                                    {actividad.fecha_inicio_actividad ? formatDate(actividad.fecha_inicio_actividad) : '—'}
+                                  </span>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Fecha de Fin</span>
+                                  <span className="text-gray-900 dark:text-white font-semibold">
+                                    {actividad.fecha_fin_actividad ? formatDate(actividad.fecha_fin_actividad) : '—'}
+                                  </span>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-gray-600 dark:text-gray-300 block font-medium mb-1">Duración</span>
+                                  <span className="text-gray-900 dark:text-white font-semibold">
+                                    {calculateDuration()}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-500">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-base">
+                                  <div className="flex flex-col items-center justify-center text-center">
+                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Inicial</div>
+                                    <div className="font-semibold text-gray-900 dark:text-white">
+                                      {actividad.ppto_inicial_actividad ? formatCurrency(actividad.ppto_inicial_actividad) : '—'}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-center justify-center text-center">
+                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Modificado</div>
+                                    <div className="font-semibold text-gray-900 dark:text-white">
+                                      {actividad.ppto_modificado_actividad ? formatCurrency(actividad.ppto_modificado_actividad) : '—'}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-center justify-center text-center">
+                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Ejecutado</div>
+                                    <div className="font-semibold text-gray-900 dark:text-white">
+                                      {actividad.ejecucion_actividad ? formatCurrency(actividad.ejecucion_actividad) : '—'}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-center justify-center text-center">
+                                    <div className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-2">Avance de Actividad</div>
+                                    {actividad.avance_actividad_acumulado !== undefined ? (
+                                      <ActivityProgressGauge 
+                                        value={(actividad.avance_actividad_acumulado || 0) * 100} 
+                                        className="mb-2"
+                                      />
+                                    ) : (
+                                      <div className="font-semibold text-gray-900 dark:text-white">—</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </CollapsibleSection>
+                  )
+                })()}
+
+                {/* Unidades de Proyecto */}
+                {(() => {
+                  const unidades = getUnidadesProyecto(Number(project.bpin))
+                  return unidades.length > 0 && (
+                    <CollapsibleSection
+                      title={`Unidades de Proyecto (${unidades.length})`}
+                      icon={<MapPin className="w-4 h-4 text-red-600" />}
+                      defaultOpen={false}
+                    >
+                      <div className="space-y-3">
+                        {/* Mapa Simplificado */}
+                        <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 h-48 flex items-center justify-center border">
+                          <div className="text-center">
+                            <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              Mapa de {unidades.length} unidades de proyecto
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              (Visualización simplificada)
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Lista de Unidades */}
+                        <div className="max-h-32 overflow-y-auto space-y-1">
+                          {unidades.slice(0, 5).map((unidad, index) => (
+                            <div key={index} className="bg-white dark:bg-gray-700 p-2 rounded border text-xs">
+                              <div className="font-medium text-gray-900 dark:text-white">
+                                {unidad.nombre || unidad.nombre_equipamiento || 'Unidad sin nombre'}
+                              </div>
+                              {unidad.tipo_equipamiento && (
+                                <div className="text-gray-500 dark:text-gray-400">
+                                  Tipo: {unidad.tipo_equipamiento}
+                                </div>
+                              )}
+                              {(unidad.comuna || unidad.barrio) && (
+                                <div className="text-gray-500 dark:text-gray-400">
+                                  {unidad.comuna && `Comuna ${unidad.comuna}`}
+                                  {unidad.barrio && ` - ${unidad.barrio}`}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {unidades.length > 5 && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
+                              +{unidades.length - 5} unidades más
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleSection>
+                  )
+                })()}
+
               </div>
             </div>
 
             {/* Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/70">
+            <div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-800/70">
               <div className="flex justify-between items-center">
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Ficha generada el {new Date().toLocaleDateString('es-CO')}
+                  Ficha generada el {new Date().toLocaleDateString('es-CO')} a las {new Date().toLocaleTimeString('es-CO', { hour12: false })}
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handlePrintModal}
-                    className="bg-gray-600 hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200 font-medium text-sm"
-                  >
-                    <Printer className="w-4 h-4" />
-                    <span>Imprimir</span>
-                  </button>
-                  <button
-                    onClick={handleExportPDF}
-                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200 font-medium text-sm"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Exportar</span>
-                  </button>
-                </div>
+                <button
+                  onClick={handleExportPDF}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm flex items-center space-x-1 transition-colors"
+                >
+                  <Download className="w-3 h-3" />
+                  <span>Exportar PDF</span>
+                </button>
               </div>
             </div>
           </motion.div>

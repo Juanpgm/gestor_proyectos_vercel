@@ -322,7 +322,7 @@ const OptimizedMapInterface: React.FC<OptimizedMapInterfaceProps> = memo((props)
       />
 
       {/* Panel de control superior */}
-      <div className="absolute top-4 left-4 z-[1000] flex gap-2">
+      <div className="absolute top-4 left-4 z-10 flex gap-2">
         {/* Selector de mapa base */}
         <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-2">
           <select
@@ -361,7 +361,7 @@ const OptimizedMapInterface: React.FC<OptimizedMapInterfaceProps> = memo((props)
             initial={{ opacity: 0, x: -300 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -300 }}
-            className="absolute top-16 left-4 z-[1000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 w-72"
+            className="absolute top-16 left-4 z-10 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 w-72"
           >
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -401,7 +401,7 @@ const OptimizedMapInterface: React.FC<OptimizedMapInterfaceProps> = memo((props)
       </AnimatePresence>
 
       {/* Información de estado en la esquina inferior derecha */}
-      <div className="absolute bottom-4 right-4 z-[1000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3">
+      <div className="absolute bottom-4 right-4 z-10 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3">
         <div className="flex items-center gap-2 text-xs">
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>

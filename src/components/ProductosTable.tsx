@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Producto } from '@/hooks/useProductos'
 import { useDataContext } from '@/context/DataContext'
+import { ProductProgressGauge } from './GaugeChart'
 
 interface ProductosTableProps {
   productos: Producto[]
@@ -339,16 +340,11 @@ export default function ProductosTable({
                         </div>
                         
                         {/* Progreso */}
-                        <div>
-                          <div className="text-xs font-medium text-gray-900 dark:text-white text-center mb-1">
-                            {progress.toFixed(1)}%
-                          </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                            <div 
-                              className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
-                              style={{ width: `${Math.min(progress, 100)}%` }} 
-                            />
-                          </div>
+                        <div className="flex justify-center">
+                          <ProductProgressGauge 
+                            value={progress} 
+                            size="small"
+                          />
                         </div>
                       </div>
                     </td>

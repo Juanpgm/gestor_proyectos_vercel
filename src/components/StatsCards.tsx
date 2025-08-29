@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useDashboardStats } from '@/context/DashboardContext'
 import { useFilteredStats } from '@/hooks/useDataFilters'
+import { formatCurrency } from '../utils/formatCurrency'
 
 interface StatCardProps {
   title: string
@@ -59,31 +60,31 @@ const StatCard: React.FC<StatCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       whileHover={{ scale: 1.02 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 min-h-[140px] sm:min-h-[160px]"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all duration-300 min-h-[130px]"
     >
       <div className="flex flex-col h-full">
-        {/* Header con ícono centrado */}
+        {/* Header con ícono */}
         <div className="flex justify-center mb-3">
-          <div className={`p-2 sm:p-3 rounded-lg ${color}`}>
+          <div className={`p-2.5 rounded-lg ${color} shadow-md`}>
             {React.cloneElement(icon as React.ReactElement, {
-              className: 'w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white'
+              className: 'w-5 h-5 text-white'
             })}
           </div>
         </div>
         
         {/* Contenido principal */}
         <div className="flex-1 flex flex-col justify-center">
-          {/* Título centrado */}
-          <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 leading-relaxed text-center">
+          {/* Título */}
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 leading-tight text-center">
             {title}
           </p>
-          {/* Cifra centrada */}
-          <p className={`text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 break-words text-center ${loading ? 'animate-pulse' : ''}`}>
+          {/* Cifra principal */}
+          <p className={`text-2xl font-bold text-gray-900 dark:text-white mb-2 text-center ${loading ? 'animate-pulse' : ''}`}>
             {formatValue(value)}
           </p>
-          {/* Subtítulo centrado */}
+          {/* Subtítulo */}
           {subtitle && (
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500 leading-relaxed text-center">
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight text-center line-clamp-2">
               {subtitle}
             </p>
           )}
@@ -128,18 +129,6 @@ const StatsCards: React.FC = () => {
 
 // Función auxiliar para renderizar las cards
 function renderStatsCards(stats: any, loading: boolean, error: any) {
-
-  // Función para formatear valores monetarios (mantenida para compatibilidad)
-  const formatCurrency = (value: number) => {
-    if (value >= 1000000000) {
-      return `$${(value / 1000000000).toFixed(1)}B`
-    } else if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`
-    }
-    return `$${value.toLocaleString()}`
-  }
 
   // Función para formatear porcentajes (mantenida para compatibilidad futura)
   const formatPercentage = (value: number) => {
@@ -191,7 +180,7 @@ function renderStatsCards(stats: any, loading: boolean, error: any) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6 mb-8">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
       {statsData.map((stat, index) => (
         <StatCard 
           key={stat.title} 
