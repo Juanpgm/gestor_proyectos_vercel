@@ -96,7 +96,10 @@ export async function loadGeoJSON(
     const basePath = pathMapping[actualFileName] || '/data/geodata'
     const fullPath = `${basePath}/${actualFileName}.geojson`
 
-    console.log(`🔍 Cargando archivo: ${fullPath}`)
+    console.log(`🔍 DEBUG - fileName original: ${fileName}`)
+    console.log(`🔍 DEBUG - actualFileName: ${actualFileName}`)
+    console.log(`🔍 DEBUG - basePath: ${basePath}`)
+    console.log(`🔍 DEBUG - fullPath: ${fullPath}`)
 
     // Verificación previa del archivo con HEAD request (más rápido)
     try {

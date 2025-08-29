@@ -293,6 +293,6 @@ Para reportar problemas o solicitar características:
 
 ---
 
-**Versión**: 1.3.0  
+**Versión**: 2.0.0  
 **Última actualización**: Agosto 2025  
 **Desarrollado con**: ❤️ para la gestión pública eficiente y optimizada

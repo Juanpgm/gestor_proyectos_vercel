@@ -45,6 +45,7 @@ export interface MapLayer {
     opacity: number
     fillOpacity: number
   }
+  onEachFeature?: (feature: any, leafletLayer: any) => void
 }
 
 export interface UniversalMapCoreProps {
@@ -1393,10 +1394,21 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                 // Si no hay simbología personalizada, usar la configuración por defecto
                 const baseStyle = getLayerStyle(layer)
                 
-                // Combinar estilos
+                // CHOROPLETH: Detectar si el feature tiene color coroplético
+                let choroplethStyle = {}
+                if (feature?.properties?.choroplethColor) {
+                  choroplethStyle = {
+                    fillColor: feature.properties.choroplethColor,
+                    fillOpacity: 0.8
+                  }
+                  console.log(`🎨 Aplicando color coroplético: ${feature.properties.choroplethColor} para ${feature.properties.nombre || 'área'}`)
+                }
+                
+                // Combinar estilos (choropleth tiene prioridad)
                 const finalStyle = {
                   ...baseStyle,
-                  ...customStyle
+                  ...customStyle,
+                  ...choroplethStyle
                 }
                 
                 // Para LineString, usar un estilo con mejor área de click y aplicar estilos de línea
@@ -1503,8 +1515,16 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                   geometryType: feature.geometry.type,
                   properties: feature.properties,
                   featureName: feature.properties?.nickname || feature.properties?.id_via || feature.properties?.nombre || 'Sin nombre',
-                  hasOnFeatureClick: !!onFeatureClick
+                  hasOnFeatureClick: !!onFeatureClick,
+                  hasCustomOnEachFeature: !!layer.onEachFeature
                 })
+                
+                // Ejecutar función personalizada de la capa si existe
+                if (layer.onEachFeature) {
+                  console.log(`🎯 Ejecutando onEachFeature personalizado para capa: ${layer.id}`)
+                  layer.onEachFeature(feature, leafletLayer)
+                  return // Si hay función personalizada, no ejecutar la lógica por defecto
+                }
                 
                 // Solo agregar evento de click si onFeatureClick está definido
                 if (onFeatureClick) {
@@ -1670,10 +1690,6 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
       {/* Panel de controles de capas */}
       {enableLayerControls && (
         <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-4 max-w-xs">
-          <div className="flex items-center gap-2 mb-3">
-            <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Capas del Mapa</span>
-          </div>
           <div className="space-y-3">
             {layers
               .filter(layer => layer.id !== 'unidadesProyecto') // Excluir Unidades de Proyecto

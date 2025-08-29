@@ -51,9 +51,6 @@ export interface MetricData {
 }
 
 interface ChoroplethMapInteractiveProps {
-  className?: string
-  height?: string
-  showControls?: boolean
   showChartsPanel?: boolean
   defaultLayer?: GeographicLayer
   defaultMetric?: MetricType
@@ -112,12 +109,9 @@ const LAYER_CONFIG = {
 } as const
 
 const ChoroplethMapInteractive: React.FC<ChoroplethMapInteractiveProps> = ({
-  className = '',
-  height = '600px',
-  showControls = true,
   showChartsPanel = true,
   defaultLayer = 'comunas',
-  defaultMetric = 'proyectos',
+  defaultMetric = 'presupuesto',
   baseMapUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   baseMapAttribution = '© OpenStreetMap contributors'
 }) => {
@@ -142,23 +136,6 @@ const ChoroplethMapInteractive: React.FC<ChoroplethMapInteractiveProps> = ({
     proyectos,
     actividades
   }), [presupuesto, proyectos, actividades])
-
-  // URLs de tiles base según el tema
-  const dynamicBaseMapUrl = useMemo(() => {
-    if (baseMapUrl !== 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png') {
-      return baseMapUrl // Si se proporciona una URL personalizada, usarla
-    }
-    return theme === 'dark' 
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-  }, [theme, baseMapUrl])
-
-  const dynamicBaseMapAttribution = useMemo(() => {
-    if (baseMapAttribution !== '© OpenStreetMap contributors') {
-      return baseMapAttribution // Si se proporciona una atribución personalizada, usarla
-    }
-    return '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-  }, [baseMapAttribution])
 
   // Cargar datos geográficos
   useEffect(() => {
@@ -299,7 +276,7 @@ const ChoroplethMapInteractive: React.FC<ChoroplethMapInteractiveProps> = ({
     }
     
     const intensity = Math.min(value / maxValue, 1) // Asegurar que no exceda 1
-    const baseColor = METRIC_CONFIG[metricType]?.color || '#059669'
+    const baseColor = METRIC_CONFIG[metricType].color
     
     // Convertir hex a RGB
     const r = parseInt(baseColor.slice(1, 3), 16)
@@ -401,7 +378,7 @@ const ChoroplethMapInteractive: React.FC<ChoroplethMapInteractiveProps> = ({
       visible: true,
       type: 'geojson',
       // Usar color base de la métrica para fallback
-      color: METRIC_CONFIG[activeMetric]?.color || '#059669',
+      color: METRIC_CONFIG[activeMetric].color,
       style: {
         weight: 2,
         opacity: 1,
@@ -475,151 +452,141 @@ const ChoroplethMapInteractive: React.FC<ChoroplethMapInteractiveProps> = ({
 
   if (loading) {
     return (
-      <div className={`${className} relative overflow-hidden rounded-lg border bg-card`} style={{ height }}>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <Activity className="w-8 h-8 mx-auto mb-2 animate-spin text-blue-500" />
-            <p className="text-gray-600 dark:text-gray-400">Cargando datos geográficos...</p>
-          </div>
+      <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
+        <div className="text-center">
+          <Activity className="w-8 h-8 mx-auto mb-2 animate-spin text-blue-500" />
+          <p className="text-gray-600 dark:text-gray-400">Cargando datos geográficos...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className={`${className} relative`} style={{ height }}>
-      <div className="flex h-full">
-        {/* Mapa principal */}
-        <div className={`relative ${showChartsPanel && !chartsPanelCollapsed ? 'w-2/3' : 'w-full'} transition-all duration-300`}>
-          {/* Controles superiores */}
-          {showControls && (
-            <div className="absolute top-4 left-4 z-[1000] flex gap-2">
-              {/* Selector de capa geográfica */}
-              <div className="relative">
-                <motion.button
-                  onClick={() => setShowLayerSelector(!showLayerSelector)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+    <div className="w-full h-full flex flex-col">
+      {/* Controles superiores */}
+      <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-4">
+          {/* Selector de capa geográfica */}
+          <div className="relative">
+            <button
+              onClick={() => setShowLayerSelector(!showLayerSelector)}
+              className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="text-lg">{LAYER_CONFIG[activeLayer].icon}</span>
+              <span className="text-sm font-medium">{LAYER_CONFIG[activeLayer].name}</span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+
+            <AnimatePresence>
+              {showLayerSelector && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full mt-2 left-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl min-w-64 z-10"
                 >
-                  <span className="text-lg">{LAYER_CONFIG[activeLayer].icon}</span>
-                  <span className="text-sm font-medium">{LAYER_CONFIG[activeLayer].name}</span>
-                  <ChevronDown className="w-4 h-4" />
-                </motion.button>
-
-                <AnimatePresence>
-                  {showLayerSelector && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full mt-2 left-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl min-w-64 z-10"
+                  {Object.entries(LAYER_CONFIG).map(([key, config]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setActiveLayer(key as GeographicLayer)
+                        setShowLayerSelector(false)
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                        activeLayer === key ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
+                      }`}
                     >
-                      {Object.entries(LAYER_CONFIG).map(([key, config]) => (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            setActiveLayer(key as GeographicLayer)
-                            setShowLayerSelector(false)
-                          }}
-                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                            activeLayer === key ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg">{config.icon}</span>
-                            <div>
-                              <div className="font-medium">{config.name}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">{config.description}</div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Selector de métrica */}
-              <div className="relative">
-                <motion.button
-                  onClick={() => setShowMetricSelector(!showMetricSelector)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="text-lg">{METRIC_CONFIG[activeMetric]?.icon || '💰'}</span>
-                  <span className="text-sm font-medium">{METRIC_CONFIG[activeMetric]?.name || 'Métrica'}</span>
-                  <ChevronDown className="w-4 h-4" />
-                </motion.button>
-
-                <AnimatePresence>
-                  {showMetricSelector && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full mt-2 left-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl min-w-64 z-10"
-                    >
-                      {Object.entries(METRIC_CONFIG).map(([key, config]) => (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            setActiveMetric(key as MetricType)
-                            setShowMetricSelector(false)
-                          }}
-                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                            activeMetric === key ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg">{config.icon}</span>
-                            <div>
-                              <div className="font-medium">{config.name}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">{config.description}</div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-
-          {/* Leyenda del coroplético */}
-          <div className="absolute bottom-4 left-4 z-[1000] bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg p-4">
-            <div className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              Leyenda - {METRIC_CONFIG[activeMetric]?.name || 'Métrica'}
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border" style={{ backgroundColor: getFeatureColor(0, maxValue, activeMetric) }}></div>
-                <span className="text-xs">Sin datos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border" style={{ backgroundColor: getFeatureColor(maxValue * 0.5, maxValue, activeMetric) }}></div>
-                <span className="text-xs">Medio</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border" style={{ backgroundColor: getFeatureColor(maxValue, maxValue, activeMetric) }}></div>
-                <span className="text-xs">Alto</span>
-              </div>
-            </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{config.icon}</span>
+                        <div>
+                          <div className="font-medium">{config.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{config.description}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Mapa */}
+          {/* Selector de métrica */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMetricSelector(!showMetricSelector)}
+              className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="text-lg">{METRIC_CONFIG[activeMetric].icon}</span>
+              <span className="text-sm font-medium">{METRIC_CONFIG[activeMetric].name}</span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+
+            <AnimatePresence>
+              {showMetricSelector && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full mt-2 left-0 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl min-w-64 z-10"
+                >
+                  {Object.entries(METRIC_CONFIG).map(([key, config]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setActiveMetric(key as MetricType)
+                        setShowMetricSelector(false)
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                        activeMetric === key ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{config.icon}</span>
+                        <div>
+                          <div className="font-medium">{config.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{config.description}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Controles de leyenda y panel */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg">
+            <Palette className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              Leyenda - {METRIC_CONFIG[activeMetric].name}
+            </span>
+          </div>
+          
+          {showChartsPanel && (
+            <button
+              onClick={() => setChartsPanelCollapsed(!chartsPanelCollapsed)}
+              className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+            >
+              {chartsPanelCollapsed ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Contenedor principal del mapa y panel */}
+      <div className="flex-1 flex">
+        {/* Mapa */}
+        <div className="flex-1 relative">
           <UniversalMapCore
             key={mapKey}
             layers={enhancedLayers}
             height="100%"
             enableFullscreen={true}
             enableCenterView={true}
-            enableLayerControls={false}
-            baseMapUrl={dynamicBaseMapUrl}
-            baseMapAttribution={dynamicBaseMapAttribution}
+            baseMapUrl={baseMapUrl}
+            baseMapAttribution={baseMapAttribution}
             theme={theme}
           />
         </div>
@@ -629,31 +596,21 @@ const ChoroplethMapInteractive: React.FC<ChoroplethMapInteractiveProps> = ({
           <motion.div
             initial={{ width: 0, opacity: 0 }}
             animate={{ 
-              width: chartsPanelCollapsed ? 48 : '33.333333%', 
-              opacity: 1 
+              width: chartsPanelCollapsed ? 0 : 400, 
+              opacity: chartsPanelCollapsed ? 0 : 1 
             }}
             transition={{ duration: 0.3 }}
-            className="bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col"
+            className="border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden"
           >
-            {/* Header del panel */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              {!chartsPanelCollapsed && (
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Análisis de Datos</h3>
-                </div>
-              )}
-              <button
-                onClick={() => setChartsPanelCollapsed(!chartsPanelCollapsed)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                {chartsPanelCollapsed ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {/* Contenido del panel */}
             {!chartsPanelCollapsed && (
-              <div className="flex-1 p-4 overflow-y-auto">
+              <div className="h-full overflow-y-auto p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    Análisis de Datos
+                  </h3>
+                </div>
+                
                 {metricsError ? (
                   <div className="text-center text-red-500 py-8">
                     <Activity className="w-8 h-8 mx-auto mb-2" />
@@ -665,7 +622,7 @@ const ChoroplethMapInteractive: React.FC<ChoroplethMapInteractiveProps> = ({
                     metricType={activeMetric}
                     formatValue={formatValue}
                     maxValue={maxValue}
-                    activeColor={METRIC_CONFIG[activeMetric]?.color || '#059669'}
+                    activeColor={METRIC_CONFIG[activeMetric].color}
                   />
                 )}
               </div>

@@ -6,6 +6,7 @@ import { Search, Filter, MapPin, Calendar, ChevronDown, RefreshCw, X } from 'luc
 import { useCentroGestor } from '@/hooks/useCentroGestor'
 import { useFuentesFinanciamiento } from '@/hooks/useFuentesFinanciamiento'
 import { useComunasBarrios } from '@/hooks/useComunasBarrios'
+import { useCorregimientosVeredas } from '@/hooks/useCorregimientosVeredas'
 import { useMovimientosPresupuestales } from '@/hooks/useMovimientosPresupuestales'
 
 
@@ -98,6 +99,15 @@ export default function UnifiedFilters({
     getComunas,
     getBarriosPorComunas
   } = useComunasBarrios()
+
+  // Cargar opciones de corregimientos y veredas desde GeoJSON
+  const { 
+    corregimientosVeredas, 
+    loading: corregimientosLoading, 
+    error: corregimientosError,
+    getCorregimientos,
+    getVeredasPorCorregimientos
+  } = useCorregimientosVeredas()
 
   // Nota: Períodos eliminados según requerimientos
 
@@ -421,31 +431,12 @@ export default function UnifiedFilters({
       ['Error al cargar'] :
       fuentesFinanciamiento
 
-  // Opciones hardcodeadas para corregimientos y veredas
-  const corregimientosOptions = [
-    'Corregimiento 1', 'Corregimiento 2', 'Corregimiento 3',
-    'La Buitrera', 'El Hormiguero', 'Golondrinas',
-    'La Castilla', 'Los Andes', 'Villa Carmelo'
-  ]
-
-  const veredasOptions = [
-    'Vereda 1', 'Vereda 2', 'Vereda 3',
-    'La Elvira', 'Santa Elena', 'La Buitrera',
-    'El Saladito', 'Los Chorros', 'La Vorágine'
-  ]
-
-  // Mapeo hardcodeado de corregimientos a veredas
-  const corregimientoVeredasMap = {
-    'Corregimiento 1': ['Vereda 1A', 'Vereda 1B'],
-    'Corregimiento 2': ['Vereda 2A', 'Vereda 2B'],
-    'Corregimiento 3': ['Vereda 3A', 'Vereda 3B'],
-    'La Buitrera': ['La Elvira', 'Santa Elena'],
-    'El Hormiguero': ['El Saladito', 'Los Chorros'],
-    'Golondrinas': ['La Vorágine'],
-    'La Castilla': ['Vereda Castilla 1', 'Vereda Castilla 2'],
-    'Los Andes': ['Vereda Los Andes'],
-    'Villa Carmelo': ['Vereda Villa Carmelo']
-  }
+  // Memoizar opciones de corregimientos para evitar re-renders
+  const corregimientosOptions = useMemo(() => {
+    if (corregimientosLoading) return ['Cargando...']
+    if (corregimientosError) return ['Error al cargar']
+    return getCorregimientos()
+  }, [corregimientosLoading, corregimientosError, getCorregimientos])
 
   // Opciones hardcodeadas para filtros personalizados
   const filtrosPersonalizadosOptions = [
@@ -456,16 +447,7 @@ export default function UnifiedFilters({
   // Función para obtener veredas dinámicamente según corregimientos seleccionados
   const getVeredasForCorregimientos = (selectedCorregimientos: string[] | undefined) => {
     if (!selectedCorregimientos || selectedCorregimientos.length === 0) return []
-    
-    const set = new Set<string>()
-    selectedCorregimientos.forEach(corr => {
-      const veredas = (corregimientoVeredasMap as Record<string, string[]>)[corr]
-      if (veredas) {
-        veredas.forEach((vereda: string) => set.add(vereda))
-      }
-    })
-    
-    return Array.from(set).sort()
+    return getVeredasPorCorregimientos(selectedCorregimientos)
   }
 
   // Mapeo de filtros personalizados a subfiltros (jerárquico)

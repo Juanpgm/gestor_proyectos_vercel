@@ -54,7 +54,13 @@ const OptimizedProjectSection: React.FC = () => {
           </div>
         </div>
         <div className="p-0">
-          <ChoroplethMapInteractive />
+          <ChoroplethMapInteractive 
+            height="700px"
+            showControls={true}
+            showChartsPanel={true}
+            defaultLayer="comunas"
+            defaultMetric="contratos"
+          />
         </div>
       </motion.section>
     </div>

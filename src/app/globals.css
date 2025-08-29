@@ -389,3 +389,37 @@ body.map-fullscreen {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(75, 85, 99, 0.18);
 }
+
+/* Choropleth Popup Styles */
+.choropleth-popup .leaflet-popup-content-wrapper {
+  background: white;
+  color: #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  padding: 0;
+}
+
+.choropleth-popup .leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.choropleth-popup .leaflet-popup-tip {
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+.choropleth-popup .leaflet-popup-close-button {
+  color: #6b7280;
+  font-size: 16px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+}
+
+.choropleth-popup .leaflet-popup-close-button:hover {
+  color: #374151;
+  background: #f3f4f6;
+  border-radius: 4px;
+}

@@ -50,10 +50,10 @@ const MapLayerFilters: React.FC<MapLayerFiltersProps> = ({
         setLoading(true)
         
         const [comunasGeoJSON, barriosGeoJSON, corregimientosGeoJSON] = await Promise.all([
-          loadGeoJSON('comunas'),
-          loadGeoJSON('barrios'),
+          loadGeoJSON('cartografia_base/comunas'),
+          loadGeoJSON('cartografia_base/barrios'),
           // Manejo de corregimientos con fallback
-          loadGeoJSON('corregimientos').catch(() => {
+          loadGeoJSON('cartografia_base/corregimientos').catch(() => {
             console.warn('⚠️ Archivo corregimientos.geojson no encontrado, usando datos mock')
             return null
           })
@@ -64,10 +64,10 @@ const MapLayerFilters: React.FC<MapLayerFiltersProps> = ({
         const todasLasComunas = new Set<string>()
         const todosLosBarrios = new Set<string>()
 
-        // Procesar comunas
+        // Procesar comunas desde cartografia_base/comunas.geojson
         if (comunasGeoJSON?.features) {
           comunasGeoJSON.features.forEach((feature: any) => {
-            const nombre = feature.properties?.nombre || `Comuna ${feature.properties?.comuna}`
+            const nombre = feature.properties?.nombre || `Comuna ${feature.properties?.comuna || 'Sin nombre'}`
             todasLasComunas.add(nombre)
             if (!comunasMap.has(nombre)) {
               comunasMap.set(nombre, new Set())
@@ -75,18 +75,20 @@ const MapLayerFilters: React.FC<MapLayerFiltersProps> = ({
           })
         }
 
-        // Procesar barrios y asociarlos con comunas
+        // Procesar barrios desde cartografia_base/barrios.geojson
         if (barriosGeoJSON?.features) {
           barriosGeoJSON.features.forEach((feature: any) => {
-            const barrio = feature.properties?.barrio
-            const comuna = feature.properties?.comuna
+            const barrio = feature.properties?.nombre || feature.properties?.barrio || feature.properties?.NOMBRE
             
             if (barrio) {
               todosLosBarrios.add(barrio)
               
-              if (comuna && comunasMap.has(comuna)) {
-                comunasMap.get(comuna)!.add(barrio)
-              }
+              // Para asociar barrios con comunas, necesitamos un método más sofisticado
+              // Ya que los datos no tienen relación directa en las propiedades
+              // Por ahora, agregamos todos los barrios como disponibles para todas las comunas
+              todasLasComunas.forEach(comuna => {
+                comunasMap.get(comuna)?.add(barrio)
+              })
             }
           })
         }
@@ -102,11 +104,14 @@ const MapLayerFilters: React.FC<MapLayerFiltersProps> = ({
           barrios: Array.from(todosLosBarrios).sort()
         })
 
-        // Procesar corregimientos
+        // Procesar corregimientos desde cartografia_base/corregimientos.geojson
         const corregimientos = new Set<string>()
         if (corregimientosGeoJSON?.features) {
           corregimientosGeoJSON.features.forEach((feature: any) => {
-            const nombre = feature.properties?.nombre || feature.properties?.NOMBRE
+            const nombre = feature.properties?.corregimie || 
+                          feature.properties?.nombre || 
+                          feature.properties?.NOMBRE ||
+                          feature.properties?.corregimiento
             if (nombre) {
               corregimientos.add(nombre)
             }
