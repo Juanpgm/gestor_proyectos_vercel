@@ -56,7 +56,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
 }) => {
   const { filteredMovimientosPresupuestales, filteredEjecucionPresupuestal } = useDataContext()
   
-  const [chartType, setChartType] = useState<ChartType>('area')
+  const [chartType, setChartType] = useState<ChartType>('bar')
   const [timeRange, setTimeRange] = useState<TimeRange>('all')
   const [showDetails, setShowDetails] = useState(false)
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null)
@@ -250,17 +250,25 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
       onClick={onClick}
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-5`} />
-      <div className="relative p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`p-3 rounded-xl bg-gradient-to-br ${color} bg-opacity-10`}>
-            <Icon className={`w-6 h-6 ${color.includes('blue') ? 'text-blue-600' :
+      <div className="relative p-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl bg-gradient-to-br ${color} bg-opacity-10 flex-shrink-0`}>
+            <Icon className={`w-5 h-5 ${color.includes('blue') ? 'text-blue-600' :
                                color.includes('green') ? 'text-green-600' :
                                color.includes('orange') ? 'text-orange-600' :
                                color.includes('purple') ? 'text-purple-600' :
                                'text-gray-600'}`} />
           </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+              {title}
+            </p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+              {typeof value === 'number' ? formatCurrencyCompact(value) : value}
+            </h3>
+          </div>
           {trend && (
-            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
               trend === 'up' ? 'bg-green-100 text-green-700' :
               trend === 'down' ? 'bg-red-100 text-red-700' :
               'bg-gray-100 text-gray-700'
@@ -271,20 +279,6 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
             </div>
           )}
         </div>
-        
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-          {typeof value === 'number' ? formatCurrencyCompact(value) : value}
-        </h3>
-        
-        <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-          {title}
-        </p>
-        
-        {subtitle && (
-          <p className="text-xs text-gray-600 dark:text-gray-400">
-            {subtitle}
-          </p>
-        )}
       </div>
     </motion.div>
   )
@@ -478,7 +472,6 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
         <MetricCard
           title="Presupuesto Total"
           value={totalMetrics.totalModificado}
-          subtitle="Modificado vigente"
           icon={DollarSign}
           trend="neutral"
           color="from-blue-500 to-blue-600"
@@ -489,7 +482,6 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
         <MetricCard
           title="Ejecutado"
           value={totalMetrics.totalEjecucion}
-          subtitle={`${totalMetrics.eficienciaPromedio.toFixed(1)}% de eficiencia`}
           icon={Target}
           trend={totalMetrics.eficienciaPromedio > 70 ? 'up' : totalMetrics.eficienciaPromedio > 40 ? 'neutral' : 'down'}
           color="from-green-500 to-green-600"
@@ -500,7 +492,6 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
         <MetricCard
           title="Pagos"
           value={totalMetrics.totalPagos}
-          subtitle={`${totalMetrics.liquidezPromedio.toFixed(1)}% de liquidez`}
           icon={Activity}
           trend={totalMetrics.liquidezPromedio > 80 ? 'up' : totalMetrics.liquidezPromedio > 50 ? 'neutral' : 'down'}
           color="from-orange-500 to-orange-600"
@@ -511,7 +502,6 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
         <MetricCard
           title="Saldo"
           value={totalMetrics.totalSaldo}
-          subtitle="Disponible para ejecutar"
           icon={Zap}
           trend="neutral"
           color="from-purple-500 to-purple-600"

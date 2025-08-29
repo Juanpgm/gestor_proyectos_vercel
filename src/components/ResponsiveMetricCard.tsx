@@ -37,25 +37,25 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
   
   const sizeConfig = {
     sm: {
-      container: 'min-h-[100px] p-3',
+      container: 'min-h-[80px] p-3',
       icon: 'w-4 h-4 p-1.5',
       title: TYPOGRAPHY.caption,
       value: TYPOGRAPHY.h6,
       subtitle: 'text-xs'
     },
     md: {
-      container: 'min-h-[120px] md:min-h-[140px] p-4 md:p-5',
+      container: 'min-h-[90px] md:min-h-[100px] p-3 md:p-4',
+      icon: 'w-4 h-4 md:w-5 md:h-5 p-1.5 md:p-2',
+      title: TYPOGRAPHY.bodySmall,
+      value: TYPOGRAPHY.h5,
+      subtitle: TYPOGRAPHY.caption
+    },
+    lg: {
+      container: 'min-h-[120px] p-5',
       icon: 'w-5 h-5 md:w-6 md:h-6 p-2 md:p-2.5',
       title: TYPOGRAPHY.h6,
       value: TYPOGRAPHY.h4,
       subtitle: TYPOGRAPHY.bodySmall
-    },
-    lg: {
-      container: 'min-h-[160px] p-6',
-      icon: 'w-6 h-6 md:w-8 md:h-8 p-3',
-      title: TYPOGRAPHY.h5,
-      value: TYPOGRAPHY.h3,
-      subtitle: TYPOGRAPHY.body
     }
   }
 
@@ -79,17 +79,17 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
         className={`${CSS_UTILS.card} ${CSS_UTILS.cardHover} ${config.container} flex items-center`}
       >
         {/* Ícono a la izquierda */}
-        <div className={`${categoryConfig.className.accent} rounded-lg shadow-md flex-shrink-0 mr-4`}>
+        <div className={`${categoryConfig.className.accent} rounded-lg shadow-md flex-shrink-0 mr-3`}>
           <Icon className={`${config.icon.replace('p-', '')} ${categoryConfig.className.text}`} />
         </div>
 
         {/* Contenido principal */}
         <div className="flex-1 min-w-0">
-          <h3 className={`${config.title} text-gray-600 dark:text-gray-400 mb-1 line-clamp-2`}>
+          <h3 className={`${config.title} text-gray-600 dark:text-gray-400 mb-1 line-clamp-1`}>
             {title}
           </h3>
           
-          <div className="flex items-baseline gap-2 mb-1">
+          <div className="flex items-baseline gap-2">
             <p className={`${config.value} font-bold ${categoryConfig.className.text} truncate`}>
               {formatValue(value)}
             </p>
@@ -104,12 +104,6 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
               </span>
             )}
           </div>
-
-          {subtitle && (
-            <p className={`${config.subtitle} text-gray-500 dark:text-gray-500 line-clamp-1`}>
-              {subtitle}
-            </p>
-          )}
         </div>
       </motion.div>
     )
@@ -125,7 +119,7 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
       className={`${CSS_UTILS.card} ${CSS_UTILS.cardHover} ${config.container} flex flex-col`}
     >
       {/* Header con ícono y trend */}
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex justify-between items-start mb-2">
         <div className={`${categoryConfig.className.accent} rounded-lg shadow-md flex-shrink-0`}>
           <Icon className={`${config.icon} ${categoryConfig.className.text}`} />
         </div>
@@ -142,7 +136,7 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
       </div>
 
       {/* Título */}
-      <h3 className={`${config.title} text-center text-gray-600 dark:text-gray-400 mb-2 line-clamp-2`}>
+      <h3 className={`${config.title} text-center text-gray-600 dark:text-gray-400 mb-1 line-clamp-2`}>
         {title}
       </h3>
 
@@ -152,13 +146,6 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
           {formatValue(value)}
         </p>
       </div>
-
-      {/* Subtítulo opcional */}
-      {subtitle && (
-        <p className={`${config.subtitle} text-gray-500 dark:text-gray-500 text-center mt-2 line-clamp-1`}>
-          {subtitle}
-        </p>
-      )}
     </motion.div>
   )
 }

@@ -297,11 +297,6 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                   <h2 className={`${TYPOGRAPHY.h5} font-bold text-gray-900 dark:text-white`}>
                     Proyectos de Inversión
                   </h2>
-                  <p className={`${TYPOGRAPHY.caption} text-gray-600 dark:text-gray-400`}>
-                    {filteredProjects.length} proyectos • Total: 
-                    <span className="hidden lg:inline ml-1 font-semibold text-blue-600 dark:text-blue-400">{formatCurrencyFull(filteredProjects.reduce((sum, p) => sum + p.budget, 0))}</span>
-                    <span className="lg:hidden ml-1 font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(filteredProjects.reduce((sum, p) => sum + p.budget, 0))}</span>
-                  </p>
                 </div>
               </div>
             </div>
@@ -501,16 +496,16 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className={`p-2 rounded-lg transition-colors ${
+                className={`p-3 rounded-lg transition-colors min-w-[44px] h-[44px] flex items-center justify-center ${
                   currentPage === 1
                     ? 'text-gray-400 cursor-not-allowed'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5" />
               </button>
               
-              <div className="flex gap-1">
+              <div className="flex gap-2">
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(page => 
                     page === 1 || 
@@ -520,11 +515,11 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                   .map((page, index, array) => (
                     <React.Fragment key={page}>
                       {index > 0 && array[index - 1] !== page - 1 && (
-                        <span className="px-2 py-1 text-gray-400">...</span>
+                        <span className="px-2 py-1 text-gray-400 min-w-[44px] h-[44px] flex items-center justify-center">...</span>
                       )}
                       <button
                         onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                        className={`min-w-[44px] h-[44px] rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
                           currentPage === page
                             ? `${CATEGORIES.projects.className.bg} ${CATEGORIES.projects.className.text}`
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -539,13 +534,13 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className={`p-2 rounded-lg transition-colors ${
+                className={`p-3 rounded-lg transition-colors min-w-[44px] h-[44px] flex items-center justify-center ${
                   currentPage === totalPages
                     ? 'text-gray-400 cursor-not-allowed'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>
