@@ -284,17 +284,6 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
     closeSymbologyModal()
   }, [updateLayer, updateLayerData, layers, closeSymbologyModal, symbologyState])
 
-  // Función para cambiar mapa base
-  const handleBaseMapChange = useCallback((type: string) => {
-    const baseMap = baseMaps[type as keyof typeof baseMaps]
-    if (baseMap) {
-      console.log('🎯 UnifiedMapInterface: Cambio manual de mapa base a:', type)
-      updateBaseMap(type, baseMap.url, baseMap.attribution)
-      // Forzar re-render del mapa para aplicar el cambio inmediatamente
-      setMapKey(prev => prev + 1)
-    }
-  }, [updateBaseMap])
-
   if (finalLoading) {
     const stats = getUnidadesProyectoStats()
     
@@ -370,28 +359,7 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
                   </div>
                 </div>
 
-                {/* Selector de Mapa Base */}
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
-                    Mapa Base
-                    {(theme === 'system' || baseMapConfig.type === theme) && (
-                      <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full">
-                        Auto {theme === 'system' ? '(Sistema)' : `(${theme === 'dark' ? 'Oscuro' : 'Claro'})`}
-                      </span>
-                    )}
-                  </label>
-                  <select
-                    value={baseMapConfig.type}
-                    onChange={(e) => handleBaseMapChange(e.target.value)}
-                    className="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  >
-                    {Object.entries(baseMaps).map(([key, map]) => (
-                      <option key={key} value={key}>
-                        {map.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+
 
                 {/* Control Avanzado de Capas */}
                 <div className="flex-1 overflow-hidden">

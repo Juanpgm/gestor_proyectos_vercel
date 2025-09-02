@@ -8,10 +8,14 @@ import {
   EyeOff, 
   Settings, 
   Palette,
+  Search,
+  X,
+  BarChart3,
   Download,
   Upload,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Info
 } from 'lucide-react'
 import { LayerConfig, LayerFilters } from '@/hooks/useUnifiedLayerManagement'
 import { 
@@ -63,6 +67,7 @@ const LayerControlAdvanced: React.FC<LayerControlAdvancedProps> = ({
   onImportConfig,
   className = ''
 }) => {
+  const [searchText, setSearchText] = useState(filters.search || '')
   const [expandedLayers, setExpandedLayers] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState<'layers' | 'legend'>('layers')
 
@@ -150,6 +155,47 @@ const LayerControlAdvanced: React.FC<LayerControlAdvancedProps> = ({
     return generateLegend(categories, layer.categorization.config)
   }, [])
 
+  // Manejar búsqueda con debounce
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchText(value)
+    // Simple debounce
+    setTimeout(() => {
+      onFiltersChange({ search: value || undefined })
+    }, 300)
+  }, [onFiltersChange])
+
+  // Obtener categorías únicas de todos los layers
+  const availableCategories = React.useMemo(() => {
+    const categories = new Set<string>()
+    layers.forEach(layer => {
+      if (layer.data?.features) {
+        layer.data.features.forEach((feature: any) => {
+          const categoria = feature.properties?.clase_obra || feature.properties?.tipo_intervencion
+          if (categoria) categories.add(categoria)
+        })
+      }
+    })
+    return Array.from(categories).sort()
+  }, [layers])
+
+  // Obtener estados únicos
+  const availableStates = React.useMemo(() => {
+    const states = new Set<string>()
+    layers.forEach(layer => {
+      if (layer.data?.features) {
+        layer.data.features.forEach((feature: any) => {
+          const estado = feature.properties?.estado_unidad_proyecto
+          if (estado) states.add(estado)
+        })
+      }
+    })
+    return Array.from(states).sort()
+  }, [layers])
+
+  const activeFiltersCount = (filters.categoria?.length || 0) + 
+                           (filters.estado?.length || 0) + 
+                           (filters.search ? 1 : 0)
+
   return (
     <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg ${className}`}>
       {/* Header */}
@@ -177,6 +223,110 @@ const LayerControlAdvanced: React.FC<LayerControlAdvancedProps> = ({
         </div>
       </div>
 
+      {/* Lista de Capas */}
+      <div className="max-h-96 overflow-y-auto">
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"
+          >
+            <div className="p-4 space-y-4">
+              {/* Búsqueda */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
+                  <Search className="w-4 h-4 inline mr-1" />
+                  Buscar en capas
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchText}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    placeholder="Buscar en propiedades..."
+                    className="w-full p-2 pl-8 pr-8 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                  <Search className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
+                  {searchText && (
+                    <button
+                      onClick={() => handleSearchChange('')}
+                      className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Filtro por categorías */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
+                  Categorías
+                </label>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {availableCategories.map(categoria => (
+                    <label key={categoria} className="flex items-center text-sm">
+                      <input
+                        type="checkbox"
+                        checked={filters.categoria?.includes(categoria) || false}
+                        onChange={(e) => {
+                          const current = filters.categoria || []
+                          if (e.target.checked) {
+                            onFiltersChange({ categoria: [...current, categoria] })
+                          } else {
+                            onFiltersChange({ categoria: current.filter(c => c !== categoria) })
+                          }
+                        }}
+                        className="mr-2 rounded"
+                      />
+                      <span className="text-gray-700 dark:text-gray-300 truncate">
+                        {categoria}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Filtro por estados */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
+                  Estados
+                </label>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {availableStates.map(estado => (
+                    <label key={estado} className="flex items-center text-sm">
+                      <input
+                        type="checkbox"
+                        checked={filters.estado?.includes(estado) || false}
+                        onChange={(e) => {
+                          const current = filters.estado || []
+                          if (e.target.checked) {
+                            onFiltersChange({ estado: [...current, estado] })
+                          } else {
+                            onFiltersChange({ estado: current.filter(s => s !== estado) })
+                          }
+                        }}
+                        className="mr-2 rounded"
+                      />
+                      <span className="text-gray-700 dark:text-gray-300 truncate">
+                        {estado}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botón para limpiar filtros */}
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={onClearFilters}
+                  className="w-full p-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                >
+                  Limpiar filtros ({activeFiltersCount})
+                </button>
+              )}
+            </div>
       {/* Lista de Capas */}
       <div className="max-h-96 overflow-y-auto">
         <div className="p-4 space-y-3">

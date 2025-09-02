@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic'
 import { useTheme } from '@/context/ThemeContext'
 import { useUnidadesProyecto, UnidadProyecto } from '@/hooks/useUnidadesProyecto'
 import { useDashboardFilters } from '@/context/DashboardContext'
+import { useLayerSymbology } from '@/hooks/useLayerSymbology'
 import NewLayerManagementPanel from './NewLayerManagementPanel'
 import PropertiesPanel from './PropertiesPanel'
 import UnifiedFilters from './UnifiedFilters'
@@ -110,6 +111,7 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
   const { theme } = useTheme()
   const unidadesState = useUnidadesProyecto()
   const { filters } = useDashboardFilters()
+  const { lastUpdateTimestamp } = useLayerSymbology() // Agregar hook de simbología para detectar cambios
   
   console.log('🗺️ ProjectMapWithPanels renderizado:', {
     loading: unidadesState.loading,
@@ -522,7 +524,8 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
         ? { 
             ...config, 
             lastUpdate: timestamp, // Agregar timestamp para forzar actualización
-            visible: config.visible 
+            visible: config.visible,
+            symbologyUpdate: timestamp // Nuevo campo específico para cambios de simbología
           }
         : config
     ))
@@ -530,7 +533,8 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     // También forzar actualización del estado de visibilidad para triggear re-render
     setLayerVisibility(prev => ({
       ...prev,
-      [layerId]: prev[layerId] // Mantener el mismo valor pero forzar update
+      [layerId]: prev[layerId], // Mantener el mismo valor pero forzar update
+      [`${layerId}_symbology_${timestamp}`]: true // Agregar entrada temporal para forzar cambio
     }))
     
     // Forzar actualización de la opacidad también
@@ -540,6 +544,19 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
     }))
     
     console.log(`✅ Cambios de simbología aplicados para: ${layerId} - timestamp: ${timestamp}`)
+    
+    // Opcional: Limpiar entradas temporales después de un momento
+    setTimeout(() => {
+      setLayerVisibility(prev => {
+        const cleaned = { ...prev }
+        Object.keys(cleaned).forEach(key => {
+          if (key.includes('_symbology_')) {
+            delete cleaned[key]
+          }
+        })
+        return cleaned
+      })
+    }, 1000)
   }
 
   // Función para aplicar cambios de capas al mapa
@@ -771,7 +788,7 @@ const ProjectMapWithPanels: React.FC<ProjectMapWithPanelsProps> = ({
               centerMapFunction.current = centerFunction
               console.log('🎯 Función de centrado del mapa configurada')
             }}
-            key={`map-${Object.keys(unidadesState.allGeoJSONData || {}).join('-')}-${Object.values(layerVisibility).join('-')}-${layerConfigs.map(l => (l as any).lastUpdate || 0).join('-')}`}
+            key={`map-${Object.keys(unidadesState.allGeoJSONData || {}).join('-')}-${Object.values(layerVisibility).join('-')}-${layerConfigs.map(l => `${l.id}-${(l as any).lastUpdate || 0}-${(l as any).symbologyUpdate || 0}`).join('-')}-symbology-${lastUpdateTimestamp}`}
           />
         </motion.div>
 
