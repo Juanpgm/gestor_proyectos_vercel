@@ -544,14 +544,14 @@ const SymbologyControlPanel: React.FC<SymbologyControlPanelProps> = ({
                         {/* Tamaño del punto */}
                         <div>
                           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
-                            Tamaño: {currentConfig.pointSize || 8}px
+                            Tamaño: {currentConfig.pointSize || 5}px
                           </label>
                           <input
                             type="range"
                             min="4"
                             max="20"
                             step="1"
-                            value={currentConfig.pointSize || 8}
+                            value={currentConfig.pointSize || 5}
                             onChange={(e) => updatePendingChanges(selectedLayerId, { pointSize: parseInt(e.target.value) })}
                             className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
                           />

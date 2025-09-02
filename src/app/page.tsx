@@ -12,7 +12,6 @@ import dynamic from 'next/dynamic'
 import UnifiedMapInterface from '@/components/UnifiedMapInterface'
 import SimpleMapLayout from '@/components/SimpleMapLayout'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
-import ProjectsUnitsTable, { ProjectUnit } from '@/components/ProjectsUnitsTable'
 import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
@@ -531,31 +530,7 @@ function DashboardContent() {
               </div>
             </div>
             
-            {/* Tabla de unidades de proyecto en contenedor separado */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                    <Table className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Unidades de Proyecto
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Detalle completo de todas las unidades de proyecto
-                    </p>
-                  </div>
-                </div>
-                
-                <ProjectsUnitsTable 
-                  projectUnits={unidadesProyecto} 
-                  filteredProjectUnits={filteredProjectUnits} 
-                  onViewProjectUnit={handleViewProjectUnitInPanel}
-                  className="w-full"
-                />
-              </div>
-            </div>
+            {/* Contenedor de Unidades de Proyecto eliminado */}
           </div>
         )
 

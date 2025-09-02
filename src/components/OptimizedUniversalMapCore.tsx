@@ -90,17 +90,17 @@ export interface OptimizedUniversalMapCoreProps {
 // ===== CONFIGURACIONES OPTIMIZADAS =====
 const OPTIMIZED_STYLES = {
   geojson: {
-    weight: 2,
+    weight: 1.5, // Líneas más finas
     opacity: 0.8,
     fillOpacity: 0.3,
     color: '#3B82F6',
     fillColor: '#3B82F6'
   },
   points: {
-    radius: 4,
+    radius: 3, // Puntos más pequeños
     fillColor: '#3B82F6',
     color: '#FFFFFF',
-    weight: 1,
+    weight: 0.8, // Borde más fino
     opacity: 1,
     fillOpacity: 0.8
   }
@@ -326,7 +326,7 @@ const OptimizedUniversalMapCore = forwardRef<OptimizedMapRef, OptimizedUniversal
       fillColor: layer.color || baseColors.fill,
       fillOpacity: layer.opacity ?? (isInfraestructura ? 0.7 : 0.5),
       opacity: layer.opacity ?? 0.8,
-      weight: isInfraestructura ? 3 : 2,
+      weight: isInfraestructura ? 2 : 1.5, // Reducido: infraestructura de 3 a 2, normal de 2 a 1.5
       interactive: true,
       bubblingMouseEvents: false,
       lineCap: 'round' as const,

@@ -36,13 +36,55 @@ export interface LayerFilters {
 export function useUnifiedLayerManagement() {
   // Estado principal de las capas
   const [layers, setLayers] = useState<LayerConfig[]>([
+    // Capas de cartografía base - con menor preponderancia (aparecen debajo)
+    {
+      id: 'corregimientos',
+      name: 'Corregimientos',
+      visible: true,  // Activa por defecto
+      opacity: 0.2,   // Alta transparencia
+      color: '#6B7280',
+      icon: '🗺️',
+      representationMode: 'estado',
+      type: 'geojson'
+    },
+    {
+      id: 'comunas',
+      name: 'Comunas',
+      visible: true,  // Activa por defecto
+      opacity: 0.2,   // Alta transparencia
+      color: '#3B82F6',
+      icon: '🏘️',
+      representationMode: 'estado',
+      type: 'geojson'
+    },
+    {
+      id: 'barrios',
+      name: 'Barrios',
+      visible: false, // Inactiva por defecto
+      opacity: 0.15,  // Muy alta transparencia
+      color: '#EF4444',
+      icon: '�',
+      representationMode: 'estado',
+      type: 'geojson'
+    },
+    {
+      id: 'veredas',
+      name: 'Veredas',
+      visible: false, // Inactiva por defecto
+      opacity: 0.15,  // Muy alta transparencia
+      color: '#059669',
+      icon: '🌾',
+      representationMode: 'estado',
+      type: 'geojson'
+    },
+    // Capas principales - aparecen encima
     {
       id: 'equipamientos',
       name: 'Equipamientos',
       visible: true,
       opacity: 0.8,
       color: '#10B981',
-      icon: '🏢',
+      icon: '�',
       representationMode: 'clase_obra',
       type: 'geojson'
     },
@@ -62,7 +104,7 @@ export function useUnifiedLayerManagement() {
       visible: true,
       opacity: 0.8,
       color: '#8B5CF6',
-      icon: '🎯',
+      icon: '�',
       representationMode: 'estado',
       type: 'geojson'
     }
@@ -138,13 +180,59 @@ export function useUnifiedLayerManagement() {
 
   const resetLayersToDefault = useCallback(() => {
     setLayers([
+      // Capas de cartografía base - con menor preponderancia (aparecen debajo)
+      {
+        id: 'corregimientos',
+        name: 'Corregimientos',
+        visible: true,  // Activa por defecto
+        opacity: 0.2,   // Alta transparencia
+        color: '#6B7280',
+        icon: '🗺️',
+        representationMode: 'estado',
+        type: 'geojson',
+        lastUpdated: Date.now()
+      },
+      {
+        id: 'comunas',
+        name: 'Comunas',
+        visible: true,  // Activa por defecto
+        opacity: 0.2,   // Alta transparencia
+        color: '#3B82F6',
+        icon: '🏘️',
+        representationMode: 'estado',
+        type: 'geojson',
+        lastUpdated: Date.now()
+      },
+      {
+        id: 'barrios',
+        name: 'Barrios',
+        visible: false, // Inactiva por defecto
+        opacity: 0.15,  // Muy alta transparencia
+        color: '#EF4444',
+        icon: '�',
+        representationMode: 'estado',
+        type: 'geojson',
+        lastUpdated: Date.now()
+      },
+      {
+        id: 'veredas',
+        name: 'Veredas',
+        visible: false, // Inactiva por defecto
+        opacity: 0.15,  // Muy alta transparencia
+        color: '#059669',
+        icon: '🌾',
+        representationMode: 'estado',
+        type: 'geojson',
+        lastUpdated: Date.now()
+      },
+      // Capas principales - aparecen encima
       {
         id: 'equipamientos',
         name: 'Equipamientos',
         visible: true,
         opacity: 0.8,
         color: '#10B981',
-        icon: '🏢',
+        icon: '�',
         representationMode: 'clase_obra',
         type: 'geojson',
         lastUpdated: Date.now()
@@ -166,7 +254,7 @@ export function useUnifiedLayerManagement() {
         visible: true,
         opacity: 0.8,
         color: '#8B5CF6',
-        icon: '🎯',
+        icon: '�',
         representationMode: 'estado',
         type: 'geojson',
         lastUpdated: Date.now()

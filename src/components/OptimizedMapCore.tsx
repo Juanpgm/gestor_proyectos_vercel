@@ -164,7 +164,7 @@ const OptimizedMapCore: React.FC<OptimizedMapCoreProps> = ({
       return {
         color: categoryColor,
         fillColor: categoryColor,
-        weight: layerId.includes('infraestructura') ? 4 : 2,
+        weight: layerId.includes('infraestructura') ? 3 : 1.5, // Reducido: infraestructura de 4 a 3, normal de 2 a 1.5
         opacity: config.opacity,
         fillOpacity: config.opacity * 0.6,
         lineCap: 'round' as const,
@@ -176,7 +176,7 @@ const OptimizedMapCore: React.FC<OptimizedMapCoreProps> = ({
     return {
       color: config.color,
       fillColor: config.color,
-      weight: layerId.includes('infraestructura') ? 4 : 2,
+      weight: layerId.includes('infraestructura') ? 3 : 1.5, // Reducido: infraestructura de 4 a 3, normal de 2 a 1.5
       opacity: config.opacity,
       fillOpacity: config.opacity * 0.6,
       lineCap: 'round' as const,
@@ -234,7 +234,7 @@ const OptimizedMapCore: React.FC<OptimizedMapCoreProps> = ({
                     const pathLayer = layer as any
                     if (pathLayer.setStyle) {
                       pathLayer.setStyle({
-                        weight: 6,
+                        weight: 5, // Reducido de 6 a 5 para hover
                         opacity: 1
                       })
                     }

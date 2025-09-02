@@ -412,19 +412,24 @@ async function loadOptimizedMapData(): Promise<OptimizedMapState> {
       priority: 1
     },
     { 
-      path: '/data/geodata/comunas.geojson', 
+      path: '/data/geodata/cartografia_base/comunas.geojson', 
       name: 'comunas',
-      priority: 2
+      priority: 4
     },
     { 
-      path: '/data/geodata/barrios.geojson', 
+      path: '/data/geodata/cartografia_base/barrios.geojson', 
       name: 'barrios',
-      priority: 2
+      priority: 4
     },
     { 
-      path: '/data/geodata/corregimientos.geojson', 
+      path: '/data/geodata/cartografia_base/corregimientos.geojson', 
       name: 'corregimientos',
-      priority: 3
+      priority: 4
+    },
+    { 
+      path: '/data/geodata/cartografia_base/veredas.geojson', 
+      name: 'veredas',
+      priority: 4
     }
   ].sort((a, b) => a.priority - b.priority)
 

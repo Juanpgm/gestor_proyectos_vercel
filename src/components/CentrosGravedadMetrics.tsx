@@ -7,7 +7,7 @@ import { useCentrosGravedad, getColorByNovedad } from '@/hooks/useCentrosGraveda
 
 const COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 
-// Función para crear serie temporal agrupada cada 4 horas
+// Función para crear serie temporal agrupada cada hora
 function createTimeSeriesData(features: any[]) {
   const timeGroups: Record<string, number> = {}
   
@@ -15,12 +15,11 @@ function createTimeSeriesData(features: any[]) {
     const timestamp = feature.properties.marca_temporal
     const date = new Date(timestamp)
     
-    // Redondear a intervalos de 4 horas
+    // Redondear a intervalos de 1 hora
     const hour = date.getHours()
-    const roundedHour = Math.floor(hour / 4) * 4
-    date.setHours(roundedHour, 0, 0, 0)
+    date.setHours(hour, 0, 0, 0)
     
-    // Crear clave única para cada intervalo de 4 horas
+    // Crear clave única para cada intervalo de 1 hora
     const timeKey = date.toISOString()
     
     timeGroups[timeKey] = (timeGroups[timeKey] || 0) + 1
@@ -75,7 +74,7 @@ export default function CentrosGravedadMetrics() {
       color: getColorByNovedad(item.tipo)
     }))
 
-    // Datos temporales agrupados cada 4 horas
+    // Datos temporales agrupados cada hora
     const temporal = createTimeSeriesData(data.features)
 
     // Top sitios
@@ -225,7 +224,7 @@ export default function CentrosGravedadMetrics() {
         <div>
           <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
             <TrendingUp className="w-3 h-3" />
-            Tendencia Temporal (cada 4 horas)
+            Tendencia Temporal (cada hora)
           </h4>
           <ResponsiveContainer width="100%" height={160}>
             <LineChart data={chartData.temporal} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>

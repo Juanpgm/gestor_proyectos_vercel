@@ -65,17 +65,17 @@ export interface UniversalMapCoreProps {
 // Configuraciones de estilo por defecto
 const DEFAULT_STYLES = {
   geojson: {
-    weight: 4,
+    weight: 2.5, // Reducido de 4 a 2.5
     opacity: 1,
     fillOpacity: 0.4,
     color: '#3B82F6',
     fillColor: '#3B82F6'
   },
   points: {
-    radius: 6,
+    radius: 4, // Reducido de 6 a 4
     fillColor: '#3B82F6',
     color: '#FFFFFF',
-    weight: 2,
+    weight: 1.5, // Reducido de 2 a 1.5
     opacity: 1,
     fillOpacity: 0.8
   }
@@ -487,7 +487,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
       fillOpacity: opacity,
       opacity: opacity,
       // Grosor visual normal para vías (mantenemos delgado)
-      weight: isInfraestructura ? 4 : DEFAULT_STYLES.geojson.weight,
+      weight: isInfraestructura ? 3 : DEFAULT_STYLES.geojson.weight, // Reducido de 4 a 3
       // Configuración para mejorar el área de click (se manejará en onEachFeature)
       bubblingMouseEvents: false,
       interactive: true,
@@ -1415,7 +1415,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                 if (feature?.geometry?.type === 'LineString') {
                   return {
                     ...finalStyle,
-                    weight: Math.max(8, finalStyle.weight || 4), // Área de click mínima de 8px
+                    weight: Math.max(6, finalStyle.weight || 3), // Área de click mínima reducida de 8 a 6px
                     opacity: finalStyle.opacity || 0.8,
                     className: 'via-clickeable',
                     lineCap: finalStyle.lineCap || 'round',
@@ -1442,7 +1442,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                   const iconEmoji = getFeatureIcon(feature, layer.id)
                   
                   const customIconMarker = L.marker(latlng, {
-                    icon: createCustomIcon(iconEmoji, layerConfig.pointSize || 30, customStyle.fillColor || '#3B82F6'),
+                    icon: createCustomIcon(iconEmoji, layerConfig.pointSize || 20, customStyle.fillColor || '#3B82F6'), // Reducido de 30 a 20
                     pane: 'markerPane'
                   })
                   
@@ -1453,7 +1453,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                   const attributeValue = feature.properties?.[layerConfig.attribute || ''] || ''
                   
                   const categoryMarker = L.marker(latlng, {
-                    icon: createCategoryIcon(customStyle.fillColor || '#3B82F6', String(attributeValue), layerConfig.pointSize || 24),
+                    icon: createCategoryIcon(customStyle.fillColor || '#3B82F6', String(attributeValue), layerConfig.pointSize || 18), // Reducido de 24 a 18
                     pane: 'markerPane'
                   })
                   
@@ -1472,7 +1472,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                       rangeColor, 
                       attributeValue, 
                       range ? { min: range.min, max: range.max } : { min: 0, max: 100 },
-                      layerConfig.pointSize || 22
+                      layerConfig.pointSize || 16 // Reducido de 22 a 16
                     ),
                     pane: 'markerPane'
                   })
@@ -1486,7 +1486,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                     icon: createShapeIcon(
                       layerConfig.pointShape,
                       customStyle.fillColor || '#3B82F6',
-                      layerConfig.pointSize || 16,
+                      layerConfig.pointSize || 12, // Reducido de 16 a 12
                       customStyle.color || '#FFFFFF',
                       customStyle.weight || 2
                     ),
@@ -1498,10 +1498,10 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                 
                 // Usar CircleMarker para todos los otros casos
                 return L.circleMarker(latlng, {
-                  radius: layerConfig.pointSize || 8,
+                  radius: layerConfig.pointSize || 5, // Reducido de 8 a 5
                   fillColor: customStyle.fillColor || '#3B82F6',
                   color: customStyle.color || '#FFFFFF',
-                  weight: customStyle.weight || 2,
+                  weight: customStyle.weight || 1.5, // Reducido de 2 a 1.5
                   opacity: customStyle.opacity || 1,
                   fillOpacity: customStyle.fillOpacity || 0.8,
                   pane: 'markerPane',
@@ -1550,7 +1550,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                       if (pathLayer.setStyle) {
                         pathLayer.setStyle({
                           opacity: 1,
-                          weight: 12,
+                          weight: 8, // Reducido de 12 a 8 para hover
                           color: '#FF6B35'
                         })
                       }
@@ -1562,7 +1562,7 @@ const UniversalMapCore: React.FC<UniversalMapCoreProps> = ({
                       if (pathLayer.setStyle) {
                         pathLayer.setStyle({
                           ...originalStyle,
-                          weight: 8 // Mantener área de click
+                          weight: 6 // Mantener área de click reducida de 8 a 6
                         })
                       }
                     })

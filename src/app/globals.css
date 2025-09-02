@@ -211,7 +211,7 @@ body.map-fullscreen {
 }
 
 .leaflet-overlay-pane path[stroke]:hover {
-  stroke-width: 12 !important;
+  stroke-width: 8 !important; /* Reducido de 12 a 8 para hover */
   cursor: pointer !important;
   opacity: 1 !important;
 }

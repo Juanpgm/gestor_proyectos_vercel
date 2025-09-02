@@ -11,7 +11,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Dashboard Alcaldía de Cali',
+  title: 'Unidad de Cumplimiento',
   description: 'Sistema de Gestión de Proyectos - Alcaldía de Santiago de Cali',
 }
 

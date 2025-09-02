@@ -170,7 +170,7 @@ const LayerSymbologyModal: React.FC<LayerSymbologyModalProps> = ({
         lineStyle: 'solid' as const,
         lineCap: 'round' as const,
         lineJoin: 'round' as const,
-        pointSize: 8,
+        pointSize: 5, // Reducido de 8 a 5
         pointShape: 'circle' as const,
         categoryColors: undefined,
         rangeColors: undefined,

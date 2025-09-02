@@ -33,7 +33,7 @@ const Header = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className={`${TYPOGRAPHY.h5} md:${TYPOGRAPHY.h3} font-bold text-gray-800 dark:text-white transition-colors duration-300 truncate`}>
-                  <span className="hidden sm:inline">Dashboard Alcaldía de Cali</span>
+                  <span className="hidden sm:inline">Unidad de Cumplimiento</span>
                   <span className="sm:hidden">Dashboard AC</span>
                 </h1>
                 <p className={`${TYPOGRAPHY.bodySmall} text-gray-600 dark:text-gray-400 transition-colors duration-300 hidden md:block`}>

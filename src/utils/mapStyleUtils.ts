@@ -295,7 +295,7 @@ export function generateLayerStyle(
   config?: StyleConfig
 ): any {
   const baseStyle = {
-    weight: layerId.includes('infraestructura') ? 4 : 2,
+    weight: layerId.includes('infraestructura') ? 2.5 : 1.5, // Reducido: infraestructura de 4 a 2.5, normal de 2 a 1.5
     opacity: config?.defaultOpacity || 0.8,
     fillOpacity: (config?.defaultOpacity || 0.8) * 0.6,
     color: config?.defaultColor || '#3B82F6',
@@ -326,7 +326,7 @@ export function getQuickStyleConfig(
   const baseConfig: StyleConfig = {
     defaultColor: '#3B82F6',
     defaultOpacity: 0.8,
-    strokeWidth: layerId.includes('infraestructura') ? 4 : 2
+    strokeWidth: layerId.includes('infraestructura') ? 2.5 : 1.5 // Reducido: infraestructura de 4 a 2.5, normal de 2 a 1.5
   }
 
   // Configuraciones específicas por tipo de capa

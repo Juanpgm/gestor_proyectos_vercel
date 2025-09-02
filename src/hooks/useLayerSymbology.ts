@@ -169,7 +169,7 @@ export const useLayerSymbology = () => {
         lineStyle: 'solid',
         lineCap: 'round',
         lineJoin: 'round',
-        pointSize: 8,
+        pointSize: 5, // Reducido de 8 a 5
         pointShape: 'circle'
       }
       
@@ -205,7 +205,7 @@ export const useLayerSymbology = () => {
         lineStyle: 'solid',
         lineCap: 'round',
         lineJoin: 'round',
-        pointSize: 8,
+        pointSize: 5, // Reducido de 8 a 5
         pointShape: 'circle'
       }
     }
@@ -326,7 +326,7 @@ export const useLayerSymbology = () => {
     } else if (geometryType === 'Point') {
       style.weight = config.strokeWidth || 2
       style.opacity = 1
-      style.radius = config.pointSize || 8
+      style.radius = config.pointSize || 5 // Reducido de 8 a 5
       
     } else if (geometryType === 'Polygon' || geometryType === 'MultiPolygon') {
       // Configuración específica para polígonos

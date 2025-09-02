@@ -11,7 +11,7 @@
 export const IMPROVED_DEFAULT_STYLES = {
   // Estilos para geometrías GeoJSON
   geojson: {
-    weight: 1, // Grosor reducido para líneas más sutiles
+    weight: 0.8, // Líneas más finas
     opacity: 0.8,
     fillOpacity: 0.6,
     color: '#2563EB', // Azul moderno
@@ -22,10 +22,10 @@ export const IMPROVED_DEFAULT_STYLES = {
   
   // Estilos para puntos CircleMarker
   points: {
-    radius: 6,
+    radius: 4, // Puntos más pequeños
     fillColor: '#3B82F6',
     color: '#FFFFFF',
-    weight: 1, // Borde más fino
+    weight: 0.8, // Borde más fino
     opacity: 1,
     fillOpacity: 0.8
   },
@@ -33,25 +33,25 @@ export const IMPROVED_DEFAULT_STYLES = {
   // Estilos específicos por tipo de geometría
   geometrySpecific: {
     Point: {
-      radius: 6,
-      weight: 1,
+      radius: 4, // Puntos más pequeños
+      weight: 0.8, // Bordes más finos
       opacity: 1,
       fillOpacity: 0.8
     },
     LineString: {
-      weight: 1.3, // Líneas sutiles pero visibles
+      weight: 1.0, // Líneas más finas
       opacity: 0.9,
       fillOpacity: 0, // Sin relleno en líneas
       lineCap: 'round' as const,
       lineJoin: 'round' as const
     },
     Polygon: {
-      weight: 1,
+      weight: 0.8, // Bordes más finos
       opacity: 0.8,
       fillOpacity: 0.6
     },
     MultiPolygon: {
-      weight: 1,
+      weight: 0.8, // Bordes más finos
       opacity: 0.8,
       fillOpacity: 0.6
     }
@@ -226,18 +226,18 @@ export const OPACITY_PRESETS = {
 export const SCALE_DEPENDENT_WEIGHTS = {
   // Zoom levels y sus pesos correspondientes
   zoomWeights: [
-    { minZoom: 0, maxZoom: 8, weight: 0.5 },    // Vista muy alejada
-    { minZoom: 9, maxZoom: 12, weight: 1 },     // Vista media
-    { minZoom: 13, maxZoom: 16, weight: 1.5 },  // Vista cercana
-    { minZoom: 17, maxZoom: 20, weight: 2 }     // Vista muy cercana
+    { minZoom: 0, maxZoom: 8, weight: 0.4 },    // Vista muy alejada - más fino
+    { minZoom: 9, maxZoom: 12, weight: 0.8 },   // Vista media - más fino
+    { minZoom: 13, maxZoom: 16, weight: 1.2 },  // Vista cercana - un poco más fino
+    { minZoom: 17, maxZoom: 20, weight: 1.6 }   // Vista muy cercana - más fino
   ],
   
   // Multiplicadores por tipo de geometría
   geometryMultipliers: {
     Point: 1.0,
-    LineString: 1.2,
-    Polygon: 0.8,
-    MultiPolygon: 0.8
+    LineString: 1.0, // Reducido para líneas más finas
+    Polygon: 0.7,    // Más fino para polígonos
+    MultiPolygon: 0.7 // Más fino para multipolígonos
   }
 }
 
