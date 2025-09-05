@@ -649,8 +649,6 @@ function DashboardContent() {
             
             {/* Tabla de empréstito */}
             <EmprestitoTable
-              contratos={emprestitoState.data.contratos}
-              proyectos={emprestitoState.data.proyectos}
               loading={emprestitoState.loading}
             />
           </div>
