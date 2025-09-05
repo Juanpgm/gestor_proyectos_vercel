@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Menu } from 'lucide-react'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
 
-type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
+type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito'
 
 interface MobileNavigationProps {
   activeTab: ActiveTab
@@ -48,6 +48,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: CATEGORIES.products.icon,
       category: 'products' as const,
       shortLabel: 'Productos'
+    },
+    { 
+      id: 'emprestito' as const, 
+      label: CATEGORIES.emprestito.name, 
+      icon: CATEGORIES.emprestito.icon,
+      category: 'emprestito' as const,
+      shortLabel: 'Empréstito'
     },
     { 
       id: 'contracts' as const, 

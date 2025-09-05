@@ -30,7 +30,7 @@ interface FilterProps {
   onFiltersChange: (filters: FilterState) => void
   className?: string
   allProjects?: any[] // Para obtener nombres de proyectos para sugerencias
-  activeTab?: 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
+  activeTab?: 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito'
 }
 
 // Valores por defecto para evitar errores

@@ -131,7 +131,7 @@ export default function CentrosGravedadMetrics() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-full flex flex-col">
       {/* Header compacto */}
       <div className="flex items-center gap-2 mb-4">
         <div className="bg-purple-500 p-1.5 rounded">
@@ -147,12 +147,35 @@ export default function CentrosGravedadMetrics() {
         </div>
       </div>
 
-      {/* Métricas compactas */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-200 dark:border-red-700">
+      {/* Métricas expandidas */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded border border-red-200 dark:border-red-700">
           <div className="text-center">
-            <p className="text-sm font-bold text-red-900 dark:text-red-100">{metrics.total > 999 ? (metrics.total/1000).toFixed(1)+'K' : metrics.total}</p>
-            <p className="text-xs text-red-700 dark:text-red-300">Total</p>
+            <p className="text-2xl font-bold text-red-900 dark:text-red-100">{metrics.total > 999 ? (metrics.total/1000).toFixed(1)+'K' : metrics.total}</p>
+            <p className="text-xs text-red-700 dark:text-red-300 mb-1">Total Registros</p>
+            <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+              {metrics.promedioRegistrosPorDia.toFixed(1)} prom/día
+            </p>
+          </div>
+        </div>
+        
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded border border-purple-200 dark:border-purple-700">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{Object.keys(metrics.sitiosPorZona).length}</p>
+            <p className="text-xs text-purple-700 dark:text-purple-300 mb-1">Sitios Activos</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+              {Object.keys(metrics.novedadesPorTipo).length} tipos
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Métricas adicionales detalladas */}
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-700">
+          <div className="text-center">
+            <p className="text-sm font-bold text-blue-900 dark:text-blue-100">{Object.keys(metrics.novedadesPorTipo).length}</p>
+            <p className="text-xs text-blue-700 dark:text-blue-300">Tipos Nov.</p>
           </div>
         </div>
         
@@ -165,37 +188,41 @@ export default function CentrosGravedadMetrics() {
           </div>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-700">
+        <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded border border-orange-200 dark:border-orange-700">
           <div className="text-center">
-            <p className="text-sm font-bold text-blue-900 dark:text-blue-100">{Object.keys(metrics.novedadesPorTipo).length}</p>
-            <p className="text-xs text-blue-700 dark:text-blue-300">Tipos</p>
+            <p className="text-sm font-bold text-orange-900 dark:text-orange-100">
+              {metrics.topNovedades[0]?.cantidad || 0}
+            </p>
+            <p className="text-xs text-orange-700 dark:text-orange-300">Top Nov.</p>
           </div>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded border border-purple-200 dark:border-purple-700">
+        <div className="bg-cyan-50 dark:bg-cyan-900/20 p-2 rounded border border-cyan-200 dark:border-cyan-700">
           <div className="text-center">
-            <p className="text-sm font-bold text-purple-900 dark:text-purple-100">{Object.keys(metrics.sitiosPorZona).length}</p>
-            <p className="text-xs text-purple-700 dark:text-purple-300">Sitios</p>
+            <p className="text-sm font-bold text-cyan-900 dark:text-cyan-100">
+              {metrics.topNovedades[0]?.porcentaje.toFixed(1) || 0}%
+            </p>
+            <p className="text-xs text-cyan-700 dark:text-cyan-300">% Dom.</p>
           </div>
         </div>
       </div>
 
-      {/* Gráficos restaurados - Versión compacta */}
-      <div className="space-y-4">
-        {/* Gráfico de Barras - Top Novedades */}
-        <div>
+      {/* Gráficos optimizados - Uso eficiente del espacio vertical */}
+      <div className="flex-1 space-y-4">
+        {/* Gráfico de Barras - Top Novedades más grande */}
+        <div className="flex-1">
           <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />
             Top Tipos de Novedades
           </h4>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={chartData.novedades.slice(0, 6)} margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={chartData.novedades.slice(0, 8)} margin={{ top: 10, right: 10, left: 10, bottom: 35 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
                 dataKey="tipo" 
                 angle={-45}
                 textAnchor="end"
-                height={50}
+                height={55}
                 fontSize={8}
                 stroke="currentColor"
                 className="text-gray-600 dark:text-gray-400"
@@ -220,8 +247,8 @@ export default function CentrosGravedadMetrics() {
           </ResponsiveContainer>
         </div>
 
-        {/* Gráfico de Línea Temporal */}
-        <div>
+        {/* Gráfico de Línea Temporal expandido */}
+        <div className="flex-1">
           <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
             <TrendingUp className="w-3 h-3" />
             Tendencia Temporal (cada hora)
@@ -273,67 +300,72 @@ export default function CentrosGravedadMetrics() {
         </div>
       </div>
 
-      {/* Listas compactas en dos columnas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-        {/* Columna izquierda: Top Novedades */}
+      {/* Listas expandidas en dos columnas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        {/* Columna izquierda: Top Novedades extendido */}
         <div className="space-y-2">
           <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />
             Top Novedades
           </h5>
-          <div className="space-y-0.5">
-            {chartData.novedades.slice(0, 4).map((novedad, index) => (
-              <div key={novedad.fullTipo} className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-gray-700 rounded">
-                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <div className="space-y-1 max-h-48 overflow-y-auto">
+            {chartData.novedades.slice(0, 10).map((novedad, index) => (
+              <div key={novedad.fullTipo} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <span className="text-sm flex-shrink-0">{getNovedadIcon(novedad.fullTipo)}</span>
-                  <span className="text-xs text-gray-700 dark:text-gray-300 break-words leading-tight" title={novedad.fullTipo}>
+                  <span className="text-xs text-gray-700 dark:text-gray-300 truncate" title={novedad.fullTipo}>
                     {novedad.fullTipo}
                   </span>
                 </div>
-                <div className="text-right flex-shrink-0 ml-1">
+                <div className="text-right flex-shrink-0 ml-2">
                   <div className="text-xs font-semibold text-gray-900 dark:text-white">
                     {novedad.cantidad}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {novedad.porcentaje}%
+                    {novedad.porcentaje.toFixed(1)}%
                   </div>
                 </div>
               </div>
             ))}
+            {chartData.novedades.length > 10 && (
+              <div className="text-xs text-gray-500 text-center pt-1">
+                +{chartData.novedades.length - 10} más...
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Columna derecha: Sitios Más Activos */}
+        {/* Columna derecha: Sitios Más Activos extendido */}
         <div className="space-y-2">
           <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
             <div 
               className="w-2.5 h-2.5 rounded-full"
               style={{ backgroundColor: COLORS[0] }}
             ></div>
-            Sitios Activos
+            Sitios Más Activos
           </h5>
-          <div className="space-y-0.5">
-            {chartData.sitios.slice(0, 4).map((sitio, index) => (
-              <div key={sitio.fullSitio} className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-gray-700 rounded">
-                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <div className="space-y-1 max-h-48 overflow-y-auto">
+            {chartData.sitios.slice(0, 10).map((sitio, index) => (
+              <div key={sitio.fullSitio} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div 
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    className="w-2 h-2 rounded-full flex-shrink-0"
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   ></div>
-                  <span className="text-xs text-gray-700 dark:text-gray-300 break-words leading-tight" title={sitio.fullSitio}>
+                  <span className="text-xs text-gray-700 dark:text-gray-300 truncate" title={sitio.fullSitio}>
                     {sitio.fullSitio}
                   </span>
                 </div>
-                <div className="text-right flex-shrink-0 ml-1">
+                <div className="text-right flex-shrink-0 ml-2">
                   <div className="text-xs font-semibold text-gray-900 dark:text-white">
                     {sitio.cantidad}
                   </div>
                 </div>
               </div>
             ))}
-            {chartData.sitios.length > 4 && (
+            {chartData.sitios.length > 10 && (
               <div className="text-xs text-gray-500 text-center pt-1">
-                +{chartData.sitios.length - 4} más...
+                +{chartData.sitios.length - 10} más...
               </div>
             )}
           </div>

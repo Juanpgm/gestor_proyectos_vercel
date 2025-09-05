@@ -4,7 +4,8 @@ import {
   Map,               // Unidades de Proyecto  
   Activity,          // Actividades
   Package,           // Productos
-  FileText           // Contratos
+  FileText,          // Contratos
+  CreditCard         // Empréstito
 } from 'lucide-react'
 
 // Configuración de categorías principales con colores e iconos
@@ -107,6 +108,26 @@ export const CATEGORIES = {
       accent: 'bg-violet-100 dark:bg-violet-900/30',
       button: 'bg-violet-500 hover:bg-violet-600 text-white',
       badge: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300'
+    }
+  },
+  emprestito: {
+    name: 'Empréstito',
+    color: {
+      primary: '#0f766e',     // teal-700
+      light: '#0d9488',       // teal-600
+      lighter: '#14b8a6',     // teal-500
+      background: '#ccfbf1',  // teal-100
+      darkBackground: '#04544620', // teal-800 con opacidad
+    },
+    icon: CreditCard,
+    gradient: 'from-teal-500 to-teal-600',
+    className: {
+      text: 'text-teal-600 dark:text-teal-400',
+      bg: 'bg-teal-50 dark:bg-teal-900/20',
+      border: 'border-teal-200 dark:border-teal-800',
+      accent: 'bg-teal-100 dark:bg-teal-900/30',
+      button: 'bg-teal-500 hover:bg-teal-600 text-white',
+      badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300'
     }
   }
 } as const

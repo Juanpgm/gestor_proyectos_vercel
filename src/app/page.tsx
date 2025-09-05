@@ -22,12 +22,16 @@ import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesPro
 // import { useUnidadesProyectoForced } from '@/hooks/useUnidadesProyectoForced'
 import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
+import { useEmprestito, useEmprestitoMetrics } from '@/hooks/useEmprestito'
 import ActividadesTable from '@/components/ActividadesTable'
 import ActividadesStats from '@/components/ActividadesStats'
 import ActividadesCharts from '@/components/ActividadesCharts'
 import ProductosTable from '@/components/ProductosTable'
 import ProductosStats from '@/components/ProductosStats'
 import ProductosCharts from '@/components/ProductosCharts'
+import EmprestitoTable from '@/components/EmprestitoTable'
+import EmprestitoStats from '@/components/EmprestitoStats'
+import EmprestitoCharts from '@/components/EmprestitoCharts'
 import ProjectInterventionMetrics from '@/components/ProjectInterventionMetrics'
 import CentrosGravedadMetrics from '@/components/CentrosGravedadMetrics'
 import { 
@@ -44,7 +48,7 @@ import MobileNavigation from '@/components/MobileNavigation'
 // Componentes dinámicos
 const ChoroplethMapInteractive = dynamic(() => import('@/components/ChoroplethMapInteractive'), { ssr: false })
 
-type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products'
+type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito'
 
 export default function Dashboard() {
   return (
@@ -132,6 +136,10 @@ function DashboardContent() {
   // Hooks para actividades y productos
   const actividadesState = useActividades()
   const productosState = useProductos()
+  
+  // Hook para empréstito
+  const emprestitoState = useEmprestito()
+  const emprestitoMetrics = useEmprestitoMetrics(emprestitoState.data)
 
   // Sincronizar filtros entre DashboardContext y DataContext
   useEffect(() => {
@@ -412,7 +420,8 @@ function DashboardContent() {
     // Mostrar estado de carga unificado - usar preloader global como fuente principal
     const isLoading = dataLoading || 
                      (activeTab === 'activities' && actividadesState.loading) || 
-                     (activeTab === 'products' && productosState.loading)
+                     (activeTab === 'products' && productosState.loading) ||
+                     (activeTab === 'emprestito' && emprestitoState.loading)
                      
     if (isLoading) {
       return (
@@ -424,7 +433,8 @@ function DashboardContent() {
               {activeTab === 'project_units' && 'Preparando mapa y tabla...'}
               {activeTab === 'activities' && 'Cargando actividades...'}
               {activeTab === 'products' && 'Cargando productos...'}
-              {!['project_units', 'activities', 'products'].includes(activeTab) && 'Obteniendo información...'}
+              {activeTab === 'emprestito' && 'Cargando datos de empréstito...'}
+              {!['project_units', 'activities', 'products', 'emprestito'].includes(activeTab) && 'Obteniendo información...'}
             </p>
           </div>
         </div>
@@ -434,9 +444,10 @@ function DashboardContent() {
     // Mostrar estado de error unificado - usar preloader global como fuente principal
     const hasError = dataError || 
                     (activeTab === 'activities' && actividadesState.error) || 
-                    (activeTab === 'products' && productosState.error)
+                    (activeTab === 'products' && productosState.error) ||
+                    (activeTab === 'emprestito' && emprestitoState.error)
     if (hasError) {
-      const errorMessage = dataError || actividadesState.error || productosState.error
+      const errorMessage = dataError || actividadesState.error || productosState.error || emprestitoState.error
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -515,8 +526,8 @@ function DashboardContent() {
                     </div>
                   </div>
                   
-                  {/* Grid con las métricas dentro del contenedor */}
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {/* Grid con las métricas dentro del contenedor - Altura uniforme */}
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[800px] min-h-[600px]">
                     {/* Métricas de Tipos de Intervención y Clases de Obra */}
                     <ProjectInterventionMetrics 
                       data={filteredProjectUnits}
@@ -605,6 +616,34 @@ function DashboardContent() {
               productos={productosState.productos}
               filteredProductos={filteredProductos}
               loading={productosState.loading}
+            />
+          </div>
+        )
+
+      case 'emprestito':
+        return (
+          <div className="space-y-8">
+            {/* Estadísticas de empréstito */}
+            <EmprestitoStats
+              totalProyectos={emprestitoMetrics.totalProyectos}
+              totalContratos={emprestitoMetrics.totalContratos}
+              valorTotalContratos={emprestitoMetrics.valorTotalContratos}
+              totalBancos={emprestitoMetrics.bancos.length}
+              totalCentrosGestor={emprestitoMetrics.centrosGestor.length}
+              loading={emprestitoState.loading}
+            />
+            
+            {/* Gráficos de empréstito */}
+            <EmprestitoCharts
+              data={emprestitoState.data}
+              loading={emprestitoState.loading}
+            />
+            
+            {/* Tabla de empréstito */}
+            <EmprestitoTable
+              contratos={emprestitoState.data.contratos}
+              proyectos={emprestitoState.data.proyectos}
+              loading={emprestitoState.loading}
             />
           </div>
         )
