@@ -60,6 +60,63 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
       .sort((a, b) => b.count - a.count)
   }, [data.contratos])
 
+  // Colores personalizados para el gráfico circular
+  const getChartColor = (banco: string, index: number) => {
+    // Cambiar Davivienda a amarillo
+    if (banco.toLowerCase().includes('davivienda')) {
+      return '#eab308' // yellow-500
+    }
+    return CHART_COLORS[index % CHART_COLORS.length]
+  }
+
+  // Tooltip personalizado mejorado
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200 dark:border-gray-600 rounded-xl p-4 shadow-xl max-w-xs"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div 
+              className="w-4 h-4 rounded-full shadow-sm"
+              style={{ backgroundColor: getChartColor(data.bancoCompleto, proyectosPorBanco.findIndex(item => item.bancoCompleto === data.bancoCompleto)) }}
+            />
+            <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+              {data.bancoCompleto}
+            </h4>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Proyectos:</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400 text-sm">
+                {data.count}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Porcentaje:</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-sm">
+                {data.percentage}%
+              </span>
+            </div>
+          </div>
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${data.percentage}%` }}
+              />
+            </div>
+          </div>
+        </motion.div>
+      )
+    }
+    return null
+  }
+
 
 
   if (loading) {
@@ -177,25 +234,14 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
                   stroke="#fff"
                   strokeWidth={2}
                 >
-                  {proyectosPorBanco.map((_, index) => (
+                  {proyectosPorBanco.map((item, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={CHART_COLORS[index % CHART_COLORS.length]} 
+                      fill={getChartColor(item.bancoCompleto, index)} 
                     />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                  formatter={(value: number, name, props: any) => [
-                    `${value} proyectos (${props.payload.percentage}%)`,
-                    props.payload.bancoCompleto
-                  ]}
-                />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -207,7 +253,7 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
                 <div key={item.banco} className="flex items-center text-sm">
                   <div 
                     className="w-3 h-3 rounded-sm mr-2 flex-shrink-0"
-                    style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                    style={{ backgroundColor: getChartColor(item.bancoCompleto, index) }}
                   />
                   <span className="text-gray-700 dark:text-gray-300 truncate">
                     <span className="font-medium">{item.bancoCompleto}</span>: {item.count} ({item.percentage}%)

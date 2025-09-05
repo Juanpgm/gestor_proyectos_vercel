@@ -142,11 +142,16 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
   }
 
   const formatCurrencyShort = (value: number): string => {
-    if (value >= 1e9) {
+    if (value >= 1e12) {
+      return `$${(value / 1e12).toLocaleString('de-DE', { 
+        minimumFractionDigits: 1, 
+        maximumFractionDigits: 1 
+      })}B`; // Billones (un millón de millones)
+    } else if (value >= 1e9) {
       return `$${(value / 1e9).toLocaleString('de-DE', { 
         minimumFractionDigits: 1, 
         maximumFractionDigits: 1 
-      })}B`;
+      })}MM`; // Mil millones (no billones)
     } else if (value >= 1e6) {
       return `$${(value / 1e6).toLocaleString('de-DE', { 
         minimumFractionDigits: 0, 

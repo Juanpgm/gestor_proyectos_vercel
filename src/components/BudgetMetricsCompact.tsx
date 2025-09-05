@@ -87,9 +87,9 @@ const BudgetMetricsCompact: React.FC<BudgetMetricsCompactProps> = ({ className =
 
   const formatCurrency = (value: number) => {
     if (value >= 1e12) {
-      return `$${(value / 1e12).toFixed(1)}T`
+      return `$${(value / 1e12).toFixed(1)}B` // Billones (un millón de millones)
     } else if (value >= 1e9) {
-      return `$${(value / 1e9).toFixed(1)}B`
+      return `$${(value / 1e9).toFixed(1)}MM` // Mil millones (no billones)
     } else if (value >= 1e6) {
       return `$${(value / 1e6).toFixed(1)}M`
     } else if (value >= 1e3) {

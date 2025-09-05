@@ -45,13 +45,6 @@ const EmprestitoStats: React.FC<EmprestitoStatsProps> = ({
       format: 'number'
     },
     {
-      title: 'Valor Total Contratos',
-      value: valorTotalContratos,
-      icon: DollarSign,
-      gradient: CATEGORIES.emprestito.gradient,
-      format: 'currency'
-    },
-    {
       title: 'Bancos Participantes',
       value: totalBancos,
       icon: Building2,
@@ -59,33 +52,30 @@ const EmprestitoStats: React.FC<EmprestitoStatsProps> = ({
       format: 'number'
     },
     {
-      title: 'Centros Gestor',
-      value: totalCentrosGestor,
-      icon: Users,
+      title: 'Valor Total Contratos',
+      value: valorTotalContratos,
+      icon: DollarSign,
       gradient: CATEGORIES.emprestito.gradient,
-      format: 'number'
+      format: 'currency'
     }
   ]
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-        {Array.from({ length: 5 }).map((_, index) => (
+      <div className="flex gap-1 md:gap-2">
+        {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="relative bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700"
+            className="relative bg-white dark:bg-gray-800 rounded-xl p-2 md:p-3 shadow-sm border border-gray-200 dark:border-gray-700 flex-1"
           >
             {/* Background pattern */}
             <div className="absolute inset-0 bg-teal-50 dark:bg-teal-900/20 rounded-xl opacity-50" />
             
             {/* Content */}
             <div className="relative text-center animate-pulse">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
-              </div>
               <div className="space-y-2">
-                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mx-auto w-3/4"></div>
-                <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded mx-auto w-1/2"></div>
+                <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded mx-auto w-3/4"></div>
+                <div className="h-6 md:h-8 bg-gray-300 dark:bg-gray-600 rounded mx-auto w-1/2"></div>
               </div>
             </div>
           </div>
@@ -95,7 +85,7 @@ const EmprestitoStats: React.FC<EmprestitoStatsProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+    <div className="flex gap-1 md:gap-2">
       {stats.map((stat, index) => {
         const Icon = stat.icon
         
@@ -105,32 +95,33 @@ const EmprestitoStats: React.FC<EmprestitoStatsProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
-            className="relative bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300 group"
+            className="relative bg-white dark:bg-gray-800 rounded-xl p-2 md:p-3 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-300 group flex-1"
           >
             {/* Background pattern */}
             <div className="absolute inset-0 bg-teal-50 dark:bg-teal-900/20 rounded-xl opacity-50" />
             
             {/* Content */}
             <div className="relative text-center">
-              <div className="flex justify-center mb-4">
-                <div className={`p-3 rounded-lg bg-gradient-to-br ${stat.gradient} group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 leading-tight">
-                  {stat.title}
-                </h3>
-                
-                <p className="text-2xl md:text-3xl font-bold text-teal-600 dark:text-teal-400 leading-tight">
-                  {stat.format === 'currency' 
+              <div className="space-y-1 md:space-y-2">
+                <p className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-teal-600 dark:text-teal-400 leading-tight break-words">
+                  {stat.format === 'currency' && stat.title === 'Valor Total Contratos'
+                    ? stat.value.toLocaleString('es-CO', { 
+                        style: 'currency', 
+                        currency: 'COP', 
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                      })
+                    : stat.format === 'currency' 
                     ? formatNumber(stat.value, 'currency')
                     : stat.format === 'percent'
                     ? formatNumber(stat.value, 'percent') 
                     : formatNumber(stat.value)
                   }
                 </p>
+                
+                <h3 className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 leading-tight">
+                  {stat.title}
+                </h3>
               </div>
             </div>
           </motion.div>

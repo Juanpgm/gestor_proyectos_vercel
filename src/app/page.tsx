@@ -32,6 +32,8 @@ import ProductosCharts from '@/components/ProductosCharts'
 import EmprestitoTable from '@/components/EmprestitoTable'
 import EmprestitoStats from '@/components/EmprestitoStats'
 import EmprestitoCharts from '@/components/EmprestitoCharts'
+import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
+import EmprestitoContractsChart from '@/components/EmprestitoContractsChart'
 import ProjectInterventionMetrics from '@/components/ProjectInterventionMetrics'
 import CentrosGravedadMetrics from '@/components/CentrosGravedadMetrics'
 import { 
@@ -630,6 +632,12 @@ function DashboardContent() {
               valorTotalContratos={emprestitoMetrics.valorTotalContratos}
               totalBancos={emprestitoMetrics.bancos.length}
               totalCentrosGestor={emprestitoMetrics.centrosGestor.length}
+              loading={emprestitoState.loading}
+            />
+            
+            {/* Serie de tiempo - Evolución temporal */}
+            <EmprestitoTimeSeries
+              data={emprestitoState.data}
               loading={emprestitoState.loading}
             />
             
