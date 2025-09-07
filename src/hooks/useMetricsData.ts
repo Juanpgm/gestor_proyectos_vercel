@@ -40,7 +40,7 @@ export const useMetricsData = (): MetricsResult => {
           projectsResponse,
           activitiesResponse
         ] = await Promise.allSettled([
-          fetch('/data/contratos/contratos.json'),
+          fetch('/data/contratos/contratos_proyectos.json'),
           fetch('/data/ejecucion_presupuestal/ejecucion_presupuestal.json'),
           fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json'),
           fetch('/data/seguimiento_pa/seguimiento_actividades_pa.json')

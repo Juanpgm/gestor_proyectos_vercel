@@ -5,7 +5,8 @@ import {
   Activity,          // Actividades
   Package,           // Productos
   FileText,          // Contratos
-  CreditCard         // Empréstito
+  CreditCard,        // Empréstito
+  Settings           // Procesos
 } from 'lucide-react'
 
 // Configuración de categorías principales con colores e iconos
@@ -129,6 +130,26 @@ export const CATEGORIES = {
       button: 'bg-teal-500 hover:bg-teal-600 text-white',
       badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300'
     }
+  },
+  procesos: {
+    name: 'Procesos',
+    color: {
+      primary: '#7c2d12',     // orange-800
+      light: '#ea580c',       // orange-600
+      lighter: '#f97316',     // orange-500
+      background: '#fed7aa',  // orange-200
+      darkBackground: '#9a3b0520', // orange-800 con opacidad
+    },
+    icon: Settings,
+    gradient: 'from-orange-500 to-orange-600',
+    className: {
+      text: 'text-orange-600 dark:text-orange-400',
+      bg: 'bg-orange-50 dark:bg-orange-900/20',
+      border: 'border-orange-200 dark:border-orange-800',
+      accent: 'bg-orange-100 dark:bg-orange-900/30',
+      button: 'bg-orange-500 hover:bg-orange-600 text-white',
+      badge: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+    }
   }
 } as const
 
@@ -220,24 +241,40 @@ export function getCategoryConfig(category: keyof typeof CATEGORIES) {
 // Utilidad para formatear números con localización colombiana
 export function formatNumber(value: number, type: 'currency' | 'number' | 'percent' = 'number'): string {
   if (type === 'currency') {
+    // Usar notación colombiana: 1 billón = 1,000,000,000,000 (1e12)
     if (value >= 1e12) {
-      return `$${(value / 1e12).toFixed(1)}B` // Billones (un millón de millones)
+      return `$${(value / 1e12).toFixed(2)} billones` // Billones colombianos (1e12)
     } else if (value >= 1e9) {
-      return `$${(value / 1e9).toFixed(1)}MM` // Mil millones (no billones)
+      return `$${(value / 1e9).toFixed(2)} mil millones` // Mil millones
     } else if (value >= 1e6) {
-      return `$${(value / 1e6).toFixed(1)}M`
-    } else if (value >= 1e3) {
-      return `$${(value / 1e3).toFixed(1)}K`
+      // Solo reducir a millones si es mayor a 100 millones para mantener precisión
+      if (value >= 100e6) {
+        return `$${(value / 1e6).toFixed(1)} millones`
+      } else {
+        return value.toLocaleString('es-CO', { 
+          style: 'currency', 
+          currency: 'COP', 
+          minimumFractionDigits: 0 
+        })
+      }
+    } else {
+      return value.toLocaleString('es-CO', { 
+        style: 'currency', 
+        currency: 'COP', 
+        minimumFractionDigits: 0 
+      })
     }
-    return value.toLocaleString('es-CO', { 
-      style: 'currency', 
-      currency: 'COP', 
-      minimumFractionDigits: 0 
-    })
   } else if (type === 'percent') {
     return `${value.toFixed(1)}%`
   } else {
-    return value.toLocaleString('es-CO')
+    // Para números simples, solo reducir si son muy grandes
+    if (value >= 1e9) {
+      return `${(value / 1e9).toFixed(2)} mil millones`
+    } else if (value >= 100e6) {
+      return `${(value / 1e6).toFixed(1)} millones`
+    } else {
+      return value.toLocaleString('es-CO')
+    }
   }
 }
 

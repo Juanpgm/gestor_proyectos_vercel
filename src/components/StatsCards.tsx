@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useDashboardStats } from '@/context/DashboardContext'
 import { useFilteredStats } from '@/hooks/useDataFilters'
+import { useContratos } from '@/hooks/useContratos'
+import { useProcesos } from '@/hooks/useProcesos'
 import { formatCurrency } from '../utils/formatCurrency'
 import { CATEGORIES, ANIMATIONS, formatNumber, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
-import { DollarSign } from 'lucide-react'
+import { DollarSign, Settings } from 'lucide-react'
 
 interface StatCardProps {
   title: string
@@ -90,8 +92,12 @@ const StatsCards: React.FC = () => {
   const dashboardStats = useDashboardStats()
   const filteredStats = useFilteredStats()
   
+  // Obtener datos de contratos y procesos
+  const contratosState = useContratos()
+  const procesosState = useProcesos()
+  
   // Detectar loading
-  const loading = dashboardStats.loading || filteredStats.loading
+  const loading = dashboardStats.loading || filteredStats.loading || contratosState.loading || procesosState.loading
 
   const statsData = [
     {
@@ -124,16 +130,23 @@ const StatsCards: React.FC = () => {
     },
     {
       title: 'Contratos',
-      value: 0,
-      subtitle: 'En desarrollo',
+      value: contratosState.metrics.totalContratos || 0,
+      subtitle: 'Total registrados',
       icon: DollarSign,
-      category: 'projects' as const
+      category: 'contracts' as const
+    },
+    {
+      title: 'Procesos',
+      value: procesosState.metrics.totalProcesos || 0,
+      subtitle: 'En SECOP',
+      icon: Settings,
+      category: 'procesos' as const
     }
   ]
 
   return (
     <motion.div 
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6"
+      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 lg:gap-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}

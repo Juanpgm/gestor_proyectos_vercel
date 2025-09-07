@@ -5,7 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Menu } from 'lucide-react'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
 
-type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito'
+type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
+
+interface TabConfig {
+  id: ActiveTab
+  label: string
+  icon: any
+  category: ActiveTab
+  shortLabel: string
+  disabled?: boolean
+}
 
 interface MobileNavigationProps {
   activeTab: ActiveTab
@@ -20,7 +29,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false)
 
-  const tabs = [
+  const tabs: TabConfig[] = [
     { 
       id: 'projects' as const, 
       label: CATEGORIES.projects.name, 
@@ -57,10 +66,16 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       shortLabel: 'Empréstito'
     },
     { 
+      id: 'procesos' as const, 
+      label: CATEGORIES.procesos.name, 
+      icon: CATEGORIES.procesos.icon,
+      category: 'procesos' as const,
+      shortLabel: 'Procesos'
+    },
+    { 
       id: 'contracts' as const, 
       label: CATEGORIES.contracts.name, 
       icon: CATEGORIES.contracts.icon, 
-      disabled: true,
       category: 'contracts' as const,
       shortLabel: 'Contratos'
     }
@@ -82,7 +97,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-100 dark:border-gray-700">
             {tabs.map((tab) => {
               const Icon = tab.icon
-              const isDisabled = tab.disabled
+              const isDisabled = tab.disabled || false
               const tabCategoryConfig = CATEGORIES[tab.category]
               
               return (
@@ -192,11 +207,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 {/* Navigation Options */}
                 <div className="p-4 space-y-2">
                   {tabs.map((tab) => {
-                    const Icon = tab.icon
-                    const isDisabled = tab.disabled
-                    const tabCategoryConfig = CATEGORIES[tab.category]
-                    
-                    return (
+                  const Icon = tab.icon
+                  const isDisabled = tab.disabled || false
+                  const tabCategoryConfig = CATEGORIES[tab.category]
+                  
+                  return (
                       <motion.button
                         key={tab.id}
                         whileHover={{ scale: 1.02 }}

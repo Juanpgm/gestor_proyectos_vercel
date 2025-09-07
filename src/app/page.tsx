@@ -22,18 +22,26 @@ import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesPro
 // import { useUnidadesProyectoForced } from '@/hooks/useUnidadesProyectoForced'
 import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
+import { useContratos, useContratosMetrics, type Contrato } from '@/hooks/useContratos'
 import { useEmprestito, useEmprestitoMetrics } from '@/hooks/useEmprestito'
+import { useProcesos, useProcesosMetrics, type Proceso } from '@/hooks/useProcesos'
 import ActividadesTable from '@/components/ActividadesTable'
 import ActividadesStats from '@/components/ActividadesStats'
 import ActividadesCharts from '@/components/ActividadesCharts'
 import ProductosTable from '@/components/ProductosTable'
 import ProductosStats from '@/components/ProductosStats'
 import ProductosCharts from '@/components/ProductosCharts'
+import ContratosTable from '@/components/ContratosTable'
+import ContratosStats from '@/components/ContratosStats'
+import ContratosCharts from '@/components/ContratosCharts'
 import EmprestitoTable from '@/components/EmprestitoTable'
 import EmprestitoStats from '@/components/EmprestitoStats'
 import EmprestitoCharts from '@/components/EmprestitoCharts'
 import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
 import EmprestitoContractsChart from '@/components/EmprestitoContractsChart'
+import ProcesosTable from '@/components/ProcesosTable'
+import ProcesosStats from '@/components/ProcesosStats'
+import ProcesosCharts from '@/components/ProcesosCharts'
 import ProjectInterventionMetrics from '@/components/ProjectInterventionMetrics'
 import CentrosGravedadMetrics from '@/components/CentrosGravedadMetrics'
 import { 
@@ -50,7 +58,7 @@ import MobileNavigation from '@/components/MobileNavigation'
 // Componentes dinámicos
 const ChoroplethMapInteractive = dynamic(() => import('@/components/ChoroplethMapInteractive'), { ssr: false })
 
-type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito'
+type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
 export default function Dashboard() {
   return (
@@ -142,6 +150,13 @@ function DashboardContent() {
   // Hook para empréstito
   const emprestitoState = useEmprestito()
   const emprestitoMetrics = useEmprestitoMetrics(emprestitoState.data)
+
+  // Hook para contratos
+  const contratosState = useContratos()
+
+  // Hook para procesos
+  const procesosState = useProcesos()
+  const procesosMetrics = useProcesosMetrics(procesosState.data.procesos)
 
   // Sincronizar filtros entre DashboardContext y DataContext
   useEffect(() => {
@@ -416,6 +431,39 @@ function DashboardContent() {
     }
   }, [filteredProductos])
 
+  // Lógica de filtrado para contratos
+  const filteredContratos: Contrato[] = useMemo(() => {
+    return contratosState.data.contratos.filter(contrato => {
+      // Filtro por búsqueda de texto
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase()
+        const searchFields = [
+          contrato.referencia_contrato,
+          contrato.proveedor_adjudicado,
+          contrato.descripcion_proceso,
+          contrato.nombre_entidad,
+          contrato.sector,
+          contrato.bpin?.toString()
+        ].filter(Boolean).join(' ').toLowerCase()
+        
+        if (!searchFields.includes(searchTerm)) return false
+      }
+
+      // Filtro por estado del proyecto relacionado (si existe)
+      if (filters.estado !== 'all') {
+        const relatedProject = proyectos.find(p => String(p.bpin) === String(contrato.bpin))
+        if (relatedProject && relatedProject.estado !== filters.estado) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [filters, contratosState.data.contratos, proyectos])
+
+  // Calcular métricas filtradas para contratos usando el hook
+  const filteredContratosMetrics = useContratosMetrics(filteredContratos)
+
 
 
   const renderContent = () => {
@@ -423,7 +471,9 @@ function DashboardContent() {
     const isLoading = dataLoading || 
                      (activeTab === 'activities' && actividadesState.loading) || 
                      (activeTab === 'products' && productosState.loading) ||
-                     (activeTab === 'emprestito' && emprestitoState.loading)
+                     (activeTab === 'emprestito' && emprestitoState.loading) ||
+                     (activeTab === 'contracts' && contratosState.loading) ||
+                     (activeTab === 'procesos' && procesosState.loading)
                      
     if (isLoading) {
       return (
@@ -436,7 +486,9 @@ function DashboardContent() {
               {activeTab === 'activities' && 'Cargando actividades...'}
               {activeTab === 'products' && 'Cargando productos...'}
               {activeTab === 'emprestito' && 'Cargando datos de empréstito...'}
-              {!['project_units', 'activities', 'products', 'emprestito'].includes(activeTab) && 'Obteniendo información...'}
+              {activeTab === 'procesos' && 'Cargando procesos...'}
+              {activeTab === 'contracts' && 'Cargando contratos...'}
+              {!['project_units', 'activities', 'products', 'emprestito', 'procesos', 'contracts'].includes(activeTab) && 'Obteniendo información...'}
             </p>
           </div>
         </div>
@@ -447,9 +499,11 @@ function DashboardContent() {
     const hasError = dataError || 
                     (activeTab === 'activities' && actividadesState.error) || 
                     (activeTab === 'products' && productosState.error) ||
-                    (activeTab === 'emprestito' && emprestitoState.error)
+                    (activeTab === 'emprestito' && emprestitoState.error) ||
+                    (activeTab === 'contracts' && contratosState.error) ||
+                    (activeTab === 'procesos' && procesosState.error)
     if (hasError) {
-      const errorMessage = dataError || actividadesState.error || productosState.error || emprestitoState.error
+      const errorMessage = dataError || actividadesState.error || productosState.error || emprestitoState.error || contratosState.error || procesosState.error
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -549,18 +603,32 @@ function DashboardContent() {
 
       case 'contracts':
         return (
-          <div className="space-y-8">
-            <div className="w-full">
-              <BudgetAnalysisChart />
-            </div>
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              <div className="xl:col-span-2">
-                <ChoroplethMapInteractive />
-              </div>
-              <div>
-                <StatsCards />
-              </div>
-            </div>
+          <div className="space-y-6">
+            {/* Estadísticas de contratos */}
+            <ContratosStats 
+              totalContratos={filteredContratosMetrics.totalContratos}
+              totalValorContratos={filteredContratosMetrics.totalValorContratos}
+              valorPagado={filteredContratosMetrics.valorPagado}
+              valorPendientePago={filteredContratosMetrics.valorPendientePago}
+              valorPendienteEjecucion={filteredContratosMetrics.valorPendienteEjecucion}
+              contratosLiquidados={filteredContratosMetrics.contratosLiquidados}
+              contratosModificados={filteredContratosMetrics.contratosModificados}
+              contratosConPagoAdelantado={filteredContratosMetrics.contratosConPagoAdelantado}
+              loading={contratosState.loading}
+            />
+            
+            {/* Gráficos de contratos */}
+            <ContratosCharts 
+              contratos={filteredContratos}
+              loading={contratosState.loading}
+            />
+            
+            {/* Tabla de contratos */}
+            <ContratosTable 
+              contratos={contratosState.data.contratos}
+              filteredContratos={filteredContratos}
+              loading={contratosState.loading}
+            />
           </div>
         )
 
@@ -650,6 +718,38 @@ function DashboardContent() {
             {/* Tabla de empréstito */}
             <EmprestitoTable
               loading={emprestitoState.loading}
+            />
+          </div>
+        )
+
+      case 'procesos':
+        return (
+          <div className="space-y-8">
+            {/* Estadísticas de procesos */}
+            <ProcesosStats
+              totalProcesos={procesosMetrics.totalProcesos}
+              procesosAdjudicados={procesosMetrics.procesosAdjudicados}
+              procesosNoAdjudicados={procesosMetrics.procesosNoAdjudicados}
+              valorTotalProcesos={procesosMetrics.valorTotalProcesos}
+              valorTotalAdjudicado={procesosMetrics.valorTotalAdjudicado}
+              promedioVisualizaciones={procesosMetrics.promedioVisualizaciones}
+              promedioProveedoresInteres={procesosMetrics.promedioProveedoresInteres}
+              procesosPorEstado={procesosMetrics.procesosPorEstado}
+            />
+            
+            {/* Gráficos de procesos */}
+            <ProcesosCharts
+              procesosPorEstado={procesosMetrics.procesosPorEstado}
+              procesosPorFase={procesosMetrics.procesosPorFase}
+              procesosPorModalidad={procesosMetrics.procesosPorModalidad}
+              procesosPorMes={procesosMetrics.procesosPorMes}
+              procesosPorEntidad={procesosMetrics.procesosPorEntidad}
+            />
+            
+            {/* Tabla de procesos */}
+            <ProcesosTable
+              procesos={procesosState.data.procesos}
+              loading={procesosState.loading}
             />
           </div>
         )

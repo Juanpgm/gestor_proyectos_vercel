@@ -4,29 +4,30 @@ import { useState, useEffect } from 'react'
 
 export interface EmprestitoContrato {
   bpin: string
-  bp: string
-  centro_gestor: string
+  centro_gestor?: string
   valor_contrato: number
   banco: string
-  cdp: string
-  rpc: string
-  link_secop: string
-  fecha_publicacion_proceso: string | null
-  fecha_adjudicacion: string | null
-  observaciones: string
+  cdp?: string
+  rpc?: string
+  link_secop?: string
+  fecha_publicacion_proceso?: string | null
+  fecha_adjudicacion?: string | null
+  observaciones?: string
+  descripcion_bp?: string
+  nombre_comercial?: string
 }
 
 export interface EmprestitoProyecto {
   bpin: string
-  bp: string
   centro_gestor: string
+  banco: string
   descripcion_bp: string
   nombre_comercial: string
-  banco: string
+  valor_contrato?: number
 }
 
 export interface EmprestitoDimension {
-  bpin: string
+  bpin: number
   centro_gestor: string
   banco: string
   bp: string
@@ -35,17 +36,17 @@ export interface EmprestitoDimension {
   proyectos_contratos: string
   valor_contrato: number
   tipo_contratacion: string
-  pliego_tipo: string
+  pliego_tipo: string | null
   vig_futura: string
   deleg: string
-  fecha_inicio: string
-  fecha_terminacion: string
-  cod_contrato: string
-  cdp: string
-  rpc: string
-  link_secop: string
-  fecha_publicacion_proceso: string
-  fecha_adjudicacion: string
+  fecha_inicio: number
+  fecha_terminacion: number
+  numero_contrato: string | null
+  cdp: string | null
+  rpc: string | null
+  link_secop: string | null
+  fecha_publicacion_proceso: number
+  fecha_adjudicacion: number
   observaciones: string
 }
 
@@ -90,26 +91,47 @@ export const useEmprestito = (): EmprestitoState => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        // Cargar todos los archivos en paralelo
-        const [contratosRes, proyectosRes, dimensionesRes, hechosRes] = await Promise.all([
-          fetch('/data/emprestito/emp_contratos.json'),
-          fetch('/data/emprestito/emp_proyectos.json'),
+        // Cargar archivos que realmente existen
+        const [dimensionesRes, hechosRes] = await Promise.all([
           fetch('/data/emprestito/foundational_dims.json'),
           fetch('/data/emprestito/foundational_facts.json')
         ])
 
-        // Verificar que todas las respuestas sean exitosas
-        if (!contratosRes.ok || !proyectosRes.ok || !dimensionesRes.ok || !hechosRes.ok) {
-          throw new Error('Error al cargar uno o más archivos de empréstito')
+        // Verificar que las respuestas sean exitosas
+        if (!dimensionesRes.ok || !hechosRes.ok) {
+          throw new Error('Error al cargar archivos de empréstito')
         }
 
         // Parsear los datos
-        const [contratos, proyectos, dimensiones, hechos] = await Promise.all([
-          contratosRes.json(),
-          proyectosRes.json(),
+        const [dimensiones, hechos] = await Promise.all([
           dimensionesRes.json(),
           hechosRes.json()
         ])
+
+        // Transformar dimensiones en contratos y proyectos
+        const contratos: EmprestitoContrato[] = dimensiones.map((dim: EmprestitoDimension) => ({
+          bpin: dim.bpin.toString(),
+          centro_gestor: dim.centro_gestor,
+          valor_contrato: dim.valor_contrato || 0,
+          banco: dim.banco,
+          cdp: dim.cdp,
+          rpc: dim.rpc,
+          link_secop: dim.link_secop,
+          fecha_publicacion_proceso: dim.fecha_publicacion_proceso ? new Date(dim.fecha_publicacion_proceso).toISOString() : null,
+          fecha_adjudicacion: dim.fecha_adjudicacion ? new Date(dim.fecha_adjudicacion).toISOString() : null,
+          observaciones: dim.observaciones,
+          descripcion_bp: dim.descripcion_bp,
+          nombre_comercial: dim.nombre_comercial
+        }))
+
+        const proyectos: EmprestitoProyecto[] = dimensiones.map((dim: EmprestitoDimension) => ({
+          bpin: dim.bpin.toString(),
+          centro_gestor: dim.centro_gestor,
+          banco: dim.banco,
+          descripcion_bp: dim.descripcion_bp,
+          nombre_comercial: dim.nombre_comercial,
+          valor_contrato: dim.valor_contrato
+        }))
 
         setState({
           data: {

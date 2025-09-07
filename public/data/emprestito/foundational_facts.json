@@ -1,4733 +1,2081 @@
 {
-  "2023760010013": {
-    "2025-07": {
+  "2023760010013.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
+    "nov": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
+    "dic": {
       "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
       "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2023760010146": {
-    "2025-07": {
+  "2023760010146.0": {
+    "jul": {
+      "desembolso": 2084400000.0000002,
+      "avance": 0.1544,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
-      "desembolso": 1216118750.116375,
-      "avance": 0.23275000012250002,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 1216118750.116375,
-      "avance": 0.23275000012250002,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 1216118750.116375,
-      "avance": 0.23275000012250002,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 3400821875.0,
-      "avance": 0.650875,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 3400821875.0,
-      "avance": 0.650875,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
+    "ene": {
       "desembolso": 1350000000.0,
       "avance": 0.1,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-04": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 1350000000.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 1350000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
+    "feb": {
       "desembolso": 1728000000.0,
       "avance": 0.128,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-03": {
+    "mar": {
       "desembolso": 2084400000.0000002,
       "avance": 0.1544,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-04": {
+    "abr": {
       "desembolso": 2084400000.0000002,
       "avance": 0.1544,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-05": {
+    "may": {
       "desembolso": 2084400000.0000002,
       "avance": 0.1544,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-06": {
+    "jun": {
       "desembolso": 2084400000.0000002,
       "avance": 0.1544,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-07": {
-      "desembolso": 2084400000.0000002,
-      "avance": 0.1544,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
+    "sub": {
+      "desembolso": null,
+      "avance": 2.3,
+      "desembolso_real": null,
       "avance_real": 0.0
     }
   },
-  "2023760010179": {
-    "2025-07": {
+  "2023760010179.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
+    "nov": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
+    "dic": {
       "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
       "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 2300000000.0,
-      "avance": 1.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 1.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010006": {
-    "2025-07": {
+  "2024760010006.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
+    "nov": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
+    "dic": {
       "desembolso": 19500000000.0,
       "avance": 0.5,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-01": {
+    "ene": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-02": {
+    "feb": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-03": {
+    "mar": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-04": {
+    "abr": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-05": {
+    "may": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-06": {
+    "jun": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 19500000000.0,
+    "sub": {
+      "desembolso": null,
       "avance": 0.5,
-      "desembolso_real": 0.0,
+      "desembolso_real": null,
       "avance_real": 0.0
     }
   },
-  "2024760010041": {
-    "2025-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-11": {
-      "desembolso": 2638692097.41,
-      "avance": 0.36,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 2080794084.09,
-      "avance": 0.02,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 2996000000.0,
-      "avance": 0.16,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 2996000000.0,
-      "avance": 0.16,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 5037177509.700001,
-      "avance": 0.43000000000000005,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 1872500000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 4249494463.3999996,
-      "avance": 1.2999999999999998,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 5433343253.6,
-      "avance": 0.63,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 3194082871.95,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 1944429169.51,
-      "avance": 0.26,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 4262121565.04,
-      "avance": 0.49,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 1894165743.9,
-      "avance": 0.28,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 1408120000.0,
-      "avance": 0.08,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 4963399876.4800005,
-      "avance": 0.45,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 2621500000.0,
-      "avance": 0.14,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 1872500000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 2489455142.92,
-      "avance": 0.27,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 749000000.0,
-      "avance": 0.04,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
+  "2024760010041.0": {
+    "jul": {
       "desembolso": 3745000000.0,
       "avance": 0.2,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-11": {
+    "nov": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-12": {
+    "dic": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 1408120000.0,
+      "avance": 0.08,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 4963399876.4800005,
+      "avance": 0.45,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 2621500000.0,
+      "avance": 0.14,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 1872500000.0,
+      "avance": 0.1,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 2489455142.92,
+      "avance": 0.27,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 749000000.0,
+      "avance": 0.04,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 4.0900000000365395,
+      "desembolso_real": null,
       "avance_real": 0.0
     }
   },
-  "2024760010045": {
-    "2025-07": {
+  "2024760010045.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
-      "desembolso": 380000000.0,
-      "avance": 1.6,
+    "oct": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 32860879709.0,
-      "avance": 5.91875,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 14537379709.0,
-      "avance": 4.65,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 8720825000.0,
-      "avance": 2.43125,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010079": {
-    "2025-07": {
+  "2024760010079.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
-      "desembolso": 35759795.76,
+    "sep": {
+      "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
-      "desembolso": 1061950390.92,
+    "oct": {
+      "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 3149938800.0,
+    "nov": {
+      "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 5379242895.559999,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
       "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 2511932435.0639997,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 2930587840.908,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 3558823045.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 988344321.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 1312498398.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 1444844156.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 1312498396.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 988344321.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 628235204.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010099": {
-    "2025-07": {
+  "2024760010099.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
-      "desembolso": 454393881.0,
-      "avance": 0.3929,
+    "sep": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
-      "desembolso": 792404595.0,
-      "avance": 0.6029,
+    "oct": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 967487419.0,
-      "avance": 0.6729,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 1465225246.0,
-      "avance": 0.8474999999999999,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 827863141.0,
-      "avance": 0.5704,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 965529394.0,
-      "avance": 0.6293,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 1117533831.0,
-      "avance": 0.17859999999999998,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 679634941.0,
-      "avance": 0.4397,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 1068176267.0,
-      "avance": 0.6197,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 1692961311.0,
-      "avance": 0.869,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 1701054830.0,
-      "avance": 0.6611,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 1225966634.0,
-      "avance": 0.5710999999999999,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 1459091430.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 1070550103.0,
-      "avance": 0.5111,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 1169889783.0,
-      "avance": 0.5611,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 1446277412.0,
-      "avance": 0.6912,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010148": {
-    "2025-07": {
+  "2024760010148.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
+    "nov": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 18895959782.0,
-      "avance": 2.0,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010165": {
-    "2025-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-09": {
-      "desembolso": 1304227492.0,
-      "avance": 1.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-10": {
-      "desembolso": 11061213637.0,
-      "avance": 0.6301506342633714,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-12": {
-      "desembolso": 54655414611.69,
-      "avance": 1.6525401701283364,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 2690070000.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 3248525860.5,
-      "avance": 0.4515925606491865,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 1946631370.5,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 3612976726.0,
-      "avance": 1.06,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 780000000.0,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 4983504515.0,
-      "avance": 0.3689198625149698,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 780000000.0,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 6703899351.0,
-      "avance": 0.9361833764637203,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 8011278052.0,
-      "avance": 0.9026463445600016,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 4515191179.0,
-      "avance": 0.3345953895801701,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
+  "2024760010165.0": {
+    "jul": {
       "desembolso": 1726520210.0,
       "avance": 0.13476331499043828,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-11": {
+    "nov": {
       "desembolso": 4857176027.0,
       "avance": 0.36289158407318456,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-12": {
+    "dic": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 4515191179.0,
+      "avance": 0.3345953895801701,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
+      "desembolso_real": null,
       "avance_real": 0.0
     }
   },
-  "2024760010167": {
-    "2025-07": {
+  "2024760010167.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 1150000000.0,
-      "avance": 1.0,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 1150000000.0,
-      "avance": 1.0,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010168": {
-    "2025-07": {
+  "2024760010168.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 4932427500.0,
-      "avance": 0.6,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
+    "dic": {
       "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
       "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 3288285000.0,
-      "avance": 0.4,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010189": {
-    "2025-07": {
+  "2024760010189.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
-      "avance": 0.1,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
+    "nov": {
       "desembolso": 0.0,
-      "avance": 0.2,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 725000000.0,
-      "avance": 0.2,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 1.4999999999999998,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 1014999999.9999998,
-      "avance": 0.7,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 869999999.9999998,
-      "avance": 0.6,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 290000000.0,
-      "avance": 0.2,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010195": {
-    "2025-07": {
+  "2024760010195.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
-      "avance": 0.05,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
-      "desembolso": 139113283.2,
-      "avance": 0.6499999999999999,
+    "oct": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 278226566.4,
-      "avance": 1.2999999999999998,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 648910150.4,
-      "avance": 1.3,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 1.7,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 180000000.0,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 180000000.0,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 60000000.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 417339849.58199996,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 1051148433.582,
-      "avance": 0.8,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 417339849.58199996,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 772921867.194,
-      "avance": 0.6,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010200": {
-    "2025-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 874615187.265,
-      "avance": 0.3367,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 613540605.9116666,
-      "avance": 0.42879999999999996,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 5415513212.786667,
-      "avance": 0.5409,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 10217485819.661667,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 5415513212.786667,
-      "avance": 0.8050999999999999,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 15019458426.536667,
-      "avance": 0.9672000000000001,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 36733221125.56166,
-      "avance": 1.1492,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 4369603208.166422,
-      "avance": 1.4886,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 5198593425.166422,
-      "avance": 1.8480999999999999,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 5820336088.166422,
-      "avance": 2.2175,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 6649326306.166422,
-      "avance": 2.577,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 7478316523.166422,
-      "avance": 2.9364,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 8635783889.284199,
-      "avance": 3.8133,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
+  "2024760010200.0": {
+    "jul": {
       "desembolso": 9136296958.166422,
       "avance": 4.1828,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-08": {
+    "ago": {
       "desembolso": 6649326306.166422,
       "avance": 4.5622,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-09": {
+    "sep": {
       "desembolso": 5405840979.166422,
       "avance": 4.9517,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-10": {
+    "oct": {
       "desembolso": 15376989857.716421,
       "avance": 5.3811,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-11": {
+    "nov": {
       "desembolso": 3713885137.032008,
       "avance": 5.0008,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-12": {
+    "dic": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 4369603208.166422,
+      "avance": 1.4886,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 5198593425.166422,
+      "avance": 1.8480999999999999,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 5820336088.166422,
+      "avance": 2.2175,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 6649326306.166422,
+      "avance": 2.577,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 7478316523.166422,
+      "avance": 2.9364,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 8635783889.284199,
+      "avance": 3.8133,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 1.1492,
+      "desembolso_real": null,
       "avance_real": 0.0
     }
   },
-  "2024760010201": {
-    "2025-07": {
+  "2024760010201.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
-      "desembolso": 7865242000.0,
-      "avance": 0.4346,
+    "sep": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
-      "desembolso": 13592379000.0,
-      "avance": 1.8692,
+    "oct": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 280000000.0,
-      "avance": 1.3037999999999998,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 512379000.0,
-      "avance": 1.7384,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 3.440933333333333,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
+      "avance_real": 0.0
+    }
+  },
+  "2024760010208.0": {
+    "jul": {
       "desembolso": 0.0,
-      "avance": 2.173,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-02": {
-      "desembolso": 4979021600.0,
-      "avance": 2.815933333333333,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 270978400.0,
-      "avance": 1.8753,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
+    "ago": {
       "desembolso": 0.0,
-      "avance": 1.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-05": {
+    "sep": {
       "desembolso": 0.0,
-      "avance": 1.125,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-06": {
+    "oct": {
       "desembolso": 0.0,
-      "avance": 1.25,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-07": {
+    "nov": {
       "desembolso": 0.0,
-      "avance": 1.375,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-08": {
+    "dic": {
       "desembolso": 0.0,
-      "avance": 1.5,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-09": {
+    "ene": {
       "desembolso": 0.0,
-      "avance": null,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-10": {
+    "feb": {
       "desembolso": 0.0,
-      "avance": 1.75,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-11": {
+    "mar": {
       "desembolso": 0.0,
-      "avance": 1.875,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2026-12": {
+    "abr": {
       "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
+      "desembolso_real": null,
+      "avance_real": 0.0
+    }
+  },
+  "2024760010215.0": {
+    "jul": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ago": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sep": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "oct": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
       "avance": 2.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
+      "desembolso_real": null,
       "avance_real": 0.0
     }
   },
-  "2024760010208": {
-    "2025-07": {
+  "2024760010217.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 318081012.0,
-      "avance": 0.4,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 954243036.0,
-      "avance": 1.2,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 15904050.4,
-      "avance": 0.2,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 302176961.6,
-      "avance": 0.2,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010215": {
-    "2025-07": {
+  "2024760010218.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
-      "desembolso": 2205116640.3,
-      "avance": 0.7,
+    "oct": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 1575083314.5,
-      "avance": 0.5,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 1632087092.5,
-      "avance": 0.5,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 945049988.7,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010217": {
-    "2025-07": {
+  "2024760010221.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 3037570000.0,
-      "avance": 0.6000000000000001,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 11571951659.1,
-      "avance": 2.5999999999999996,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 4618483318.2,
-      "avance": 1.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 1924927500.0,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 471000000.0,
-      "avance": 0.2,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 6399620257.6,
-      "avance": 0.9,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 2159241659.1,
-      "avance": 0.3,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010218": {
-    "2025-07": {
+  "2024760010231.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 239198039.8,
-      "avance": 0.4,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 717594119.4,
-      "avance": 1.2,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 239198039.8,
-      "avance": 0.4,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010221": {
-    "2025-07": {
+  "2024760010236.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
-      "desembolso": 175987976.0,
-      "avance": 0.2,
+    "oct": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
-      "desembolso": 642386748.0,
-      "avance": 2.2,
+    "nov": {
+      "desembolso": 0.0,
+      "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 958625276.0,
-      "avance": 1.4,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010231": {
-    "2025-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-11": {
-      "desembolso": 819281250.0,
-      "avance": 0.25,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-12": {
-      "desembolso": 1638562500.0,
-      "avance": 0.5,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 819281250.0,
-      "avance": 0.25,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    }
-  },
-  "2024760010236": {
-    "2025-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    }
-  },
-  "2024760010333": {
-    "2025-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-08": {
-      "desembolso": 1018254430.0,
-      "avance": 0.2,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-09": {
-      "desembolso": 667343491.0,
-      "avance": 0.9,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-10": {
-      "desembolso": 5719050228.0,
-      "avance": 2.6,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-11": {
-      "desembolso": 33783259526.0,
-      "avance": 4.8,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-12": {
-      "desembolso": 114550199478.0,
-      "avance": 2.5,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 1.05,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 6694600714.0,
-      "avance": 1.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 8754436534.0,
-      "avance": 0.2111111111111111,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 5107476703.0,
-      "avance": 0.3887581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 18231877375.0,
-      "avance": 0.46875816993464053,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 31786633485.0,
-      "avance": 0.6287581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 36031625250.0,
-      "avance": 1.0787581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 42853707110.0,
-      "avance": 1.0787581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 42853707110.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 42853707110.0,
-      "avance": 1.0787581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 42853707110.0,
-      "avance": 0.8871201450946405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 40166656999.0,
-      "avance": 0.3287581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 19781578729.0,
-      "avance": 0.3187581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 18917094111.0,
-      "avance": 0.3287581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 20334818659.0,
-      "avance": 0.3287581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
+  "2024760010333.0": {
+    "jul": {
       "desembolso": 20888058589.0,
       "avance": 0.3287581699346405,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-05": {
+    "ago": {
       "desembolso": 20888058589.0,
       "avance": 0.3287581699346405,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-06": {
-      "desembolso": 20888058589.0,
-      "avance": 0.3287581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 20888058589.0,
-      "avance": 0.3287581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 20888058589.0,
-      "avance": 0.3287581699346405,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
+    "sep": {
       "desembolso": 20611447472.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-11": {
+    "nov": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-12": {
+    "dic": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 19781578729.0,
+      "avance": 0.3187581699346405,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 18917094111.0,
+      "avance": 0.3287581699346405,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 20334818659.0,
+      "avance": 0.3287581699346405,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 20888058589.0,
+      "avance": 0.3287581699346405,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 20888058589.0,
+      "avance": 0.3287581699346405,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 20888058589.0,
+      "avance": 0.3287581699346405,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 9.378296615682876,
+      "desembolso_real": null,
       "avance_real": 0.0
     }
   },
-  "2024760010574": {
-    "2025-07": {
+  "2024760010574.0": {
+    "jul": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-08": {
+    "ago": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-09": {
+    "sep": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-10": {
+    "oct": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-11": {
+    "nov": {
       "desembolso": 0.0,
       "avance": 0.0,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2025-12": {
-      "desembolso": 3394881300.0,
-      "avance": 0.5,
+    "dic": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 0.0,
+      "avance": 0.0,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 0.0,
       "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 3394881300.0,
-      "avance": 0.5,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 0.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
       "avance_real": 0.0
     }
   },
-  "2024760010598": {
-    "2025-07": {
-      "desembolso": 12000000000.0,
-      "avance": 1.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-08": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-09": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-10": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-11": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2025-12": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": null,
-      "avance_real": null
-    },
-    "2026-01": {
-      "desembolso": 0.0,
-      "avance": 0.0,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-02": {
-      "desembolso": 827075000.0000001,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-03": {
-      "desembolso": 827075000.0000001,
-      "avance": 0.1,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-04": {
-      "desembolso": 2852075000.0,
-      "avance": 0.32,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-05": {
-      "desembolso": 3637121728.9719625,
-      "avance": 0.34500000000000003,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-06": {
-      "desembolso": 4217075000.0,
-      "avance": 0.42000000000000004,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-07": {
-      "desembolso": 3432028271.0280375,
-      "avance": 0.395,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-08": {
-      "desembolso": 5044150000.0,
-      "avance": 0.52,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-09": {
-      "desembolso": 5044150000.0,
-      "avance": null,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-10": {
-      "desembolso": 5044150000.0,
-      "avance": 0.52,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-11": {
-      "desembolso": 5044150000.0,
-      "avance": 0.52,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2026-12": {
-      "desembolso": 5044150000.0,
-      "avance": 0.52,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-01": {
-      "desembolso": 5044150000.0,
-      "avance": 0.52,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-02": {
-      "desembolso": 5044150000.0,
-      "avance": 0.52,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-03": {
-      "desembolso": 5044150000.0,
-      "avance": 0.52,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-04": {
-      "desembolso": 5044150000.0,
-      "avance": 0.52,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-05": {
-      "desembolso": 6698300000.0,
-      "avance": 0.72,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-06": {
-      "desembolso": 6898300000.0,
-      "avance": 0.74,
-      "desembolso_real": 0.0,
-      "avance_real": 0.0
-    },
-    "2027-07": {
+  "2024760010598.0": {
+    "jul": {
       "desembolso": 6938300000.0,
       "avance": 0.78,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-08": {
+    "ago": {
       "desembolso": 6038300000.0,
       "avance": 0.6000000000000001,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-09": {
+    "sep": {
       "desembolso": 2730000000.0,
       "avance": 0.2,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-10": {
+    "oct": {
       "desembolso": 2730000000.0,
       "avance": 0.2,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-11": {
+    "nov": {
       "desembolso": 2730000000.0,
       "avance": 0.2,
       "desembolso_real": 0.0,
       "avance_real": 0.0
     },
-    "2027-12": {
+    "dic": {
       "desembolso": 2730000000.0,
       "avance": 0.2,
       "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "ene": {
+      "desembolso": 5044150000.0,
+      "avance": 0.52,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "feb": {
+      "desembolso": 5044150000.0,
+      "avance": 0.52,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "mar": {
+      "desembolso": 5044150000.0,
+      "avance": 0.52,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "abr": {
+      "desembolso": 5044150000.0,
+      "avance": 0.52,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "may": {
+      "desembolso": 6698300000.0,
+      "avance": 0.72,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "jun": {
+      "desembolso": 6898300000.0,
+      "avance": 0.74,
+      "desembolso_real": 0.0,
+      "avance_real": 0.0
+    },
+    "sub": {
+      "desembolso": null,
+      "avance": 4.279999999999999,
+      "desembolso_real": null,
       "avance_real": 0.0
     }
   }

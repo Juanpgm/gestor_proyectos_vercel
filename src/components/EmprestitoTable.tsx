@@ -66,7 +66,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
       try {
         const [proyectosResponse, contratosResponse] = await Promise.all([
           fetch('/data/emprestito/emp_proyectos.json'),
-          fetch('/data/emprestito/emp_contratos.json')
+          fetch('/data/emprestito/foundational_dims.json')
         ])
         
         const proyectosData: EmprestitoProyecto[] = await proyectosResponse.json()

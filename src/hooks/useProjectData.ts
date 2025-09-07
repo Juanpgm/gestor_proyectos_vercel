@@ -188,8 +188,8 @@ export function useProjectData() {
           fetch('/data/ejecucion_presupuestal/ejecucion_presupuestal.json'),
           fetch('/data/seguimiento_pa/seguimiento_pa.json'),
           fetch('/data/ejecucion_presupuestal/movimientos_presupuestales.json'),
-          fetch('/data/contratos/contratos.json'),
-          fetch('/data/contratos/contratos_valores.json'),
+          fetch('/data/contratos/contratos_proyectos.json'),
+          fetch('/data/contratos/contratos_proyectos.json'),
           fetch('/data/geodata/unidades_proyecto/equipamientos.geojson'),
           fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
         ])
