@@ -1,232 +1,4 @@
 {
-  "2023760010160": {
-    "bpin": 2023760010160,
-    "total_procesos": 20,
-    "procesos": [
-      {
-        "referencia_proceso": "4182.010.32.1.475-2024",
-        "proceso_compra": "CO1.BDOS.6203393",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6311278&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.223-2024",
-        "proceso_compra": "CO1.BDOS.6245042",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6330571&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.219-2024",
-        "proceso_compra": "CO1.BDOS.6184004",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6270379&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.488-2024 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.6295276",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6396896&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.479-2024  (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6282544",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6373945&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.219-2024 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.6184004",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6270379&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.489-2024 (Fase de Selección (Presentación de ofertas))",
-        "proceso_compra": "CO1.BDOS.6269988",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6379942&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.488-2024",
-        "proceso_compra": "CO1.BDOS.6295276",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6396896&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.222-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6178245",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6264279&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.475-2024 (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6203393",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6311278&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.492-2024",
-        "proceso_compra": "CO1.BDOS.6321430",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6385748&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.488-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6295276",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6396896&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.492-2024 (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6321430",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6385748&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.223-2024 (Fase de Selección (Presentación de ofertas))",
-        "proceso_compra": "CO1.BDOS.6245042",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6330571&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.489-2024",
-        "proceso_compra": "CO1.BDOS.6269988",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6379942&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.219-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6184004",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6270379&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.222-2024",
-        "proceso_compra": "CO1.BDOS.6178245",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6264279&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.222-2024 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.6178245",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6264279&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.490-2024",
-        "proceso_compra": "CO1.BDOS.6321708",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6331481&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.479-2024",
-        "proceso_compra": "CO1.BDOS.6282544",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6373945&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
-  "2020760010724": {
-    "bpin": 2020760010724,
-    "total_procesos": 12,
-    "procesos": [
-      {
-        "referencia_proceso": "4134.010.32.1.0219-2024",
-        "proceso_compra": "CO1.BDOS.6253593",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6270709&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0378 DE 2023 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.4827779",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4912704&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0188 DE 2022",
-        "proceso_compra": "CO1.BDOS.3017328",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3069760&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0218-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6041205",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6135040&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0378 DE 2023",
-        "proceso_compra": "CO1.BDOS.4827779",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4912704&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0188 DE 2022 (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.3017328",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3069760&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0186 DE 2022 (Fase de Selección (Presentación de ofertas))",
-        "proceso_compra": "CO1.BDOS.2988621",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3043002&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0218-2024",
-        "proceso_compra": "CO1.BDOS.6041205",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6135040&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0378 DE 2023 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.4827779",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4912704&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0218-2024 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.6041205",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6135040&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0186 DE 2022",
-        "proceso_compra": "CO1.BDOS.2988621",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3043002&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4134.010.32.1.0427 DE 2023-",
-        "proceso_compra": "CO1.BDOS.5133179",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5150485&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
-  "2022760010213": {
-    "bpin": 2022760010213,
-    "total_procesos": 10,
-    "procesos": [
-      {
-        "referencia_proceso": "4182.010.32.1.267-2023",
-        "proceso_compra": "CO1.BDOS.4350686",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4356111&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.262-2023",
-        "proceso_compra": "CO1.BDOS.4345997",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4351093&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.259-2023",
-        "proceso_compra": "CO1.BDOS.4345958",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4426514&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.263.2023",
-        "proceso_compra": "CO1.BDOS.4350292",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4475050&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.571-2023",
-        "proceso_compra": "CO1.BDOS.4891725",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4901885&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.259-2023 (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.4345958",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4426514&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.584.2023",
-        "proceso_compra": "CO1.BDOS.4892502",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4902509&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.211-2023",
-        "proceso_compra": "CO1.BDOS.4090906",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4094349&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.263.2023 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.4350292",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4475050&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4182.010.32.1.263.2023 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.4350292",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4475050&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
   "2020760010675": {
     "bpin": 2020760010675,
     "total_procesos": 3,
@@ -245,143 +17,6 @@
         "referencia_proceso": "4143.010.32.823-2022 (Manifestación de interés (Menor Cuantía))",
         "proceso_compra": "CO1.BDOS.3071094",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3130710&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
-  "2020760010002": {
-    "bpin": 2020760010002,
-    "total_procesos": 20,
-    "procesos": [
-      {
-        "referencia_proceso": "4162.010.32.1.0873-2023 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.5038955",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5097842&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0726-2024",
-        "proceso_compra": "CO1.BDOS.6323057",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6332808&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0471-2023. (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.4431182",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4679411&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0873-2023 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.5038955",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5097842&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0276- 2022",
-        "proceso_compra": "CO1.BDOS.2993981",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.2998521&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0024 DE 2024",
-        "proceso_compra": "CO1.BDOS.5540403",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5552687&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0237-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.5884710",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5988139&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0826-2023 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.4847817",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4898220&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0237-2024 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.5884710",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5988139&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0237-2024",
-        "proceso_compra": "CO1.BDOS.5884710",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5988139&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0280-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6049819",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6155467&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0471-2023. (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.4431182",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4679411&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0275-2022",
-        "proceso_compra": "CO1.BDOS.2993992",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.2998175&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0471-2023.",
-        "proceso_compra": "CO1.BDOS.4431182",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4679411&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0279-2022",
-        "proceso_compra": "CO1.BDOS.2999645",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3003245&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0826-2023",
-        "proceso_compra": "CO1.BDOS.4847817",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4898220&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0280-2024",
-        "proceso_compra": "CO1.BDOS.6049819",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6155467&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0280-2024 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.6049819",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6155467&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0826-2023 (Manifestación de interés (Menor Cuantía))",
-        "proceso_compra": "CO1.BDOS.4847817",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4898220&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0873-2023",
-        "proceso_compra": "CO1.BDOS.5038955",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5097842&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
-  "2024760010185": {
-    "bpin": 2024760010185,
-    "total_procesos": 5,
-    "procesos": [
-      {
-        "referencia_proceso": "4146.010.32.1.1305.2025",
-        "proceso_compra": "CO1.BDOS.8310441",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8353433&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4146.010.32.1.2069.2025",
-        "proceso_compra": "CO1.BDOS.8664049",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8688045&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4146.010.32.1.806.2025",
-        "proceso_compra": "CO1.BDOS.7729746",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7745276&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4146.010.32.1.1841.2024",
-        "proceso_compra": "CO1.BDOS.7023686",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7037641&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4146.010.32.1.1807.2025",
-        "proceso_compra": "CO1.BDOS.8607885",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8633312&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -928,6 +563,112 @@
         "referencia_proceso": "4182.010.32.1.367-2022",
         "proceso_compra": "CO1.BDOS.3296265",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3385984&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
+  "2023760010160": {
+    "bpin": 2023760010160,
+    "total_procesos": 20,
+    "procesos": [
+      {
+        "referencia_proceso": "4182.010.32.1.223-2024",
+        "proceso_compra": "CO1.BDOS.6245042",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6330571&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.219-2024",
+        "proceso_compra": "CO1.BDOS.6184004",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6270379&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.488-2024 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.6295276",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6396896&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.479-2024  (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6282544",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6373945&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.219-2024 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.6184004",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6270379&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.489-2024 (Fase de Selección (Presentación de ofertas))",
+        "proceso_compra": "CO1.BDOS.6269988",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6379942&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.488-2024",
+        "proceso_compra": "CO1.BDOS.6295276",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6396896&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.222-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6178245",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6264279&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.475-2024 (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6203393",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6311278&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.492-2024",
+        "proceso_compra": "CO1.BDOS.6321430",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6385748&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.488-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6295276",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6396896&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.492-2024 (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6321430",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6385748&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.223-2024 (Fase de Selección (Presentación de ofertas))",
+        "proceso_compra": "CO1.BDOS.6245042",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6330571&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.489-2024",
+        "proceso_compra": "CO1.BDOS.6269988",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6379942&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.219-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6184004",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6270379&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.222-2024",
+        "proceso_compra": "CO1.BDOS.6178245",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6264279&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.222-2024 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.6178245",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6264279&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.490-2024",
+        "proceso_compra": "CO1.BDOS.6321708",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6331481&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.479-2024",
+        "proceso_compra": "CO1.BDOS.6282544",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6373945&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.475-2024",
+        "proceso_compra": "CO1.BDOS.6203393",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6311278&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -2600,6 +2341,62 @@
       }
     ]
   },
+  "2022760010213": {
+    "bpin": 2022760010213,
+    "total_procesos": 10,
+    "procesos": [
+      {
+        "referencia_proceso": "4182.010.32.1.262-2023",
+        "proceso_compra": "CO1.BDOS.4345997",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4351093&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.259-2023",
+        "proceso_compra": "CO1.BDOS.4345958",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4426514&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.263.2023",
+        "proceso_compra": "CO1.BDOS.4350292",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4475050&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.571-2023",
+        "proceso_compra": "CO1.BDOS.4891725",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4901885&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.259-2023 (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.4345958",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4426514&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.584.2023",
+        "proceso_compra": "CO1.BDOS.4892502",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4902509&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.211-2023",
+        "proceso_compra": "CO1.BDOS.4090906",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4094349&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.263.2023 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.4350292",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4475050&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.263.2023 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.4350292",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4475050&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.267-2023",
+        "proceso_compra": "CO1.BDOS.4350686",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4356111&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
   "2020760010095": {
     "bpin": 2020760010095,
     "total_procesos": 17,
@@ -2640,11 +2437,6 @@
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5208316&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
-        "referencia_proceso": "4162.010.32.1.0840-2023. (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.4894662",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5208316&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
         "referencia_proceso": "4162.010.32.1.0827-2023",
         "proceso_compra": "CO1.BDOS.4848298",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4858110&isFromPublicArea=True&isModal=true&asPopupView=true"
@@ -2653,6 +2445,16 @@
         "referencia_proceso": "4162.010.32.1.0616-2022 (Presentación de oferta)",
         "proceso_compra": "CO1.BDOS.3211675",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3307065&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0840-2023. (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.4894662",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5208316&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0840-2023. (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.4894662",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5208316&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4162.010.32.1.0286-2024",
@@ -2673,11 +2475,6 @@
         "referencia_proceso": "4162.010.32.1.0878-2023",
         "proceso_compra": "CO1.BDOS.5109167",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5122563&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0840-2023. (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.4894662",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5208316&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4162.010.32.1.0840-2023.",
@@ -3728,7 +3525,7 @@
   },
   "2024760010087": {
     "bpin": 2024760010087,
-    "total_procesos": 16,
+    "total_procesos": 20,
     "procesos": [
       {
         "referencia_proceso": "4145.010.32.1.1287-2025",
@@ -3756,6 +3553,11 @@
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6753094&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
+        "referencia_proceso": "4145.010.32.1.1294-2025",
+        "proceso_compra": "CO1.BDOS.8649228",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8684400&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
         "referencia_proceso": "4145.010.32.1.2186 -2024",
         "proceso_compra": "CO1.BDOS.6857354",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6872327&isFromPublicArea=True&isModal=true&asPopupView=true"
@@ -3766,14 +3568,19 @@
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8687796&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
+        "referencia_proceso": "4145.010.32.1.1303-2025",
+        "proceso_compra": "CO1.BDOS.8658419",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8687795&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1.1290-2025",
+        "proceso_compra": "CO1.BDOS.8643428",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8677504&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
         "referencia_proceso": "4145.010.32.1.2166-2024-",
         "proceso_compra": "CO1.BDOS.6858291",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6868144&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4145.010.32.1.1295-2025",
-        "proceso_compra": "CO1.BDOS.8658253",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8687796&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4145.010.32.1.1289-2025",
@@ -3794,6 +3601,16 @@
         "referencia_proceso": "4145.010.32.1.2125-2024.",
         "proceso_compra": "CO1.BDOS.6803678",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6832084&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1.1295-2025",
+        "proceso_compra": "CO1.BDOS.8658253",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8687796&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1.1295-2025",
+        "proceso_compra": "CO1.BDOS.8658253",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8687796&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4145.010.32.1.0843-2025",
@@ -4867,7 +4684,7 @@
   },
   "2024760010076": {
     "bpin": 2024760010076,
-    "total_procesos": 3,
+    "total_procesos": 2,
     "procesos": [
       {
         "referencia_proceso": "4145.010.32.1. 2154-2024 copia",
@@ -4878,11 +4695,6 @@
         "referencia_proceso": "4145.010.32.1. 2153.2024.",
         "proceso_compra": "CO1.BDOS.6928798",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6940794&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4145.010.32.1. 0940-2025",
-        "proceso_compra": "CO1.BDOS.7789912",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7806682&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -5458,12 +5270,17 @@
   },
   "2024760010038": {
     "bpin": 2024760010038,
-    "total_procesos": 1,
+    "total_procesos": 2,
     "procesos": [
       {
         "referencia_proceso": "4171.010.32.1.131-2025",
         "proceso_compra": "CO1.BDOS.8509222",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8533470&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4172.010.32.1.296-2024",
+        "proceso_compra": "CO1.BDOS.7224515",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7246956&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -6788,6 +6605,52 @@
       }
     ]
   },
+  "2024760010093": {
+    "bpin": 2024760010093,
+    "total_procesos": 8,
+    "procesos": [
+      {
+        "referencia_proceso": "4152.010.32.1.1258-2025",
+        "proceso_compra": "CO1.BDOS.8456463",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8585045&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4152.010.32.1.660-2025",
+        "proceso_compra": "CO1.BDOS.8195147",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8345194&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4152.010.32.1.660-2025 (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.8195147",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8345194&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4152.010.32.1.1258-2025 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.8456463",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8585045&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4152.010.32.1.1403-2024",
+        "proceso_compra": "CO1.BDOS.6962868",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7034902&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4152.010.32.1.985-2024",
+        "proceso_compra": "CO1.BDOS.6938306",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6952000&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4152.010.32.1.1258-2025 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.8456463",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8585045&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4152.010.32.1.1403-2024 (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6962868",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7034902&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
   "2023760010178": {
     "bpin": 2023760010178,
     "total_procesos": 15,
@@ -7193,37 +7056,6 @@
       }
     ]
   },
-  "2024760010093": {
-    "bpin": 2024760010093,
-    "total_procesos": 5,
-    "procesos": [
-      {
-        "referencia_proceso": "4152.010.32.1.660-2025",
-        "proceso_compra": "CO1.BDOS.8195147",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8345194&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4152.010.32.1.660-2025 (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.8195147",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8345194&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4152.010.32.1.1403-2024",
-        "proceso_compra": "CO1.BDOS.6962868",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7034902&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4152.010.32.1.985-2024",
-        "proceso_compra": "CO1.BDOS.6938306",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6952000&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4152.010.32.1.1403-2024 (Presentación de oferta)",
-        "proceso_compra": "CO1.BDOS.6962868",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7034902&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
   "2022760010177": {
     "bpin": 2022760010177,
     "total_procesos": 1,
@@ -7447,6 +7279,11 @@
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8287846&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
+        "referencia_proceso": "4152.010.32.1.1370-2025",
+        "proceso_compra": "CO1.BDOS.8663880",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8688638&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
         "referencia_proceso": "4152.010.32.1.960.2024 (Manifestación de interés (Menor Cuantía))",
         "proceso_compra": "CO1.BDOS.6781980",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6894885&isFromPublicArea=True&isModal=true&asPopupView=true"
@@ -7500,11 +7337,6 @@
         "referencia_proceso": "4152.010.32.1.804-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
         "proceso_compra": "CO1.BDOS.6297117",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6526571&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4152.010.32.1.1370-2025",
-        "proceso_compra": "CO1.BDOS.8663880",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8688638&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4152.010.32.1.801-2024 (Manifestación de interés (Menor Cuantía))",
@@ -8187,6 +8019,112 @@
       }
     ]
   },
+  "2020760010002": {
+    "bpin": 2020760010002,
+    "total_procesos": 20,
+    "procesos": [
+      {
+        "referencia_proceso": "4162.010.32.1.0726-2024",
+        "proceso_compra": "CO1.BDOS.6323057",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6332808&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0471-2023. (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.4431182",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4679411&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0873-2023 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.5038955",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5097842&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0276- 2022",
+        "proceso_compra": "CO1.BDOS.2993981",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.2998521&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0024 DE 2024",
+        "proceso_compra": "CO1.BDOS.5540403",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5552687&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0237-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.5884710",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5988139&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0826-2023 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.4847817",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4898220&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0237-2024 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.5884710",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5988139&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0237-2024",
+        "proceso_compra": "CO1.BDOS.5884710",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5988139&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0280-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6049819",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6155467&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0471-2023. (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.4431182",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4679411&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0275-2022",
+        "proceso_compra": "CO1.BDOS.2993992",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.2998175&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0471-2023.",
+        "proceso_compra": "CO1.BDOS.4431182",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4679411&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0279-2022",
+        "proceso_compra": "CO1.BDOS.2999645",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3003245&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0826-2023",
+        "proceso_compra": "CO1.BDOS.4847817",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4898220&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0280-2024",
+        "proceso_compra": "CO1.BDOS.6049819",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6155467&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0280-2024 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.6049819",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6155467&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0826-2023 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.4847817",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4898220&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0873-2023",
+        "proceso_compra": "CO1.BDOS.5038955",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5097842&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0873-2023 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.5038955",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5097842&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
   "2024760010288": {
     "bpin": 2024760010288,
     "total_procesos": 1,
@@ -8483,17 +8421,6 @@
       }
     ]
   },
-  "2024760010037": {
-    "bpin": 2024760010037,
-    "total_procesos": 1,
-    "procesos": [
-      {
-        "referencia_proceso": "4172.010.32.1.296-2024",
-        "proceso_compra": "CO1.BDOS.7224515",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7246956&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
   "2024760010138": {
     "bpin": 2024760010138,
     "total_procesos": 2,
@@ -8557,14 +8484,24 @@
       }
     ]
   },
-  "2021760010305": {
-    "bpin": 2021760010305,
-    "total_procesos": 1,
+  "2020760010362": {
+    "bpin": 2020760010362,
+    "total_procesos": 3,
     "procesos": [
       {
         "referencia_proceso": "4148.010.32.1.583-2023",
         "proceso_compra": "CO1.BDOS.4342114",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4355008&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4148.010.32.1.986-2022",
+        "proceso_compra": "CO1.BDOS.3216113",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3220131&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4148.010.32.1.986-2022",
+        "proceso_compra": "CO1.BDOS.3216113",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3220131&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -9113,7 +9050,7 @@
   },
   "2024760010152": {
     "bpin": 2024760010152,
-    "total_procesos": 10,
+    "total_procesos": 12,
     "procesos": [
       {
         "referencia_proceso": "4133.010.32.1.1196-2025 (Presentación de oferta)",
@@ -9131,9 +9068,19 @@
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8493103&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
+        "referencia_proceso": "4133.010.26.1.1837-2025",
+        "proceso_compra": "CO1.BDOS.8711037",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8735334&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
         "referencia_proceso": "4133.010.32.1.1196-2025 (Presentación de oferta)",
         "proceso_compra": "CO1.BDOS.8310754",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8405915&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4133.010.26.1.1837-2025",
+        "proceso_compra": "CO1.BDOS.8711037",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8735334&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4133.010.32.1.533-2025",
@@ -9613,12 +9560,17 @@
   },
   "2024760010142": {
     "bpin": 2024760010142,
-    "total_procesos": 18,
+    "total_procesos": 20,
     "procesos": [
       {
         "referencia_proceso": "4182.010.32.1.195-2025 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
         "proceso_compra": "CO1.BDOS.7611908",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7746651&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.784-2025",
+        "proceso_compra": "CO1.BDOS.8415752",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8495012&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4182.010.32.1.612-2025 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
@@ -9699,6 +9651,11 @@
         "referencia_proceso": "4182.010.32.1.612-2025",
         "proceso_compra": "CO1.BDOS.8308619",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8420099&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4182.010.32.1.784-2025 (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.8415752",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8495012&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4182.010.32.1.631-2025",
@@ -10144,9 +10101,9 @@
       }
     ]
   },
-  "2024760010070": {
-    "bpin": 2024760010070,
-    "total_procesos": 5,
+  "2024760010074": {
+    "bpin": 2024760010074,
+    "total_procesos": 10,
     "procesos": [
       {
         "referencia_proceso": "4145.010.32.1. 0939-2025",
@@ -10154,9 +10111,24 @@
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7808443&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
-        "referencia_proceso": "4145.010.32.1.0510-2025",
-        "proceso_compra": "CO1.BDOS.7477891",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7510381&isFromPublicArea=True&isModal=true&asPopupView=true"
+        "referencia_proceso": "4145.010.32.1.1035-2025",
+        "proceso_compra": "CO1.BDOS.8037780",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8071654&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1.0944-2025",
+        "proceso_compra": "CO1.BDOS.7728356",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7748322&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1.1047-2025",
+        "proceso_compra": "CO1.BDOS.8026257",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8046303&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.0- 2246- 2024",
+        "proceso_compra": "CO1.BDOS.6963948",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6979254&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4145.010.32.1.0941-2025",
@@ -10164,9 +10136,19 @@
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7820858&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
+        "referencia_proceso": "4145.010.32.1. 2154-2024",
+        "proceso_compra": "CO1.BDOS.6856428",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6867385&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
         "referencia_proceso": "4145.010.32.1.0942-2025",
         "proceso_compra": "CO1.BDOS.7798822",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7821871&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1. 0940-2025",
+        "proceso_compra": "CO1.BDOS.7789912",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7806682&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4145.010.32.1.0938-2025",
@@ -10717,37 +10699,6 @@
       }
     ]
   },
-  "2024760010074": {
-    "bpin": 2024760010074,
-    "total_procesos": 5,
-    "procesos": [
-      {
-        "referencia_proceso": "4145.010.32.1.1035-2025",
-        "proceso_compra": "CO1.BDOS.8037780",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8071654&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4145.010.32.1.0944-2025",
-        "proceso_compra": "CO1.BDOS.7728356",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7748322&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4145.010.32.1.1047-2025",
-        "proceso_compra": "CO1.BDOS.8026257",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8046303&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4145.010.0- 2246- 2024",
-        "proceso_compra": "CO1.BDOS.6963948",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6979254&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4145.010.32.1. 2154-2024",
-        "proceso_compra": "CO1.BDOS.6856428",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6867385&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
   "2020760010295": {
     "bpin": 2020760010295,
     "total_procesos": 1,
@@ -10816,6 +10767,72 @@
       }
     ]
   },
+  "2020760010724": {
+    "bpin": 2020760010724,
+    "total_procesos": 12,
+    "procesos": [
+      {
+        "referencia_proceso": "4134.010.32.1.0378 DE 2023 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.4827779",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4912704&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0188 DE 2022",
+        "proceso_compra": "CO1.BDOS.3017328",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3069760&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0218-2024 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.6041205",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6135040&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0378 DE 2023",
+        "proceso_compra": "CO1.BDOS.4827779",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4912704&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0188 DE 2022 (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.3017328",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3069760&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0186 DE 2022 (Fase de Selección (Presentación de ofertas))",
+        "proceso_compra": "CO1.BDOS.2988621",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3043002&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0218-2024",
+        "proceso_compra": "CO1.BDOS.6041205",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6135040&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0378 DE 2023 (Manifestación de interés (Menor Cuantía)) (Presentación de oferta)",
+        "proceso_compra": "CO1.BDOS.4827779",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4912704&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0218-2024 (Manifestación de interés (Menor Cuantía))",
+        "proceso_compra": "CO1.BDOS.6041205",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6135040&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0186 DE 2022",
+        "proceso_compra": "CO1.BDOS.2988621",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3043002&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0427 DE 2023-",
+        "proceso_compra": "CO1.BDOS.5133179",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5150485&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4134.010.32.1.0219-2024",
+        "proceso_compra": "CO1.BDOS.6253593",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6270709&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
   "2021760010416": {
     "bpin": 2021760010416,
     "total_procesos": 4,
@@ -10869,14 +10886,19 @@
       }
     ]
   },
-  "2024760010090": {
-    "bpin": 2024760010090,
-    "total_procesos": 1,
+  "2024760010083": {
+    "bpin": 2024760010083,
+    "total_procesos": 2,
     "procesos": [
       {
         "referencia_proceso": "4162.010.32.1.0918-2024",
         "proceso_compra": "CO1.BDOS.6863919",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6875304&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0745-2025",
+        "proceso_compra": "CO1.BDOS.8051765",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8070696&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -11007,7 +11029,7 @@
   },
   "2024760010066": {
     "bpin": 2024760010066,
-    "total_procesos": 7,
+    "total_procesos": 8,
     "procesos": [
       {
         "referencia_proceso": "4145.010.32.1.1203 -2025",
@@ -11028,6 +11050,11 @@
         "referencia_proceso": "4145.010.32.1.2065-2024",
         "proceso_compra": "CO1.BDOS.6866182",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6879161&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1.1297. 2025",
+        "proceso_compra": "CO1.BDOS.8664859",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8688076&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4145.010.32.1.1202-2025",
@@ -11275,6 +11302,11 @@
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8529362&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
+        "referencia_proceso": "4162.010.32.1.1318-2025",
+        "proceso_compra": "CO1.BDOS.8501120",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8527203&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
         "referencia_proceso": "4162.010.32.1.0451-  2025",
         "proceso_compra": "CO1.BDOS.7553325",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7567511&isFromPublicArea=True&isModal=true&asPopupView=true"
@@ -11293,11 +11325,6 @@
         "referencia_proceso": "4162.010.32.1.0865-2025",
         "proceso_compra": "CO1.BDOS.8165411",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8186696&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.1318-2025",
-        "proceso_compra": "CO1.BDOS.8501120",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8527203&isFromPublicArea=True&isModal=true&asPopupView=true"
       },
       {
         "referencia_proceso": "4162.010.32.1.1056-2025 (Manifestación de interés (Menor Cuantía))",
@@ -12241,6 +12268,17 @@
       }
     ]
   },
+  "2024760010326": {
+    "bpin": 2024760010326,
+    "total_procesos": 1,
+    "procesos": [
+      {
+        "referencia_proceso": "4151.010.32.1.0835-2025",
+        "proceso_compra": "CO1.BDOS.8663817",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8687569&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
   "2021760010231": {
     "bpin": 2021760010231,
     "total_procesos": 1,
@@ -12567,6 +12605,17 @@
         "referencia_proceso": "4163.001.32.1.269-2023",
         "proceso_compra": "CO1.BDOS.4330422",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4335733&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
+  "2024760010070": {
+    "bpin": 2024760010070,
+    "total_procesos": 1,
+    "procesos": [
+      {
+        "referencia_proceso": "4145.010.32.1.0510-2025",
+        "proceso_compra": "CO1.BDOS.7477891",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7510381&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -12943,6 +12992,32 @@
       }
     ]
   },
+  "2018011000666": {
+    "bpin": 2018011000666,
+    "total_procesos": 4,
+    "procesos": [
+      {
+        "referencia_proceso": "ICBF-CI-169218-2023-VAL",
+        "proceso_compra": "CO1.BDOS.4137584",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4139066&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "ICBF-CI-194826-2024-VAL",
+        "proceso_compra": "CO1.BDOS.5868512",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.5874751&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "ICBF-CI-173099-2023-VAL",
+        "proceso_compra": "CO1.BDOS.4583325",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4589633&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "ICBF-CI-213889-2024-VAL",
+        "proceso_compra": "CO1.BDOS.6890635",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6901726&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
   "2021760010421": {
     "bpin": 2021760010421,
     "total_procesos": 2,
@@ -13252,27 +13327,6 @@
         "referencia_proceso": "4148.010.32.1.692-2022",
         "proceso_compra": "CO1.BDOS.3027330",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3037811&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
-  "2024760010080": {
-    "bpin": 2024760010080,
-    "total_procesos": 3,
-    "procesos": [
-      {
-        "referencia_proceso": "4162.010.32.1.1398-2025",
-        "proceso_compra": "CO1.BDOS.8694262",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8718241&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0001-2025",
-        "proceso_compra": "CO1.BDOS.7601474",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7617086&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4162.010.32.1.0001-2025",
-        "proceso_compra": "CO1.BDOS.7601474",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7617086&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -13972,17 +14026,6 @@
       }
     ]
   },
-  "2024760010083": {
-    "bpin": 2024760010083,
-    "total_procesos": 1,
-    "procesos": [
-      {
-        "referencia_proceso": "4162.010.32.1.0745-2025",
-        "proceso_compra": "CO1.BDOS.8051765",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8070696&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
   "2024760010205": {
     "bpin": 2024760010205,
     "total_procesos": 1,
@@ -14535,6 +14578,27 @@
         "referencia_proceso": "4151.010.32.1.0815-2022 (Manifestación de interés (Menor Cuantía))",
         "proceso_compra": "CO1.BDOS.2996742",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3047833&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
+  "2024760010080": {
+    "bpin": 2024760010080,
+    "total_procesos": 3,
+    "procesos": [
+      {
+        "referencia_proceso": "4162.010.32.1.1398-2025",
+        "proceso_compra": "CO1.BDOS.8694262",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8718241&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0001-2025",
+        "proceso_compra": "CO1.BDOS.7601474",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7617086&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.0001-2025",
+        "proceso_compra": "CO1.BDOS.7601474",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7617086&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -15805,22 +15869,6 @@
       }
     ]
   },
-  "2020760010362": {
-    "bpin": 2020760010362,
-    "total_procesos": 2,
-    "procesos": [
-      {
-        "referencia_proceso": "4148.010.32.1.986-2022",
-        "proceso_compra": "CO1.BDOS.3216113",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3220131&isFromPublicArea=True&isModal=true&asPopupView=true"
-      },
-      {
-        "referencia_proceso": "4148.010.32.1.986-2022",
-        "proceso_compra": "CO1.BDOS.3216113",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.3220131&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
   "2023760010098": {
     "bpin": 2023760010098,
     "total_procesos": 1,
@@ -16135,6 +16183,37 @@
         "referencia_proceso": "4148.010.32.1.577-2023",
         "proceso_compra": "CO1.BDOS.4336247",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4341059&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
+  "2024760010185": {
+    "bpin": 2024760010185,
+    "total_procesos": 5,
+    "procesos": [
+      {
+        "referencia_proceso": "4146.010.32.1.806.2025",
+        "proceso_compra": "CO1.BDOS.7729746",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7745276&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4146.010.32.1.1841.2024",
+        "proceso_compra": "CO1.BDOS.7023686",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.7037641&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4146.010.32.1.1807.2025",
+        "proceso_compra": "CO1.BDOS.8607885",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8633312&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4146.010.32.1.2069.2025",
+        "proceso_compra": "CO1.BDOS.8664049",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8688045&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4146.010.32.1.1305.2025",
+        "proceso_compra": "CO1.BDOS.8310441",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8353433&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -16753,8 +16832,8 @@
       }
     ]
   },
-  "2024760010374": {
-    "bpin": 2024760010374,
+  "2024760010379": {
+    "bpin": 2024760010379,
     "total_procesos": 2,
     "procesos": [
       {
@@ -17336,6 +17415,27 @@
       }
     ]
   },
+  "2024760010064": {
+    "bpin": 2024760010064,
+    "total_procesos": 3,
+    "procesos": [
+      {
+        "referencia_proceso": "4145.010.32.1.1298-2025",
+        "proceso_compra": "CO1.BDOS.8660052",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8685480&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1.1299-2025",
+        "proceso_compra": "CO1.BDOS.8655569",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8688071&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4145.010.32.1.1301-2025",
+        "proceso_compra": "CO1.BDOS.8658245",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8687686&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
   "2021760010166": {
     "bpin": 2021760010166,
     "total_procesos": 1,
@@ -17826,6 +17926,27 @@
       }
     ]
   },
+  "2024760010077": {
+    "bpin": 2024760010077,
+    "total_procesos": 3,
+    "procesos": [
+      {
+        "referencia_proceso": "4162.010.32.1.1712-2025",
+        "proceso_compra": "CO1.BDOS.8698253",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8727318&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.1607-2025",
+        "proceso_compra": "CO1.BDOS.8641792",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8665509&isFromPublicArea=True&isModal=true&asPopupView=true"
+      },
+      {
+        "referencia_proceso": "4162.010.32.1.1712-2025",
+        "proceso_compra": "CO1.BDOS.8698253",
+        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8727318&isFromPublicArea=True&isModal=true&asPopupView=true"
+      }
+    ]
+  },
   "2023760010170": {
     "bpin": 2023760010170,
     "total_procesos": 1,
@@ -17878,17 +17999,6 @@
         "referencia_proceso": "4132.010.32.1.785-2024",
         "proceso_compra": "CO1.BDOS.6799396",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.6810353&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
-  "2024760010064": {
-    "bpin": 2024760010064,
-    "total_procesos": 1,
-    "procesos": [
-      {
-        "referencia_proceso": "4145.010.32.1.1299-2025",
-        "proceso_compra": "CO1.BDOS.8655569",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8688071&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -17965,17 +18075,6 @@
         "referencia_proceso": "4143.010.32.0802.2023",
         "proceso_compra": "CO1.BDOS.4234170",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4237950&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
-  "2024760010077": {
-    "bpin": 2024760010077,
-    "total_procesos": 1,
-    "procesos": [
-      {
-        "referencia_proceso": "4162.010.32.1.1607-2025",
-        "proceso_compra": "CO1.BDOS.8641792",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8665509&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },
@@ -18150,17 +18249,6 @@
         "referencia_proceso": "4148.010.32.1.540-2023",
         "proceso_compra": "CO1.BDOS.4236015",
         "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.4247921&isFromPublicArea=True&isModal=true&asPopupView=true"
-      }
-    ]
-  },
-  "2024760010326": {
-    "bpin": 2024760010326,
-    "total_procesos": 1,
-    "procesos": [
-      {
-        "referencia_proceso": "4151.010.32.1.0835-2025",
-        "proceso_compra": "CO1.BDOS.8663817",
-        "urlproceso": "https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=CO1.NTC.8687569&isFromPublicArea=True&isModal=true&asPopupView=true"
       }
     ]
   },

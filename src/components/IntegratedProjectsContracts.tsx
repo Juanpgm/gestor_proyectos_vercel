@@ -17,7 +17,7 @@ import {
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
 import { useProyectos } from '@/hooks/useProyectos'
 import { useContratosCompletos } from '@/hooks/useContratosCompletos'
-import { useEmpFoundationalDims } from '@/hooks/useEmpFoundationalDims'
+import { useEmpProyectos } from '@/hooks/useEmpProyectos'
 import ContractDetailCard from '@/components/ContractDetailCard'
 
 // Interfaz para proyecto con contratos asociados
@@ -43,6 +43,7 @@ interface ProjectWithContracts {
   isEmprestito: boolean
   valor_emprestito: number
   fuente_emprestito: string
+  bp: string
 }
 
 // Props del componente
@@ -66,7 +67,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
   // Hooks para datos
   const proyectosState = useProyectos()
   const contratosState = useContratosCompletos()
-  const emprestitoState = useEmpFoundationalDims()
+  const empProyectosState = useEmpProyectos()
 
   // Integración de datos usando la misma lógica que la sección "Contratos"
   const integratedData = useMemo(() => {
@@ -76,7 +77,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
 
     const proyectos = proyectosState.proyectos
     const contratos = contratosState.contratos
-    const emprestitoData = emprestitoState.data || []
+    const validBpins = empProyectosState.validBpins || []
 
     // Agrupar contratos por BPIN, filtrando solo contratos posteriores al 31 de diciembre de 2024
     const contratosPorBpin = contratos.reduce((acc: Record<number, any[]>, contrato: any) => {
@@ -109,21 +110,18 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
       return acc
     }, {} as Record<number, any[]>)
 
-    // Crear un mapa de proyectos de empréstito para filtrado
-    const emprestitoMap = emprestitoData.reduce((acc: Record<number, any>, emp: any) => {
-      acc[emp.bpin] = emp
-      return acc
-    }, {} as Record<number, any>)
+    // Crear un mapa de proyectos válidos desde emp_proyectos.json
+    const validBpinSet = new Set(validBpins)
 
-    // Filtrar solo proyectos que estén en el archivo de empréstito
+    // Filtrar solo proyectos que estén en el archivo emp_proyectos.json
     const proyectosFiltrados = proyectos.filter((proyecto: any) => 
-      emprestitoMap[proyecto.bpin]
+      validBpinSet.has(proyecto.bpin)
     )
 
     // Integrar proyectos con sus contratos
     return proyectosFiltrados.map((proyecto: any) => {
       const contratosAsociados = contratosPorBpin[proyecto.bpin] || []
-      const emprestitoInfo = emprestitoMap[proyecto.bpin]
+      const empProyectoInfo = empProyectosState.bpinMap[proyecto.bpin]
       
       return {
         ...proyecto,
@@ -135,9 +133,10 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
         estadosContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.estado_contrato).filter(Boolean))),
         tiposContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.tipo_contrato).filter(Boolean))),
         // Datos de empréstito
-        isEmprestito: !!emprestitoInfo,
-        valor_emprestito: emprestitoInfo?.valor_vigencia_actual || 0,
-        fuente_emprestito: emprestitoInfo?.fuente || ''
+        isEmprestito: !!empProyectoInfo,
+        valor_emprestito: 0, // No disponible en emp_proyectos.json
+        fuente_emprestito: empProyectoInfo?.banco || '',
+        bp: empProyectoInfo?.bp || ''
       } as ProjectWithContracts
     }).sort((a: any, b: any) => {
       // Ordenar: proyectos con contratos primero, luego por valor
@@ -145,7 +144,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
       if (a.contratosCount === 0 && b.contratosCount > 0) return 1
       return b.totalValueContratos - a.totalValueContratos
     })
-  }, [proyectosState.proyectos, contratosState.contratos, emprestitoState.data])
+  }, [proyectosState.proyectos, contratosState.contratos, empProyectosState.validBpins, empProyectosState.bpinMap])
 
   // Opciones dinámicas para filtros
   const centrosGestor = useMemo(() => {
@@ -286,7 +285,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     return filters.length > 0 ? ` (${filters.join(', ')})` : ''
   }
 
-  const loading = proyectosState.loading || contratosState.loading || emprestitoState.loading
+  const loading = proyectosState.loading || contratosState.loading || empProyectosState.loading
 
   if (loading) {
     return (
@@ -516,10 +515,16 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                           <Calendar className="h-4 w-4" />
                           <span>{project.anio}</span>
                         </div>
-                        {project.isEmprestito && project.valor_emprestito > 0 && (
+                        {project.isEmprestito && project.bp && (
+                          <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                            <FileText className="h-4 w-4" />
+                            <span>BP: {project.bp}</span>
+                          </div>
+                        )}
+                        {project.isEmprestito && project.fuente_emprestito && (
                           <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
                             <DollarSign className="h-4 w-4" />
-                            <span>Emp: ${project.valor_emprestito.toLocaleString('es-CO')}</span>
+                            <span>Banco: {project.fuente_emprestito}</span>
                           </div>
                         )}
                       </div>
