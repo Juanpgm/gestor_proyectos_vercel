@@ -44,6 +44,7 @@ interface ProjectWithContracts {
   valor_emprestito: number
   fuente_emprestito: string
   bp: string
+  nombre_comercial: string
 }
 
 // Props del componente
@@ -79,33 +80,15 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     const contratos = contratosState.contratos
     const validBpins = empProyectosState.validBpins || []
 
-    // Agrupar contratos por BPIN, filtrando solo contratos posteriores al 31 de diciembre de 2024
+    // Agrupar contratos por BPIN - mostrar todos los contratos de empréstito
     const contratosPorBpin = contratos.reduce((acc: Record<number, any[]>, contrato: any) => {
       if (!contrato.bpin) return acc
       
-      // Función para verificar si un contrato es posterior al 31 de diciembre de 2024
-      const isContractAfterDec2024 = (contrato: any) => {
-        const cutoffDate = new Date('2024-12-31')
-        
-        const checkDate = (dateString: string) => {
-          if (!dateString) return false
-          const contractDate = new Date(dateString)
-          return contractDate > cutoffDate
-        }
-        
-        // Verificar en orden de prioridad: fecha_firma, fecha_inicio_contrato, fecha_inicio_ejecucion
-        return checkDate(contrato.fecha_firma) || 
-               checkDate(contrato.fecha_inicio_contrato) || 
-               checkDate(contrato.fecha_inicio_ejecucion)
+      // Para empréstito, incluir todos los contratos sin filtro de fecha
+      if (!acc[contrato.bpin]) {
+        acc[contrato.bpin] = []
       }
-      
-      // Solo incluir contratos posteriores al 31 de diciembre de 2024
-      if (isContractAfterDec2024(contrato)) {
-        if (!acc[contrato.bpin]) {
-          acc[contrato.bpin] = []
-        }
-        acc[contrato.bpin].push(contrato)
-      }
+      acc[contrato.bpin].push(contrato)
       
       return acc
     }, {} as Record<number, any[]>)
@@ -136,7 +119,8 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
         isEmprestito: !!empProyectoInfo,
         valor_emprestito: 0, // No disponible en emp_proyectos.json
         fuente_emprestito: empProyectoInfo?.banco || '',
-        bp: empProyectoInfo?.bp || ''
+        bp: empProyectoInfo?.bp || '',
+        nombre_comercial: empProyectoInfo?.nombre_comercial || ''
       } as ProjectWithContracts
     }).sort((a: any, b: any) => {
       // Ordenar: proyectos con contratos primero, luego por valor
@@ -313,7 +297,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Proyectos y Contratos Integrados
+                Seguimiento a Proyectos y Contratos de Empréstito
               </h3>
             </div>
           </div>
@@ -486,47 +470,41 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                              {project.nombre_proyecto}
-                            </h3>
-                            {project.isEmprestito && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400">
-                                Empréstito
-                              </span>
-                            )}
+                          <div className="flex items-start gap-3 mb-1">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {project.nombre_proyecto}
+                              </h3>
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-2">
                             {project.nombre_actividad}
                           </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                        <div className="flex items-center gap-1">
-                          <Building2 className="h-4 w-4" />
-                          <span>{project.nombre_centro_gestor}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <FileText className="h-4 w-4" />
-                          <span>BPIN: {project.bpin}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{project.anio}</span>
-                        </div>
-                        {project.isEmprestito && project.bp && (
-                          <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                            <FileText className="h-4 w-4" />
-                            <span>BP: {project.bp}</span>
+                          
+                          {/* BPIN y BP debajo del segundo texto */}
+                          <div className="flex flex-wrap items-center gap-4 text-sm mb-1">
+                            <div className="flex items-center gap-1">
+                              <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <span className="font-semibold text-blue-600 dark:text-blue-400">BPIN: {project.bpin}</span>
+                            </div>
+                            {project.isEmprestito && project.bp && (
+                              <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                                <FileText className="h-4 w-4" />
+                                <span>BP: {project.bp}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                              <Calendar className="h-4 w-4" />
+                              <span>{project.anio}</span>
+                            </div>
                           </div>
-                        )}
-                        {project.isEmprestito && project.fuente_emprestito && (
-                          <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                            <DollarSign className="h-4 w-4" />
-                            <span>Banco: {project.fuente_emprestito}</span>
+                          
+                          {/* Centro gestor alineado con los códigos */}
+                          <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                            <Building2 className="h-4 w-4" />
+                            <span>{project.nombre_centro_gestor}</span>
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                     

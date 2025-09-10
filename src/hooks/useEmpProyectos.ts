@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 interface EmpProyecto {
   bp: string
   banco: string
+  nombre_comercial: string
   bpin: number | null
   fecha_procesamiento: string
 }

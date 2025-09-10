@@ -108,7 +108,7 @@ function DashboardContent() {
   // Estado para mostrar/ocultar la sección de Análisis de Intervenciones (oculta por defecto)
   const [showInterventionAnalysis, setShowInterventionAnalysis] = useState(false)
   
-  // Estado para BPIN filtrados desde Proyectos y Contratos Integrados
+  // Estado para BPIN filtrados desde Empréstito
   const [filteredBpinsFromContracts, setFilteredBpinsFromContracts] = useState<number[] | undefined>(undefined)
   
   // Función para manejar cuando se hace clic en el ojito en la tabla
@@ -117,7 +117,7 @@ function DashboardContent() {
     setSelectedProjectUnitFromTable(projectUnit)
   }
 
-  // Función para manejar cambios en BPIN filtrados desde Proyectos y Contratos Integrados
+  // Función para manejar cambios en BPIN filtrados desde Empréstito
   const handleFilteredBpinsChange = (bpins: number[] | undefined) => {
     console.log('🔍 BPIN filtrados actualizados:', bpins)
     setFilteredBpinsFromContracts(bpins)
@@ -563,6 +563,23 @@ function DashboardContent() {
           <div className="space-y-8">
             {/* Contenedor principal que engloba el mapa y las cards de métricas */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Header con título */}
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                    <MapIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      Unidades de Proyecto
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Visualización geográfica y análisis de intervenciones municipales
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
               {/* Mapa unificado con paneles integrados */}
               <div className="w-full">
                 <UnifiedMapInterface 
@@ -637,11 +654,6 @@ function DashboardContent() {
                   </motion.div>
                 </div>
               </div>
-            </div>
-            
-            {/* Proyectos y Contratos Integrados */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <IntegratedProjectsContracts onFilteredBpinsChange={handleFilteredBpinsChange} />
             </div>
             
             {/* Contenedor de Unidades de Proyecto eliminado */}
@@ -745,6 +757,11 @@ function DashboardContent() {
               data={emprestitoState.data}
               loading={emprestitoState.loading}
             />
+            
+            {/* Seguimiento a Proyectos y Contratos de Empréstito */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <IntegratedProjectsContracts onFilteredBpinsChange={handleFilteredBpinsChange} />
+            </div>
           </div>
         )
 
