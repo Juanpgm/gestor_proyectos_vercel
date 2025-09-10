@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { formatNumber, ANIMATIONS } from '@/lib/design-system'
 import { Proceso } from '@/hooks/useProcesos'
+import { openSecopLink } from '@/utils/url-helpers'
 
 interface ProcesosTableProps {
   procesos: Proceso[]
@@ -300,7 +301,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
                     <button 
-                      onClick={() => window.open(`https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=${proceso.id_proceso}&isFromPublicArea=True`, '_blank')}
+                      onClick={() => openSecopLink(`https://community.secop.gov.co/Public/Tendering/OpportunityDetail/Index?noticeUID=${proceso.id_proceso}&isFromPublicArea=True`)}
                       className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                       title="Ver en SECOP"
                     >

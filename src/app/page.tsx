@@ -16,6 +16,7 @@ import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyectoWorking'
+import IntegratedProjectsContracts from '@/components/IntegratedProjectsContracts'
 // import { useUnidadesProyectoOptimized } from '@/hooks/useUnidadesProyectoOptimized'
 // import { useGlobalDataPreloader } from '@/hooks/useGlobalDataPreloader'
 // import { useUnidadesProyectoSimple } from '@/hooks/useUnidadesProyectoSimple'
@@ -34,7 +35,6 @@ import ProductosCharts from '@/components/ProductosCharts'
 import ContratosTable from '@/components/ContratosTable'
 import ContratosStats from '@/components/ContratosStats'
 import ContratosCharts from '@/components/ContratosCharts'
-import EmprestitoTable from '@/components/EmprestitoTable'
 import EmprestitoStats from '@/components/EmprestitoStats'
 import EmprestitoCharts from '@/components/EmprestitoCharts'
 import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
@@ -693,32 +693,14 @@ function DashboardContent() {
       case 'emprestito':
         return (
           <div className="space-y-8">
-            {/* Estadísticas de empréstito */}
-            <EmprestitoStats
-              totalProyectos={emprestitoMetrics.totalProyectos}
-              totalContratos={emprestitoMetrics.totalContratos}
-              valorTotalContratos={emprestitoMetrics.valorTotalContratos}
-              totalBancos={emprestitoMetrics.bancos.length}
-              totalCentrosGestor={emprestitoMetrics.centrosGestor.length}
-              loading={emprestitoState.loading}
-            />
-            
             {/* Serie de tiempo - Evolución temporal */}
             <EmprestitoTimeSeries
               data={emprestitoState.data}
               loading={emprestitoState.loading}
             />
             
-            {/* Gráficos de empréstito */}
-            <EmprestitoCharts
-              data={emprestitoState.data}
-              loading={emprestitoState.loading}
-            />
-            
-            {/* Tabla de empréstito */}
-            <EmprestitoTable
-              loading={emprestitoState.loading}
-            />
+            {/* Tabla de empréstito integrada */}
+            <IntegratedProjectsContracts />
           </div>
         )
 

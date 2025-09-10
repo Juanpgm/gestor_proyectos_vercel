@@ -16,7 +16,7 @@ interface EmprestitoStatsProps {
   totalProyectos: number
   totalContratos: number
   valorTotalContratos: number
-  totalBancos: number
+  totalEntidades: number
   totalCentrosGestor: number
   loading?: boolean
 }
@@ -25,7 +25,7 @@ const EmprestitoStats: React.FC<EmprestitoStatsProps> = ({
   totalProyectos,
   totalContratos,
   valorTotalContratos,
-  totalBancos,
+  totalEntidades,
   totalCentrosGestor,
   loading = false
 }) => {
@@ -45,14 +45,14 @@ const EmprestitoStats: React.FC<EmprestitoStatsProps> = ({
       format: 'number'
     },
     {
-      title: 'Bancos Participantes',
-      value: totalBancos,
+      title: 'Entidades',
+      value: totalEntidades,
       icon: Building2,
       gradient: CATEGORIES.emprestito.gradient,
       format: 'number'
     },
     {
-      title: 'Valor Total Contratos',
+      title: 'Valor Total',
       value: valorTotalContratos,
       icon: DollarSign,
       gradient: CATEGORIES.emprestito.gradient,
@@ -63,7 +63,7 @@ const EmprestitoStats: React.FC<EmprestitoStatsProps> = ({
   if (loading) {
     return (
       <div className="flex gap-1 md:gap-2">
-        {Array.from({ length: 4 }).map((_, index) => (
+        {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}
             className="relative bg-white dark:bg-gray-800 rounded-xl p-2 md:p-3 shadow-sm border border-gray-200 dark:border-gray-700 flex-1"

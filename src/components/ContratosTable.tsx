@@ -23,6 +23,7 @@ import {
   SortDesc
 } from 'lucide-react'
 import { CATEGORIES, formatNumber, ANIMATIONS } from '@/lib/design-system'
+import { openSecopLink } from '@/utils/url-helpers'
 import { Contrato } from '@/hooks/useContratos'
 
 interface ContratosTableProps {
@@ -179,10 +180,6 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
       setSortField(field)
       setSortDirection('desc')
     }
-  }
-
-  const openSecopLink = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const getEstadoIcon = (estado: string) => {

@@ -3,27 +3,78 @@
 import { useState, useEffect } from 'react'
 
 export interface EmprestitoContrato {
-  bpin: string
-  centro_gestor?: string
-  valor_contrato: number
-  banco: string
-  cdp?: string
-  rpc?: string
-  link_secop?: string
-  fecha_publicacion_proceso?: string | null
-  fecha_adjudicacion?: string | null
-  observaciones?: string
-  descripcion_bp?: string
-  nombre_comercial?: string
+  nombre_entidad: string;
+  sector: string;
+  entidad_centralizada: string;
+  proceso_compra: string;
+  id_contrato: string;
+  referencia_contrato: string;
+  estado_contrato: string;
+  codigo_categoria_principal: string;
+  descripcion_proceso: string;
+  tipo_contrato: string;
+  modalidad_contratacion: string;
+  justificacion_modalidad_contratacion: string;
+  fecha_firma: string;
+  fecha_inicio_contrato: string;
+  fecha_fin_contrato: string;
+  fecha_inicio_ejecucion: string;
+  fecha_fin_ejecucion: string;
+  tipodocproveedor: string;
+  documento_proveedor: string;
+  proveedor_adjudicado: string;
+  es_grupo: string;
+  es_pyme: string;
+  habilita_pago_adelantado: string;
+  liquidación: string;
+  obligación_ambiental: string;
+  obligaciones_postconsumo: string;
+  reversion: string;
+  origen_recursos: string;
+  destino_gasto: string;
+  valor_contrato: number;
+  valor_pago_adelantado: number;
+  valor_facturado: number;
+  valor_pendiente_pago: number;
+  valor_pagado: number;
+  valor_amortizado: number;
+  valor_pendiente_amortizacion: number;
+  valor_pendiente_ejecucion: number;
+  estado_bpin: string;
+  bpin: string;
+  anno_bpin: number;
+  saldo_cdp: number;
+  saldo_vigencia: number;
+  espostconflicto: string;
+  dias_adicionados: number;
+  puntos_acuerdo: string;
+  pilares_acuerdo: string;
+  urlproceso: string;
+  objeto_contrato: string;
+  duración_contrato: number;
 }
 
 export interface EmprestitoProyecto {
-  bpin: string
-  centro_gestor: string
-  banco: string
-  descripcion_bp: string
-  nombre_comercial: string
-  valor_contrato?: number
+  bpin: string;
+  bp: string;
+  nombre_proyecto: string;
+  nombre_actividad: string;
+  programa_presupuestal: string;
+  nombre_centro_gestor: string;
+  nombre_area_funcional: string;
+  nombre_fondo: string;
+  clasificacion_fondo: string;
+  nombre_pospre: string;
+  nombre_dimension: string;
+  nombre_linea_estrategica: string;
+  nombre_programa: string;
+  comuna: string;
+  origen: string;
+  anio: number;
+  tipo_gasto: string;
+  cod_sector: string;
+  cod_producto: string;
+  validador_cuipo: string;
 }
 
 export interface EmprestitoDimension {
@@ -91,54 +142,56 @@ export const useEmprestito = (): EmprestitoState => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        // Cargar archivos que realmente existen
-        const [dimensionesRes, hechosRes] = await Promise.all([
-          fetch('/data/emprestito/foundational_dims.json'),
-          fetch('/data/emprestito/foundational_facts.json')
+        // Cargar los nuevos archivos de empréstito
+        const [proyectosRes, contratosRes, dimensionesRes] = await Promise.all([
+          fetch('/data/emprestito/emp_proyectos.json'),
+          fetch('/data/emprestito/emp_contratos.json'),
+          fetch('/data/emprestito/emp_foundational_dims.json')
         ])
 
         // Verificar que las respuestas sean exitosas
-        if (!dimensionesRes.ok || !hechosRes.ok) {
+        if (!proyectosRes.ok || !contratosRes.ok || !dimensionesRes.ok) {
           throw new Error('Error al cargar archivos de empréstito')
         }
 
         // Parsear los datos
-        const [dimensiones, hechos] = await Promise.all([
-          dimensionesRes.json(),
-          hechosRes.json()
+        const [proyectosData, contratosData, dimensionesData] = await Promise.all([
+          proyectosRes.json(),
+          contratosRes.json(),
+          dimensionesRes.json()
         ])
 
-        // Transformar dimensiones en contratos y proyectos
-        const contratos: EmprestitoContrato[] = dimensiones.map((dim: EmprestitoDimension) => ({
-          bpin: dim.bpin.toString(),
-          centro_gestor: dim.centro_gestor,
-          valor_contrato: dim.valor_contrato || 0,
-          banco: dim.banco,
-          cdp: dim.cdp,
-          rpc: dim.rpc,
-          link_secop: dim.link_secop,
-          fecha_publicacion_proceso: dim.fecha_publicacion_proceso ? new Date(dim.fecha_publicacion_proceso).toISOString() : null,
-          fecha_adjudicacion: dim.fecha_adjudicacion ? new Date(dim.fecha_adjudicacion).toISOString() : null,
-          observaciones: dim.observaciones,
-          descripcion_bp: dim.descripcion_bp,
-          nombre_comercial: dim.nombre_comercial
+        // Transformar los datos en el formato esperado
+        const contratos: EmprestitoContrato[] = contratosData.map((contrato: any) => ({
+          bpin: contrato.bpin.toString(),
+          centro_gestor: contrato.nombre_entidad || 'No especificado',
+          valor_contrato: contrato.valor_contrato || 0,
+          banco: 'Banco empréstito', // Valor por defecto ya que no está en los datos
+          cdp: contrato.referencia_contrato || '',
+          rpc: contrato.id_contrato || '',
+          link_secop: contrato.urlproceso || '',
+          fecha_publicacion_proceso: contrato.fecha_firma || null,
+          fecha_adjudicacion: contrato.fecha_firma || null,
+          observaciones: contrato.descripcion_proceso || '',
+          descripcion_bp: contrato.objeto_contrato || '',
+          nombre_comercial: contrato.proveedor_adjudicado || ''
         }))
 
-        const proyectos: EmprestitoProyecto[] = dimensiones.map((dim: EmprestitoDimension) => ({
-          bpin: dim.bpin.toString(),
-          centro_gestor: dim.centro_gestor,
-          banco: dim.banco,
-          descripcion_bp: dim.descripcion_bp,
-          nombre_comercial: dim.nombre_comercial,
-          valor_contrato: dim.valor_contrato
+        const proyectos: EmprestitoProyecto[] = proyectosData.map((proyecto: any) => ({
+          bpin: proyecto.bpin.toString(),
+          centro_gestor: proyecto.nombre_centro_gestor || 'No especificado',
+          banco: 'Banco empréstito',
+          descripcion_bp: proyecto.descripcion_proyecto || proyecto.nombre_programa || '',
+          nombre_comercial: proyecto.nombre_proyecto || '',
+          valor_contrato: proyecto.valor_actual || proyecto.valor_inicial || 0
         }))
 
         setState({
           data: {
             contratos,
             proyectos,
-            dimensiones,
-            hechos
+            dimensiones: dimensionesData.data || [],
+            hechos: {}
           },
           loading: false,
           error: null
@@ -147,8 +200,7 @@ export const useEmprestito = (): EmprestitoState => {
         console.log('✅ Datos de empréstito cargados:', {
           contratos: contratos.length,
           proyectos: proyectos.length,
-          dimensiones: dimensiones.length,
-          hechos: Object.keys(hechos).length
+          dimensiones: dimensionesData.data?.length || 0
         })
 
       } catch (error) {
@@ -172,20 +224,30 @@ export const useEmprestitoMetrics = (data: EmprestitoData) => {
   return {
     totalProyectos: data.proyectos.length,
     totalContratos: data.contratos.length,
-    bancos: Array.from(new Set(data.proyectos.map(p => p.banco))),
-    centrosGestor: Array.from(new Set(data.proyectos.map(p => p.centro_gestor))),
-    valorTotalContratos: data.contratos.reduce((sum, c) => sum + c.valor_contrato, 0),
-    contratosPorBanco: data.contratos.reduce((acc, contrato) => {
-      acc[contrato.banco] = (acc[contrato.banco] || 0) + 1
+    centrosGestor: Array.from(new Set(data.proyectos.map(p => p.nombre_centro_gestor))),
+    entidades: Array.from(new Set(data.contratos.map(c => c.nombre_entidad))),
+    valorTotalContratos: data.contratos.reduce((sum, c) => sum + (c.valor_contrato || 0), 0),
+    contratosPorEntidad: data.contratos.reduce((acc, contrato) => {
+      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + 1
       return acc
     }, {} as Record<string, number>),
-    valorPorBanco: data.contratos.reduce((acc, contrato) => {
-      acc[contrato.banco] = (acc[contrato.banco] || 0) + contrato.valor_contrato
+    valorPorEntidad: data.contratos.reduce((acc, contrato) => {
+      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + (contrato.valor_contrato || 0)
       return acc
     }, {} as Record<string, number>),
     proyectosPorCentroGestor: data.proyectos.reduce((acc, proyecto) => {
-      acc[proyecto.centro_gestor] = (acc[proyecto.centro_gestor] || 0) + 1
+      acc[proyecto.nombre_centro_gestor] = (acc[proyecto.nombre_centro_gestor] || 0) + 1
       return acc
-    }, {} as Record<string, number>)
+    }, {} as Record<string, number>),
+    contratosPorEstado: data.contratos.reduce((acc, contrato) => {
+      acc[contrato.estado_contrato] = (acc[contrato.estado_contrato] || 0) + 1
+      return acc
+    }, {} as Record<string, number>),
+    contratosPorTipo: data.contratos.reduce((acc, contrato) => {
+      acc[contrato.tipo_contrato] = (acc[contrato.tipo_contrato] || 0) + 1
+      return acc
+    }, {} as Record<string, number>),
+    valorEjecutado: data.contratos.reduce((sum, c) => sum + (c.valor_pagado || 0), 0),
+    valorPendiente: data.contratos.reduce((sum, c) => sum + (c.valor_pendiente_ejecucion || 0), 0)
   }
 }
