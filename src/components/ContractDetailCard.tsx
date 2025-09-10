@@ -1,9 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, Calendar, DollarSign, ExternalLink, Eye } from 'lucide-react'
 import { formatNumber } from '@/lib/design-system'
+import ContratosModal from '@/components/ContratosModal'
 
 interface ContractDetailCardProps {
   contrato: any
@@ -14,26 +15,37 @@ const ContractDetailCard: React.FC<ContractDetailCardProps> = ({
   contrato, 
   contractIndex 
 }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, delay: contractIndex * 0.1 }}
-      className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
-    >
-      {/* Header del contrato */}
-      <ContractHeader contrato={contrato} />
-      
-      {/* Grid de información detallada */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <ContractDates contrato={contrato} />
-        <ContractFinancials contrato={contrato} />
-        <ContractResponsibles contrato={contrato} />
-      </div>
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-      {/* Footer con acciones */}
-      <ContractFooter contrato={contrato} />
-    </motion.div>
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3, delay: contractIndex * 0.1 }}
+        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+      >
+        {/* Header del contrato */}
+        <ContractHeader contrato={contrato} />
+        
+        {/* Grid de información detallada */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ContractDates contrato={contrato} />
+          <ContractFinancials contrato={contrato} />
+          <ContractResponsibles contrato={contrato} />
+        </div>
+
+        {/* Footer con acciones */}
+        <ContractFooter contrato={contrato} onOpenModal={() => setIsModalOpen(true)} />
+      </motion.div>
+
+      {/* Modal de detalles completos */}
+      <ContratosModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        referenciaContrato={contrato.referencia_contrato}
+      />
+    </>
   )
 }
 
@@ -102,7 +114,7 @@ const ContractHeader: React.FC<{ contrato: any }> = ({ contrato }) => (
         </div>
         <div className="flex-1 min-w-0">
           <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            {contrato.objeto_contrato || contrato.descripcion_proceso || 'Sin descripción'}
+            {contrato.objeto_contrato || 'Sin objeto de contrato especificado'}
           </h5>
           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
             <div className="flex items-center gap-1">
@@ -239,7 +251,7 @@ const ContractResponsibles: React.FC<{ contrato: any }> = ({ contrato }) => (
 )
 
 // Subcomponente para el footer del contrato
-const ContractFooter: React.FC<{ contrato: any }> = ({ contrato }) => (
+const ContractFooter: React.FC<{ contrato: any; onOpenModal: () => void }> = ({ contrato, onOpenModal }) => (
   <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
       <span className="font-medium">Tipo:</span>
@@ -250,10 +262,7 @@ const ContractFooter: React.FC<{ contrato: any }> = ({ contrato }) => (
     
     <div className="flex gap-2">
       <button
-        onClick={() => {
-          // TODO: Implementar vista detallada del contrato
-          console.log('Vista detallada del contrato:', contrato.id_contrato);
-        }}
+        onClick={onOpenModal}
         className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       >
         <Eye className="h-4 w-4" />
