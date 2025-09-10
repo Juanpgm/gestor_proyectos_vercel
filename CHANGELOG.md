@@ -5,6 +5,82 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2025-09-10
+
+### 🏗️ Reorganización de Secciones y Filtros de Empréstito
+
+#### ✨ Cambios en Navegación y Estructura
+
+- **Renombrado de Secciones**
+  - Cambiado "Unidades de Proyecto" → "Seguimiento" → "Unidades de Proyecto" (revertido)
+  - Actualizado "Proyectos y Contratos Integrados" → "Seguimiento a Proyectos y Contratos de Empréstito"
+  - **Archivos modificados**:
+    - `src/lib/design-system.ts`: Configuración de nombres de categorías
+    - `src/components/MobileNavigation.tsx`: Navegación responsiva
+
+#### 🔄 Reubicación de Componentes
+
+- **Movimiento de "Seguimiento a Proyectos y Contratos de Empréstito"**
+  - **Desde**: Sección "Unidades de Proyecto" (`project_units`)
+  - **Hacia**: Sección "Empréstito" (`emprestito`)
+  - **Componente**: `IntegratedProjectsContracts`
+  - **Resultado**: Sección "Unidades de Proyecto" ahora contiene solo mapas y métricas de intervenciones
+
+#### 🎯 Agregado de Títulos de Sección
+
+- **Nueva Sección de Mapas**
+  - Agregado header "Unidades de Proyecto" con icono de mapa
+  - Descripción: "Visualización geográfica y análisis de intervenciones municipales"
+  - Diseño consistente con tema emerald del sistema de diseño
+
+#### 🗃️ Corrección de Hooks de Empréstito
+
+- **useEmprestito.ts - Manejo Robusto de Datos**
+  - **Problema**: Hook intentaba cargar 3 archivos (`emp_contratos.json`, `emp_foundational_dims.json`, `emp_proyectos.json`)
+  - **Solución**: Modificado para cargar solo `emp_proyectos.json` disponible
+  - **Mejoras**:
+    - Mapeo completo de campos de `EmprestitoProyecto`
+    - Generación de contratos sintéticos para compatibilidad
+    - Manejo gracioso de archivos faltantes
+    - Eliminado error "Error al cargar archivos de empréstito"
+
+#### 🔍 Filtros Específicos de Fecha para Empréstito
+
+- **Filtro de Contratos por Fecha de Inicio**
+  - **Criterio**: Solo contratos con `fecha_inicio_contrato > 2024-12-31`
+  - **Aplicación**: Únicamente a proyectos en `emp_proyectos.json`
+  - **Resultado**: 34 contratos filtrados de empréstito activos desde 2025
+  - **Lógica implementada**:
+    ```typescript
+    // Solo proyectos de empréstito con fecha posterior al 31/12/2024
+    if (validBpinSet.has(contrato.bpin) &&
+        contrato.fecha_inicio_contrato &&
+        new Date(contrato.fecha_inicio_contrato) > new Date('2024-12-31'))
+    ```
+
+#### 📊 Métricas Actualizadas
+
+- **Contratos de Empréstito**
+  - Total proyectos en `emp_proyectos.json`: 34
+  - BPINs válidos: 27
+  - Contratos asociados: 34 (filtrados por fecha)
+  - BPINs con contratos activos: 17
+
+#### 🛠️ Optimizaciones Técnicas
+
+- **IntegratedProjectsContracts.tsx**
+  - Filtrado específico por BPINs de empréstito
+  - Validación de fechas mejorada
+  - Mantenimiento de compatibilidad con componentes existentes
+  - Preservación de todas las funcionalidades gráficas
+
+#### 🎨 Mantenimiento de Diseño
+
+- Preservados todos los estilos y componentes gráficos
+- Mantenida consistencia del sistema de diseño
+- Sin cambios en la experiencia visual del usuario
+- Compatibilidad total con temas claro/oscuro
+
 ## [2.2.0] - 2025-08-29
 
 ### 🎯 Optimización de Tablas y Visualización de Contenido

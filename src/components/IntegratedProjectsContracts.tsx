@@ -80,21 +80,32 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     const contratos = contratosState.contratos
     const validBpins = empProyectosState.validBpins || []
 
-    // Agrupar contratos por BPIN - mostrar todos los contratos de empréstito
+    // Crear un mapa de proyectos válidos desde emp_proyectos.json
+    const validBpinSet = new Set(validBpins)
+
+    // Agrupar contratos por BPIN - filtrar por fecha solo para proyectos de empréstito
     const contratosPorBpin = contratos.reduce((acc: Record<number, any[]>, contrato: any) => {
       if (!contrato.bpin) return acc
       
-      // Para empréstito, incluir todos los contratos sin filtro de fecha
-      if (!acc[contrato.bpin]) {
-        acc[contrato.bpin] = []
+      // Solo aplicar filtro de fecha si el BPIN está en emp_proyectos.json (proyectos de empréstito)
+      if (validBpinSet.has(contrato.bpin)) {
+        // Para proyectos de empréstito, filtrar solo por fecha_inicio_contrato
+        if (contrato.fecha_inicio_contrato) {
+          const fecha = new Date(contrato.fecha_inicio_contrato)
+          const fechaLimite = new Date('2024-12-31')
+          
+          // Solo incluir contratos cuya fecha de inicio sea posterior al 31 de diciembre de 2024
+          if (fecha > fechaLimite) {
+            if (!acc[contrato.bpin]) {
+              acc[contrato.bpin] = []
+            }
+            acc[contrato.bpin].push(contrato)
+          }
+        }
       }
-      acc[contrato.bpin].push(contrato)
       
       return acc
     }, {} as Record<number, any[]>)
-
-    // Crear un mapa de proyectos válidos desde emp_proyectos.json
-    const validBpinSet = new Set(validBpins)
 
     // Filtrar solo proyectos que estén en el archivo emp_proyectos.json
     const proyectosFiltrados = proyectos.filter((proyecto: any) => 
