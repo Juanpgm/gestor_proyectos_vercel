@@ -185,21 +185,21 @@ const ContractFinancials: React.FC<{ contrato: any }> = ({ contrato }) => (
       </div>
       <div>
         <span className="text-gray-500 dark:text-gray-400 block">Valor Pagado:</span>
-        <span className="font-semibold text-red-600 dark:text-red-400">
+        <span className="font-semibold text-yellow-600 dark:text-yellow-400">
           ${(contrato.valor_pagado || 0).toLocaleString('es-CO')}
         </span>
         {contrato.valor_contrato > 0 && (
           <ProgressBar 
             value={contrato.valor_pagado || 0} 
             total={contrato.valor_contrato} 
-            className="bg-red-600"
+            className="bg-yellow-600"
           />
         )}
       </div>
       {contrato.valor_pendiente_pago > 0 && (
         <div>
           <span className="text-gray-500 dark:text-gray-400 block">Pendiente de Pago:</span>
-          <span className="font-semibold text-yellow-600 dark:text-yellow-400">
+          <span className="font-semibold text-red-600 dark:text-red-400">
             ${(contrato.valor_pendiente_pago || 0).toLocaleString('es-CO')}
           </span>
         </div>

@@ -69,6 +69,7 @@ interface UnifiedMapInterfaceProps {
   enablePanels?: boolean
   initialLayersPanelCollapsed?: boolean
   initialPropertiesPanelCollapsed?: boolean
+  filteredBpins?: number[] | undefined // Nueva prop para filtrar por BPIN, undefined = sin filtro
 }
 
 const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
@@ -78,7 +79,8 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
   onFeatureClick,
   enablePanels = true,
   initialLayersPanelCollapsed = false,
-  initialPropertiesPanelCollapsed = true
+  initialPropertiesPanelCollapsed = true,
+  filteredBpins
 }) => {
   // Hook para obtener datos GeoJSON con mejoras integradas
   const unidadesState = useUnidadesProyecto()
@@ -135,6 +137,17 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
     symbologyState,
     lastUpdateTimestamp
   } = useLayerSymbology()
+
+  // Efecto para aplicar filtros por BPIN cuando cambien
+  useEffect(() => {
+    if (filteredBpins && filteredBpins.length > 0) {
+      // Aplicar filtro por BPIN
+      updateFilters({ bpins: filteredBpins })
+    } else {
+      // Limpiar filtro por BPIN si no hay BPIN específicos
+      updateFilters({ bpins: undefined })
+    }
+  }, [filteredBpins, updateFilters])
 
   // Estados del mapa y paneles
   const [layersPanelCollapsed, setLayersPanelCollapsed] = useState(initialLayersPanelCollapsed)

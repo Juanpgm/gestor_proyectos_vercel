@@ -519,12 +519,12 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                           {formatNumber(contrato.valor_contrato || 0, 'currency')}
                         </span>
                         {contrato.valor_pagado > 0 && (
-                          <span className="text-xs text-green-600 dark:text-green-400">
+                          <span className="text-xs text-yellow-600 dark:text-yellow-400">
                             Pagado: {formatNumber(contrato.valor_pagado, 'currency')}
                           </span>
                         )}
                         {contrato.valor_pendiente_pago > 0 && (
-                          <span className="text-xs text-yellow-600 dark:text-yellow-400">
+                          <span className="text-xs text-red-600 dark:text-red-400">
                             Pendiente: {formatNumber(contrato.valor_pendiente_pago, 'currency')}
                           </span>
                         )}

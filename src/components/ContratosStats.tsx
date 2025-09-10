@@ -96,9 +96,9 @@ const ContratosStats: React.FC<ContratosStatsProps> = ({
       value: formatNumber(valorPagado, 'currency'),
       subtitle: `${porcentajePagado.toFixed(1)}% del total`,
       icon: CheckCircle,
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-      textColor: 'text-blue-600 dark:text-blue-400',
-      borderColor: 'border-blue-200 dark:border-blue-800'
+      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+      textColor: 'text-yellow-600 dark:text-yellow-400',
+      borderColor: 'border-yellow-200 dark:border-yellow-800'
     },
     {
       id: 'pendiente-pago',
@@ -106,9 +106,9 @@ const ContratosStats: React.FC<ContratosStatsProps> = ({
       value: formatNumber(valorPendientePago, 'currency'),
       subtitle: `${porcentajePendientePago.toFixed(1)}% del total`,
       icon: Clock,
-      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-      textColor: 'text-yellow-600 dark:text-yellow-400',
-      borderColor: 'border-yellow-200 dark:border-yellow-800'
+      bgColor: 'bg-red-50 dark:bg-red-900/20',
+      textColor: 'text-red-600 dark:text-red-400',
+      borderColor: 'border-red-200 dark:border-red-800'
     },
     {
       id: 'liquidados',

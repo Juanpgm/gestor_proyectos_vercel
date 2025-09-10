@@ -50,7 +50,8 @@ import {
   Table, 
   Filter,
   TrendingUp,
-  PieChart
+  PieChart,
+  ChevronDown
 } from 'lucide-react'
 import { CATEGORIES, ANIMATIONS } from '@/lib/design-system'
 import MobileNavigation from '@/components/MobileNavigation'
@@ -104,10 +105,22 @@ function DashboardContent() {
   // Estado para la unidad de proyecto seleccionada desde la tabla
   const [selectedProjectUnitFromTable, setSelectedProjectUnitFromTable] = useState<UnidadProyecto | null>(null)
   
+  // Estado para mostrar/ocultar la sección de Análisis de Intervenciones (oculta por defecto)
+  const [showInterventionAnalysis, setShowInterventionAnalysis] = useState(false)
+  
+  // Estado para BPIN filtrados desde Proyectos y Contratos Integrados
+  const [filteredBpinsFromContracts, setFilteredBpinsFromContracts] = useState<number[] | undefined>(undefined)
+  
   // Función para manejar cuando se hace clic en el ojito en la tabla
   const handleViewProjectUnitInPanel = (projectUnit: UnidadProyecto) => {
     console.log('👁️ Mostrando unidad de proyecto en panel:', projectUnit)
     setSelectedProjectUnitFromTable(projectUnit)
+  }
+
+  // Función para manejar cambios en BPIN filtrados desde Proyectos y Contratos Integrados
+  const handleFilteredBpinsChange = (bpins: number[] | undefined) => {
+    console.log('🔍 BPIN filtrados actualizados:', bpins)
+    setFilteredBpinsFromContracts(bpins)
   }
 
   // TEMPORALMENTE COMENTADO: Pre-carga de datos al iniciar la aplicación
@@ -562,39 +575,73 @@ function DashboardContent() {
                   enablePanels={true}
                   initialLayersPanelCollapsed={false}
                   initialPropertiesPanelCollapsed={true}
+                  filteredBpins={filteredBpinsFromContracts && filteredBpinsFromContracts.length > 0 ? filteredBpinsFromContracts : undefined}
                 />
               </div>
               
-              {/* Sección de métricas integrada dentro del contenedor del mapa */}
+              {/* Sección de métricas integrada dentro del contenedor del mapa - Ahora ocultable */}
               <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
                 <div className="p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          Análisis de Intervenciones
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Métricas detalladas por tipo de intervención y ubicación
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        Análisis de Intervenciones
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Métricas detalladas por tipo de intervención y ubicación
-                      </p>
-                    </div>
+                    <button
+                      onClick={() => setShowInterventionAnalysis(!showInterventionAnalysis)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {showInterventionAnalysis ? 'Ocultar' : 'Mostrar'}
+                      </span>
+                      <ChevronDown 
+                        className={`w-4 h-4 text-gray-500 transition-transform ${
+                          showInterventionAnalysis ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
                   </div>
                   
-                  {/* Grid con las métricas dentro del contenedor - Altura uniforme */}
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[800px] min-h-[600px]">
-                    {/* Métricas de Tipos de Intervención y Clases de Obra */}
-                    <ProjectInterventionMetrics 
-                      data={filteredProjectUnits}
-                      loading={dataLoading}
-                    />
-                    
-                    {/* Métricas de Centros de Gravedad */}
-                    <CentrosGravedadMetrics />
-                  </div>
+                  {/* Grid con las métricas dentro del contenedor - Altura uniforme - Con animación */}
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      height: showInterventionAnalysis ? 'auto' : 0,
+                      opacity: showInterventionAnalysis ? 1 : 0
+                    }}
+                    transition={{
+                      duration: 0.3,
+                      ease: 'easeInOut'
+                    }}
+                    className="overflow-hidden"
+                  >
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[800px] min-h-[600px]">
+                      {/* Métricas de Tipos de Intervención y Clases de Obra */}
+                      <ProjectInterventionMetrics 
+                        data={filteredProjectUnits}
+                        loading={dataLoading}
+                      />
+                      
+                      {/* Métricas de Centros de Gravedad */}
+                      <CentrosGravedadMetrics />
+                    </div>
+                  </motion.div>
                 </div>
               </div>
+            </div>
+            
+            {/* Proyectos y Contratos Integrados */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <IntegratedProjectsContracts onFilteredBpinsChange={handleFilteredBpinsChange} />
             </div>
             
             {/* Contenedor de Unidades de Proyecto eliminado */}
@@ -698,9 +745,6 @@ function DashboardContent() {
               data={emprestitoState.data}
               loading={emprestitoState.loading}
             />
-            
-            {/* Tabla de empréstito integrada */}
-            <IntegratedProjectsContracts />
           </div>
         )
 

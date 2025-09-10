@@ -45,7 +45,14 @@ interface ProjectWithContracts {
   fuente_emprestito: string
 }
 
-const IntegratedProjectsContracts: React.FC = () => {
+// Props del componente
+interface IntegratedProjectsContractsProps {
+  onFilteredBpinsChange?: (bpins: number[] | undefined) => void // Callback para comunicar BPIN filtrados, undefined = sin filtro
+}
+
+const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = ({ 
+  onFilteredBpinsChange 
+}) => {
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCentroGestor, setSelectedCentroGestor] = useState('')
@@ -229,6 +236,23 @@ const IntegratedProjectsContracts: React.FC = () => {
     })
   }, [filteredData, selectedTipoContrato, selectedEstadoContrato])
 
+  // Efecto para comunicar BPIN filtrados al mapa
+  React.useEffect(() => {
+    if (onFilteredBpinsChange) {
+      // Verificar si hay filtros activos
+      const hasActiveFilters = searchTerm || selectedCentroGestor || selectedTipoContrato || selectedEstadoContrato
+      
+      if (hasActiveFilters) {
+        // Si hay filtros activos, comunicar los BPIN específicos (puede ser array vacío si no hay resultados)
+        const filteredBpins = finalFilteredData.map(project => project.bpin)
+        onFilteredBpinsChange(filteredBpins)
+      } else {
+        // Si no hay filtros activos, no aplicar filtro en el mapa (mostrar todas las unidades)
+        onFilteredBpinsChange(undefined)
+      }
+    }
+  }, [finalFilteredData, searchTerm, selectedCentroGestor, selectedTipoContrato, selectedEstadoContrato, onFilteredBpinsChange])
+
   // Paginación usando finalFilteredData
   const totalPages = Math.ceil(finalFilteredData.length / itemsPerPage)
   const paginatedData = finalFilteredData.slice(
@@ -363,7 +387,7 @@ const IntegratedProjectsContracts: React.FC = () => {
                       onChange={(e) => setSelectedCentroGestor(e.target.value)}
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:text-white"
                     >
-                      <option value="">Todas las entidades</option>
+                      <option value="">Seleccione centro gestor</option>
                       {centrosGestor.map(centro => (
                         <option key={centro} value={centro}>
                           {centro}

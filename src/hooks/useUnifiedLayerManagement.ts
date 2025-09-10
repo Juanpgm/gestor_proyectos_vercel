@@ -30,6 +30,7 @@ export interface LayerFilters {
     from: Date
     to: Date
   }
+  bpins?: number[] // Nuevo filtro por BPIN
 }
 
 // Hook principal para gestión unificada de capas
@@ -340,6 +341,21 @@ export function useUnifiedLayerManagement() {
           features: filteredData.features.filter((feature: any) => {
             const estado = feature.properties?.estado_unidad_proyecto || ''
             return layerFilters.estado!.includes(estado)
+          })
+        }
+      }
+    }
+
+    if (layerFilters.bpins && layerFilters.bpins.length > 0) {
+      // Filtrar por BPIN - Solo mostrar características con BPIN específicos
+      if (filteredData.features) {
+        filteredData = {
+          ...filteredData,
+          features: filteredData.features.filter((feature: any) => {
+            const bpin = feature.properties?.bpin || feature.properties?.codigo_bpin
+            // Convertir BPIN a número para comparación
+            const bpinNumber = typeof bpin === 'string' ? parseInt(bpin, 10) : bpin
+            return layerFilters.bpins!.includes(bpinNumber)
           })
         }
       }
