@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Calendar, DollarSign, ExternalLink } from 'lucide-react'
+import { FileText, Calendar, DollarSign, ExternalLink, Eye } from 'lucide-react'
 import { formatNumber } from '@/lib/design-system'
 
 interface ContractDetailCardProps {
@@ -102,7 +102,7 @@ const ContractHeader: React.FC<{ contrato: any }> = ({ contrato }) => (
         </div>
         <div className="flex-1 min-w-0">
           <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-            {contrato.descripcion_proceso || 'Sin descripción'}
+            {contrato.objeto_contrato || contrato.descripcion_proceso || 'Sin descripción'}
           </h5>
           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
             <div className="flex items-center gap-1">
@@ -248,29 +248,42 @@ const ContractFooter: React.FC<{ contrato: any }> = ({ contrato }) => (
       </span>
     </div>
     
-    {contrato.urlproceso && (
+    <div className="flex gap-2">
       <button
         onClick={() => {
-          try {
-            console.log('Navegando a:', contrato.urlproceso);
-            const url = contrato.urlproceso.trim();
-            if (url.startsWith('http://') || url.startsWith('https://')) {
-              window.open(url, '_blank', 'noopener,noreferrer');
-            } else {
-              console.error('URL inválida:', url);
-              alert('URL inválida: ' + url);
-            }
-          } catch (error) {
-            console.error('Error al abrir URL:', error);
-            alert('Error al abrir la URL del proceso');
-          }
+          // TODO: Implementar vista detallada del contrato
+          console.log('Vista detallada del contrato:', contrato.id_contrato);
         }}
-        className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+        className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       >
-        <ExternalLink className="h-4 w-4" />
-        Ver en SECOP
+        <Eye className="h-4 w-4" />
+        Ver Detalle
       </button>
-    )}
+      
+      {contrato.urlproceso && (
+        <button
+          onClick={() => {
+            try {
+              console.log('Navegando a:', contrato.urlproceso);
+              const url = contrato.urlproceso.trim();
+              if (url.startsWith('http://') || url.startsWith('https://')) {
+                window.open(url, '_blank', 'noopener,noreferrer');
+              } else {
+                console.error('URL inválida:', url);
+                alert('URL inválida: ' + url);
+              }
+            } catch (error) {
+              console.error('Error al abrir URL:', error);
+              alert('Error al abrir la URL del proceso');
+            }
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Ver en SECOP
+        </button>
+      )}
+    </div>
   </div>
 )
 

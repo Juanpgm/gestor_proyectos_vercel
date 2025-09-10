@@ -52,7 +52,7 @@ const IntegratedProjectsContracts: React.FC = () => {
   const [selectedTipoContrato, setSelectedTipoContrato] = useState('')
   const [selectedEstadoContrato, setSelectedEstadoContrato] = useState('')
   const [showFilters, setShowFilters] = useState(false)
-  const [expandedProjects, setExpandedProjects] = useState<Set<number>>(new Set())
+  const [expandedProject, setExpandedProject] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
 
@@ -102,14 +102,19 @@ const IntegratedProjectsContracts: React.FC = () => {
       return acc
     }, {} as Record<number, any[]>)
 
-    // Crear un mapa de proyectos de empréstito
+    // Crear un mapa de proyectos de empréstito para filtrado
     const emprestitoMap = emprestitoData.reduce((acc: Record<number, any>, emp: any) => {
       acc[emp.bpin] = emp
       return acc
     }, {} as Record<number, any>)
 
+    // Filtrar solo proyectos que estén en el archivo de empréstito
+    const proyectosFiltrados = proyectos.filter((proyecto: any) => 
+      emprestitoMap[proyecto.bpin]
+    )
+
     // Integrar proyectos con sus contratos
-    return proyectos.map((proyecto: any) => {
+    return proyectosFiltrados.map((proyecto: any) => {
       const contratosAsociados = contratosPorBpin[proyecto.bpin] || []
       const emprestitoInfo = emprestitoMap[proyecto.bpin]
       
@@ -238,15 +243,7 @@ const IntegratedProjectsContracts: React.FC = () => {
 
   // Funciones auxiliares
   const toggleProjectExpansion = (bpin: number) => {
-    setExpandedProjects(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(bpin)) {
-        newSet.delete(bpin)
-      } else {
-        newSet.add(bpin)
-      }
-      return newSet
-    })
+    setExpandedProject(prev => prev === bpin ? null : bpin)
   }
 
   const clearFilters = () => {
@@ -295,9 +292,6 @@ const IntegratedProjectsContracts: React.FC = () => {
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                 Proyectos y Contratos Integrados
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {finalFilteredData.length} proyectos con {totalContratos} contratos{getActiveFiltersDescription()}
-              </p>
             </div>
           </div>
         </div>
@@ -322,14 +316,6 @@ const IntegratedProjectsContracts: React.FC = () => {
               {formatNumber(totalValue, 'currency')}
             </div>
           </div>
-          {emprestitoProjectsWithContracts > 0 && (
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg px-4 py-2">
-              <div className="text-xs text-purple-600 dark:text-purple-400">Empréstito</div>
-              <div className="text-lg font-semibold text-purple-800 dark:text-purple-300">
-                {emprestitoProjectsWithContracts} proyectos
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Barra de búsqueda principal */}
@@ -444,7 +430,7 @@ const IntegratedProjectsContracts: React.FC = () => {
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         <AnimatePresence>
           {paginatedData.map((project, index) => {
-            const isExpanded = expandedProjects.has(project.bpin)
+            const isExpanded = expandedProject === project.bpin
             
             return (
               <motion.div
@@ -478,7 +464,7 @@ const IntegratedProjectsContracts: React.FC = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                               {project.nombre_proyecto}
                             </h3>
                             {project.isEmprestito && (
@@ -487,7 +473,7 @@ const IntegratedProjectsContracts: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             {project.nombre_actividad}
                           </p>
                         </div>
@@ -509,7 +495,7 @@ const IntegratedProjectsContracts: React.FC = () => {
                         {project.isEmprestito && project.valor_emprestito > 0 && (
                           <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
                             <DollarSign className="h-4 w-4" />
-                            <span>Emp: {formatNumber(project.valor_emprestito, 'currency')}</span>
+                            <span>Emp: ${project.valor_emprestito.toLocaleString('es-CO')}</span>
                           </div>
                         )}
                       </div>
@@ -518,7 +504,7 @@ const IntegratedProjectsContracts: React.FC = () => {
                     <div className="flex flex-col items-end gap-2 ml-6">
                       <div className="text-right">
                         <div className="text-lg font-semibold text-teal-600 dark:text-teal-400">
-                          {formatNumber(project.totalValueContratos, 'currency')}
+                          ${project.totalValueContratos.toLocaleString('es-CO')}
                         </div>
                         <div className="text-xs text-gray-500">
                           {project.contratosCount > 0 ? (

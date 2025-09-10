@@ -4,7 +4,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { useEmprestito, useEmprestitoMetrics } from '@/hooks/useEmprestito'
 import EmprestitoStats from '@/components/EmprestitoStats'
-import ProjectsContractsIntegrated from '@/components/ProjectsContractsIntegrated'
+import IntegratedProjectsContracts from '@/components/IntegratedProjectsContracts'
 import EmprestitoCharts from '@/components/EmprestitoCharts'
 import { Loader2 } from 'lucide-react'
 
@@ -78,7 +78,7 @@ const EmprestitoPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        <ProjectsContractsIntegrated />
+        <IntegratedProjectsContracts />
       </motion.div>
     </div>
   )
