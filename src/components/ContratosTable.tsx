@@ -25,6 +25,7 @@ import {
 import { CATEGORIES, formatNumber, ANIMATIONS } from '@/lib/design-system'
 import { openSecopLink } from '@/utils/url-helpers'
 import { Contrato } from '@/hooks/useContratos'
+import { getContractStateColors } from '@/lib/contract-colors'
 
 interface ContratosTableProps {
   contratos: Contrato[]
@@ -199,19 +200,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
   }
 
   const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'Vigente':
-      case 'En Ejecución':
-      case 'Activo':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-      case 'Liquidado':
-      case 'Terminado':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-      case 'Modificado':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-    }
+    return getContractStateColors(estado).badge
   }
 
   if (loading) {

@@ -5,125 +5,92 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   X, 
   FileText, 
-  Building2, 
-  Calendar, 
-  DollarSign, 
-  User, 
-  MapPin, 
-  ExternalLink, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle,
+  AlertCircle, 
+  Calendar,
+  DollarSign,
+  BarChart3,
+  Building2,
+  User,
   Info,
-  Tag,
-  CreditCard,
-  Globe,
-  Shield
+  Shield,
+  ExternalLink,
+  Clock,
+  TrendingUp
 } from 'lucide-react'
 import { formatNumber } from '@/lib/design-system'
+import { getContractStateColors, getMetricColors, getInfoColors } from '@/lib/contract-colors'
+import ContractMetricsRings from './ContractMetricsRings'
+import ContractGantt from './ContractGantt'
+import ContractFinancialVisuals from './ContractFinancialVisuals'
+import ContractTimeSeries from './ContractTimeSeries'
 
 interface ContratosModalProps {
   isOpen: boolean
   onClose: () => void
   referenciaContrato: string
+  contratoData?: any
+  proyectoData?: any
 }
 
-interface ContratoCompleto {
-  nombre_entidad: string
-  sector: string
-  entidad_centralizada: string
-  proceso_compra: string
-  id_contrato: string
-  referencia_contrato: string
-  estado_contrato: string
-  codigo_categoria_principal: string
-  descripcion_proceso: string
-  tipo_contrato: string
-  modalidad_contratacion: string
-  justificacion_modalidad_contratacion: string
-  fecha_firma: string
-  fecha_inicio_contrato: string
-  fecha_fin_contrato: string
-  fecha_inicio_ejecucion: string | null
-  fecha_fin_ejecucion: string | null
-  tipodocproveedor: string
-  documento_proveedor: string
-  proveedor_adjudicado: string
-  es_grupo: string
-  es_pyme: string
-  habilita_pago_adelantado: number
-  liquidación: string
-  obligación_ambiental: string
-  obligaciones_postconsumo: string
-  reversion: string
-  origen_recursos: string
-  destino_gasto: string
-  valor_contrato: number
-  valor_pago_adelantado: number
-  valor_facturado: number
-  valor_pendiente_pago: number
-  valor_pagado: number
-  valor_amortizado: number
-  valor_pendiente_amortizacion: number
-  valor_pendiente_ejecucion: number
-  estado_bpin: string
-  bpin: number
-  anno_bpin: string
-  saldo_cdp: number
-  saldo_vigencia: number
-  espostconflicto: string
-  dias_adicionados: string
-  puntos_acuerdo: string
-  pilares_acuerdo: string
-  urlproceso: string
-  nombre_representante_legal: string
-  nacionalidad_representante_legal: string
-  tipo_identificacion_representante_legal: string
-  identificacion_representante_legal: string
-  genero_representante_legal: string
-  fecha_nacimiento_representante_legal: string
-  edad_representante_legal: number
-  pais_nacimiento_representante_legal: string
-  departamento_nacimiento_representante_legal: string
-  ciudad_nacimiento_representante_legal: string
-  pais_residencia_representante_legal: string
-  departamento_residencia_representante_legal: string
-  ciudad_residencia_representante_legal: string
-  objeto_contrato: string
-  duración_contrato: number
-  nombre_supervisor: string
-  tipo_identificacion_supervisor: string
-  identificacion_supervisor: string
-  telefono_supervisor: string
-  email_supervisor: string
+// Componente para secciones colapsables minimalistas
+// Removido - ya no se usa
+
+// Función para formatear moneda
+const formatearMoneda = (valor: any) => {
+  if (!valor || valor === 0) return 'No disponible'
+  const numero = typeof valor === 'string' ? parseFloat(valor.replace(/[^0-9.-]/g, '')) : valor
+  if (isNaN(numero)) return 'No disponible'
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0
+  }).format(numero)
+}
+
+// Función para formatear fecha
+const formatearFecha = (fecha: any) => {
+  if (!fecha) return 'No disponible'
+  try {
+    return new Date(fecha).toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  } catch {
+    return fecha
+  }
 }
 
 const ContratosModal: React.FC<ContratosModalProps> = ({ 
   isOpen, 
   onClose, 
-  referenciaContrato 
+  referenciaContrato,
+  contratoData,
+  proyectoData
 }) => {
-  const [contrato, setContrato] = useState<ContratoCompleto | null>(null)
+  const [contrato, setContrato] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isOpen && referenciaContrato) {
+    if (isOpen && !contratoData) {
       loadContratoData()
     }
-  }, [isOpen, referenciaContrato])
+  }, [isOpen, referenciaContrato, contratoData])
 
   const loadContratoData = async () => {
+    if (!referenciaContrato) return
+    
+    setLoading(true)
+    setError(null)
+    
     try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch('/data/contratos/contratos_proyectos.json')
+      const response = await fetch('/api/contratos')
       if (!response.ok) {
         throw new Error('Error al cargar datos de contratos')
       }
       
-      const contratos: ContratoCompleto[] = await response.json()
+      const contratos: any[] = await response.json()
       const contratoEncontrado = contratos.find(c => c.referencia_contrato === referenciaContrato)
       
       if (!contratoEncontrado) {
@@ -139,35 +106,15 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
     }
   }
 
-  const getEstadoColor = (estado: string) => {
-    const estadoLower = estado?.toLowerCase() || ''
-    if (['celebrado', 'liquidado', 'ejecutado'].some(s => estadoLower.includes(s))) {
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-    }
-    if (['en ejecución', 'vigente'].some(s => estadoLower.includes(s))) {
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-    }
-    if (['modificado'].some(s => estadoLower.includes(s))) {
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-    }
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-  }
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'No especificado'
-    return new Date(dateString).toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  const calculateProgress = (pagado: number, total: number) => {
-    if (total === 0) return 0
-    return Math.min((pagado / total) * 100, 100)
-  }
-
   if (!isOpen) return null
+
+  // Usar contratoData si está disponible, sino cargar desde API
+  const contractDataToShow = contratoData || contrato
+  
+  // Obtener colores de estado para el header
+  const headerColors = contractDataToShow?.estado_contrato 
+    ? getContractStateColors(contractDataToShow.estado_contrato)
+    : getContractStateColors('Vigente')
 
   return (
     <AnimatePresence>
@@ -182,388 +129,368 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 p-6">
+          {/* Header con colores unificados */}
+          <div className={`${headerColors.bg} ${headerColors.border} border-b p-4`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <FileText className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="p-1.5 bg-white/20 dark:bg-gray-800/20 rounded-lg">
+                  <FileText className={`w-5 h-5 ${headerColors.accent}`} />
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Detalle del Contrato</h2>
-                  <p className="text-blue-100">Referencia: {referenciaContrato}</p>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5 leading-tight">
+                    {contractDataToShow?.objeto_del_contrato || contractDataToShow?.objeto_contrato || 'Detalle del Contrato'}
+                  </h2>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 opacity-90">
+                    {referenciaContrato}
+                    {contractDataToShow?._registro_origen?.referencia_proceso && (
+                      <span className="ml-2">• {contractDataToShow._registro_origen.referencia_proceso}</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors"
               >
-                <X className="w-6 h-6 text-white" />
+                <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
-            {loading && (
-              <div className="p-8 text-center">
-                <div className="animate-spin mx-auto w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-                <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando información del contrato...</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="p-8 text-center">
-                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <p className="text-red-600 dark:text-red-400">{error}</p>
-              </div>
-            )}
-
-            {contrato && (
-              <div className="p-6 space-y-6">
-                {/* Estado y información básica */}
-                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(contrato.estado_contrato)}`}>
-                      {contrato.estado_contrato}
-                    </span>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {formatNumber(contrato.valor_contrato, 'currency')}
-                      </p>
-                      <p className="text-sm text-gray-500">Valor total del contrato</p>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    {contrato.objeto_contrato || contrato.descripcion_proceso}
-                  </h3>
+          {/* Contenido scrolleable compacto */}
+          <div className="overflow-y-auto max-h-[calc(95vh-80px)]">
+            <div className="p-4 space-y-4">
+              {loading && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-600 dark:text-gray-400 mt-4">Cargando información...</p>
                 </div>
+              )}
 
-                {/* Grid de información */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Información del contrato */}
-                  <div className="space-y-4">
-                    <SectionHeader icon={FileText} title="Información del Contrato" />
-                    
-                    <InfoCard>
-                      <InfoField 
-                        icon={Tag} 
-                        label="Tipo de Contrato" 
-                        value={contrato.tipo_contrato} 
-                      />
-                      <InfoField 
-                        icon={FileText} 
-                        label="Modalidad" 
-                        value={contrato.modalidad_contratacion} 
-                      />
-                      <InfoField 
-                        icon={Shield} 
-                        label="Justificación" 
-                        value={contrato.justificacion_modalidad_contratacion} 
-                      />
-                      <InfoField 
-                        icon={Info} 
-                        label="Código Categoría" 
-                        value={contrato.codigo_categoria_principal} 
-                      />
-                    </InfoCard>
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-medium">Error al cargar datos</span>
                   </div>
+                  <p className="text-red-600 dark:text-red-300 mt-1">{error}</p>
+                </div>
+              )}
 
-                  {/* Información de la entidad */}
-                  <div className="space-y-4">
-                    <SectionHeader icon={Building2} title="Entidad Contratante" />
+              {contractDataToShow && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 space-y-0 items-stretch min-h-0">
+                  
+                  {/* Columna Izquierda */}
+                  <div className="space-y-4 flex flex-col min-h-0 flex-1">
                     
-                    <InfoCard>
-                      <InfoField 
-                        icon={Building2} 
-                        label="Entidad" 
-                        value={contrato.nombre_entidad} 
-                      />
-                      <InfoField 
-                        icon={Tag} 
-                        label="Sector" 
-                        value={contrato.sector} 
-                      />
-                      <InfoField 
-                        icon={Info} 
-                        label="Tipo" 
-                        value={contrato.entidad_centralizada} 
-                      />
-                      <InfoField 
-                        icon={FileText} 
-                        label="BPIN" 
-                        value={`${contrato.bpin} (${contrato.anno_bpin})`} 
-                      />
-                    </InfoCard>
-                  </div>
+                    {/* Métricas visuales compactas */}
+                    <div className={`${getInfoColors('temporal').bg} ${getInfoColors('temporal').border} border rounded-lg p-3`}>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <BarChart3 className={`w-4 h-4 ${getInfoColors('temporal').icon}`} />
+                        Métricas de Ejecución
+                      </h3>
+                      <ContractMetricsRings contrato={contractDataToShow} />
+                    </div>
 
-                  {/* Fechas importantes */}
-                  <div className="space-y-4">
-                    <SectionHeader icon={Calendar} title="Cronograma" />
-                    
-                    <InfoCard>
-                      <InfoField 
-                        icon={Calendar} 
-                        label="Fecha de Firma" 
-                        value={formatDate(contrato.fecha_firma)} 
-                      />
-                      <InfoField 
-                        icon={Calendar} 
-                        label="Inicio Contrato" 
-                        value={formatDate(contrato.fecha_inicio_contrato)} 
-                      />
-                      <InfoField 
-                        icon={Calendar} 
-                        label="Fin Contrato" 
-                        value={formatDate(contrato.fecha_fin_contrato)} 
-                      />
-                      <InfoField 
-                        icon={Clock} 
-                        label="Duración" 
-                        value={`${contrato.duración_contrato || 0} días`} 
-                      />
-                    </InfoCard>
-                  </div>
+                    {/* Serie de Tiempo del Contrato */}
+                    <div className={`${getInfoColors('temporal').bg} ${getInfoColors('temporal').border} border rounded-lg p-3`}>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <TrendingUp className={`w-4 h-4 ${getInfoColors('temporal').icon}`} />
+                        Evolución Temporal
+                      </h3>
+                      <ContractTimeSeries contrato={contractDataToShow} />
+                    </div>
 
-                  {/* Información financiera */}
-                  <div className="space-y-4">
-                    <SectionHeader icon={DollarSign} title="Información Financiera" />
-                    
-                    <InfoCard>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Progreso de Pagos</span>
-                          <span className="text-sm font-medium">
-                            {calculateProgress(contrato.valor_pagado, contrato.valor_contrato).toFixed(1)}%
-                          </span>
+                    {/* Información Financiera Compacta */}
+                    <div className={`${getMetricColors('valor').bg} ${getMetricColors('valor').border} border rounded-lg p-3`}>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <DollarSign className={`w-4 h-4 ${getMetricColors('valor').icon}`} />
+                        Información Financiera
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
+                          <div className="text-gray-500 dark:text-gray-400">Valor Contrato</div>
+                          <div className={`font-semibold ${getMetricColors('valor').text} truncate`}>
+                            {formatearMoneda(contractDataToShow.valor_del_contrato)}
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full transition-all duration-500"
-                            style={{ 
-                              width: `${calculateProgress(contrato.valor_pagado, contrato.valor_contrato)}%` 
-                            }}
-                          />
+                        <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
+                          <div className="text-gray-500 dark:text-gray-400">Valor Pagado</div>
+                          <div className={`font-semibold ${getMetricColors('pagado').text} truncate`}>
+                            {formatearMoneda(contractDataToShow.valor_pagado)}
+                          </div>
+                        </div>
+                        <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
+                          <div className="text-gray-500 dark:text-gray-400">Facturado</div>
+                          <div className={`font-semibold ${getMetricColors('facturado').text} truncate`}>
+                            {formatearMoneda(contractDataToShow.valor_facturado)}
+                          </div>
+                        </div>
+                        <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
+                          <div className="text-gray-500 dark:text-gray-400">Estado</div>
+                          <div className={`text-xs px-2 py-1 rounded-full ${getContractStateColors(contractDataToShow.estado_contrato || 'Vigente').badge} font-medium`}>
+                            {contractDataToShow.estado_contrato || 'N/A'}
+                          </div>
                         </div>
                       </div>
-                      
-                      <InfoField 
-                        icon={DollarSign} 
-                        label="Valor Pagado" 
-                        value={formatNumber(contrato.valor_pagado, 'currency')} 
-                        className="text-green-600 dark:text-green-400"
-                      />
-                      <InfoField 
-                        icon={DollarSign} 
-                        label="Pendiente de Pago" 
-                        value={formatNumber(contrato.valor_pendiente_pago, 'currency')} 
-                        className="text-red-600 dark:text-red-400"
-                      />
-                      <InfoField 
-                        icon={DollarSign} 
-                        label="Valor Facturado" 
-                        value={formatNumber(contrato.valor_facturado, 'currency')} 
-                      />
-                    </InfoCard>
+                    </div>
+
+                    {/* Información del Contratista */}
+                    <div className={`${getInfoColors('contratista').bg} ${getInfoColors('contratista').border} border rounded-lg p-3`}>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <User className={`w-4 h-4 ${getInfoColors('contratista').icon}`} />
+                        Contratista
+                      </h3>
+                      <div className="space-y-2 text-xs">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Nombre:</span>
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {contractDataToShow.proveedor_adjudicado || contractDataToShow.contratista || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Documento:</span>
+                            <div className="font-mono text-gray-900 dark:text-white">
+                              {contractDataToShow.documento_proveedor || contractDataToShow.numero_de_documento_del_contratista || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Tipo:</span>
+                          <span className="ml-1 font-medium text-gray-900 dark:text-white">
+                            {contractDataToShow.tipo_identificacion_representante_legal || contractDataToShow.tipo_de_documento_del_contratista || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Información de Entidad Compacta */}
+                    <div className={`${getInfoColors('entidad').bg} ${getInfoColors('entidad').border} border rounded-lg p-3`}>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <Building2 className={`w-4 h-4 ${getInfoColors('entidad').icon}`} />
+                        Entidad
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Entidad:</span>
+                          <div className="font-medium text-gray-900 dark:text-white truncate">
+                            {contractDataToShow.nombre_entidad || 'N/A'}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Centro Gestor:</span>
+                          <div className="font-medium text-gray-900 dark:text-white truncate">
+                            {proyectoData?.nombre_centro_gestor || contractDataToShow.nombre_centro_gestor || 'N/A'}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">BPIN:</span>
+                          <div className="font-mono text-blue-600 dark:text-blue-400">
+                            {contractDataToShow.bpin || proyectoData?.bpin || 'N/A'}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Ubicación:</span>
+                          <div className="font-medium text-gray-900 dark:text-white truncate">
+                            {contractDataToShow.ciudad || contractDataToShow.departamento || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Proveedor */}
-                  <div className="space-y-4">
-                    <SectionHeader icon={User} title="Proveedor" />
-                    
-                    <InfoCard>
-                      <InfoField 
-                        icon={User} 
-                        label="Proveedor" 
-                        value={contrato.proveedor_adjudicado} 
-                      />
-                      <InfoField 
-                        icon={CreditCard} 
-                        label="Documento" 
-                        value={`${contrato.tipodocproveedor}: ${contrato.documento_proveedor}`} 
-                      />
-                      <InfoField 
-                        icon={Building2} 
-                        label="Es PYME" 
-                        value={contrato.es_pyme === 'Sí' ? 'Sí' : 'No'} 
-                        className={contrato.es_pyme === 'Sí' ? 'text-green-600 dark:text-green-400' : ''}
-                      />
-                      <InfoField 
-                        icon={User} 
-                        label="Es Grupo" 
-                        value={contrato.es_grupo === 'Sí' ? 'Sí' : 'No'} 
-                      />
-                    </InfoCard>
+                  {/* Columna Derecha */}
+                  <div className="space-y-4 flex flex-col min-h-0 flex-1">
+
+                    {/* Cronograma Gantt Compacto */}
+                    <div className={`${getInfoColors('cronograma').bg} ${getInfoColors('cronograma').border} border rounded-lg p-3`}>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <Calendar className={`w-4 h-4 ${getInfoColors('cronograma').icon}`} />
+                        Cronograma
+                      </h3>
+                      <ContractGantt contrato={contractDataToShow} />
+                    </div>
+
+                    {/* Detalles Contractuales Compactos */}
+                    <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800/50 dark:to-slate-800/50 rounded-lg p-3">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gray-600" />
+                        Detalles Contractuales
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Número:</span>
+                            <div className="font-mono text-gray-900 dark:text-white truncate">
+                              {contractDataToShow.numero_del_contrato || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Tipo:</span>
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {contractDataToShow.tipo_contrato || contractDataToShow.tipo_de_contrato || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Modalidad:</span>
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {contractDataToShow.modalidad_contratacion || contractDataToShow.modalidad_de_selecci_n || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Duración:</span>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {contractDataToShow.duración_contrato || contractDataToShow.duraci_n_del_contrato || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Código SECOP:</span>
+                            <div className="font-mono text-blue-600 dark:text-blue-400 truncate">
+                              {contractDataToShow.codigo_secop || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Supervisor:</span>
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {contractDataToShow.nombre_supervisor || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Fechas Importantes Compactas */}
+                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg p-3">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-indigo-600" />
+                        Fechas Clave
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Firma:</span>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {formatearFecha(contractDataToShow.fecha_de_firma || contractDataToShow.fecha_firma)}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Inicio:</span>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {formatearFecha(contractDataToShow.fecha_inicio_contrato || contractDataToShow.fecha_de_inicio_contrato)}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Fin:</span>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {formatearFecha(contractDataToShow.fecha_de_fin_del_contrato || contractDataToShow.fecha_fin_contrato)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Inicio Ejec.:</span>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {formatearFecha(contractDataToShow.fecha_inicio_ejecucion)}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Fin Ejec.:</span>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {formatearFecha(contractDataToShow.fecha_fin_ejecucion)}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Extracción:</span>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {formatearFecha(contractDataToShow._registro_origen?.fecha_extraccion)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Aspectos Legales Compactos */}
+                    <div className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-3">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-red-600" />
+                        Aspectos Legales
+                      </h3>
+                      <div className="space-y-1 text-xs">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Recursos:</span>
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {contractDataToShow.origen_recursos || contractDataToShow.fuente_de_recursos || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Rubro:</span>
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {contractDataToShow.rubro || contractDataToShow.destino_gasto || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Postconflicto:</span>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {contractDataToShow.espostconflicto || 'N/A'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Ambiental:</span>
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {contractDataToShow.obligación_ambiental || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Representante Legal */}
-                  {contrato.nombre_representante_legal && (
-                    <div className="space-y-4">
-                      <SectionHeader icon={User} title="Representante Legal" />
-                      
-                      <InfoCard>
-                        <InfoField 
-                          icon={User} 
-                          label="Nombre" 
-                          value={contrato.nombre_representante_legal} 
-                        />
-                        <InfoField 
-                          icon={CreditCard} 
-                          label="Identificación" 
-                          value={`${contrato.tipo_identificacion_representante_legal || 'N/A'}: ${contrato.identificacion_representante_legal || 'N/A'}`} 
-                        />
-                        <InfoField 
-                          icon={Globe} 
-                          label="Nacionalidad" 
-                          value={contrato.nacionalidad_representante_legal || 'N/A'} 
-                        />
-                        {contrato.edad_representante_legal && (
-                          <InfoField 
-                            icon={Calendar} 
-                            label="Edad" 
-                            value={`${contrato.edad_representante_legal} años`} 
-                          />
-                        )}
-                      </InfoCard>
+                  {/* Objeto del Contrato - Ancho Completo */}
+                  <div className="col-span-1 lg:col-span-2 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg p-3">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                      <Info className="w-4 h-4 text-amber-600" />
+                      Objeto del Contrato
+                    </h3>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {contractDataToShow.objeto_contrato || contractDataToShow.objeto_del_contrato || 'No se ha proporcionado una descripción del objeto del contrato.'}
+                    </p>
+                  </div>
+
+                  {/* Enlaces y acciones - Ancho Completo */}
+                  {(contractDataToShow.urlproceso?.url || contractDataToShow.urlproceso) && (
+                    <div className="col-span-1 lg:col-span-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                      <button
+                        onClick={() => {
+                          const url = contractDataToShow.urlproceso?.url || contractDataToShow.urlproceso
+                          if (typeof url === 'string' && url.trim()) {
+                            window.open(url.trim(), '_blank')
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors text-xs font-medium"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Ver en SECOP
+                      </button>
                     </div>
                   )}
 
-                  {/* Supervisor */}
-                  {contrato.nombre_supervisor && (
-                    <div className="space-y-4">
-                      <SectionHeader icon={User} title="Supervisor" />
-                      
-                      <InfoCard>
-                        <InfoField 
-                          icon={User} 
-                          label="Nombre" 
-                          value={contrato.nombre_supervisor} 
-                        />
-                        <InfoField 
-                          icon={CreditCard} 
-                          label="Identificación" 
-                          value={`${contrato.tipo_identificacion_supervisor || 'N/A'}: ${contrato.identificacion_supervisor || 'N/A'}`} 
-                        />
-                        {contrato.telefono_supervisor && (
-                          <InfoField 
-                            icon={Info} 
-                            label="Teléfono" 
-                            value={contrato.telefono_supervisor} 
-                          />
-                        )}
-                        {contrato.email_supervisor && (
-                          <InfoField 
-                            icon={Info} 
-                            label="Email" 
-                            value={contrato.email_supervisor} 
-                          />
-                        )}
-                      </InfoCard>
-                    </div>
-                  )}
-
-                  {/* Características especiales */}
-                  <div className="space-y-4">
-                    <SectionHeader icon={Shield} title="Características Especiales" />
-                    
-                    <InfoCard>
-                      <InfoField 
-                        icon={CheckCircle} 
-                        label="Obligación Ambiental" 
-                        value={contrato.obligación_ambiental} 
-                        className={contrato.obligación_ambiental === 'Sí' ? 'text-green-600 dark:text-green-400' : ''}
-                      />
-                      <InfoField 
-                        icon={Shield} 
-                        label="Post Conflicto" 
-                        value={contrato.espostconflicto} 
-                        className={contrato.espostconflicto === 'Sí' ? 'text-blue-600 dark:text-blue-400' : ''}
-                      />
-                      <InfoField 
-                        icon={DollarSign} 
-                        label="Pago Adelantado" 
-                        value={contrato.habilita_pago_adelantado ? 'Habilitado' : 'No habilitado'} 
-                      />
-                      <InfoField 
-                        icon={Info} 
-                        label="Liquidación" 
-                        value={contrato.liquidación} 
-                      />
-                    </InfoCard>
-                  </div>
                 </div>
-
-                {/* Descripción completa */}
-                {contrato.descripcion_proceso && (
-                  <div className="space-y-4">
-                    <SectionHeader icon={FileText} title="Descripción del Proceso" />
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {contrato.descripcion_proceso}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Enlaces */}
-                {contrato.urlproceso && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
-                    <button
-                      onClick={() => window.open(contrato.urlproceso, '_blank')}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Ver en SECOP
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
   )
 }
-
-// Componentes auxiliares
-const SectionHeader: React.FC<{ icon: React.ElementType; title: string }> = ({ 
-  icon: Icon, 
-  title 
-}) => (
-  <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-600">
-    <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-    <h4 className="font-semibold text-gray-900 dark:text-white">{title}</h4>
-  </div>
-)
-
-const InfoCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="bg-white dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600 p-4 space-y-3">
-    {children}
-  </div>
-)
-
-const InfoField: React.FC<{
-  icon: React.ElementType
-  label: string
-  value: string
-  className?: string
-}> = ({ icon: Icon, label, value, className = "" }) => (
-  <div className="flex items-start gap-3">
-    <Icon className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
-    <div className="min-w-0 flex-1">
-      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-        {label}
-      </p>
-      <p className={`text-sm font-medium text-gray-900 dark:text-white ${className}`}>
-        {value || 'No especificado'}
-      </p>
-    </div>
-  </div>
-)
 
 export default ContratosModal

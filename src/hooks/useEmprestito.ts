@@ -74,6 +74,7 @@ export interface EmprestitoContrato {
   objeto_del_contrato: string;
   duraci_n_del_contrato: string;
   nombre_del_banco: string;
+  banco: string; // Campo agregado para almacenar el banco de forma directa
   tipo_de_cuenta: string;
   n_mero_de_cuenta: string;
   el_contrato_puede_ser_prorrogado: string;
@@ -203,7 +204,14 @@ export const useEmprestito = (): EmprestitoState => {
         const contratosData = await contratosRes.json()
         
         // Los contratos ya vienen listos para usar en contratos_encontrados
-        const contratos: EmprestitoContrato[] = contratosData.contratos_encontrados || []
+        const contratos: EmprestitoContrato[] = contratosData.contratos_encontrados?.map((contrato: any) => {
+          const banco = contrato._registro_origen?.banco || contrato.banco || contrato.nombre_del_banco || 'No definido'
+          return {
+            ...contrato,
+            // Asegurar que el campo banco esté disponible directamente
+            banco: banco
+          }
+        }) || []
 
         // Generar proyectos sintéticos basados en los contratos para mantener compatibilidad
         const proyectos: EmprestitoProyecto[] = contratos.map((contrato, index) => ({

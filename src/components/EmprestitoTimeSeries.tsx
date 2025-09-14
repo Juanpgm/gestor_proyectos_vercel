@@ -27,154 +27,254 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
   data,
   loading = false
 }) => {
-  // Procesar datos para serie de tiempo acumulativa
+  // Procesar datos para serie de tiempo distribuyendo valores por duración de contratos
   const timeSeriesData = React.useMemo(() => {
-    if (!data.hechos || Object.keys(data.hechos).length === 0) {
+    if (!data.contratos || data.contratos.length === 0) {
       return []
     }
 
-    // Recopilar todos los periodos únicos
-    const periodosSet = new Set<string>()
-    Object.values(data.hechos).forEach(proyecto => {
-      Object.keys(proyecto).forEach(periodo => periodosSet.add(periodo))
-    })
+    // Crear estructura de datos por mes
+    const monthlyData = new Map<string, {
+      periodo: string
+      valorContratoPeriodo: number
+      valorFacturadoPeriodo: number
+      valorPagadoPeriodo: number
+      valorContratoAcumulado: number
+      valorFacturadoAcumulado: number
+      valorPagadoAcumulado: number
+      contratosFirmados: number
+      contratosActivos: number
+      ejecucionPresupuestal: number
+      nivelPagos: number
+    }>()
 
-    const periodosOrdenados = Array.from(periodosSet).sort()
+    // Generar meses desde enero 2023 hasta diciembre 2025
+    const startDate = new Date(2023, 0, 1)
+    const endDate = new Date(2025, 11, 31)
+    const currentDate = new Date(startDate)
 
-    // Primera pasada: calcular todos los valores del periodo para obtener máximos
-    const valoresPeriodo = periodosOrdenados.map(periodo => {
-      let desembolsoPeriodo = 0
-      let desembolsoRealPeriodo = 0
-
-      Object.values(data.hechos).forEach(proyecto => {
-        if (proyecto[periodo]) {
-          const periodData = proyecto[periodo]
-          desembolsoPeriodo += periodData.desembolso || 0
-          desembolsoRealPeriodo += periodData.desembolso_real || 0
-        }
-      })
-
-      return { desembolsoPeriodo, desembolsoRealPeriodo }
-    })
-
-    const maxDesembolsoPeriodo = Math.max(...valoresPeriodo.map(v => v.desembolsoPeriodo))
-    const maxDesembolsoRealPeriodo = Math.max(...valoresPeriodo.map(v => v.desembolsoRealPeriodo))
-
-    // Función para calcular intensidad de color
-    const getBlueIntensity = (value: number, maxValue: number) => {
-      if (maxValue === 0) return '#93C5FD'
-      const intensity = Math.max(0.3, value / maxValue)
-      const base = [59, 130, 246] // #3B82F6
-      const light = [147, 197, 253] // #93C5FD
-      const r = Math.round(light[0] + (base[0] - light[0]) * intensity)
-      const g = Math.round(light[1] + (base[1] - light[1]) * intensity)
-      const b = Math.round(light[2] + (base[2] - light[2]) * intensity)
-      return `rgb(${r}, ${g}, ${b})`
-    }
-
-    const getRedIntensity = (value: number, maxValue: number) => {
-      if (maxValue === 0) return '#FCA5A5'
-      const intensity = Math.max(0.3, value / maxValue)
-      const base = [239, 68, 68] // #EF4444
-      const light = [252, 165, 165] // #FCA5A5
-      const r = Math.round(light[0] + (base[0] - light[0]) * intensity)
-      const g = Math.round(light[1] + (base[1] - light[1]) * intensity)
-      const b = Math.round(light[2] + (base[2] - light[2]) * intensity)
-      return `rgb(${r}, ${g}, ${b})`
-    }
-
-    // Calcular datos acumulativos por periodo
-    let desembolsoAcumulado = 0
-    let desembolsoRealAcumulado = 0
-    let avanceAcumulado = 0
-    let avanceRealAcumulado = 0
-
-    const seriesData = periodosOrdenados.map(periodo => {
-      let desembolsoPeriodo = 0
-      let desembolsoRealPeriodo = 0
-      let avancePeriodo = 0
-      let avanceRealPeriodo = 0
-      let proyectosActivos = 0
-
-      // Sumar todos los valores del periodo
-      Object.values(data.hechos).forEach(proyecto => {
-        if (proyecto[periodo]) {
-          const periodData = proyecto[periodo]
-          desembolsoPeriodo += periodData.desembolso || 0
-          desembolsoRealPeriodo += periodData.desembolso_real || 0
-          avancePeriodo += periodData.avance || 0
-          avanceRealPeriodo += periodData.avance_real || 0
-          proyectosActivos++
-        }
-      })
-
-      // Acumular valores
-      desembolsoAcumulado += desembolsoPeriodo
-      desembolsoRealAcumulado += desembolsoRealPeriodo
-
-      // Para avance, calculamos el promedio del periodo
-      const avancePromedioPeriodo = proyectosActivos > 0 ? avancePeriodo / proyectosActivos : 0
-      const avanceRealPromedioPeriodo = proyectosActivos > 0 ? avanceRealPeriodo / proyectosActivos : 0
-
-      return {
+    // Inicializar todos los meses
+    while (currentDate <= endDate) {
+      const periodo = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+      monthlyData.set(periodo, {
         periodo: periodo.replace('-', '/'),
-        periodoOriginal: periodo,
-        // Barras - Montos del periodo (sin acumular)
-        desembolsoPeriodo,
-        desembolsoRealPeriodo,
-        // Colores dinámicos basados en valores
-        desembolsoPeriodoColor: getBlueIntensity(desembolsoPeriodo, maxDesembolsoPeriodo),
-        desembolsoRealPeriodoColor: getRedIntensity(desembolsoRealPeriodo, maxDesembolsoRealPeriodo),
-        // Líneas - Montos acumulados
-        desembolsoAcumulado,
-        desembolsoRealAcumulado,
-        // Avances promedio del periodo para tooltips
-        avancePromedio: avancePromedioPeriodo * 100, // Convertir a porcentaje
-        avanceRealPromedio: avanceRealPromedioPeriodo * 100,
-        proyectosActivos,
-        // Formateo para tooltips
-        desembolsoAcumuladoFormatted: formatNumber(desembolsoAcumulado, 'currency'),
-        desembolsoRealAcumuladoFormatted: formatNumber(desembolsoRealAcumulado, 'currency'),
-        desembolsoPeriodoFormatted: formatNumber(desembolsoPeriodo, 'currency'),
-        desembolsoRealPeriodoFormatted: formatNumber(desembolsoRealPeriodo, 'currency')
-      }
-    }).slice(-60) // Últimos 60 meses (incluye proyecciones 2025-2027)
+        valorContratoPeriodo: 0,
+        valorFacturadoPeriodo: 0,
+        valorPagadoPeriodo: 0,
+        valorContratoAcumulado: 0,
+        valorFacturadoAcumulado: 0,
+        valorPagadoAcumulado: 0,
+        contratosFirmados: 0,
+        contratosActivos: 0,
+        ejecucionPresupuestal: 0,
+        nivelPagos: 0
+      })
+      currentDate.setMonth(currentDate.getMonth() + 1)
+    }
 
-    return seriesData
-  }, [data.hechos])
+    // Función para obtener la duración en meses entre dos fechas
+    const getMonthsBetween = (startDate: Date, endDate: Date): number => {
+      const years = endDate.getFullYear() - startDate.getFullYear()
+      const months = endDate.getMonth() - startDate.getMonth()
+      return years * 12 + months + 1 // +1 para incluir el mes de inicio
+    }
+
+    // Función para generar array de períodos entre dos fechas
+    const getPeriodsInRange = (startDate: Date, endDate: Date): string[] => {
+      const periods: string[] = []
+      const current = new Date(startDate)
+      
+      while (current <= endDate) {
+        const periodo = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`
+        periods.push(periodo)
+        current.setMonth(current.getMonth() + 1)
+      }
+      
+      return periods
+    }
+
+    // Procesar cada contrato y distribuir valores durante su vigencia
+    data.contratos.forEach(contrato => {
+      // Determinar fechas de inicio y fin
+      let fechaInicio: Date | null = null
+      let fechaFin: Date | null = null
+
+      // Priorizar fecha_de_firma como inicio si no hay fecha de inicio específica
+      if (contrato.fecha_de_firma) {
+        fechaInicio = new Date(contrato.fecha_de_firma)
+      }
+
+      // Usar fecha_de_fin_del_contrato como fin
+      if (contrato.fecha_de_fin_del_contrato) {
+        fechaFin = new Date(contrato.fecha_de_fin_del_contrato)
+      }
+
+      // Solo procesar si tenemos ambas fechas
+      if (fechaInicio && fechaFin && fechaInicio <= fechaFin) {
+        // Calcular duración en meses
+        const duracionMeses = getMonthsBetween(fechaInicio, fechaFin)
+        
+        // Distribuir valores mensualmente
+        const valorMensualContrato = (contrato.valor_del_contrato || 0) / duracionMeses
+        const valorMensualFacturado = (contrato.valor_facturado || 0) / duracionMeses
+        const valorMensualPagado = (contrato.valor_pagado || 0) / duracionMeses
+
+        // Obtener todos los períodos en el rango del contrato
+        const periodosContrato = getPeriodsInRange(fechaInicio, fechaFin)
+
+        // Distribuir valores en cada período
+        periodosContrato.forEach((periodo, index) => {
+          const monthData = monthlyData.get(periodo)
+          if (monthData) {
+            monthData.valorContratoPeriodo += valorMensualContrato
+            monthData.valorFacturadoPeriodo += valorMensualFacturado
+            monthData.valorPagadoPeriodo += valorMensualPagado
+            monthData.contratosActivos += 1
+
+            // Contar como contrato firmado solo en el primer mes
+            if (index === 0) {
+              monthData.contratosFirmados += 1
+            }
+          }
+        })
+      } else {
+        // Fallback: si no hay fechas válidas, asignar al mes de firma
+        if (contrato.fecha_de_firma) {
+          const fechaFirma = new Date(contrato.fecha_de_firma)
+          const periodo = `${fechaFirma.getFullYear()}-${String(fechaFirma.getMonth() + 1).padStart(2, '0')}`
+          
+          const existing = monthlyData.get(periodo)
+          if (existing) {
+            existing.valorContratoPeriodo += contrato.valor_del_contrato || 0
+            existing.valorFacturadoPeriodo += contrato.valor_facturado || 0
+            existing.valorPagadoPeriodo += contrato.valor_pagado || 0
+            existing.contratosFirmados += 1
+            existing.contratosActivos += 1
+          }
+        }
+      }
+    })
+
+    // Calcular acumulados y métricas
+    let valorContratoAcum = 0
+    let valorFacturadoAcum = 0
+    let valorPagadoAcum = 0
+
+    const sortedPeriods = Array.from(monthlyData.keys()).sort()
+    
+    sortedPeriods.forEach(periodo => {
+      const data = monthlyData.get(periodo)!
+      
+      // Acumular valores
+      valorContratoAcum += data.valorContratoPeriodo
+      valorFacturadoAcum += data.valorFacturadoPeriodo
+      valorPagadoAcum += data.valorPagadoPeriodo
+      
+      // Actualizar datos acumulados
+      data.valorContratoAcumulado = valorContratoAcum
+      data.valorFacturadoAcumulado = valorFacturadoAcum
+      data.valorPagadoAcumulado = valorPagadoAcum
+      
+      // Calcular métricas de ejecución
+      data.ejecucionPresupuestal = valorContratoAcum > 0 ? (valorFacturadoAcum / valorContratoAcum) * 100 : 0
+      data.nivelPagos = valorFacturadoAcum > 0 ? (valorPagadoAcum / valorFacturadoAcum) * 100 : 0
+    })
+
+    // Convertir a array y filtrar períodos con datos
+    const timeSeriesArray = Array.from(monthlyData.values())
+      .filter(data => data.valorContratoAcumulado > 0 || data.valorFacturadoAcumulado > 0 || data.valorPagadoAcumulado > 0)
+      .slice(-36) // Últimos 36 meses
+
+    return timeSeriesArray
+  }, [data.contratos])
+
+  // Función para obtener color de intensidad para las barras
+  const getColorIntensity = (value: number, maxValue: number, baseColor: [number, number, number]) => {
+    if (maxValue === 0) return `rgb(${baseColor[0]}, ${baseColor[1]}, ${baseColor[2]})`
+    const intensity = Math.max(0.3, value / maxValue)
+    const lightColor = [baseColor[0] + (255 - baseColor[0]) * 0.6, baseColor[1] + (255 - baseColor[1]) * 0.6, baseColor[2] + (255 - baseColor[2]) * 0.6]
+    const r = Math.round(lightColor[0] + (baseColor[0] - lightColor[0]) * intensity)
+    const g = Math.round(lightColor[1] + (baseColor[1] - lightColor[1]) * intensity)
+    const b = Math.round(lightColor[2] + (baseColor[2] - lightColor[2]) * intensity)
+    return `rgb(${r}, ${g}, ${b})`
+  }
+
+  // Calcular máximos para colores dinámicos
+  const maxValorContrato = Math.max(...timeSeriesData.map(d => d.valorContratoPeriodo))
+  const maxValorFacturado = Math.max(...timeSeriesData.map(d => d.valorFacturadoPeriodo))
+  const maxValorPagado = Math.max(...timeSeriesData.map(d => d.valorPagadoPeriodo))
+
+    // Datos enriquecidos con colores
+    const enrichedData = timeSeriesData.map(data => ({
+      ...data,
+      colorContrato: getColorIntensity(data.valorContratoPeriodo, maxValorContrato, [37, 99, 235]), // Blue
+      colorFacturado: getColorIntensity(data.valorFacturadoPeriodo, maxValorFacturado, [234, 179, 8]), // Yellow
+      colorPagado: getColorIntensity(data.valorPagadoPeriodo, maxValorPagado, [22, 163, 74]), // Green
+      
+      // Formateo para tooltips
+      valorContratoFormatted: formatNumber(data.valorContratoPeriodo, 'currency'),
+      valorFacturadoFormatted: formatNumber(data.valorFacturadoPeriodo, 'currency'),
+      valorPagadoFormatted: formatNumber(data.valorPagadoPeriodo, 'currency'),
+      valorContratoAcumFormatted: formatNumber(data.valorContratoAcumulado, 'currency'),
+      valorFacturadoAcumFormatted: formatNumber(data.valorFacturadoAcumulado, 'currency'),
+      valorPagadoAcumFormatted: formatNumber(data.valorPagadoAcumulado, 'currency'),
+      ejecucionPresupuestalFormatted: `${data.ejecucionPresupuestal.toFixed(1)}%`,
+      nivelPagosFormatted: `${data.nivelPagos.toFixed(1)}%`
+    }))
 
   // Tooltip personalizado
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
+        <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-w-xs">
           <p className="font-semibold text-gray-900 dark:text-white mb-2">{label}</p>
+          
           <div className="space-y-1 text-sm">
-            <div className="text-gray-600 dark:text-gray-400 font-medium mb-1">Desembolsos del Periodo:</div>
+            <div className="text-gray-600 dark:text-gray-400 font-medium mb-1">Valores Distribuidos del Período:</div>
             <div className="flex justify-between items-center ml-2">
-              <span className="text-blue-600 dark:text-blue-400">Planeado:</span>
-              <span className="font-medium">{data.desembolsoPeriodoFormatted}</span>
+              <span className="text-blue-600 dark:text-blue-400">Valor Contrato:</span>
+              <span className="font-medium">{data.valorContratoFormatted}</span>
             </div>
             <div className="flex justify-between items-center ml-2">
-              <span className="text-red-600 dark:text-red-400">Real:</span>
-              <span className="font-medium">{data.desembolsoRealPeriodoFormatted}</span>
-            </div>
-            
-            <div className="text-gray-600 dark:text-gray-400 font-medium mb-1 mt-3">Desembolsos Acumulados:</div>
-            <div className="flex justify-between items-center ml-2">
-              <span className="text-blue-600 dark:text-blue-400">Planeado:</span>
-              <span className="font-medium">{data.desembolsoAcumuladoFormatted}</span>
+              <span className="text-yellow-600 dark:text-yellow-400">Facturado:</span>
+              <span className="font-medium">{data.valorFacturadoFormatted}</span>
             </div>
             <div className="flex justify-between items-center ml-2">
-              <span className="text-red-600 dark:text-red-400">Real:</span>
-              <span className="font-medium">{data.desembolsoRealAcumuladoFormatted}</span>
+              <span className="text-green-600 dark:text-green-400">Pagado:</span>
+              <span className="font-medium">{data.valorPagadoFormatted}</span>
             </div>
             
-            <div className="border-t pt-1 mt-2">
+            <div className="text-gray-600 dark:text-gray-400 font-medium mb-1 mt-3">Valores Acumulados:</div>
+            <div className="flex justify-between items-center ml-2">
+              <span className="text-blue-600 dark:text-blue-400">Total Contratos:</span>
+              <span className="font-medium">{data.valorContratoAcumFormatted}</span>
+            </div>
+            <div className="flex justify-between items-center ml-2">
+              <span className="text-yellow-600 dark:text-yellow-400">Total Facturado:</span>
+              <span className="font-medium">{data.valorFacturadoAcumFormatted}</span>
+            </div>
+            <div className="flex justify-between items-center ml-2">
+              <span className="text-green-600 dark:text-green-400">Total Pagado:</span>
+              <span className="font-medium">{data.valorPagadoAcumFormatted}</span>
+            </div>
+            
+            <div className="border-t pt-2 mt-2">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Proyectos Activos:</span>
-                <span className="font-medium">{data.proyectosActivos}</span>
+                <span className="text-gray-600 dark:text-gray-400">Ejecución Presupuestal:</span>
+                <span className="font-medium text-purple-600 dark:text-purple-400">{data.ejecucionPresupuestalFormatted}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400">Nivel de Pagos:</span>
+                <span className="font-medium text-orange-600 dark:text-orange-400">{data.nivelPagosFormatted}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400">Contratos Activos:</span>
+                <span className="font-medium">{data.contratosActivos}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-400">Contratos Firmados:</span>
+                <span className="font-medium">{data.contratosFirmados}</span>
               </div>
             </div>
           </div>
@@ -200,7 +300,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
     )
   }
 
-  if (timeSeriesData.length === 0) {
+  if (enrichedData.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -217,7 +317,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
               Serie de Tiempo - Empréstito
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Evolución temporal de métricas acumulativas
+              Evolución temporal de ejecución presupuestal y pagos
             </p>
           </div>
         </div>
@@ -244,7 +344,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
             Serie de Tiempo - Empréstito
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Desembolsos del periodo (barras) y acumulados (líneas) - últimos 60 meses incluyendo proyecciones
+            Valores distribuidos mensualmente durante la vigencia de contratos (barras) y acumulados históricos (líneas)
           </p>
         </div>
       </div>
@@ -252,7 +352,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
       <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart 
-            data={timeSeriesData} 
+            data={enrichedData} 
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
@@ -280,47 +380,67 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             
-            {/* Barras para desembolsos del periodo (sin acumular) - Eje derecho con escala ajustada */}
+            {/* Barras para valores del período */}
             <Bar 
               yAxisId="right"
-              dataKey="desembolsoPeriodo" 
-              name="Desembolso Planeado (Periodo)"
+              dataKey="valorContratoPeriodo" 
+              name="Valor Contrato (Período)"
               opacity={0.8}
             >
-              {timeSeriesData.map((entry, index) => (
-                <Cell key={`cell-planeado-${index}`} fill={entry.desembolsoPeriodoColor} />
+              {enrichedData.map((entry, index) => (
+                <Cell key={`cell-contrato-${index}`} fill={entry.colorContrato} />
               ))}
             </Bar>
             <Bar 
               yAxisId="right"
-              dataKey="desembolsoRealPeriodo" 
-              name="Desembolso Real (Periodo)"
+              dataKey="valorFacturadoPeriodo" 
+              name="Valor Facturado (Período)"
               opacity={0.8}
             >
-              {timeSeriesData.map((entry, index) => (
-                <Cell key={`cell-real-${index}`} fill={entry.desembolsoRealPeriodoColor} />
+              {enrichedData.map((entry, index) => (
+                <Cell key={`cell-facturado-${index}`} fill={entry.colorFacturado} />
+              ))}
+            </Bar>
+            <Bar 
+              yAxisId="right"
+              dataKey="valorPagadoPeriodo" 
+              name="Valor Pagado (Período)"
+              opacity={0.8}
+            >
+              {enrichedData.map((entry, index) => (
+                <Cell key={`cell-pagado-${index}`} fill={entry.colorPagado} />
               ))}
             </Bar>
             
-            {/* Líneas para desembolsos acumulados - Eje izquierdo */}
+            {/* Líneas para valores acumulados */}
             <Line 
               yAxisId="left"
               type="monotone" 
-              dataKey="desembolsoAcumulado" 
-              stroke="#3B82F6"
+              dataKey="valorContratoAcumulado" 
+              stroke="#2563EB"
               strokeWidth={3}
-              name="Desembolso Planeado (Acumulado)"
-              dot={{ fill: "#3B82F6", strokeWidth: 2, r: 4 }}
+              name="Valor Contrato (Acumulado)"
+              dot={{ fill: "#2563EB", strokeWidth: 2, r: 4 }}
               connectNulls={false}
             />
             <Line 
               yAxisId="left"
               type="monotone" 
-              dataKey="desembolsoRealAcumulado" 
-              stroke="#EF4444"
+              dataKey="valorFacturadoAcumulado" 
+              stroke="#EAB308"
               strokeWidth={3}
-              name="Desembolso Real (Acumulado)"
-              dot={{ fill: "#EF4444", strokeWidth: 2, r: 4 }}
+              name="Valor Facturado (Acumulado)"
+              dot={{ fill: "#EAB308", strokeWidth: 2, r: 4 }}
+              connectNulls={false}
+            />
+            <Line 
+              yAxisId="left"
+              type="monotone" 
+              dataKey="valorPagadoAcumulado" 
+              stroke="#16A34A"
+              strokeWidth={3}
+              name="Valor Pagado (Acumulado)"
+              dot={{ fill: "#16A34A", strokeWidth: 2, r: 4 }}
               connectNulls={false}
             />
           </ComposedChart>

@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
 import { useProyectos } from '@/hooks/useProyectos'
-import { useContratosCompletos } from '@/hooks/useContratosCompletos'
 import { useEmprestito } from '@/hooks/useEmprestito'
 import ContractDetailCard from '@/components/ContractDetailCard'
 
@@ -60,6 +59,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
   const [selectedCentroGestor, setSelectedCentroGestor] = useState('')
   const [selectedTipoContrato, setSelectedTipoContrato] = useState('')
   const [selectedEstadoContrato, setSelectedEstadoContrato] = useState('')
+  const [selectedBanco, setSelectedBanco] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [expandedProject, setExpandedProject] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -67,7 +67,6 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
 
   // Hooks para datos
   const proyectosState = useProyectos()
-  const contratosState = useContratosCompletos()
   const emprestitoState = useEmprestito()
 
   // Estado para mapa BPIN -> BP
@@ -96,86 +95,127 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     loadBpinToBpMap()
   }, [])
 
-  // Integración de datos usando la misma lógica que la sección "Contratos"
+  // Integración de datos - mostrar TODOS los contratos de empréstito
   const integratedData = useMemo(() => {
-    if (!proyectosState.proyectos || !contratosState.contratos) {
+    if (!emprestitoState.data.contratos) {
       return []
     }
 
-    const proyectos = proyectosState.proyectos
-    const contratos = contratosState.contratos
+    const proyectos = proyectosState.proyectos || []
+    const contratosEmprestito = emprestitoState.data.contratos
     
-    // Obtener BPINs válidos de los contratos de empréstito
-    const validBpins = emprestitoState.data.contratos
-      .map(contrato => contrato.bpin)
-      .filter(bpin => bpin !== null && bpin !== undefined)
-      .map(bpin => parseInt(bpin as string))
-      .filter(bpin => !isNaN(bpin))
-
-    // Crear un mapa de proyectos válidos desde los contratos de empréstito
-    const validBpinSet = new Set(validBpins)
-
-    // Crear un mapa de información de empréstito por BPIN
-    const emprestitoInfoMap = emprestitoState.data.contratos.reduce((acc, contrato) => {
-      if (contrato.bpin && !isNaN(parseInt(contrato.bpin))) {
-        const bpin = parseInt(contrato.bpin)
-        acc[bpin] = {
-          banco: contrato._registro_origen?.banco || '',
-          bp: bpinToBpMap[bpin] || contrato.id_contrato || '', // Usar BP real del mapa
-          nombre_comercial: contrato.objeto_del_contrato || ''
-        }
+    // Crear un mapa de proyectos por BPIN para referencia rápida
+    const proyectosPorBpin = proyectos.reduce((acc: Record<number, any>, proyecto: any) => {
+      if (proyecto.bpin) {
+        acc[proyecto.bpin] = proyecto
       }
       return acc
     }, {} as Record<number, any>)
-
-    // Agrupar contratos por BPIN - sin filtros, solo por BPIN válido
-    const contratosPorBpin = contratos.reduce((acc: Record<number, any[]>, contrato: any) => {
-      if (!contrato.bpin) return acc
-      
-      // Solo incluir contratos si el BPIN está en empréstito (proyectos de empréstito)
-      if (validBpinSet.has(contrato.bpin)) {
-        if (!acc[contrato.bpin]) {
-          acc[contrato.bpin] = []
-        }
-        acc[contrato.bpin].push(contrato)
+    
+    // Separar contratos con BPIN y sin BPIN
+    const contratosConBpin: any[] = []
+    const contratosSinBpin: any[] = []
+    
+    contratosEmprestito.forEach((contrato: any) => {
+      if (contrato.bpin) {
+        contratosConBpin.push(contrato)
+      } else {
+        contratosSinBpin.push(contrato)
       }
+    })
+    
+    // Crear un mapa de contratos con BPIN por BPIN
+    const contratosPorBpin = contratosConBpin.reduce((acc: Record<number, any[]>, contrato: any) => {
+      const bpin = parseInt(contrato.bpin)
+      if (isNaN(bpin)) return acc
+      
+      if (!acc[bpin]) {
+        acc[bpin] = []
+      }
+      acc[bpin].push(contrato)
       
       return acc
     }, {} as Record<number, any[]>)
 
-    // Filtrar solo proyectos que estén en los contratos de empréstito
-    const proyectosFiltrados = proyectos.filter((proyecto: any) => 
-      validBpinSet.has(proyecto.bpin)
-    )
+    const result: ProjectWithContracts[] = []
 
-    // Integrar proyectos con sus contratos
-    return proyectosFiltrados.map((proyecto: any) => {
-      const contratosAsociados = contratosPorBpin[proyecto.bpin] || []
-      const emprestitoInfo = emprestitoInfoMap[proyecto.bpin]
+    // 1. Procesar contratos con BPIN
+    const validBpins = Object.keys(contratosPorBpin).map(k => parseInt(k))
+    
+    validBpins.forEach((bpin: number) => {
+      const contratosAsociados = contratosPorBpin[bpin] || []
+      const proyectoExistente = proyectosPorBpin[bpin]
+      const primerContrato = contratosAsociados[0]
       
-      return {
-        ...proyecto,
+      result.push({
+        // Datos del proyecto (reales o generados)
+        bpin: bpin,
+        nombre_proyecto: proyectoExistente?.nombre_proyecto || primerContrato?.descripcion_del_proceso || `Proyecto BPIN ${bpin}`,
+        nombre_actividad: proyectoExistente?.nombre_actividad || primerContrato?.objeto_del_contrato || 'Actividad no especificada',
+        nombre_centro_gestor: proyectoExistente?.nombre_centro_gestor || primerContrato?.nombre_entidad || 'Centro gestor no especificado',
+        nombre_programa: proyectoExistente?.nombre_programa || 'Programa no especificado',
+        tipo_gasto: proyectoExistente?.tipo_gasto || 'No especificado',
+        tipo_objetivo: proyectoExistente?.tipo_objetivo || 'No especificado',
+        anio: proyectoExistente?.anio || new Date().getFullYear(),
+        valor_proyecto: proyectoExistente?.valor_proyecto || contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_del_contrato || c.valor_contrato || 0), 0),
+        
+        // Datos de contratos
         contratos: contratosAsociados,
         contratosCount: contratosAsociados.length,
         totalValueContratos: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_del_contrato || c.valor_contrato || 0), 0),
         valorPagado: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_pagado || 0), 0),
-        valorPendiente: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_pendiente_pago || 0), 0),
+        valorPendiente: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_pendiente_de_pago || c.valor_pendiente_pago || 0), 0),
         estadosContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.estado_contrato).filter(Boolean))),
-        tiposContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.tipo_contrato || c.tipo_de_contrato).filter(Boolean))),
+        tiposContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.tipo_de_contrato || c.tipo_contrato).filter(Boolean))),
+        
         // Datos de empréstito
-        isEmprestito: !!emprestitoInfo,
-        valor_emprestito: 0, // No disponible en emp_contratos.json
-        fuente_emprestito: emprestitoInfo?.banco || '',
-        bp: emprestitoInfo?.bp || '',
-        nombre_comercial: emprestitoInfo?.nombre_comercial || ''
-      } as ProjectWithContracts
-    }).sort((a: any, b: any) => {
-      // Ordenar: proyectos con contratos primero, luego por valor
-      if (a.contratosCount > 0 && b.contratosCount === 0) return -1
-      if (a.contratosCount === 0 && b.contratosCount > 0) return 1
+        isEmprestito: true,
+        valor_emprestito: 0,
+        fuente_emprestito: primerContrato?._registro_origen?.banco || primerContrato?.banco || '',
+        bp: bpinToBpMap[bpin] || '',
+        nombre_comercial: primerContrato?.objeto_del_contrato || ''
+      } as ProjectWithContracts)
+    })
+
+    // 2. Procesar contratos sin BPIN - crear entradas individuales
+    contratosSinBpin.forEach((contrato: any, index: number) => {
+      const bpinVirtual = -(index + 1) // BPIN negativo para identificar contratos sin BPIN
+      
+      result.push({
+        // Datos generados para contrato sin BPIN
+        bpin: bpinVirtual,
+        nombre_proyecto: contrato.descripcion_del_proceso || `Contrato sin BPIN ${Math.abs(bpinVirtual)}`,
+        nombre_actividad: contrato.objeto_del_contrato || 'Actividad no especificada',
+        nombre_centro_gestor: contrato.nombre_entidad || 'Centro gestor no especificado',
+        nombre_programa: 'Programa no especificado',
+        tipo_gasto: 'No especificado',
+        tipo_objetivo: 'No especificado',
+        anio: new Date().getFullYear(),
+        valor_proyecto: contrato.valor_del_contrato || contrato.valor_contrato || 0,
+        
+        // Datos de contratos
+        contratos: [contrato],
+        contratosCount: 1,
+        totalValueContratos: contrato.valor_del_contrato || contrato.valor_contrato || 0,
+        valorPagado: contrato.valor_pagado || 0,
+        valorPendiente: contrato.valor_pendiente_de_pago || contrato.valor_pendiente_pago || 0,
+        estadosContratos: contrato.estado_contrato ? [contrato.estado_contrato] : [],
+        tiposContratos: (contrato.tipo_de_contrato || contrato.tipo_contrato) ? [contrato.tipo_de_contrato || contrato.tipo_contrato] : [],
+        
+        // Datos de empréstito
+        isEmprestito: true,
+        valor_emprestito: 0,
+        fuente_emprestito: contrato._registro_origen?.banco || contrato.banco || '',
+        bp: '',
+        nombre_comercial: contrato.objeto_del_contrato || ''
+      } as ProjectWithContracts)
+    })
+
+    // Ordenar por valor total de contratos descendente
+    return result.sort((a: any, b: any) => {
       return b.totalValueContratos - a.totalValueContratos
     })
-  }, [proyectosState.proyectos, contratosState.contratos, emprestitoState.data.contratos, bpinToBpMap])
+  }, [proyectosState.proyectos, emprestitoState.data.contratos, bpinToBpMap])
 
   // Opciones dinámicas para filtros
   const centrosGestor = useMemo(() => {
@@ -197,6 +237,20 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
       integratedData.flatMap(p => p.estadosContratos)
     )
     return Array.from(uniqueEstados).sort()
+  }, [integratedData])
+
+  const bancosContrato = useMemo(() => {
+    const uniqueBancos = new Set<string>()
+    integratedData.forEach(p => {
+      p.contratos.forEach((contrato: any) => {
+        // Los contratos ahora vienen directamente de empréstito con el campo banco
+        const banco = contrato.banco || contrato._registro_origen?.banco || contrato.nombre_del_banco
+        if (banco && banco !== 'No definido' && banco.trim() !== '') {
+          uniqueBancos.add(banco)
+        }
+      })
+    })
+    return Array.from(uniqueBancos).sort()
   }, [integratedData])
 
   // Datos filtrados - búsqueda mejorada y filtros por estado y tipo
@@ -237,9 +291,16 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
       const matchesEstadoContrato = selectedEstadoContrato === '' || 
         project.contratos.some((c: any) => c.estado_contrato === selectedEstadoContrato)
 
-      return matchesSearch && matchesCentroGestor && matchesTipoContrato && matchesEstadoContrato
+      // Filtro por banco - verificar que al menos un contrato tenga el banco seleccionado
+      const matchesBanco = selectedBanco === '' || 
+        project.contratos.some((c: any) => {
+          const banco = c.banco || c._registro_origen?.banco || c.nombre_del_banco
+          return banco === selectedBanco
+        })
+
+      return matchesSearch && matchesCentroGestor && matchesTipoContrato && matchesEstadoContrato && matchesBanco
     })
-  }, [integratedData, searchTerm, selectedCentroGestor, selectedTipoContrato, selectedEstadoContrato])
+  }, [integratedData, searchTerm, selectedCentroGestor, selectedTipoContrato, selectedEstadoContrato, selectedBanco])
 
   // Sin filtros adicionales - usar datos directamente
   const finalFilteredData = filteredData
@@ -248,7 +309,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
   React.useEffect(() => {
     if (onFilteredBpinsChange) {
       // Verificar si hay filtros activos
-      const hasActiveFilters = searchTerm || selectedCentroGestor || selectedTipoContrato || selectedEstadoContrato
+      const hasActiveFilters = searchTerm || selectedCentroGestor || selectedTipoContrato || selectedEstadoContrato || selectedBanco
       
       if (hasActiveFilters) {
         // Si hay filtros activos, comunicar los BPIN específicos (puede ser array vacío si no hay resultados)
@@ -259,7 +320,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
         onFilteredBpinsChange(undefined)
       }
     }
-  }, [finalFilteredData, searchTerm, selectedCentroGestor, selectedTipoContrato, selectedEstadoContrato, onFilteredBpinsChange])
+  }, [finalFilteredData, searchTerm, selectedCentroGestor, selectedTipoContrato, selectedEstadoContrato, selectedBanco, onFilteredBpinsChange])
 
   // Paginación usando finalFilteredData
   const totalPages = Math.ceil(finalFilteredData.length / itemsPerPage)
@@ -279,6 +340,12 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
       const matchesEstadoContrato = selectedEstadoContrato === '' || 
         contrato.estado_contrato === selectedEstadoContrato
 
+      // Filtro por banco
+      const matchesBanco = selectedBanco === '' || (() => {
+        const banco = contrato.banco || contrato._registro_origen?.banco || contrato.nombre_del_banco
+        return banco === selectedBanco
+      })()
+
       // Filtro por búsqueda en contratos
       const matchesSearchInContract = searchTerm === '' ||
         (contrato.descripcion_proceso || contrato.descripcion_del_proceso || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -290,9 +357,9 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
         (contrato.estado_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (contrato.modalidad_contratacion || contrato.modalidad_de_contratacion || '').toLowerCase().includes(searchTerm.toLowerCase())
 
-      return matchesTipoContrato && matchesEstadoContrato && matchesSearchInContract
+      return matchesTipoContrato && matchesEstadoContrato && matchesBanco && matchesSearchInContract
     })
-  }, [selectedTipoContrato, selectedEstadoContrato, searchTerm])
+  }, [selectedTipoContrato, selectedEstadoContrato, selectedBanco, searchTerm])
 
   // Métricas usando finalFilteredData - calculando contratos que realmente pasan los filtros
   const totalContratos = finalFilteredData.reduce((sum, p) => {
@@ -322,6 +389,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     setSelectedCentroGestor('')
     setSelectedTipoContrato('')
     setSelectedEstadoContrato('')
+    setSelectedBanco('')
     setCurrentPage(1)
   }
 
@@ -330,10 +398,11 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     if (selectedCentroGestor) filters.push(`Centro: ${selectedCentroGestor}`)
     if (selectedTipoContrato) filters.push(`Tipo: ${selectedTipoContrato}`)
     if (selectedEstadoContrato) filters.push(`Estado: ${selectedEstadoContrato}`)
+    if (selectedBanco) filters.push(`Banco: ${selectedBanco}`)
     return filters.length > 0 ? ` (${filters.join(', ')})` : ''
   }
 
-  const loading = proyectosState.loading || contratosState.loading || emprestitoState.loading
+  const loading = proyectosState.loading || emprestitoState.loading
 
   if (loading) {
     return (
@@ -480,6 +549,25 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                       ))}
                     </select>
                   </div>
+
+                  {/* Banco */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Banco
+                    </label>
+                    <select
+                      value={selectedBanco}
+                      onChange={(e) => setSelectedBanco(e.target.value)}
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">Todos los bancos</option>
+                      {bancosContrato.map(banco => (
+                        <option key={banco} value={banco}>
+                          {banco}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Limpiar filtros */}
@@ -578,7 +666,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                           const filteredContracts = getFilteredContracts(project.contratos)
                           const filteredValue = filteredContracts.reduce((sum: number, c: any) => 
                             sum + (c.valor_contrato || c.valor_del_contrato || 0), 0)
-                          const hasFilters = selectedTipoContrato || selectedEstadoContrato || searchTerm
+                          const hasFilters = selectedTipoContrato || selectedEstadoContrato || selectedBanco || searchTerm
                           
                           return (
                             <>
@@ -634,7 +722,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                       <div className="p-6">
                         {(() => {
                           const filteredContracts = getFilteredContracts(project.contratos)
-                          const hasFilters = selectedTipoContrato || selectedEstadoContrato || searchTerm
+                          const hasFilters = selectedTipoContrato || selectedEstadoContrato || selectedBanco || searchTerm
                           
                           return (
                             <>
@@ -665,6 +753,11 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                                       key={`${contrato.bpin}-${contrato.id_contrato}-${contractIndex}`}
                                       contrato={contrato}
                                       contractIndex={contractIndex}
+                                      proyectoData={{
+                                        nombre_centro_gestor: project.nombre_centro_gestor,
+                                        bpin: project.bpin,
+                                        bp: project.bp
+                                      }}
                                     />
                                   ))}
                                 </div>
