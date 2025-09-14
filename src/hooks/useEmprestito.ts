@@ -4,54 +4,103 @@ import { useState, useEffect } from 'react'
 
 export interface EmprestitoContrato {
   nombre_entidad: string;
+  nit_entidad: string;
+  departamento: string;
+  ciudad: string;
+  localizaci_n: string;
+  orden: string;
   sector: string;
+  rama: string;
   entidad_centralizada: string;
-  proceso_compra: string;
+  proceso_de_compra: string;
   id_contrato: string;
-  referencia_contrato: string;
+  referencia_del_contrato: string;
   estado_contrato: string;
-  codigo_categoria_principal: string;
-  descripcion_proceso: string;
-  tipo_contrato: string;
-  modalidad_contratacion: string;
-  justificacion_modalidad_contratacion: string;
-  fecha_firma: string;
-  fecha_inicio_contrato: string;
-  fecha_fin_contrato: string;
-  fecha_inicio_ejecucion: string;
-  fecha_fin_ejecucion: string;
+  codigo_de_categoria_principal: string;
+  descripcion_del_proceso: string;
+  tipo_de_contrato: string;
+  modalidad_de_contratacion: string;
+  justificacion_modalidad_de: string;
+  fecha_de_firma: string;
+  fecha_de_fin_del_contrato: string;
+  condiciones_de_entrega: string;
   tipodocproveedor: string;
   documento_proveedor: string;
   proveedor_adjudicado: string;
   es_grupo: string;
   es_pyme: string;
   habilita_pago_adelantado: string;
-  liquidación: string;
-  obligación_ambiental: string;
+  liquidaci_n: string;
+  obligaci_n_ambiental: string;
   obligaciones_postconsumo: string;
   reversion: string;
-  origen_recursos: string;
+  origen_de_los_recursos: string;
   destino_gasto: string;
-  valor_contrato: number;
-  valor_pago_adelantado: number;
+  valor_del_contrato: number;
+  valor_de_pago_adelantado: number;
   valor_facturado: number;
-  valor_pendiente_pago: number;
+  valor_pendiente_de_pago: number;
   valor_pagado: number;
   valor_amortizado: number;
-  valor_pendiente_amortizacion: number;
-  valor_pendiente_ejecucion: number;
+  valor_pendiente_de: number;
+  valor_pendiente_de_ejecucion: number;
   estado_bpin: string;
-  bpin: string;
-  anno_bpin: number;
-  saldo_cdp: number;
-  saldo_vigencia: number;
+  anno_bpin: string;
+  saldo_cdp: string;
+  saldo_vigencia: string;
   espostconflicto: string;
-  dias_adicionados: number;
-  puntos_acuerdo: string;
-  pilares_acuerdo: string;
-  urlproceso: string;
-  objeto_contrato: string;
-  duración_contrato: number;
+  dias_adicionados: string;
+  puntos_del_acuerdo: string;
+  pilares_del_acuerdo: string;
+  urlproceso: {
+    url: string;
+  };
+  nombre_representante_legal: string;
+  nacionalidad_representante_legal: string;
+  domicilio_representante_legal: string;
+  tipo_de_identificaci_n_representante_legal: string;
+  identificaci_n_representante_legal: string;
+  g_nero_representante_legal: string;
+  presupuesto_general_de_la_nacion_pgn: string;
+  sistema_general_de_participaciones: string;
+  sistema_general_de_regal_as: string;
+  recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_: string;
+  recursos_de_credito: string;
+  recursos_propios: string;
+  codigo_entidad: string;
+  codigo_proveedor: string;
+  fecha_inicio_liquidacion: string;
+  fecha_fin_liquidacion: string;
+  objeto_del_contrato: string;
+  duraci_n_del_contrato: string;
+  nombre_del_banco: string;
+  tipo_de_cuenta: string;
+  n_mero_de_cuenta: string;
+  el_contrato_puede_ser_prorrogado: string;
+  nombre_ordenador_del_gasto: string;
+  tipo_de_documento_ordenador_del_gasto: string;
+  n_mero_de_documento_ordenador_del_gasto: string;
+  nombre_supervisor: string;
+  tipo_de_documento_supervisor: string;
+  n_mero_de_documento_supervisor: string;
+  nombre_ordenador_de_pago: string;
+  tipo_de_documento_ordenador_de_pago: string;
+  n_mero_de_documento_ordenador_de_pago: string;
+  _dataset_source: string;
+  _search_field: string;
+  _referencia_buscada: string;
+  _search_type: string;
+  _total_campos: number;
+  bpin: string | null;
+  _registro_origen: {
+    banco: string;
+    id_origen: number;
+    referencia_proceso: string;
+    fecha_extraccion: string;
+    multiple_refs: boolean;
+    refs_originales: string;
+    referencia_original: string;
+  };
 }
 
 export interface EmprestitoProyecto {
@@ -142,92 +191,42 @@ export const useEmprestito = (): EmprestitoState => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        // Cargar solo el archivo disponible de empréstito
-        const proyectosRes = await fetch('/data/emprestito/emp_proyectos.json')
-
+        // Cargar contratos directamente desde emp_contratos.json
+        const contratosRes = await fetch('/data/emprestito/emp_contratos.json')
+        
         // Verificar que la respuesta sea exitosa
-        if (!proyectosRes.ok) {
-          throw new Error('Error al cargar archivo de proyectos de empréstito')
+        if (!contratosRes.ok) {
+          throw new Error('Error al cargar archivo de contratos de empréstito')
         }
 
         // Parsear los datos
-        const proyectosData = await proyectosRes.json()
+        const contratosData = await contratosRes.json()
+        
+        // Los contratos ya vienen listos para usar en contratos_encontrados
+        const contratos: EmprestitoContrato[] = contratosData.contratos_encontrados || []
 
-        // Transformar los datos en el formato esperado
-        const proyectos: EmprestitoProyecto[] = proyectosData.map((proyecto: any) => ({
-          bpin: proyecto.bpin?.toString() || '',
-          bp: proyecto.bp?.toString() || '',
-          nombre_proyecto: proyecto.nombre_proyecto || '',
-          nombre_actividad: proyecto.nombre_actividad || '',
-          programa_presupuestal: proyecto.programa_presupuestal || '',
-          nombre_centro_gestor: proyecto.nombre_centro_gestor || 'No especificado',
-          nombre_area_funcional: proyecto.nombre_area_funcional || '',
-          nombre_fondo: proyecto.nombre_fondo || '',
-          clasificacion_fondo: proyecto.clasificacion_fondo || '',
-          nombre_pospre: proyecto.nombre_pospre || '',
-          nombre_dimension: proyecto.nombre_dimension || '',
-          nombre_linea_estrategica: proyecto.nombre_linea_estrategica || '',
-          nombre_programa: proyecto.nombre_programa || '',
-          comuna: proyecto.comuna || '',
-          origen: proyecto.origen || '',
-          anio: proyecto.anio || new Date().getFullYear(),
-          tipo_gasto: proyecto.tipo_gasto || '',
-          cod_sector: proyecto.cod_sector || '',
-          cod_producto: proyecto.cod_producto || '',
-          validador_cuipo: proyecto.validador_cuipo || ''
-        }))
-
-        // Generar contratos sintéticos basados en los proyectos para mantener compatibilidad
-        const contratos: EmprestitoContrato[] = proyectos.map((proyecto, index) => ({
-          nombre_entidad: proyecto.nombre_centro_gestor,
-          sector: proyecto.cod_sector || 'No especificado',
-          entidad_centralizada: 'Si',
-          proceso_compra: `PROCESO-${proyecto.bpin}`,
-          id_contrato: `CONT-${proyecto.bpin}-${index + 1}`,
-          referencia_contrato: `REF-${proyecto.bpin}`,
-          estado_contrato: 'En Ejecución',
-          codigo_categoria_principal: proyecto.cod_producto || '',
-          descripcion_proceso: proyecto.nombre_proyecto || '',
-          tipo_contrato: 'Contrato de Obra',
-          modalidad_contratacion: 'Licitación Pública',
-          justificacion_modalidad_contratacion: '',
-          fecha_firma: '2024-01-01',
-          fecha_inicio_contrato: '2024-01-01',
-          fecha_fin_contrato: '2024-12-31',
-          fecha_inicio_ejecucion: '2024-01-01',
-          fecha_fin_ejecucion: '2024-12-31',
-          tipodocproveedor: 'NIT',
-          documento_proveedor: '900000000',
-          proveedor_adjudicado: 'Contratista Adjudicado',
-          es_grupo: 'No',
-          es_pyme: 'No',
-          habilita_pago_adelantado: 'No',
-          liquidación: 'No',
-          obligación_ambiental: 'No',
-          obligaciones_postconsumo: 'No',
-          reversion: 'No',
-          origen_recursos: proyecto.nombre_fondo || 'Empréstito',
-          destino_gasto: 'Inversión',
-          valor_contrato: 1000000000, // Valor por defecto
-          valor_pago_adelantado: 0,
-          valor_facturado: 500000000,
-          valor_pendiente_pago: 100000000,
-          valor_pagado: 400000000,
-          valor_amortizado: 0,
-          valor_pendiente_amortizacion: 0,
-          valor_pendiente_ejecucion: 500000000,
-          estado_bpin: 'Aprobado',
-          bpin: proyecto.bpin,
-          anno_bpin: proyecto.anio,
-          saldo_cdp: 500000000,
-          saldo_vigencia: 500000000,
-          espostconflicto: 'No',
-          dias_adicionados: 0,
-          puntos_acuerdo: '',
-          pilares_acuerdo: '',
-          urlproceso: '',
-          objeto_contrato: proyecto.nombre_proyecto || '',
-          duración_contrato: 365
+        // Generar proyectos sintéticos basados en los contratos para mantener compatibilidad
+        const proyectos: EmprestitoProyecto[] = contratos.map((contrato, index) => ({
+          bpin: contrato.bpin || contrato.id_contrato,
+          bp: contrato.id_contrato || '',
+          nombre_proyecto: contrato.objeto_del_contrato || contrato.descripcion_del_proceso || '',
+          nombre_actividad: contrato.descripcion_del_proceso || '',
+          programa_presupuestal: '',
+          nombre_centro_gestor: contrato.nombre_entidad || 'No especificado',
+          nombre_area_funcional: contrato.sector || '',
+          nombre_fondo: 'Empréstito',
+          clasificacion_fondo: 'Empréstito',
+          nombre_pospre: '',
+          nombre_dimension: contrato._registro_origen?.banco || 'Bancolombia',
+          nombre_linea_estrategica: '',
+          nombre_programa: '',
+          comuna: contrato.ciudad || '',
+          origen: contrato.origen_de_los_recursos || 'Empréstito',
+          anio: parseInt(contrato.anno_bpin) || new Date().getFullYear(),
+          tipo_gasto: contrato.destino_gasto || '',
+          cod_sector: contrato.sector || '',
+          cod_producto: contrato.codigo_de_categoria_principal || '',
+          validador_cuipo: ''
         }))
 
         setState({
@@ -241,9 +240,9 @@ export const useEmprestito = (): EmprestitoState => {
           error: null
         })
 
-        console.log('✅ Datos de empréstito cargados:', {
-          proyectos: proyectos.length,
+        console.log('✅ Datos de empréstito cargados desde emp_contratos.json:', {
           contratos: contratos.length,
+          proyectos: proyectos.length,
           dimensiones: 0
         })
 
@@ -270,13 +269,13 @@ export const useEmprestitoMetrics = (data: EmprestitoData) => {
     totalContratos: data.contratos.length,
     centrosGestor: Array.from(new Set(data.proyectos.map(p => p.nombre_centro_gestor))),
     entidades: Array.from(new Set(data.contratos.map(c => c.nombre_entidad))),
-    valorTotalContratos: data.contratos.reduce((sum, c) => sum + (c.valor_contrato || 0), 0),
+    valorTotalContratos: data.contratos.reduce((sum, c) => sum + (c.valor_del_contrato || 0), 0),
     contratosPorEntidad: data.contratos.reduce((acc, contrato) => {
       acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + 1
       return acc
     }, {} as Record<string, number>),
     valorPorEntidad: data.contratos.reduce((acc, contrato) => {
-      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + (contrato.valor_contrato || 0)
+      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + (contrato.valor_del_contrato || 0)
       return acc
     }, {} as Record<string, number>),
     proyectosPorCentroGestor: data.proyectos.reduce((acc, proyecto) => {
@@ -288,10 +287,10 @@ export const useEmprestitoMetrics = (data: EmprestitoData) => {
       return acc
     }, {} as Record<string, number>),
     contratosPorTipo: data.contratos.reduce((acc, contrato) => {
-      acc[contrato.tipo_contrato] = (acc[contrato.tipo_contrato] || 0) + 1
+      acc[contrato.tipo_de_contrato] = (acc[contrato.tipo_de_contrato] || 0) + 1
       return acc
     }, {} as Record<string, number>),
     valorEjecutado: data.contratos.reduce((sum, c) => sum + (c.valor_pagado || 0), 0),
-    valorPendiente: data.contratos.reduce((sum, c) => sum + (c.valor_pendiente_ejecucion || 0), 0)
+    valorPendiente: data.contratos.reduce((sum, c) => sum + (c.valor_pendiente_de_ejecucion || 0), 0)
   }
 }

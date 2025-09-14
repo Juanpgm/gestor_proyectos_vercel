@@ -30,7 +30,7 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
   // Datos para gráfico de barras - Valor por entidad
   const valorPorEntidad = React.useMemo(() => {
     const entidadValues = data.contratos.reduce((acc, contrato) => {
-      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + (contrato.valor_contrato || 0)
+      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + (contrato.valor_del_contrato || 0)
       return acc
     }, {} as Record<string, number>)
 
@@ -65,7 +65,7 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
   // Datos para gráfico circular - Contratos por tipo
   const contratosPorTipo = React.useMemo(() => {
     const tipoCount = data.contratos.reduce((acc, contrato) => {
-      acc[contrato.tipo_contrato] = (acc[contrato.tipo_contrato] || 0) + 1
+      acc[contrato.tipo_de_contrato] = (acc[contrato.tipo_de_contrato] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 

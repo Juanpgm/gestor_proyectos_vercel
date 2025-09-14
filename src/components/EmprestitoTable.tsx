@@ -124,7 +124,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
       if (!contrato) return false;
       
       const matchesSearch = !searchTerm || 
-        (contrato.descripcion_proceso || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contrato.descripcion_del_proceso || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (contrato.nombre_entidad || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (contrato.proveedor_adjudicado || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (contrato.bpin || '').toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -342,17 +342,17 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                     <td className="py-3 px-4 font-mono text-sm">{contrato.bpin}</td>
                     <td className="py-3 px-4">
                       <div className="font-medium text-gray-900 dark:text-white">
-                        {contrato.referencia_contrato || 'Sin referencia'}
+                        {contrato.referencia_del_contrato || 'Sin referencia'}
                       </div>
-                      {contrato.objeto_contrato && (
+                      {contrato.objeto_del_contrato && (
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                          {contrato.objeto_contrato.length > 60
-                            ? `${contrato.objeto_contrato.substring(0, 60)}...`
-                            : contrato.objeto_contrato}
+                          {contrato.objeto_del_contrato.length > 60
+                            ? `${contrato.objeto_del_contrato.substring(0, 60)}...`
+                            : contrato.objeto_del_contrato}
                         </div>
                       )}
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {contrato.tipo_contrato || 'Sin tipo'}
+                        {contrato.tipo_de_contrato || 'Sin tipo'}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
@@ -364,7 +364,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                         : contrato.proveedor_adjudicado || 'Sin proveedor'}
                     </td>
                     <td className="py-3 px-4 font-medium text-teal-600 dark:text-teal-400">
-                      {formatNumber(contrato.valor_contrato, 'currency')}
+                      {formatNumber(contrato.valor_del_contrato, 'currency')}
                     </td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -376,7 +376,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                     <td className="py-3 px-4">
                       {contrato.urlproceso && (
                         <button
-                          onClick={() => openSecopLink(contrato.urlproceso)}
+                          onClick={() => openSecopLink(contrato.urlproceso.url)}
                           className="text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300"
                           title="Ver en SECOP"
                         >

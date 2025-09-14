@@ -17,7 +17,7 @@ import {
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
 import { useProyectos } from '@/hooks/useProyectos'
 import { useContratosCompletos } from '@/hooks/useContratosCompletos'
-import { useEmpProyectos } from '@/hooks/useEmpProyectos'
+import { useEmprestito } from '@/hooks/useEmprestito'
 import ContractDetailCard from '@/components/ContractDetailCard'
 
 // Interfaz para proyecto con contratos asociados
@@ -68,7 +68,33 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
   // Hooks para datos
   const proyectosState = useProyectos()
   const contratosState = useContratosCompletos()
-  const empProyectosState = useEmpProyectos()
+  const emprestitoState = useEmprestito()
+
+  // Estado para mapa BPIN -> BP
+  const [bpinToBpMap, setBpinToBpMap] = React.useState<Record<number, string>>({})
+
+  // Cargar datos de características de proyectos para obtener el BP real
+  React.useEffect(() => {
+    const loadBpinToBpMap = async () => {
+      try {
+        const response = await fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json')
+        if (response.ok) {
+          const data = await response.json()
+          const map: Record<number, string> = {}
+          data.forEach((proyecto: any) => {
+            if (proyecto.bpin && proyecto.bp) {
+              map[proyecto.bpin] = proyecto.bp
+            }
+          })
+          setBpinToBpMap(map)
+        }
+      } catch (error) {
+        console.warn('No se pudo cargar el mapa BPIN -> BP:', error)
+      }
+    }
+    
+    loadBpinToBpMap()
+  }, [])
 
   // Integración de datos usando la misma lógica que la sección "Contratos"
   const integratedData = useMemo(() => {
@@ -78,36 +104,46 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
 
     const proyectos = proyectosState.proyectos
     const contratos = contratosState.contratos
-    const validBpins = empProyectosState.validBpins || []
+    
+    // Obtener BPINs válidos de los contratos de empréstito
+    const validBpins = emprestitoState.data.contratos
+      .map(contrato => contrato.bpin)
+      .filter(bpin => bpin !== null && bpin !== undefined)
+      .map(bpin => parseInt(bpin as string))
+      .filter(bpin => !isNaN(bpin))
 
-    // Crear un mapa de proyectos válidos desde emp_proyectos.json
+    // Crear un mapa de proyectos válidos desde los contratos de empréstito
     const validBpinSet = new Set(validBpins)
 
-    // Agrupar contratos por BPIN - filtrar por fecha solo para proyectos de empréstito
+    // Crear un mapa de información de empréstito por BPIN
+    const emprestitoInfoMap = emprestitoState.data.contratos.reduce((acc, contrato) => {
+      if (contrato.bpin && !isNaN(parseInt(contrato.bpin))) {
+        const bpin = parseInt(contrato.bpin)
+        acc[bpin] = {
+          banco: contrato._registro_origen?.banco || '',
+          bp: bpinToBpMap[bpin] || contrato.id_contrato || '', // Usar BP real del mapa
+          nombre_comercial: contrato.objeto_del_contrato || ''
+        }
+      }
+      return acc
+    }, {} as Record<number, any>)
+
+    // Agrupar contratos por BPIN - sin filtros, solo por BPIN válido
     const contratosPorBpin = contratos.reduce((acc: Record<number, any[]>, contrato: any) => {
       if (!contrato.bpin) return acc
       
-      // Solo aplicar filtro de fecha si el BPIN está en emp_proyectos.json (proyectos de empréstito)
+      // Solo incluir contratos si el BPIN está en empréstito (proyectos de empréstito)
       if (validBpinSet.has(contrato.bpin)) {
-        // Para proyectos de empréstito, filtrar solo por fecha_inicio_contrato
-        if (contrato.fecha_inicio_contrato) {
-          const fecha = new Date(contrato.fecha_inicio_contrato)
-          const fechaLimite = new Date('2024-12-31')
-          
-          // Solo incluir contratos cuya fecha de inicio sea posterior al 31 de diciembre de 2024
-          if (fecha > fechaLimite) {
-            if (!acc[contrato.bpin]) {
-              acc[contrato.bpin] = []
-            }
-            acc[contrato.bpin].push(contrato)
-          }
+        if (!acc[contrato.bpin]) {
+          acc[contrato.bpin] = []
         }
+        acc[contrato.bpin].push(contrato)
       }
       
       return acc
     }, {} as Record<number, any[]>)
 
-    // Filtrar solo proyectos que estén en el archivo emp_proyectos.json
+    // Filtrar solo proyectos que estén en los contratos de empréstito
     const proyectosFiltrados = proyectos.filter((proyecto: any) => 
       validBpinSet.has(proyecto.bpin)
     )
@@ -115,23 +151,23 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     // Integrar proyectos con sus contratos
     return proyectosFiltrados.map((proyecto: any) => {
       const contratosAsociados = contratosPorBpin[proyecto.bpin] || []
-      const empProyectoInfo = empProyectosState.bpinMap[proyecto.bpin]
+      const emprestitoInfo = emprestitoInfoMap[proyecto.bpin]
       
       return {
         ...proyecto,
         contratos: contratosAsociados,
         contratosCount: contratosAsociados.length,
-        totalValueContratos: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_contrato || 0), 0),
+        totalValueContratos: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_del_contrato || c.valor_contrato || 0), 0),
         valorPagado: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_pagado || 0), 0),
         valorPendiente: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_pendiente_pago || 0), 0),
         estadosContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.estado_contrato).filter(Boolean))),
-        tiposContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.tipo_contrato).filter(Boolean))),
+        tiposContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.tipo_contrato || c.tipo_de_contrato).filter(Boolean))),
         // Datos de empréstito
-        isEmprestito: !!empProyectoInfo,
-        valor_emprestito: 0, // No disponible en emp_proyectos.json
-        fuente_emprestito: empProyectoInfo?.banco || '',
-        bp: empProyectoInfo?.bp || '',
-        nombre_comercial: empProyectoInfo?.nombre_comercial || ''
+        isEmprestito: !!emprestitoInfo,
+        valor_emprestito: 0, // No disponible en emp_contratos.json
+        fuente_emprestito: emprestitoInfo?.banco || '',
+        bp: emprestitoInfo?.bp || '',
+        nombre_comercial: emprestitoInfo?.nombre_comercial || ''
       } as ProjectWithContracts
     }).sort((a: any, b: any) => {
       // Ordenar: proyectos con contratos primero, luego por valor
@@ -139,7 +175,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
       if (a.contratosCount === 0 && b.contratosCount > 0) return 1
       return b.totalValueContratos - a.totalValueContratos
     })
-  }, [proyectosState.proyectos, contratosState.contratos, empProyectosState.validBpins, empProyectosState.bpinMap])
+  }, [proyectosState.proyectos, contratosState.contratos, emprestitoState.data.contratos, bpinToBpMap])
 
   // Opciones dinámicas para filtros
   const centrosGestor = useMemo(() => {
@@ -163,72 +199,50 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     return Array.from(uniqueEstados).sort()
   }, [integratedData])
 
-  // Función para filtrar contratos por estado
-  const filterContratosByEstado = (contratos: any[], estado: string) => {
-    if (!estado) return contratos
-    return contratos.filter(c => c.estado_contrato === estado)
-  }
-
-  // Función para filtrar contratos por tipo
-  const filterContratosByTipo = (contratos: any[], tipo: string) => {
-    if (!tipo) return contratos
-    return contratos.filter(c => c.tipo_contrato === tipo)
-  }
-
-  // Función combinada para filtrar contratos
-  const filterContratos = (contratos: any[]) => {
-    let filtered = contratos
-    filtered = filterContratosByEstado(filtered, selectedEstadoContrato)
-    filtered = filterContratosByTipo(filtered, selectedTipoContrato)
-    return filtered
-  }
-
-  // Datos filtrados
+  // Datos filtrados - búsqueda mejorada y filtros por estado y tipo
   const filteredData = useMemo(() => {
     return integratedData.filter((project: any) => {
-      // Filtro por búsqueda
+      // Filtro por búsqueda amplia en todos los campos relevantes
       const matchesSearch = searchTerm === '' || 
-        project.nombre_proyecto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.nombre_actividad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.bpin.toString().includes(searchTerm) ||
-        project.nombre_centro_gestor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.nombre_programa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.nombre_proyecto || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.nombre_actividad || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.bpin || '').toString().includes(searchTerm) ||
+        (project.nombre_centro_gestor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.nombre_programa || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.tipo_gasto || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.tipo_objetivo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.fuente_emprestito || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.bp || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.nombre_comercial || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.contratos.some((c: any) => 
-          (c.descripcion_proceso || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (c.descripcion_proceso || c.descripcion_del_proceso || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (c.proveedor_adjudicado || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (c.nombre_entidad || '').toLowerCase().includes(searchTerm.toLowerCase())
+          (c.nombre_entidad || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (c.referencia_contrato || c.referencia_del_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (c.objeto_contrato || c.objeto_del_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (c.tipo_contrato || c.tipo_de_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (c.estado_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (c.modalidad_contratacion || c.modalidad_de_contratacion || '').toLowerCase().includes(searchTerm.toLowerCase())
         )
 
-      // Filtro por centro gestor usando nombre_centro_gestor
+      // Filtro por centro gestor
       const matchesCentroGestor = selectedCentroGestor === '' || 
-        project.nombre_centro_gestor === selectedCentroGestor
+        (project.nombre_centro_gestor || '') === selectedCentroGestor
 
-      return matchesSearch && matchesCentroGestor
-    })
-  }, [integratedData, searchTerm, selectedCentroGestor])
+      // Filtro por tipo de contrato - verificar que al menos un contrato tenga el tipo seleccionado
+      const matchesTipoContrato = selectedTipoContrato === '' || 
+        project.contratos.some((c: any) => (c.tipo_contrato || c.tipo_de_contrato) === selectedTipoContrato)
 
-  // Filtrar para mostrar solo proyectos con contratos que coinciden con los filtros
-  const finalFilteredData = useMemo(() => {
-    return filteredData.map(project => {
-      const filteredContratos = filterContratos(project.contratos)
-      return {
-        ...project,
-        contratos: filteredContratos,
-        contratosCount: filteredContratos.length,
-        totalValueContratos: filteredContratos.reduce((sum: number, c: any) => sum + (c.valor_contrato || 0), 0),
-        valorPagado: filteredContratos.reduce((sum: number, c: any) => sum + (c.valor_pagado || 0), 0),
-        valorPendiente: filteredContratos.reduce((sum: number, c: any) => sum + (c.valor_pendiente_pago || 0), 0)
-      }
-    }).filter(project => {
-      // Solo mostrar proyectos que tienen contratos que coinciden con los filtros aplicados
-      // Si no hay filtros de contrato aplicados, mostrar todos los proyectos
-      if (!selectedTipoContrato && !selectedEstadoContrato) {
-        return true
-      }
-      // Si hay filtros de contrato aplicados, solo mostrar proyectos con contratos que coinciden
-      return project.contratosCount > 0
+      // Filtro por estado de contrato - verificar que al menos un contrato tenga el estado seleccionado
+      const matchesEstadoContrato = selectedEstadoContrato === '' || 
+        project.contratos.some((c: any) => c.estado_contrato === selectedEstadoContrato)
+
+      return matchesSearch && matchesCentroGestor && matchesTipoContrato && matchesEstadoContrato
     })
-  }, [filteredData, selectedTipoContrato, selectedEstadoContrato])
+  }, [integratedData, searchTerm, selectedCentroGestor, selectedTipoContrato, selectedEstadoContrato])
+
+  // Sin filtros adicionales - usar datos directamente
+  const finalFilteredData = filteredData
 
   // Efecto para comunicar BPIN filtrados al mapa
   React.useEffect(() => {
@@ -254,10 +268,49 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     currentPage * itemsPerPage
   )
 
-  // Métricas usando finalFilteredData
-  const totalContratos = finalFilteredData.reduce((sum, p) => sum + p.contratosCount, 0)
-  const totalValue = finalFilteredData.reduce((sum, p) => sum + p.totalValueContratos, 0)
-  const emprestitoProjectsWithContracts = finalFilteredData.filter(p => p.isEmprestito && p.contratosCount > 0).length
+  // Función para filtrar contratos de un proyecto según los filtros activos
+  const getFilteredContracts = React.useCallback((contratos: any[]) => {
+    return contratos.filter(contrato => {
+      // Filtro por tipo de contrato
+      const matchesTipoContrato = selectedTipoContrato === '' || 
+        (contrato.tipo_contrato || contrato.tipo_de_contrato) === selectedTipoContrato
+
+      // Filtro por estado de contrato
+      const matchesEstadoContrato = selectedEstadoContrato === '' || 
+        contrato.estado_contrato === selectedEstadoContrato
+
+      // Filtro por búsqueda en contratos
+      const matchesSearchInContract = searchTerm === '' ||
+        (contrato.descripcion_proceso || contrato.descripcion_del_proceso || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contrato.proveedor_adjudicado || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contrato.nombre_entidad || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contrato.referencia_contrato || contrato.referencia_del_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contrato.objeto_contrato || contrato.objeto_del_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contrato.tipo_contrato || contrato.tipo_de_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contrato.estado_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contrato.modalidad_contratacion || contrato.modalidad_de_contratacion || '').toLowerCase().includes(searchTerm.toLowerCase())
+
+      return matchesTipoContrato && matchesEstadoContrato && matchesSearchInContract
+    })
+  }, [selectedTipoContrato, selectedEstadoContrato, searchTerm])
+
+  // Métricas usando finalFilteredData - calculando contratos que realmente pasan los filtros
+  const totalContratos = finalFilteredData.reduce((sum, p) => {
+    const filteredContracts = getFilteredContracts(p.contratos)
+    return sum + filteredContracts.length
+  }, 0)
+  
+  const totalValue = finalFilteredData.reduce((sum, p) => {
+    const filteredContracts = getFilteredContracts(p.contratos)
+    const contractsValue = filteredContracts.reduce((contractSum: number, c: any) => 
+      contractSum + (c.valor_contrato || c.valor_del_contrato || 0), 0)
+    return sum + contractsValue
+  }, 0)
+  
+  const emprestitoProjectsWithContracts = finalFilteredData.filter(p => {
+    const filteredContracts = getFilteredContracts(p.contratos)
+    return p.isEmprestito && filteredContracts.length > 0
+  }).length
 
   // Funciones auxiliares
   const toggleProjectExpansion = (bpin: number) => {
@@ -280,7 +333,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     return filters.length > 0 ? ` (${filters.join(', ')})` : ''
   }
 
-  const loading = proyectosState.loading || contratosState.loading || empProyectosState.loading
+  const loading = proyectosState.loading || contratosState.loading || emprestitoState.loading
 
   if (loading) {
     return (
@@ -381,7 +434,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                       onChange={(e) => setSelectedCentroGestor(e.target.value)}
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:text-white"
                     >
-                      <option value="">Seleccione centro gestor</option>
+                      <option value="">Todos los centros gestor</option>
                       {centrosGestor.map(centro => (
                         <option key={centro} value={centro}>
                           {centro}
@@ -390,7 +443,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                     </select>
                   </div>
 
-                  {/* Tipo de contrato */}
+                  {/* Tipo de Contrato */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Tipo de Contrato
@@ -409,10 +462,10 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                     </select>
                   </div>
 
-                  {/* Estado de contrato */}
+                  {/* Estado de Contrato */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Estado del Contrato
+                      Estado de Contrato
                     </label>
                     <select
                       value={selectedEstadoContrato}
@@ -521,16 +574,43 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                     
                     <div className="flex flex-col items-end gap-2 ml-6">
                       <div className="text-right">
-                        <div className="text-lg font-semibold text-teal-600 dark:text-teal-400">
-                          ${project.totalValueContratos.toLocaleString('es-CO')}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {project.contratosCount > 0 ? (
-                            `${project.contratosCount} contrato${project.contratosCount > 1 ? 's' : ''}`
-                          ) : (
-                            <span className="text-amber-600 dark:text-amber-400">Sin contratos</span>
-                          )}
-                        </div>
+                        {(() => {
+                          const filteredContracts = getFilteredContracts(project.contratos)
+                          const filteredValue = filteredContracts.reduce((sum: number, c: any) => 
+                            sum + (c.valor_contrato || c.valor_del_contrato || 0), 0)
+                          const hasFilters = selectedTipoContrato || selectedEstadoContrato || searchTerm
+                          
+                          return (
+                            <>
+                              <div className="text-lg font-semibold text-teal-600 dark:text-teal-400">
+                                ${(hasFilters ? filteredValue : project.totalValueContratos).toLocaleString('es-CO')}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {hasFilters ? (
+                                  filteredContracts.length > 0 ? (
+                                    <>
+                                      <span className="text-teal-600 dark:text-teal-400">
+                                        {filteredContracts.length}
+                                      </span>
+                                      <span className="text-gray-400 mx-1">de</span>
+                                      <span>
+                                        {project.contratosCount} contrato{project.contratosCount > 1 ? 's' : ''}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-amber-600 dark:text-amber-400">Sin contratos (filtrado)</span>
+                                  )
+                                ) : (
+                                  project.contratosCount > 0 ? (
+                                    `${project.contratosCount} contrato${project.contratosCount > 1 ? 's' : ''}`
+                                  ) : (
+                                    <span className="text-amber-600 dark:text-amber-400">Sin contratos</span>
+                                  )
+                                )}
+                              </div>
+                            </>
+                          )
+                        })()}
                       </div>
                       <div className="flex gap-2">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
@@ -552,19 +632,52 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
                       className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
                     >
                       <div className="p-6">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                          Contratos Asociados ({project.contratos.length})
-                        </h4>
-                        
-                        <div className="space-y-4">
-                          {project.contratos.map((contrato, contractIndex) => (
-                            <ContractDetailCard
-                              key={`${contrato.bpin}-${contrato.id_contrato}-${contractIndex}`}
-                              contrato={contrato}
-                              contractIndex={contractIndex}
-                            />
-                          ))}
-                        </div>
+                        {(() => {
+                          const filteredContracts = getFilteredContracts(project.contratos)
+                          const hasFilters = selectedTipoContrato || selectedEstadoContrato || searchTerm
+                          
+                          return (
+                            <>
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                  Contratos Asociados 
+                                  {hasFilters ? (
+                                    <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                                      ({filteredContracts.length} de {project.contratos.length} mostrados)
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                                      ({project.contratos.length})
+                                    </span>
+                                  )}
+                                </h4>
+                                {hasFilters && filteredContracts.length !== project.contratos.length && (
+                                  <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full">
+                                    Filtros aplicados
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {filteredContracts.length > 0 ? (
+                                <div className="space-y-4">
+                                  {filteredContracts.map((contrato, contractIndex) => (
+                                    <ContractDetailCard
+                                      key={`${contrato.bpin}-${contrato.id_contrato}-${contractIndex}`}
+                                      contrato={contrato}
+                                      contractIndex={contractIndex}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                  <p className="text-lg font-medium">No hay contratos que coincidan con los filtros</p>
+                                  <p className="text-sm">Intenta ajustar los filtros para ver más resultados</p>
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
                       </div>
                     </motion.div>
                   )}
