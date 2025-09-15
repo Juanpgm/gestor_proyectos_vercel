@@ -16,177 +16,163 @@ import {
 } from 'recharts'
 import { TrendingUp } from 'lucide-react'
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
-import { EmprestitoData } from '@/hooks/useEmprestito'
+
+interface FlujoCajaData {
+  banco: string
+  centro_gestor: string
+  [key: string]: string // Los meses están como claves dinámicas con fechas en formato string
+}
 
 interface EmprestitoTimeSeriesProps {
-  data: EmprestitoData
+  data?: FlujoCajaData[]
   loading?: boolean
 }
 
 const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
-  data,
+  data = [],
   loading = false
 }) => {
-  // Procesar datos para serie de tiempo distribuyendo valores por duración de contratos
-  const timeSeriesData = React.useMemo(() => {
-    if (!data.contratos || data.contratos.length === 0) {
-      return []
+  // Estado para controlar qué bancos están seleccionados
+  const [selectedBancos, setSelectedBancos] = React.useState<Set<string>>(new Set())
+  const [isInitialized, setIsInitialized] = React.useState(false)
+
+  // Obtener bancos únicos (fuera del useMemo para poder usar en useEffect)
+  const bancos = React.useMemo(() => {
+    if (!data || data.length === 0) return []
+    return Array.from(new Set(data.map(row => row.banco)))
+  }, [data])
+
+  // Inicializar bancos seleccionados cuando cambien los bancos disponibles
+  React.useEffect(() => {
+    if (bancos.length > 0 && !isInitialized) {
+      setSelectedBancos(new Set(bancos))
+      setIsInitialized(true)
+    } else if (bancos.length === 0) {
+      setIsInitialized(false)
     }
+  }, [bancos.join(','), isInitialized])
 
-    // Crear estructura de datos por mes
-    const monthlyData = new Map<string, {
-      periodo: string
-      valorContratoPeriodo: number
-      valorFacturadoPeriodo: number
-      valorPagadoPeriodo: number
-      valorContratoAcumulado: number
-      valorFacturadoAcumulado: number
-      valorPagadoAcumulado: number
-      contratosFirmados: number
-      contratosActivos: number
-      ejecucionPresupuestal: number
-      nivelPagos: number
-    }>()
-
-    // Generar meses desde enero 2023 hasta diciembre 2025
-    const startDate = new Date(2023, 0, 1)
-    const endDate = new Date(2025, 11, 31)
-    const currentDate = new Date(startDate)
-
-    // Inicializar todos los meses
-    while (currentDate <= endDate) {
-      const periodo = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-      monthlyData.set(periodo, {
-        periodo: periodo.replace('-', '/'),
-        valorContratoPeriodo: 0,
-        valorFacturadoPeriodo: 0,
-        valorPagadoPeriodo: 0,
-        valorContratoAcumulado: 0,
-        valorFacturadoAcumulado: 0,
-        valorPagadoAcumulado: 0,
-        contratosFirmados: 0,
-        contratosActivos: 0,
-        ejecucionPresupuestal: 0,
-        nivelPagos: 0
-      })
-      currentDate.setMonth(currentDate.getMonth() + 1)
-    }
-
-    // Función para obtener la duración en meses entre dos fechas
-    const getMonthsBetween = (startDate: Date, endDate: Date): number => {
-      const years = endDate.getFullYear() - startDate.getFullYear()
-      const months = endDate.getMonth() - startDate.getMonth()
-      return years * 12 + months + 1 // +1 para incluir el mes de inicio
-    }
-
-    // Función para generar array de períodos entre dos fechas
-    const getPeriodsInRange = (startDate: Date, endDate: Date): string[] => {
-      const periods: string[] = []
-      const current = new Date(startDate)
-      
-      while (current <= endDate) {
-        const periodo = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`
-        periods.push(periodo)
-        current.setMonth(current.getMonth() + 1)
-      }
-      
-      return periods
-    }
-
-    // Procesar cada contrato y distribuir valores durante su vigencia
-    data.contratos.forEach(contrato => {
-      // Determinar fechas de inicio y fin
-      let fechaInicio: Date | null = null
-      let fechaFin: Date | null = null
-
-      // Priorizar fecha_de_firma como inicio si no hay fecha de inicio específica
-      if (contrato.fecha_de_firma) {
-        fechaInicio = new Date(contrato.fecha_de_firma)
-      }
-
-      // Usar fecha_de_fin_del_contrato como fin
-      if (contrato.fecha_de_fin_del_contrato) {
-        fechaFin = new Date(contrato.fecha_de_fin_del_contrato)
-      }
-
-      // Solo procesar si tenemos ambas fechas
-      if (fechaInicio && fechaFin && fechaInicio <= fechaFin) {
-        // Calcular duración en meses
-        const duracionMeses = getMonthsBetween(fechaInicio, fechaFin)
-        
-        // Distribuir valores mensualmente
-        const valorMensualContrato = (contrato.valor_del_contrato || 0) / duracionMeses
-        const valorMensualFacturado = (contrato.valor_facturado || 0) / duracionMeses
-        const valorMensualPagado = (contrato.valor_pagado || 0) / duracionMeses
-
-        // Obtener todos los períodos en el rango del contrato
-        const periodosContrato = getPeriodsInRange(fechaInicio, fechaFin)
-
-        // Distribuir valores en cada período
-        periodosContrato.forEach((periodo, index) => {
-          const monthData = monthlyData.get(periodo)
-          if (monthData) {
-            monthData.valorContratoPeriodo += valorMensualContrato
-            monthData.valorFacturadoPeriodo += valorMensualFacturado
-            monthData.valorPagadoPeriodo += valorMensualPagado
-            monthData.contratosActivos += 1
-
-            // Contar como contrato firmado solo en el primer mes
-            if (index === 0) {
-              monthData.contratosFirmados += 1
+  // Atajos de teclado para manejo de filtros
+  React.useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      // Solo procesar si se mantiene presionada la tecla Ctrl/Cmd
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key.toLowerCase()) {
+          case 'a':
+            // Ctrl+A: Seleccionar todos
+            event.preventDefault()
+            if (bancos.length > 0 && selectedBancos.size < bancos.length) {
+              setSelectedBancos(new Set(bancos))
             }
-          }
-        })
-      } else {
-        // Fallback: si no hay fechas válidas, asignar al mes de firma
-        if (contrato.fecha_de_firma) {
-          const fechaFirma = new Date(contrato.fecha_de_firma)
-          const periodo = `${fechaFirma.getFullYear()}-${String(fechaFirma.getMonth() + 1).padStart(2, '0')}`
-          
-          const existing = monthlyData.get(periodo)
-          if (existing) {
-            existing.valorContratoPeriodo += contrato.valor_del_contrato || 0
-            existing.valorFacturadoPeriodo += contrato.valor_facturado || 0
-            existing.valorPagadoPeriodo += contrato.valor_pagado || 0
-            existing.contratosFirmados += 1
-            existing.contratosActivos += 1
-          }
+            break
+          case 'd':
+            // Ctrl+D: Deseleccionar todos
+            event.preventDefault()
+            if (selectedBancos.size > 0) {
+              setSelectedBancos(new Set())
+            }
+            break
+          case 'i':
+            // Ctrl+I: Invertir selección
+            event.preventDefault()
+            if (bancos.length > 0) {
+              const newSelected = new Set<string>()
+              bancos.forEach(banco => {
+                if (!selectedBancos.has(banco)) {
+                  newSelected.add(banco)
+                }
+              })
+              setSelectedBancos(newSelected)
+            }
+            break
         }
       }
-    })
+    }
 
-    // Calcular acumulados y métricas
-    let valorContratoAcum = 0
-    let valorFacturadoAcum = 0
-    let valorPagadoAcum = 0
+    window.addEventListener('keydown', handleKeydown)
+    return () => window.removeEventListener('keydown', handleKeydown)
+  }, [bancos, selectedBancos])
 
-    const sortedPeriods = Array.from(monthlyData.keys()).sort()
+  // Procesar datos del flujo de caja
+  const timeSeriesData = React.useMemo(() => {
+    if (!data || data.length === 0) {
+      return { data: [], bancoColors: {} }
+    }
+
+    // Obtener todas las fechas (columnas que no sean banco o centro_gestor)
+    const dateColumns = Object.keys(data[0] || {}).filter(
+      key => key !== 'banco' && key !== 'centro_gestor'
+    )
+
+    // Convertir fechas y ordenarlas
+    const sortedDates = dateColumns
+      .map(dateStr => ({ 
+        original: dateStr, 
+        date: new Date(dateStr),
+        formatted: new Date(dateStr).toLocaleDateString('es-ES', { 
+          year: 'numeric', 
+          month: '2-digit' 
+        }).replace('/', '-')
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
     
-    sortedPeriods.forEach(periodo => {
-      const data = monthlyData.get(periodo)!
-      
-      // Acumular valores
-      valorContratoAcum += data.valorContratoPeriodo
-      valorFacturadoAcum += data.valorFacturadoPeriodo
-      valorPagadoAcum += data.valorPagadoPeriodo
-      
-      // Actualizar datos acumulados
-      data.valorContratoAcumulado = valorContratoAcum
-      data.valorFacturadoAcumulado = valorFacturadoAcum
-      data.valorPagadoAcumulado = valorPagadoAcum
-      
-      // Calcular métricas de ejecución
-      data.ejecucionPresupuestal = valorContratoAcum > 0 ? (valorFacturadoAcum / valorContratoAcum) * 100 : 0
-      data.nivelPagos = valorFacturadoAcum > 0 ? (valorPagadoAcum / valorFacturadoAcum) * 100 : 0
+    // Filtrar bancos según selección
+    const bancosToShow = bancos.filter(banco => selectedBancos.has(banco))
+    
+    // Colores para cada banco
+    const bancoColors: Record<string, string> = {
+      'Bancolombia': '#2563EB',
+      'BBVA': '#EAB308', 
+      'Davivienda': '#16A34A',
+      'Davivienda/Otro Si': '#8B5CF6'
+    }
+
+    // Procesar datos mes a mes
+    const processedData = sortedDates.map(({ original: dateStr, formatted }) => {
+      const mesData: any = { 
+        periodo: formatted,
+        total: 0,
+        acumulado: 0
+      }
+
+      // Agregar valores por banco (solo los seleccionados)
+      bancosToShow.forEach(banco => {
+        const bancoTotal = data
+          .filter(row => row.banco === banco)
+          .reduce((sum, row) => {
+            const value = parseFloat(row[dateStr] || '0')
+            return sum + (isNaN(value) ? 0 : value)
+          }, 0)
+        
+        mesData[`${banco}_valor`] = bancoTotal
+        mesData.total += bancoTotal
+      })
+
+      return mesData
     })
 
-    // Convertir a array y filtrar períodos con datos
-    const timeSeriesArray = Array.from(monthlyData.values())
-      .filter(data => data.valorContratoAcumulado > 0 || data.valorFacturadoAcumulado > 0 || data.valorPagadoAcumulado > 0)
-      .slice(-36) // Últimos 36 meses
+    // Calcular acumulados
+    let acumuladoTotal = 0
+    processedData.forEach(mes => {
+      acumuladoTotal += mes.total
+      mes.acumulado = acumuladoTotal
+    })
 
-    return timeSeriesArray
-  }, [data.contratos])
+    // Agregar colores y formato para tooltip
+    const enrichedData = processedData.map(data => ({
+      ...data,
+      totalFormatted: formatNumber(data.total, 'currency'),
+      acumuladoFormatted: formatNumber(data.acumulado, 'currency'),
+      ...Object.fromEntries(
+        bancosToShow.map(banco => [
+          `${banco}_valorFormatted`, 
+          formatNumber(data[`${banco}_valor`], 'currency')
+        ])
+      )
+    }))
+
+    return { data: enrichedData, bancosToShow, bancoColors }
+  }, [data, selectedBancos])
 
   // Función para obtener color de intensidad para las barras
   const getColorIntensity = (value: number, maxValue: number, baseColor: [number, number, number]) => {
@@ -199,28 +185,18 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
     return `rgb(${r}, ${g}, ${b})`
   }
 
-  // Calcular máximos para colores dinámicos
-  const maxValorContrato = Math.max(...timeSeriesData.map(d => d.valorContratoPeriodo))
-  const maxValorFacturado = Math.max(...timeSeriesData.map(d => d.valorFacturadoPeriodo))
-  const maxValorPagado = Math.max(...timeSeriesData.map(d => d.valorPagadoPeriodo))
+  // Extraer datos procesados
+  const { 
+    data: enrichedData = [], 
+    bancosToShow = [], 
+    bancoColors = {} as Record<string, string>
+  } = timeSeriesData
 
-    // Datos enriquecidos con colores
-    const enrichedData = timeSeriesData.map(data => ({
-      ...data,
-      colorContrato: getColorIntensity(data.valorContratoPeriodo, maxValorContrato, [37, 99, 235]), // Blue
-      colorFacturado: getColorIntensity(data.valorFacturadoPeriodo, maxValorFacturado, [234, 179, 8]), // Yellow
-      colorPagado: getColorIntensity(data.valorPagadoPeriodo, maxValorPagado, [22, 163, 74]), // Green
-      
-      // Formateo para tooltips
-      valorContratoFormatted: formatNumber(data.valorContratoPeriodo, 'currency'),
-      valorFacturadoFormatted: formatNumber(data.valorFacturadoPeriodo, 'currency'),
-      valorPagadoFormatted: formatNumber(data.valorPagadoPeriodo, 'currency'),
-      valorContratoAcumFormatted: formatNumber(data.valorContratoAcumulado, 'currency'),
-      valorFacturadoAcumFormatted: formatNumber(data.valorFacturadoAcumulado, 'currency'),
-      valorPagadoAcumFormatted: formatNumber(data.valorPagadoAcumulado, 'currency'),
-      ejecucionPresupuestalFormatted: `${data.ejecucionPresupuestal.toFixed(1)}%`,
-      nivelPagosFormatted: `${data.nivelPagos.toFixed(1)}%`
-    }))
+  // Función helper para obtener color de banco
+  const getBancoColor = (banco: string): string => {
+    const colorMap = bancoColors as Record<string, string>
+    return colorMap[banco] || '#6B7280'
+  }
 
   // Tooltip personalizado
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -231,50 +207,22 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
           <p className="font-semibold text-gray-900 dark:text-white mb-2">{label}</p>
           
           <div className="space-y-1 text-sm">
-            <div className="text-gray-600 dark:text-gray-400 font-medium mb-1">Valores Distribuidos del Período:</div>
-            <div className="flex justify-between items-center ml-2">
-              <span className="text-blue-600 dark:text-blue-400">Valor Contrato:</span>
-              <span className="font-medium">{data.valorContratoFormatted}</span>
-            </div>
-            <div className="flex justify-between items-center ml-2">
-              <span className="text-yellow-600 dark:text-yellow-400">Facturado:</span>
-              <span className="font-medium">{data.valorFacturadoFormatted}</span>
-            </div>
-            <div className="flex justify-between items-center ml-2">
-              <span className="text-green-600 dark:text-green-400">Pagado:</span>
-              <span className="font-medium">{data.valorPagadoFormatted}</span>
-            </div>
-            
-            <div className="text-gray-600 dark:text-gray-400 font-medium mb-1 mt-3">Valores Acumulados:</div>
-            <div className="flex justify-between items-center ml-2">
-              <span className="text-blue-600 dark:text-blue-400">Total Contratos:</span>
-              <span className="font-medium">{data.valorContratoAcumFormatted}</span>
-            </div>
-            <div className="flex justify-between items-center ml-2">
-              <span className="text-yellow-600 dark:text-yellow-400">Total Facturado:</span>
-              <span className="font-medium">{data.valorFacturadoAcumFormatted}</span>
-            </div>
-            <div className="flex justify-between items-center ml-2">
-              <span className="text-green-600 dark:text-green-400">Total Pagado:</span>
-              <span className="font-medium">{data.valorPagadoAcumFormatted}</span>
-            </div>
+            <div className="text-gray-600 dark:text-gray-400 font-medium mb-1">Flujo de Caja por Banco:</div>
+            {bancosToShow.map(banco => (
+              <div key={banco} className="flex justify-between items-center ml-2">
+                <span style={{ color: getBancoColor(banco) }}>{banco}:</span>
+                <span className="font-medium">{data[`${banco}_valorFormatted`] || '$0'}</span>
+              </div>
+            ))}
             
             <div className="border-t pt-2 mt-2">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Ejecución Presupuestal:</span>
-                <span className="font-medium text-purple-600 dark:text-purple-400">{data.ejecucionPresupuestalFormatted}</span>
+                <span className="text-gray-600 dark:text-gray-400">Total del Mes:</span>
+                <span className="font-medium text-blue-600 dark:text-blue-400">{data.totalFormatted}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Nivel de Pagos:</span>
-                <span className="font-medium text-orange-600 dark:text-orange-400">{data.nivelPagosFormatted}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Contratos Activos:</span>
-                <span className="font-medium">{data.contratosActivos}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Contratos Firmados:</span>
-                <span className="font-medium">{data.contratosFirmados}</span>
+                <span className="text-gray-600 dark:text-gray-400">Acumulado Total:</span>
+                <span className="font-medium text-green-600 dark:text-green-400">{data.acumuladoFormatted}</span>
               </div>
             </div>
           </div>
@@ -344,10 +292,162 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
             Serie de Tiempo - Empréstito
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Valores distribuidos mensualmente durante la vigencia de contratos (barras) y acumulados históricos (líneas)
+            Flujo de caja mensual por banco (barras) y acumulado total (línea)
           </p>
         </div>
       </div>
+
+      {/* Filtros de bancos */}
+      {bancos.length > 0 && (
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Filtrar por Banco:</h4>
+          <div className="flex flex-wrap gap-3">
+            {bancos.map(banco => (
+              <label key={banco} className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedBancos.has(banco)}
+                  onChange={(e) => {
+                    const newSelected = new Set(selectedBancos)
+                    if (e.target.checked) {
+                      newSelected.add(banco)
+                    } else {
+                      newSelected.delete(banco)
+                    }
+                    setSelectedBancos(newSelected)
+                  }}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span 
+                  className="text-sm font-medium"
+                  style={{ color: getBancoColor(banco) }}
+                >
+                  {banco}
+                </span>
+              </label>
+            ))}
+          </div>
+          
+          {/* Botones de acción rápida */}
+          <div className="mt-3 flex gap-2 items-center">
+            <button
+              onClick={() => {
+                if (bancos.length > 0) {
+                  setSelectedBancos(new Set(bancos))
+                }
+              }}
+              disabled={bancos.length === 0 || selectedBancos.size === bancos.length}
+              className={`px-3 py-1 text-xs rounded-md transition-all duration-200 font-medium ${
+                bancos.length === 0 || selectedBancos.size === bancos.length
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-100 hover:bg-blue-200 hover:shadow-sm text-blue-700 cursor-pointer active:bg-blue-300'
+              }`}
+              title={
+                bancos.length === 0 
+                  ? 'No hay bancos disponibles' 
+                  : selectedBancos.size === bancos.length 
+                    ? 'Todos los bancos ya están seleccionados'
+                    : `Seleccionar todos los bancos (${bancos.length})`
+              }
+            >
+              Seleccionar Todos
+              {bancos.length > 0 && selectedBancos.size < bancos.length && (
+                <span className="ml-1 text-xs opacity-75">
+                  ({bancos.length - selectedBancos.size})
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => {
+                console.log('🔴 DESELECCIONAR TODOS - Estado antes:', {
+                  bancosDisponibles: bancos.length,
+                  bancosSeleccionados: selectedBancos.size,
+                  listaBancos: Array.from(selectedBancos)
+                })
+                setSelectedBancos(new Set())
+                console.log('🔴 DESELECCIONAR TODOS - Comando ejecutado: setSelectedBancos(new Set())')
+              }}
+              className={`px-3 py-1 text-xs rounded-md transition-all duration-200 font-medium ${
+                selectedBancos.size === 0
+                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer'
+                  : 'bg-red-100 hover:bg-red-200 hover:shadow-sm text-red-700 cursor-pointer active:bg-red-300'
+              }`}
+              title={
+                selectedBancos.size === 0 
+                  ? 'Limpiar selección (ya está vacía)'
+                  : `Deseleccionar todos los bancos (${selectedBancos.size})`
+              }
+            >
+              Deseleccionar Todos
+              {selectedBancos.size > 0 && (
+                <span className="ml-1 text-xs opacity-75">
+                  ({selectedBancos.size})
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                if (bancos.length > 0) {
+                  const newSelected = new Set<string>()
+                  bancos.forEach(banco => {
+                    if (!selectedBancos.has(banco)) {
+                      newSelected.add(banco)
+                    }
+                  })
+                  setSelectedBancos(newSelected)
+                }
+              }}
+              disabled={bancos.length === 0}
+              className={`px-3 py-1 text-xs rounded-md transition-all duration-200 font-medium ${
+                bancos.length === 0
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-purple-100 hover:bg-purple-200 hover:shadow-sm text-purple-700 cursor-pointer active:bg-purple-300'
+              }`}
+              title={
+                bancos.length === 0 
+                  ? 'No hay bancos disponibles' 
+                  : `Invertir selección actual (${bancos.length - selectedBancos.size} serán seleccionados)`
+              }
+            >
+              Alternar Selección
+              {bancos.length > 0 && (
+                <span className="ml-1 text-xs opacity-75">
+                  (→{bancos.length - selectedBancos.size})
+                </span>
+              )}
+            </button>
+
+            {/* Indicador de estado con atajos de teclado */}
+            <div className="ml-auto flex items-center gap-2">
+              <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+                {selectedBancos.size} de {bancos.length} seleccionados
+              </div>
+              
+              {/* Tooltip de atajos de teclado */}
+              <div className="relative group">
+                <button 
+                  type="button"
+                  className="text-xs text-gray-400 hover:text-gray-600 w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center transition-colors"
+                  title="Atajos de teclado disponibles"
+                >
+                  ?
+                </button>
+                <div className="absolute right-0 top-6 w-64 bg-gray-800 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 shadow-lg">
+                  <div className="font-semibold mb-2">Atajos de teclado:</div>
+                  <div className="space-y-1">
+                    <div><span className="font-mono bg-gray-700 px-1 rounded">Ctrl+A</span> - Seleccionar todos</div>
+                    <div><span className="font-mono bg-gray-700 px-1 rounded">Ctrl+D</span> - Deseleccionar todos</div>
+                    <div><span className="font-mono bg-gray-700 px-1 rounded">Ctrl+I</span> - Invertir selección</div>
+                  </div>
+                  <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-800 transform rotate-45"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
@@ -380,67 +480,27 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             
-            {/* Barras para valores del período */}
-            <Bar 
-              yAxisId="right"
-              dataKey="valorContratoPeriodo" 
-              name="Valor Contrato (Período)"
-              opacity={0.8}
-            >
-              {enrichedData.map((entry, index) => (
-                <Cell key={`cell-contrato-${index}`} fill={entry.colorContrato} />
-              ))}
-            </Bar>
-            <Bar 
-              yAxisId="right"
-              dataKey="valorFacturadoPeriodo" 
-              name="Valor Facturado (Período)"
-              opacity={0.8}
-            >
-              {enrichedData.map((entry, index) => (
-                <Cell key={`cell-facturado-${index}`} fill={entry.colorFacturado} />
-              ))}
-            </Bar>
-            <Bar 
-              yAxisId="right"
-              dataKey="valorPagadoPeriodo" 
-              name="Valor Pagado (Período)"
-              opacity={0.8}
-            >
-              {enrichedData.map((entry, index) => (
-                <Cell key={`cell-pagado-${index}`} fill={entry.colorPagado} />
-              ))}
-            </Bar>
+            {/* Barras para valores por banco */}
+            {bancosToShow.map(banco => (
+              <Bar 
+                key={banco}
+                yAxisId="right"
+                dataKey={`${banco}_valor`}
+                name={banco}
+                fill={getBancoColor(banco)}
+                opacity={0.8}
+              />
+            ))}
             
-            {/* Líneas para valores acumulados */}
+            {/* Línea para acumulado total */}
             <Line 
               yAxisId="left"
               type="monotone" 
-              dataKey="valorContratoAcumulado" 
-              stroke="#2563EB"
+              dataKey="acumulado" 
+              stroke="#DC2626"
               strokeWidth={3}
-              name="Valor Contrato (Acumulado)"
-              dot={{ fill: "#2563EB", strokeWidth: 2, r: 4 }}
-              connectNulls={false}
-            />
-            <Line 
-              yAxisId="left"
-              type="monotone" 
-              dataKey="valorFacturadoAcumulado" 
-              stroke="#EAB308"
-              strokeWidth={3}
-              name="Valor Facturado (Acumulado)"
-              dot={{ fill: "#EAB308", strokeWidth: 2, r: 4 }}
-              connectNulls={false}
-            />
-            <Line 
-              yAxisId="left"
-              type="monotone" 
-              dataKey="valorPagadoAcumulado" 
-              stroke="#16A34A"
-              strokeWidth={3}
-              name="Valor Pagado (Acumulado)"
-              dot={{ fill: "#16A34A", strokeWidth: 2, r: 4 }}
+              name="Acumulado Total"
+              dot={{ fill: "#DC2626", strokeWidth: 2, r: 4 }}
               connectNulls={false}
             />
           </ComposedChart>

@@ -25,6 +25,7 @@ import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
 import { useContratos, useContratosMetrics, type Contrato } from '@/hooks/useContratos'
 import { useEmprestito, useEmprestitoMetrics } from '@/hooks/useEmprestito'
+import { useFlujoCaja } from '@/hooks/useFlujoCaja'
 import { useProcesos, useProcesosMetrics, type Proceso } from '@/hooks/useProcesos'
 import ActividadesTable from '@/components/ActividadesTable'
 import ActividadesStats from '@/components/ActividadesStats'
@@ -163,6 +164,9 @@ function DashboardContent() {
   // Hook para empréstito
   const emprestitoState = useEmprestito()
   const emprestitoMetrics = useEmprestitoMetrics(emprestitoState.data)
+  
+  // Hook para flujo de caja (específico para serie de tiempo)
+  const flujoCajaState = useFlujoCaja()
 
   // Hook para contratos
   const contratosState = useContratos()
@@ -754,8 +758,8 @@ function DashboardContent() {
           <div className="space-y-8">
             {/* Serie de tiempo - Evolución temporal */}
             <EmprestitoTimeSeries
-              data={emprestitoState.data}
-              loading={emprestitoState.loading}
+              data={flujoCajaState.data}
+              loading={flujoCajaState.loading}
             />
             
             {/* Seguimiento a Proyectos y Contratos de Empréstito */}
