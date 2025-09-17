@@ -560,7 +560,12 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                         
                         {contrato.urlproceso && (
                           <button
-                            onClick={() => openSecopLink(contrato.urlproceso)}
+                            onClick={() => {
+                              const url = (contrato.urlproceso as any)?.url || contrato.urlproceso
+                              if (typeof url === 'string' && url.trim()) {
+                                openSecopLink(url.trim())
+                              }
+                            }}
                             className="p-1 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
                             title="Ver en SECOP"
                           >
@@ -699,7 +704,12 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                                 <div className="flex items-center justify-between">
                                   <span className="text-sm font-medium text-gray-900 dark:text-white">Enlaces</span>
                                   <button
-                                    onClick={() => openSecopLink(contrato.urlproceso)}
+                                    onClick={() => {
+                                      const url = (contrato.urlproceso as any)?.url || contrato.urlproceso
+                                      if (typeof url === 'string' && url.trim()) {
+                                        openSecopLink(url.trim())
+                                      }
+                                    }}
                                     className={`
                                       flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium text-sm
                                       bg-gradient-to-r ${CATEGORIES.contracts.gradient}

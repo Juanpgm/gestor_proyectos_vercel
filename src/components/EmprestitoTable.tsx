@@ -376,7 +376,12 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                     <td className="py-3 px-4">
                       {contrato.urlproceso && (
                         <button
-                          onClick={() => openSecopLink(contrato.urlproceso.url)}
+                          onClick={() => {
+                            const url = (contrato.urlproceso as any)?.url || contrato.urlproceso
+                            if (typeof url === 'string' && url.trim()) {
+                              openSecopLink(url.trim())
+                            }
+                          }}
                           className="text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300"
                           title="Ver en SECOP"
                         >

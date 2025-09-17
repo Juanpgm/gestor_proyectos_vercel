@@ -341,13 +341,21 @@ const ContractFooter: React.FC<{ contrato: any; onOpenModal: () => void }> = ({ 
     </div>
     
     <div className="flex gap-2">
-      <button
-        onClick={() => openSecopLink(contrato.referencia_contrato || contrato.numero_proceso)}
-        className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-      >
-        <ExternalLink className="h-4 w-4" />
-        Ver en SECOP
-      </button>
+      {/* Solo mostrar el botón si hay una URL de SECOP disponible */}
+      {contrato.urlproceso && (
+        <button
+          onClick={() => {
+            const url = (contrato.urlproceso as any)?.url || contrato.urlproceso
+            if (typeof url === 'string' && url.trim()) {
+              openSecopLink(url.trim())
+            }
+          }}
+          className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Ver en SECOP
+        </button>
+      )}
       
       <button
         onClick={onOpenModal}

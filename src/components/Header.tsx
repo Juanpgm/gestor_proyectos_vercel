@@ -80,9 +80,9 @@ const Header = () => {
             {/* User Profile - Adaptativo */}
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className={`flex items-center space-x-2 ${CSS_UTILS.badge} ${CATEGORIES.project_units.className.bg} cursor-pointer hover:shadow-md transition-all duration-200 px-2 py-1 md:px-3 md:py-2`}
+              className={`flex items-center space-x-2 ${CSS_UTILS.badge} ${CATEGORIES.projects.className.bg} cursor-pointer hover:shadow-md transition-all duration-200 px-2 py-1 md:px-3 md:py-2`}
             >
-              <div className={`w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br ${CATEGORIES.project_units.gradient} rounded-full flex items-center justify-center flex-shrink-0`}>
+              <div className={`w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br ${CATEGORIES.projects.gradient} rounded-full flex items-center justify-center flex-shrink-0`}>
                 <User className="w-3 h-3 md:w-4 md:h-4 text-white" />
               </div>
               <div className="hidden md:block min-w-0">

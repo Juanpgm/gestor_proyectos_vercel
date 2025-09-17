@@ -21,7 +21,7 @@ import { useUnidadesProyecto, type UnidadProyecto, getUnidadesProyectoStats } fr
 import { useMapDataFix } from '@/hooks/useMapDataFix'
 import useUnifiedLayerManagement from '@/hooks/useUnifiedLayerManagement'
 import { type MapLayer } from './UniversalMapCore'
-import LayerControlAdvanced from './LayerControlAdvanced'
+import AdvancedLayerManager from './AdvancedLayerManager'
 import PropertiesPanel from './PropertiesPanel'
 import { useLayerSymbology } from '@/hooks/useLayerSymbology'
 import LayerSymbologyModal from './LayerSymbologyModal'
@@ -78,7 +78,7 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
   selectedProjectUnitFromTable,
   onFeatureClick,
   enablePanels = true,
-  initialLayersPanelCollapsed = false,
+  initialLayersPanelCollapsed = true,
   initialPropertiesPanelCollapsed = true,
   filteredBpins
 }) => {
@@ -376,16 +376,13 @@ const UnifiedMapInterface: React.FC<UnifiedMapInterfaceProps> = ({
 
                 {/* Control Avanzado de Capas */}
                 <div className="flex-1 overflow-hidden">
-                  <LayerControlAdvanced
+                  <AdvancedLayerManager
                     layers={layers}
                     onLayerUpdate={updateLayer}
                     onToggleVisibility={toggleLayerVisibility}
-                    onOpenSymbology={openSymbologyModal}
                     filters={layerFilters}
                     onFiltersChange={updateFilters}
                     onClearFilters={clearFilters}
-                    stats={stats}
-                    onResetLayers={resetLayersToDefault}
                     className="h-full border-0 rounded-none shadow-none"
                   />
                 </div>

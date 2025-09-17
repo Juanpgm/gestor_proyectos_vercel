@@ -9,15 +9,13 @@ import ModernBudgetAnalysis from '@/components/ModernBudgetAnalysis'
 import IntegratedAnalysisDashboard from '@/components/IntegratedAnalysisDashboard'
 import OptimizedProjectSection from '@/components/OptimizedProjectSection'
 import dynamic from 'next/dynamic'
-import UnifiedMapInterface from '@/components/UnifiedMapInterface'
 import SimpleMapLayout from '@/components/SimpleMapLayout'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
-import UnifiedFilters, { FilterState } from '@/components/UnifiedFilters'
+import UnifiedFilters from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyectoWorking'
 import IntegratedProjectsContracts from '@/components/IntegratedProjectsContracts'
-// import { useUnidadesProyectoOptimized } from '@/hooks/useUnidadesProyectoOptimized'
 // import { useGlobalDataPreloader } from '@/hooks/useGlobalDataPreloader'
 // import { useUnidadesProyectoSimple } from '@/hooks/useUnidadesProyectoSimple'
 // import { useUnidadesProyectoForced } from '@/hooks/useUnidadesProyectoForced'
@@ -38,16 +36,13 @@ import ContratosStats from '@/components/ContratosStats'
 import ContratosCharts from '@/components/ContratosCharts'
 import EmprestitoStats from '@/components/EmprestitoStats'
 import EmprestitoCharts from '@/components/EmprestitoCharts'
-import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
 import EmprestitoContractsChart from '@/components/EmprestitoContractsChart'
+import EmprestitoTabs from '@/components/EmprestitoTabs'
 import ProcesosTable from '@/components/ProcesosTable'
 import ProcesosStats from '@/components/ProcesosStats'
 import ProcesosCharts from '@/components/ProcesosCharts'
-import ProjectInterventionMetrics from '@/components/ProjectInterventionMetrics'
-import CentrosGravedadMetrics from '@/components/CentrosGravedadMetrics'
 import { 
   BarChart3, 
-  Map as MapIcon, 
   Table, 
   Filter,
   TrendingUp,
@@ -60,7 +55,7 @@ import MobileNavigation from '@/components/MobileNavigation'
 // Componentes dinámicos
 const ChoroplethMapInteractive = dynamic(() => import('@/components/ChoroplethMapInteractive'), { ssr: false })
 
-type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
+type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
 export default function Dashboard() {
   return (
@@ -499,13 +494,12 @@ function DashboardContent() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-400">Cargando datos del proyecto...</p>
             <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-              {activeTab === 'project_units' && 'Preparando mapa y tabla...'}
               {activeTab === 'activities' && 'Cargando actividades...'}
               {activeTab === 'products' && 'Cargando productos...'}
               {activeTab === 'emprestito' && 'Cargando datos de empréstito...'}
               {activeTab === 'procesos' && 'Cargando procesos...'}
               {activeTab === 'contracts' && 'Cargando contratos...'}
-              {!['project_units', 'activities', 'products', 'emprestito', 'procesos', 'contracts'].includes(activeTab) && 'Obteniendo información...'}
+              {!['activities', 'products', 'emprestito', 'procesos', 'contracts'].includes(activeTab) && 'Obteniendo información...'}
             </p>
           </div>
         </div>
@@ -559,108 +553,6 @@ function DashboardContent() {
             
             {/* Sección Optimizada de Análisis de Proyectos */}
             <OptimizedProjectSection />
-          </div>
-        )
-
-      case 'project_units':
-        return (
-          <div className="space-y-8">
-            {/* Contenedor principal que engloba el mapa y las cards de métricas */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Header con título */}
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                    <MapIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                      Unidades de Proyecto
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Visualización geográfica y análisis de intervenciones municipales
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Mapa unificado con paneles integrados */}
-              <div className="w-full">
-                <UnifiedMapInterface 
-                  className="w-full" 
-                  height="800px"
-                  selectedProjectUnitFromTable={selectedProjectUnitFromTable}
-                  onFeatureClick={(feature, layerType) => {
-                    console.log('🗺️ Feature clicked:', feature, 'Layer:', layerType)
-                  }}
-                  enablePanels={true}
-                  initialLayersPanelCollapsed={false}
-                  initialPropertiesPanelCollapsed={true}
-                  filteredBpins={filteredBpinsFromContracts && filteredBpinsFromContracts.length > 0 ? filteredBpinsFromContracts : undefined}
-                />
-              </div>
-              
-              {/* Sección de métricas integrada dentro del contenedor del mapa - Ahora ocultable */}
-              <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                        <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          Análisis de Intervenciones
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Métricas detalladas por tipo de intervención y ubicación
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setShowInterventionAnalysis(!showInterventionAnalysis)}
-                      className="flex items-center gap-2 px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {showInterventionAnalysis ? 'Ocultar' : 'Mostrar'}
-                      </span>
-                      <ChevronDown 
-                        className={`w-4 h-4 text-gray-500 transition-transform ${
-                          showInterventionAnalysis ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  
-                  {/* Grid con las métricas dentro del contenedor - Altura uniforme - Con animación */}
-                  <motion.div
-                    initial={false}
-                    animate={{
-                      height: showInterventionAnalysis ? 'auto' : 0,
-                      opacity: showInterventionAnalysis ? 1 : 0
-                    }}
-                    transition={{
-                      duration: 0.3,
-                      ease: 'easeInOut'
-                    }}
-                    className="overflow-hidden"
-                  >
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[800px] min-h-[600px]">
-                      {/* Métricas de Tipos de Intervención y Clases de Obra */}
-                      <ProjectInterventionMetrics 
-                        data={filteredProjectUnits}
-                        loading={dataLoading}
-                      />
-                      
-                      {/* Métricas de Centros de Gravedad */}
-                      <CentrosGravedadMetrics />
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Contenedor de Unidades de Proyecto eliminado */}
           </div>
         )
 
@@ -756,13 +648,14 @@ function DashboardContent() {
       case 'emprestito':
         return (
           <div className="space-y-8">
-            {/* Serie de tiempo - Evolución temporal */}
-            <EmprestitoTimeSeries
-              data={flujoCajaState.data}
-              loading={flujoCajaState.loading}
+            {/* Componente de tabs con las tres secciones principales */}
+            <EmprestitoTabs
+              flujoCajaData={flujoCajaState.data}
+              flujoCajaLoading={flujoCajaState.loading}
+              onFilteredBpinsChange={handleFilteredBpinsChange}
             />
             
-            {/* Seguimiento a Proyectos y Contratos de Empréstito */}
+            {/* Seguimiento a Proyectos y Contratos de Empréstito - Mantenido fijo por debajo */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               <IntegratedProjectsContracts onFilteredBpinsChange={handleFilteredBpinsChange} />
             </div>
@@ -810,7 +703,7 @@ function DashboardContent() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <Header />
       
-      <main className={`px-4 md:px-6 py-6 md:py-8 ${activeTab === 'project_units' ? 'max-w-none mx-2 md:mx-4' : 'container mx-auto'}`}>
+      <main className={`px-4 md:px-6 py-6 md:py-8 container mx-auto`}>
         {/* Navigation Tabs - Ahora responsivo */}
         <MobileNavigation 
           activeTab={activeTab}

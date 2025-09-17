@@ -108,13 +108,6 @@ const StatsCards: React.FC = () => {
       category: 'projects' as const
     },
     {
-      title: 'Unidades de Proyecto',  
-      value: filteredStats.stats.totalUnidadesProyecto || 0,
-      subtitle: 'En seguimiento',
-      icon: CATEGORIES.project_units.icon,
-      category: 'project_units' as const
-    },
-    {
       title: 'Actividades',
       value: filteredStats.stats.totalActividades || 0,
       subtitle: 'En ejecución',

@@ -1,7 +1,6 @@
 // Design System - Sistema Unificado de Colores, Iconos y Estilos
 import {
   FolderOpen,        // Proyectos
-  Map,               // Unidades de Proyecto  
   Activity,          // Actividades
   Package,           // Productos
   FileText,          // Contratos
@@ -29,26 +28,6 @@ export const CATEGORIES = {
       accent: 'bg-blue-100 dark:bg-blue-900/30',
       button: 'bg-blue-500 hover:bg-blue-600 text-white',
       badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-    }
-  },
-  project_units: {
-    name: 'Unidades de Proyecto',
-    color: {
-      primary: '#059669',     // emerald-600
-      light: '#10b981',       // emerald-500
-      lighter: '#34d399',     // emerald-400
-      background: '#d1fae5',  // emerald-100
-      darkBackground: '#04542720', // emerald-800 con opacidad
-    },
-    icon: Map,
-    gradient: 'from-emerald-500 to-emerald-600',
-    className: {
-      text: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
-      border: 'border-emerald-200 dark:border-emerald-800',
-      accent: 'bg-emerald-100 dark:bg-emerald-900/30',
-      button: 'bg-emerald-500 hover:bg-emerald-600 text-white',
-      badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
     }
   },
   activities: {
