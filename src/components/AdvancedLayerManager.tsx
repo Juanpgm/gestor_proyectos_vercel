@@ -15,7 +15,25 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { LayerConfig, LayerFilters } from '@/hooks/useUnifiedLayerManagement'
+
+// Tipos locales para el manejo de capas
+interface LayerConfig {
+  id: string
+  name: string
+  visible: boolean
+  type: 'geojson' | 'marker' | 'tile'
+  category: string
+  color?: string
+  opacity?: number
+  data?: any
+  customStyles?: any
+}
+
+interface LayerFilters {
+  search?: string
+  category?: string
+  visible?: boolean
+}
 
 interface FilterState {
   search: string
@@ -421,7 +439,7 @@ const AdvancedLayerManager: React.FC<AdvancedLayerManagerProps> = ({
                             {/* Control de opacidad */}
                             <div>
                               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Opacidad: {Math.round(layer.opacity * 100)}%
+                                Opacidad: {Math.round((layer.opacity || 1) * 100)}%
                               </label>
                               <input
                                 type="range"

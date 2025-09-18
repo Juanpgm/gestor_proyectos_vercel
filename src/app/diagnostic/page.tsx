@@ -21,7 +21,7 @@ const GeoJSONHealthDashboard = dynamic(
 )
 
 const MapClickDiagnosticsWrapper = dynamic(
-  () => import('@/components/MapClickDiagnosticsWrapper'),
+  () => import('@/components/DynamicMap'),
   { 
     ssr: false,
     loading: () => (
@@ -123,7 +123,15 @@ export default function DiagnosticPage() {
                   <li>• Depura problemas de interactividad del mapa</li>
                 </ul>
               </div>
-              <MapClickDiagnosticsWrapper height="600px" />
+              <MapClickDiagnosticsWrapper 
+                className="w-full h-[600px]"
+                onFeatureClick={(feature, layerType) => {
+                  console.log('🎯 Feature clicked:', feature, 'Layer:', layerType)
+                }}
+                onLayerToggle={(layerId, visible) => {
+                  console.log(`🔄 Layer ${layerId} ${visible ? 'enabled' : 'disabled'}`)
+                }}
+              />
             </div>
           )}
         </div>

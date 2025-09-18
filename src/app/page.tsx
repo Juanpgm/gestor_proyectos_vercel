@@ -9,9 +9,7 @@ import ModernBudgetAnalysis from '@/components/ModernBudgetAnalysis'
 import IntegratedAnalysisDashboard from '@/components/IntegratedAnalysisDashboard'
 import OptimizedProjectSection from '@/components/OptimizedProjectSection'
 import dynamic from 'next/dynamic'
-import SimpleMapLayout from '@/components/SimpleMapLayout'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
-import UnifiedFilters from '@/components/UnifiedFilters'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyectoWorking'
@@ -40,6 +38,16 @@ import EmprestitoContractsChart from '@/components/EmprestitoContractsChart'
 import EmprestitoTabs from '@/components/EmprestitoTabs'
 import ProcesosTable from '@/components/ProcesosTable'
 import ProcesosStats from '@/components/ProcesosStats'
+
+// Import dinámico del mapa para evitar problemas SSR
+const DynamicMap = dynamic(() => import('@/components/DynamicMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+      <div className="text-gray-500 dark:text-gray-400">Cargando mapa...</div>
+    </div>
+  )
+})
 import ProcesosCharts from '@/components/ProcesosCharts'
 import { 
   BarChart3, 
@@ -51,9 +59,6 @@ import {
 } from 'lucide-react'
 import { CATEGORIES, ANIMATIONS } from '@/lib/design-system'
 import MobileNavigation from '@/components/MobileNavigation'
-
-// Componentes dinámicos
-const ChoroplethMapInteractive = dynamic(() => import('@/components/ChoroplethMapInteractive'), { ssr: false })
 
 type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
@@ -709,21 +714,6 @@ function DashboardContent() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
-
-        {/* Filtros Transversales - Aparecen en todas las pestañas */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6"
-        >
-          <UnifiedFilters 
-            filters={filters}
-            onFiltersChange={updateFilters}
-            activeTab={activeTab}
-            allProjects={proyectos.map(proyecto => ({ proyecto }))}
-          />
-        </motion.div>
 
         {/* Content */}
         <motion.div

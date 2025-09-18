@@ -2,10 +2,19 @@
 
 import React, { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingUp, Map, Building2 } from 'lucide-react'
+import { TrendingUp, Building2 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
-import ChoroplethMapInteractive from '@/components/ChoroplethMapInteractive'
-import UnifiedMapInterface from '@/components/UnifiedMapInterface'
+
+// Import dinámico de componentes con mapas para evitar problemas SSR
+const DynamicMap = dynamic(() => import('@/components/DynamicMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+      <div className="text-gray-500 dark:text-gray-400">Cargando mapa...</div>
+    </div>
+  )
+})
 
 // Tipos para las props
 interface EmprestitoTabsProps {
@@ -27,16 +36,9 @@ const TAB_CONFIG = [
   {
     id: 'unidades-proyecto',
     label: 'Unidades de Proyecto',
-    description: 'Mapa interactivo de unidades de proyecto y análisis territorial',
+    description: 'Mapa interactivo de unidades de proyecto',
     icon: Building2,
-    component: 'UnifiedMapInterface'
-  },
-  {
-    id: 'mapa-coropletico',
-    label: 'Mapa Coroplético',
-    icon: Map,
-    description: 'Distribución geográfica y análisis territorial',
-    component: 'ChoroplethMapInteractive'
+    component: 'DynamicMap'
   }
 ] as const
 
@@ -49,52 +51,29 @@ const getTabButtonClasses = (isActive: boolean): string => {
   return `${baseClasses} ${isActive ? activeClasses : inactiveClasses}`
 }
 
-// Función pura para generar props del tab activo
-const getActiveTabProps = (activeTab: string, props: EmprestitoTabsProps) => {
-  switch (activeTab) {
-    case 'flujo-caja':
-      return {
-        data: props.flujoCajaData,
-        loading: props.flujoCajaLoading
-      }
-    case 'unidades-proyecto':
-      return {
-        className: 'w-full',
-        height: '800px',
-        enablePanels: true,
-        initialLayersPanelCollapsed: false,
-        initialPropertiesPanelCollapsed: true,
-        onFeatureClick: (feature: any, layerType: any) => {
-          console.log('🗺️ Feature clicked:', feature, 'Layer:', layerType)
-        }
-      }
-    case 'mapa-coropletico':
-      return {
-        height: '600px',
-        showControls: true,
-        showChartsPanel: true,
-        defaultLayer: 'comunas' as const,
-        defaultMetric: 'presupuesto' as const
-      }
-    default:
-      return {}
-  }
-}
-
 // Componente de renderizado condicional para tabs
 const TabContent: React.FC<{ activeTab: string; props: EmprestitoTabsProps }> = React.memo(({ 
   activeTab, 
   props 
-}) => {
-  const tabProps = useMemo(() => getActiveTabProps(activeTab, props), [activeTab, props])
-  
+}) => {  
   switch (activeTab) {
     case 'flujo-caja':
-      return <EmprestitoTimeSeries {...tabProps} />
+      return <EmprestitoTimeSeries 
+        data={props.flujoCajaData}
+        loading={props.flujoCajaLoading}
+      />
     case 'unidades-proyecto':
-      return <UnifiedMapInterface {...tabProps} />
-    case 'mapa-coropletico':
-      return <ChoroplethMapInteractive {...tabProps} />
+      return (
+        <DynamicMap 
+          className="w-full h-[600px]"
+          onFeatureClick={(feature: any, layerType: any) => {
+            console.log('🗺️ Feature clicked:', feature, 'Layer:', layerType)
+          }}
+          onLayerToggle={(layerId: string, visible: boolean) => {
+            console.log(`🗺️ Layer ${layerId} toggled:`, visible)
+          }}
+        />
+      )
     default:
       return null
   }
@@ -141,11 +120,12 @@ const EmprestitoTabs: React.FC<EmprestitoTabsProps> = ({
   onFilteredBpinsChange,
   className = ''
 }) => {
-  // Estado del tab activo
-  const [activeTab, setActiveTab] = useState<string>('flujo-caja')
+  // Estado del tab activo - mostrando unidades-proyecto para ver el mapa
+  const [activeTab, setActiveTab] = useState<string>('unidades-proyecto')
   
   // Función pura para cambio de tab
   const handleTabChange = useCallback((tabId: string) => {
+    console.log('📊 EmprestitoTabs: Cambiando a pestaña:', tabId)
     setActiveTab(tabId)
   }, [])
   

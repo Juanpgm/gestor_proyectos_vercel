@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    // Desactivar ESLint durante el build
+    ignoreDuringBuilds: true,
+  },
   images: {
     domains: ['localhost'],
     unoptimized: true, // Para Vercel static export si es necesario

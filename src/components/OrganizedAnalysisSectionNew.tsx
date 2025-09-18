@@ -4,7 +4,6 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import CompactBudgetCharts from './CompactBudgetCharts'
 import FinancialMetricsIntegrated from './FinancialMetricsIntegrated'
-import ChoroplethMapInteractive from './ChoroplethMapInteractive'
 
 const OrganizedAnalysisSectionNew: React.FC = () => {
   return (
@@ -41,7 +40,13 @@ const OrganizedAnalysisSectionNew: React.FC = () => {
               </div>
             </div>
             <div className="h-80">
-              <ChoroplethMapInteractive />
+              <div className="flex items-center justify-center h-full bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <div className="text-center">
+                  <div className="text-gray-600 dark:text-gray-400">
+                    Funcionalidad de mapa temporalmente no disponible
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

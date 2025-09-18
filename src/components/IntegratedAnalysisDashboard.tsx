@@ -17,7 +17,8 @@ import {
   Minus
 } from 'lucide-react'
 import ModernBudgetAnalysis from './ModernBudgetAnalysis'
-import ChoroplethMapInteractive from './ChoroplethMapInteractive'
+import dynamic from 'next/dynamic'
+
 import { useDataContext } from '../context/DataContext'
 import { formatCurrencyCompact } from '../utils/formatCurrency'
 
@@ -166,7 +167,13 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
                     </p>
                   </div>
                 </div>
-                <ChoroplethMapInteractive height="400px" showControls={true} />
+                <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-gray-600 dark:text-gray-400">
+                      Funcionalidad de mapa coroplético temporalmente no disponible
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -182,14 +189,26 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
       case 'map':
         return (
           <div className="h-full">
-            <ChoroplethMapInteractive height="600px" showControls={true} />
+            <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
+              <div className="text-center">
+                <div className="text-gray-600 dark:text-gray-400">
+                  Funcionalidad de mapa coroplético temporalmente no disponible
+                </div>
+              </div>
+            </div>
           </div>
         )
 
       case 'overlay':
         return (
           <div className="relative h-full">
-            <ChoroplethMapInteractive height="600px" showControls={true} />
+            <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
+              <div className="text-center">
+                <div className="text-gray-600 dark:text-gray-400">
+                  Funcionalidad de mapa coroplético temporalmente no disponible
+                </div>
+              </div>
+            </div>
             
             {/* Overlay de métricas */}
             <div className="absolute top-4 left-4 z-[1000] space-y-3 max-w-sm">

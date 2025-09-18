@@ -3,7 +3,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import IntegratedBudgetAnalysis from './IntegratedBudgetAnalysis'
-import ChoroplethMapInteractive from './ChoroplethMapInteractive'
 import { Map, BarChart3 } from 'lucide-react'
 
 const OptimizedProjectSection: React.FC = () => {
@@ -53,13 +52,14 @@ const OptimizedProjectSection: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="p-0">
-          <ChoroplethMapInteractive 
-            height="700px"
-            showControls={true}
-            showChartsPanel={true}
-            defaultLayer="comunas"
-          />
+        <div className="p-6">
+          <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <div className="text-center">
+              <div className="text-gray-600 dark:text-gray-400">
+                Funcionalidad de mapa coroplético temporalmente no disponible
+              </div>
+            </div>
+          </div>
         </div>
       </motion.section>
     </div>
