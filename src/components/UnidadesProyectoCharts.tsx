@@ -81,11 +81,7 @@ export default function UnidadesProyectoCharts({ metrics, loading }: UnidadesPro
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 8) // Top 8
 
-    // Datos para distribución por clase de obra
-    const claseObraData = Object.entries(metrics.distribuciones.porClaseObra)
-      .map(([nombre, valor]) => ({ nombre, valor }))
-      .sort((a, b) => b.valor - a.valor)
-      .slice(0, 8) // Top 8
+
 
     // Datos para distribución por año
     const anoData = Object.entries(metrics.distribuciones.porAno)
@@ -124,7 +120,6 @@ export default function UnidadesProyectoCharts({ metrics, loading }: UnidadesPro
 
     return {
       tipoIntervencionData,
-      claseObraData,
       anoData,
       centroGestorData,
       comunaData,
@@ -190,36 +185,7 @@ export default function UnidadesProyectoCharts({ metrics, loading }: UnidadesPro
           </ResponsiveContainer>
         </motion.div>
 
-        {/* Distribución por Clase de Obra */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700"
-        >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Distribución por Clase de Obra
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={chartsData.claseObraData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ nombre, percent }) => `${nombre}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="valor"
-              >
-                {chartsData.claseObraData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS.primary[index % COLORS.primary.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-        </motion.div>
+
       </div>
 
       {/* Segunda fila: Análisis temporal y geográfico */}

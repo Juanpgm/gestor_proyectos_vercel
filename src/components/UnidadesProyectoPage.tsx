@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   RefreshCw, 
@@ -23,7 +23,7 @@ import UnidadesProyectoMapView from '@/components/UnidadesProyectoMapView'
 import { formatCurrencyColombian, formatNumberColombian, getCategoryColor } from '@/utils/currency'
 
 // Tipos para visualización del mapa
-type MapVisualizationVariable = 'avance_obra' | 'presupuesto_base' | 'tipo_intervencion' | 'estado' | 'clase_obra'
+type MapVisualizationVariable = 'avance_obra' | 'presupuesto_base' | 'tipo_intervencion' | 'estado'
 
 interface MapVisualizationConfig {
   variable: MapVisualizationVariable
@@ -40,6 +40,7 @@ interface FiltersPanelProps {
   onFiltersChange: (filters: UnidadProyectoFilters) => void
   onClose: () => void
   data: UnidadProyectoAPI[]
+  loading?: boolean
 }
 
 // Componente para selector múltiple
@@ -49,9 +50,10 @@ interface MultiSelectProps {
   onSelectionChange: (values: string[]) => void
   placeholder: string
   searchPlaceholder?: string
+  onImmediateChange?: (values: string[]) => void // Nueva prop para aplicar cambios inmediatamente
 }
 
-const MultiSelect = ({ options, selectedValues, onSelectionChange, placeholder, searchPlaceholder }: MultiSelectProps) => {
+const MultiSelect = ({ options, selectedValues, onSelectionChange, placeholder, searchPlaceholder, onImmediateChange }: MultiSelectProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -63,12 +65,31 @@ const MultiSelect = ({ options, selectedValues, onSelectionChange, placeholder, 
     const newSelection = selectedValues.includes(option)
       ? selectedValues.filter(v => v !== option)
       : [...selectedValues, option]
+    
+    console.log('🔄 MultiSelect toggleOption:', option, 'Nueva selección:', newSelection)
+    
+    // Primero actualizar el estado local
     onSelectionChange(newSelection)
+    
+    // Luego aplicar cambio inmediatamente si se proporciona la callback
+    if (onImmediateChange) {
+      console.log('⚡ Aplicando cambio inmediato:', newSelection)
+      onImmediateChange(newSelection)
+    }
   }
 
   const clearSelection = () => {
+    console.log('🧹 MultiSelect clearSelection')
+    
+    // Primero actualizar el estado local
     onSelectionChange([])
     setSearchTerm('')
+    
+    // Luego aplicar cambio inmediatamente si se proporciona la callback
+    if (onImmediateChange) {
+      console.log('⚡ Aplicando limpieza inmediata')
+      onImmediateChange([])
+    }
   }
 
   return (
@@ -135,10 +156,9 @@ const MultiSelect = ({ options, selectedValues, onSelectionChange, placeholder, 
   )
 }
 
-const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelProps) => {
+const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false }: FiltersPanelProps) => {
   // Estados para selecciones múltiples
   const [selectedTiposIntervencion, setSelectedTiposIntervencion] = useState<string[]>([])
-  const [selectedClasesObra, setSelectedClasesObra] = useState<string[]>([])
   const [selectedEstados, setSelectedEstados] = useState<string[]>([])
   const [selectedCentrosGestores, setSelectedCentrosGestores] = useState<string[]>([])
   const [selectedComunas, setSelectedComunas] = useState<string[]>([])
@@ -146,10 +166,60 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
   const [selectedFuentesFinanciacion, setSelectedFuentesFinanciacion] = useState<string[]>([])
   const [selectedBarriosVeredas, setSelectedBarriosVeredas] = useState<string[]>([])
 
+  // Sincronizar estados locales con filtros existentes
+  useEffect(() => {
+    console.log('🔄 Sincronizando filtros:', filters)
+    
+    if (filters.tipo_intervencion) {
+      const valores = filters.tipo_intervencion.split(',')
+      console.log('📝 Sincronizando tipo_intervencion:', valores)
+      setSelectedTiposIntervencion(valores)
+    } else {
+      setSelectedTiposIntervencion([])
+    }
+    
+
+    
+    if (filters.estado) {
+      setSelectedEstados(filters.estado.split(','))
+    } else {
+      setSelectedEstados([])
+    }
+    
+    if (filters.nombre_centro_gestor) {
+      setSelectedCentrosGestores(filters.nombre_centro_gestor.split(','))
+    } else {
+      setSelectedCentrosGestores([])
+    }
+    
+    if (filters.comuna_corregimiento) {
+      setSelectedComunas(filters.comuna_corregimiento.split(','))
+    } else {
+      setSelectedComunas([])
+    }
+    
+    if (filters.ano) {
+      setSelectedAnos(filters.ano.split(','))
+    } else {
+      setSelectedAnos([])
+    }
+    
+    if (filters.fuente_financiacion) {
+      setSelectedFuentesFinanciacion(filters.fuente_financiacion.split(','))
+    } else {
+      setSelectedFuentesFinanciacion([])
+    }
+    
+    if (filters.barrio_vereda) {
+      setSelectedBarriosVeredas(filters.barrio_vereda.split(','))
+    } else {
+      setSelectedBarriosVeredas([])
+    }
+  }, [filters])
+
   // Obtener opciones únicas para los filtros
   const filterOptions = useMemo(() => {
     const tiposIntervencion = Array.from(new Set(data.map(item => item.properties.tipo_intervencion).filter(Boolean))).sort() as string[]
-    const clasesObra = Array.from(new Set(data.map(item => item.properties.clase_obra).filter(Boolean))).sort() as string[]
     const estados = Array.from(new Set(data.map(item => item.properties.estado).filter(Boolean))).sort() as string[]
     const centrosGestores = Array.from(new Set(data.map(item => item.properties.nombre_centro_gestor).filter(Boolean))).sort() as string[]
     const comunas = Array.from(new Set(data.map(item => item.properties.comuna_corregimiento).filter(Boolean))).sort() as string[]
@@ -159,7 +229,6 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
 
     return {
       tiposIntervencion,
-      clasesObra,
       estados,
       centrosGestores,
       comunas,
@@ -170,16 +239,17 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
   }, [data])
 
   const updateFilter = (key: keyof UnidadProyectoFilters, value: string) => {
-    onFiltersChange({
+    const newFilters = {
       ...filters,
       [key]: value === '' ? undefined : value
-    })
+    }
+    console.log('🔄 Actualizando filtro:', key, '=', value)
+    onFiltersChange(newFilters)
   }
 
   const clearAllFilters = () => {
     // Limpiar estados locales
     setSelectedTiposIntervencion([])
-    setSelectedClasesObra([])
     setSelectedEstados([])
     setSelectedCentrosGestores([])
     setSelectedComunas([])
@@ -187,8 +257,94 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
     setSelectedFuentesFinanciacion([])
     setSelectedBarriosVeredas([])
     
-    // Limpiar filtros
+    // Limpiar filtros y recargar datos sin filtros
+    console.log('🧹 Limpiando todos los filtros')
     onFiltersChange({})
+  }
+
+  // Funciones para aplicar filtros inmediatamente
+  const applyTipoIntervencionFilter = (values: string[]) => {
+    // Actualizar estado local primero
+    setSelectedTiposIntervencion(values)
+    
+    // Aplicar filtro
+    const newFilters = { ...filters }
+    if (values.length > 0) {
+      newFilters.tipo_intervencion = values.join(',')
+    } else {
+      delete newFilters.tipo_intervencion
+    }
+    console.log('🔄 Aplicando filtro Tipo Intervención:', values)
+    console.log('📋 Nuevos filtros:', newFilters)
+    onFiltersChange(newFilters)
+  }
+
+  const applyEstadoFilter = (values: string[]) => {
+    const newFilters = { ...filters }
+    if (values.length > 0) {
+      newFilters.estado = values.join(',')
+    } else {
+      delete newFilters.estado
+    }
+    console.log('🔄 Aplicando filtro Estado:', values)
+    onFiltersChange(newFilters)
+  }
+
+  const applyAnoFilter = (values: string[]) => {
+    const newFilters = { ...filters }
+    if (values.length > 0) {
+      newFilters.ano = values.join(',')
+    } else {
+      delete newFilters.ano
+    }
+    console.log('🔄 Aplicando filtro Año:', values)
+    onFiltersChange(newFilters)
+  }
+
+  const applyFuenteFinanciacionFilter = (values: string[]) => {
+    const newFilters = { ...filters }
+    if (values.length > 0) {
+      newFilters.fuente_financiacion = values.join(',')
+    } else {
+      delete newFilters.fuente_financiacion
+    }
+    console.log('🔄 Aplicando filtro Fuente Financiación:', values)
+    onFiltersChange(newFilters)
+  }
+
+
+
+  const applyCentroGestorFilter = (values: string[]) => {
+    const newFilters = { ...filters }
+    if (values.length > 0) {
+      newFilters.nombre_centro_gestor = values.join(',')
+    } else {
+      delete newFilters.nombre_centro_gestor
+    }
+    console.log('🔄 Aplicando filtro Centro Gestor:', values)
+    onFiltersChange(newFilters)
+  }
+
+  const applyComunaFilter = (values: string[]) => {
+    const newFilters = { ...filters }
+    if (values.length > 0) {
+      newFilters.comuna_corregimiento = values.join(',')
+    } else {
+      delete newFilters.comuna_corregimiento
+    }
+    console.log('🔄 Aplicando filtro Comuna:', values)
+    onFiltersChange(newFilters)
+  }
+
+  const applyBarrioFilter = (values: string[]) => {
+    const newFilters = { ...filters }
+    if (values.length > 0) {
+      newFilters.barrio_vereda = values.join(',')
+    } else {
+      delete newFilters.barrio_vereda
+    }
+    console.log('🔄 Aplicando filtro Barrio:', values)
+    onFiltersChange(newFilters)
   }
 
   const applyFilters = () => {
@@ -197,30 +353,52 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
     // Aplicar filtros de selección múltiple como strings separados por coma
     if (selectedTiposIntervencion.length > 0) {
       newFilters.tipo_intervencion = selectedTiposIntervencion.join(',')
+    } else {
+      delete newFilters.tipo_intervencion
     }
-    if (selectedClasesObra.length > 0) {
-      newFilters.clase_obra = selectedClasesObra.join(',')
-    }
+    
+
+    
     if (selectedEstados.length > 0) {
       newFilters.estado = selectedEstados.join(',')
+    } else {
+      delete newFilters.estado
     }
+    
     if (selectedCentrosGestores.length > 0) {
-      newFilters.centro_gestor = selectedCentrosGestores.join(',')
+      newFilters.nombre_centro_gestor = selectedCentrosGestores.join(',')
+    } else {
+      delete newFilters.nombre_centro_gestor
     }
+    
     if (selectedComunas.length > 0) {
-      newFilters.comuna = selectedComunas.join(',')
+      newFilters.comuna_corregimiento = selectedComunas.join(',')
+    } else {
+      delete newFilters.comuna_corregimiento
     }
+    
     if (selectedAnos.length > 0) {
       newFilters.ano = selectedAnos.join(',')
+    } else {
+      delete newFilters.ano
     }
+    
     if (selectedFuentesFinanciacion.length > 0) {
       newFilters.fuente_financiacion = selectedFuentesFinanciacion.join(',')
+    } else {
+      delete newFilters.fuente_financiacion
     }
+    
     if (selectedBarriosVeredas.length > 0) {
-      newFilters.barrio = selectedBarriosVeredas.join(',')
+      newFilters.barrio_vereda = selectedBarriosVeredas.join(',')
+    } else {
+      delete newFilters.barrio_vereda
     }
 
+    console.log('🔍 Aplicando filtros:', newFilters)
+    console.log('📊 Filtros activos:', Object.keys(newFilters).filter(key => newFilters[key as keyof UnidadProyectoFilters]))
     onFiltersChange(newFilters)
+    onClose() // Cerrar el panel después de aplicar filtros
   }
 
   return (
@@ -310,25 +488,17 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
             <MultiSelect
               options={filterOptions.tiposIntervencion}
               selectedValues={selectedTiposIntervencion}
-              onSelectionChange={setSelectedTiposIntervencion}
+              onSelectionChange={(values) => {
+                console.log('🎯 Tipo Intervención - onSelectionChange:', values)
+                setSelectedTiposIntervencion(values)
+              }}
+              onImmediateChange={applyTipoIntervencionFilter}
               placeholder="Seleccionar tipos de intervención"
               searchPlaceholder="Buscar tipos..."
             />
           </div>
 
-          {/* Clase de Obra - Selección múltiple */}
-          <div>
-            <label className="block text-sm font-medium text-emerald-700 dark:text-emerald-300 mb-2">
-              Clase de Obra
-            </label>
-            <MultiSelect
-              options={filterOptions.clasesObra}
-              selectedValues={selectedClasesObra}
-              onSelectionChange={setSelectedClasesObra}
-              placeholder="Seleccionar clases de obra"
-              searchPlaceholder="Buscar clases..."
-            />
-          </div>
+
 
           {/* Estado - Selección múltiple */}
           <div>
@@ -339,6 +509,7 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
               options={filterOptions.estados}
               selectedValues={selectedEstados}
               onSelectionChange={setSelectedEstados}
+              onImmediateChange={applyEstadoFilter}
               placeholder="Seleccionar estados"
               searchPlaceholder="Buscar estados..."
             />
@@ -353,6 +524,7 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
               options={filterOptions.centrosGestores}
               selectedValues={selectedCentrosGestores}
               onSelectionChange={setSelectedCentrosGestores}
+              onImmediateChange={applyCentroGestorFilter}
               placeholder="Seleccionar centros gestores"
               searchPlaceholder="Buscar centros..."
             />
@@ -367,6 +539,7 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
               options={filterOptions.comunas}
               selectedValues={selectedComunas}
               onSelectionChange={setSelectedComunas}
+              onImmediateChange={applyComunaFilter}
               placeholder="Seleccionar comunas"
               searchPlaceholder="Buscar comunas..."
             />
@@ -381,6 +554,7 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
               options={filterOptions.barriosVeredas}
               selectedValues={selectedBarriosVeredas}
               onSelectionChange={setSelectedBarriosVeredas}
+              onImmediateChange={applyBarrioFilter}
               placeholder="Seleccionar barrios/veredas"
               searchPlaceholder="Buscar barrios..."
             />
@@ -395,6 +569,7 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
               options={filterOptions.anos}
               selectedValues={selectedAnos}
               onSelectionChange={setSelectedAnos}
+              onImmediateChange={applyAnoFilter}
               placeholder="Seleccionar años"
               searchPlaceholder="Buscar años..."
             />
@@ -410,6 +585,7 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
                 options={filterOptions.fuentesFinanciacion}
                 selectedValues={selectedFuentesFinanciacion}
                 onSelectionChange={setSelectedFuentesFinanciacion}
+                onImmediateChange={applyFuenteFinanciacionFilter}
                 placeholder="Seleccionar fuentes de financiación"
                 searchPlaceholder="Buscar fuentes..."
               />
@@ -419,21 +595,27 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data }: FiltersPanelP
 
         {/* Botones de acción */}
         <div className="mt-8 space-y-3 sticky bottom-0 bg-white dark:bg-gray-800 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={applyFilters}
-            className="w-full px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 
-                       transition-colors font-medium"
-          >
-            Aplicar Filtros
-          </button>
+          <div className="text-center text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Los filtros se aplican automáticamente al seleccionar opciones
+          </div>
           <button
             onClick={clearAllFilters}
+            disabled={loading}
             className="w-full px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 
-                       rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors
-                       flex items-center justify-center space-x-2"
+                       rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 
+                       disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>Reiniciar Filtros</span>
+            <span>Reiniciar Todos los Filtros</span>
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 
+                       rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors
+                       flex items-center justify-center space-x-2"
+          >
+            <X className="w-4 h-4" />
+            <span>Cerrar Panel</span>
           </button>
         </div>
       </div>
@@ -527,12 +709,7 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
                   {item.properties.tipo_intervencion}
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Clase de Obra</label>
-                <div className="mt-1 text-gray-900 dark:text-white">
-                  {item.properties.clase_obra}
-                </div>
-              </div>
+
             </div>
 
             {/* Estado y avance */}
@@ -689,14 +866,7 @@ export default function UnidadesProyectoPage() {
       getValue: (item) => item.properties.estado || 'Sin estado',
       formatValue: (value) => String(value)
     },
-    clase_obra: {
-      variable: 'clase_obra',
-      label: 'Clase de Obra',
-      type: 'category',
-      getColor: (value) => getCategoryColor(value, 'type'),
-      getValue: (item) => item.properties.clase_obra || 'Sin clasificar',
-      formatValue: (value) => String(value)
-    }
+
   }), [])
 
   // Datos filtrados y procesados
@@ -715,6 +885,7 @@ export default function UnidadesProyectoPage() {
 
   // Aplicar filtros cuando cambien
   const handleFiltersChange = useCallback((newFilters: UnidadProyectoFilters) => {
+    console.log('🔄 Cambiando filtros:', newFilters)
     setFilters(newFilters)
     applyFilters(newFilters)
   }, [applyFilters])
@@ -753,13 +924,33 @@ export default function UnidadesProyectoPage() {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowFiltersPanel(!showFiltersPanel)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Filter className="w-4 h-4" />
-            <span>Filtros</span>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                Object.keys(filters).length > 0
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              <span>Filtros</span>
+              {Object.keys(filters).length > 0 && (
+                <span className="ml-1 px-2 py-0.5 bg-white/20 rounded-full text-xs font-semibold">
+                  {Object.keys(filters).length}
+                </span>
+              )}
+            </button>
+            {Object.keys(filters).length > 0 && (
+              <button
+                onClick={() => handleFiltersChange({})}
+                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 transition-colors flex items-center justify-center"
+                title="Limpiar filtros"
+              >
+                ×
+              </button>
+            )}
+          </div>
           
           <button
             onClick={refresh}
@@ -771,6 +962,54 @@ export default function UnidadesProyectoPage() {
           </button>
         </div>
       </div>
+
+      {/* Active Filters Summary */}
+      {Object.keys(filters).length > 0 && (
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                Filtros activos ({Object.keys(filters).length}):
+              </span>
+            </div>
+            <button
+              onClick={() => handleFiltersChange({})}
+              className="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 underline"
+            >
+              Limpiar todos
+            </button>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {Object.entries(filters).map(([key, value]) => {
+              if (!value) return null
+              const displayValue = Array.isArray(value) ? value.join(', ') : value.toString()
+              const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+              return (
+                <span
+                  key={key}
+                  className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200"
+                >
+                  <strong>{displayKey}:</strong>&nbsp;{displayValue.length > 30 ? `${displayValue.substring(0, 30)}...` : displayValue}
+                  <button
+                    onClick={() => {
+                      const newFilters = { ...filters }
+                      delete newFilters[key as keyof UnidadProyectoFilters]
+                      handleFiltersChange(newFilters)
+                    }}
+                    className="ml-1 text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200"
+                  >
+                    ×
+                  </button>
+                </span>
+              )
+            })}
+          </div>
+          <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+            Mostrando {formatNumberColombian(data.length)} proyectos {totalCount !== data.length ? `(de ${formatNumberColombian(totalCount)} total)` : ''}
+          </div>
+        </div>
+      )}
 
       {/* Error state */}
       {error && (
@@ -805,6 +1044,7 @@ export default function UnidadesProyectoPage() {
           onFiltersChange={handleFiltersChange}
           onClose={() => setShowFiltersPanel(false)}
           data={data}
+          loading={loading}
         />
       )}
 

@@ -65,13 +65,12 @@ export interface UnidadesProyectoAPIResponse {
 
 // Interface para filtros
 export interface UnidadProyectoFilters {
-  comuna?: string
-  barrio?: string
+  comuna_corregimiento?: string
+  barrio_vereda?: string
   tipo_intervencion?: string
-  clase_obra?: string
   estado?: string
   ano?: string
-  centro_gestor?: string
+  nombre_centro_gestor?: string
   fuente_financiacion?: string
   search?: string
   bpin?: string
@@ -91,7 +90,6 @@ export interface UnidadesProyectoMetrics {
     porEstado: Record<string, number>
     porAno: Record<string, number>
     porTipoIntervencion: Record<string, number>
-    porClaseObra: Record<string, number>
     porCentroGestor: Record<string, number>
     porFuenteFinanciacion: Record<string, number>
     porComunaCorregimiento: Record<string, number>
@@ -159,7 +157,6 @@ function calculateMetrics(unidades: UnidadProyectoAPI[]): UnidadesProyectoMetric
         porEstado: {},
         porAno: {},
         porTipoIntervencion: {},
-        porClaseObra: {},
         porCentroGestor: {},
         porFuenteFinanciacion: {},
         porComunaCorregimiento: {},
@@ -181,7 +178,6 @@ function calculateMetrics(unidades: UnidadProyectoAPI[]): UnidadesProyectoMetric
     porEstado: {},
     porAno: {},
     porTipoIntervencion: {},
-    porClaseObra: {},
     porCentroGestor: {},
     porFuenteFinanciacion: {},
     porComunaCorregimiento: {},
@@ -199,7 +195,7 @@ function calculateMetrics(unidades: UnidadProyectoAPI[]): UnidadesProyectoMetric
     distribuciones.porEstado[props.estado || 'Sin Estado'] = (distribuciones.porEstado[props.estado || 'Sin Estado'] || 0) + 1
     distribuciones.porAno[props.ano] = (distribuciones.porAno[props.ano] || 0) + 1
     distribuciones.porTipoIntervencion[props.tipo_intervencion] = (distribuciones.porTipoIntervencion[props.tipo_intervencion] || 0) + 1
-    distribuciones.porClaseObra[props.clase_obra] = (distribuciones.porClaseObra[props.clase_obra] || 0) + 1
+
     distribuciones.porCentroGestor[props.nombre_centro_gestor] = (distribuciones.porCentroGestor[props.nombre_centro_gestor] || 0) + 1
     
     if (props.fuente_financiacion) {
@@ -281,6 +277,7 @@ export function useUnidadesProyectoAPI(filters?: UnidadProyectoFilters) {
         : '/unidades-proyecto'
 
       console.log('🔍 Cargando unidades de proyecto desde API:', `${API_BASE_URL}${endpoint}`)
+      console.log('📋 Parámetros de filtro:', currentFilters)
 
       const response = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`)
 
