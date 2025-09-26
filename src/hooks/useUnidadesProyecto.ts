@@ -352,9 +352,8 @@ async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
         throw new Error('Componente ejecutándose en servidor')
       }
 
-      // Definir archivos a cargar (mejora: lista explícita y ordenada por prioridad)
+      // Definir archivos a cargar (equipamientos removido)
       const filesToLoad = [
-        '/data/geodata/unidades_proyecto/equipamientos.geojson',
         '/data/geodata/unidades_proyecto/infraestructura_vial.geojson',
         '/data/geodata/centros_gravedad/centros_gravedad_unificado.geojson',
         '/data/geodata/comunas.geojson',

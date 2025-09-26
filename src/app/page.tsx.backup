@@ -12,9 +12,8 @@ import dynamic from 'next/dynamic'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
+import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyectoWorking'
 import IntegratedProjectsContracts from '@/components/IntegratedProjectsContracts'
-// Comentados: hooks de unidades de proyecto que ahora solo se usan en la sección específica de API
-// import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyectoWorking'
 // import { useGlobalDataPreloader } from '@/hooks/useGlobalDataPreloader'
 // import { useUnidadesProyectoSimple } from '@/hooks/useUnidadesProyectoSimple'
 // import { useUnidadesProyectoForced } from '@/hooks/useUnidadesProyectoForced'
@@ -50,7 +49,6 @@ const DynamicMap = dynamic(() => import('@/components/DynamicMap'), {
   )
 })
 import ProcesosCharts from '@/components/ProcesosCharts'
-import UnidadesProyectoPage from '@/components/UnidadesProyectoPage'
 import { 
   BarChart3, 
   Table, 
@@ -62,7 +60,7 @@ import {
 import { CATEGORIES, ANIMATIONS } from '@/lib/design-system'
 import MobileNavigation from '@/components/MobileNavigation'
 
-type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos' | 'unidades-proyecto'
+type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
 export default function Dashboard() {
   return (
@@ -105,11 +103,20 @@ function DashboardContent() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   
+  // Estado para la unidad de proyecto seleccionada desde la tabla
+  const [selectedProjectUnitFromTable, setSelectedProjectUnitFromTable] = useState<UnidadProyecto | null>(null)
+  
   // Estado para mostrar/ocultar la sección de Análisis de Intervenciones (oculta por defecto)
   const [showInterventionAnalysis, setShowInterventionAnalysis] = useState(false)
   
   // Estado para BPIN filtrados desde Empréstito
   const [filteredBpinsFromContracts, setFilteredBpinsFromContracts] = useState<number[] | undefined>(undefined)
+  
+  // Función para manejar cuando se hace clic en el ojito en la tabla
+  const handleViewProjectUnitInPanel = (projectUnit: UnidadProyecto) => {
+    console.log('👁️ Mostrando unidad de proyecto en panel:', projectUnit)
+    setSelectedProjectUnitFromTable(projectUnit)
+  }
 
   // Función para manejar cambios en BPIN filtrados desde Empréstito
   const handleFilteredBpinsChange = (bpins: number[] | undefined) => {
@@ -133,9 +140,9 @@ function DashboardContent() {
     loading: proyectosLoading 
   } = useDataContext()
 
-  // Removido: hook de unidades de proyecto (ahora solo se usa en sección específica de API)
-  // const unidadesState = useUnidadesProyecto()
-  // const { unidadesProyecto, loading: dataLoading, error: dataError } = unidadesState
+  // Usar el hook principal para obtener datos de unidades de proyecto
+  const unidadesState = useUnidadesProyecto()
+  const { unidadesProyecto, loading: dataLoading, error: dataError } = unidadesState
 
   // TEMPORALMENTE COMENTADO: Hook optimizado
   // const optimizedUnidades = useUnidadesProyectoOptimized()
@@ -186,78 +193,80 @@ function DashboardContent() {
     setDataContextFilters(dataContextFilters)
   }, [filters, setDataContextFilters])
 
-  // Removido: lógica de filtrado para unidades de proyecto (ahora solo se usa en sección específica de API)
-  // const filteredProjectUnits: UnidadProyecto[] = useMemo(() => {
-  //   const sourceUnidades = unidadesProyecto
-  //   return sourceUnidades.filter((unit: UnidadProyecto) => {
-  //     // Filtro por búsqueda de texto (solo se aplica si NO hay filtros específicos activos)
-  //     if (filters.search && filters.comunas.length === 0 && filters.barrios.length === 0 && filters.corregimientos.length === 0) {
-  //       const searchTerm = filters.search.toLowerCase()
-  //       const searchFields = [
-  //         unit.name,
-  //         unit.bpin,
-  //         unit.responsible,
-  //         unit.comuna,
-  //         unit.barrio,
-  //         unit.corregimiento,
-  //         unit.vereda,
-  //         unit.tipoIntervencion,
-  //         unit.claseObra,
-  //         unit.descripcion
-  //       ].filter(Boolean).join(' ').toLowerCase()
-  //       
-  //       if (!searchFields.includes(searchTerm)) return false
-  //     }
-  //
-  //     // Filtro por estado
-  //     if (filters.estado !== 'all' && unit.status !== filters.estado) {
-  //       return false
-  //     }
-  //
-  //     // Filtro por centro gestor
-  //     if (filters.centroGestor.length > 0 && unit.responsible) {
-  //       if (!filters.centroGestor.includes(unit.responsible)) return false
-  //     }
-  //
-  //     // Filtro por comunas - COMPARACIÓN EXACTA
-  //     if (filters.comunas.length > 0) {
-  //       if (!unit.comuna || !filters.comunas.some(filterComuna => 
-  //         unit.comuna?.trim().toLowerCase() === filterComuna.trim().toLowerCase()
-  //       )) {
-  //         return false
-  //       }
-  //     }
-  //
-  //     // Filtro por barrios - COMPARACIÓN EXACTA
-  //     if (filters.barrios.length > 0) {
-  //       if (!unit.barrio || !filters.barrios.some(filterBarrio => 
-  //         unit.barrio?.trim().toLowerCase() === filterBarrio.trim().toLowerCase()
-  //       )) {
-  //         return false
-  //       }
-  //     }
-  //
-  //     // Filtro por corregimientos - COMPARACIÓN EXACTA
-  //     if (filters.corregimientos.length > 0) {
-  //       if (!unit.corregimiento || !filters.corregimientos.some(filterCorregimiento => 
-  //         unit.corregimiento?.trim().toLowerCase() === filterCorregimiento.trim().toLowerCase()
-  //       )) {
-  //         return false
-  //       }
-  //     }
-  //
-  //     // Filtro por veredas - COMPARACIÓN EXACTA
-  //     if (filters.veredas.length > 0) {
-  //       if (!unit.vereda || !filters.veredas.some(filterVereda => 
-  //         unit.vereda?.trim().toLowerCase() === filterVereda.trim().toLowerCase()
-  //       )) {
-  //         return false
-  //       }
-  //     }
-  //
-  //     return true
-  //   })
-  // }, [filters, unidadesProyecto])
+  // Lógica de filtrado para unidades de proyecto usando datos del hook principal
+  const filteredProjectUnits: UnidadProyecto[] = useMemo(() => {
+    // Usar datos del hook principal
+    const sourceUnidades = unidadesProyecto
+    
+    return sourceUnidades.filter((unit: UnidadProyecto) => {
+      // Filtro por búsqueda de texto (solo se aplica si NO hay filtros específicos activos)
+      if (filters.search && filters.comunas.length === 0 && filters.barrios.length === 0 && filters.corregimientos.length === 0) {
+        const searchTerm = filters.search.toLowerCase()
+        const searchFields = [
+          unit.name,
+          unit.bpin,
+          unit.responsible,
+          unit.comuna,
+          unit.barrio,
+          unit.corregimiento,
+          unit.vereda,
+          unit.tipoIntervencion,
+          unit.claseObra,
+          unit.descripcion
+        ].filter(Boolean).join(' ').toLowerCase()
+        
+        if (!searchFields.includes(searchTerm)) return false
+      }
+
+      // Filtro por estado
+      if (filters.estado !== 'all' && unit.status !== filters.estado) {
+        return false
+      }
+
+      // Filtro por centro gestor
+      if (filters.centroGestor.length > 0 && unit.responsible) {
+        if (!filters.centroGestor.includes(unit.responsible)) return false
+      }
+
+      // Filtro por comunas - COMPARACIÓN EXACTA
+      if (filters.comunas.length > 0) {
+        if (!unit.comuna || !filters.comunas.some(filterComuna => 
+          unit.comuna?.trim().toLowerCase() === filterComuna.trim().toLowerCase()
+        )) {
+          return false
+        }
+      }
+
+      // Filtro por barrios - COMPARACIÓN EXACTA
+      if (filters.barrios.length > 0) {
+        if (!unit.barrio || !filters.barrios.some(filterBarrio => 
+          unit.barrio?.trim().toLowerCase() === filterBarrio.trim().toLowerCase()
+        )) {
+          return false
+        }
+      }
+
+      // Filtro por corregimientos - COMPARACIÓN EXACTA
+      if (filters.corregimientos.length > 0) {
+        if (!unit.corregimiento || !filters.corregimientos.some(filterCorregimiento => 
+          unit.corregimiento?.trim().toLowerCase() === filterCorregimiento.trim().toLowerCase()
+        )) {
+          return false
+        }
+      }
+
+      // Filtro por veredas - COMPARACIÓN EXACTA
+      if (filters.veredas.length > 0) {
+        if (!unit.vereda || !filters.veredas.some(filterVereda => 
+          unit.vereda?.trim().toLowerCase() === filterVereda.trim().toLowerCase()
+        )) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [filters, unidadesProyecto])
 
   // Lógica de filtrado avanzada para actividades
   const filteredActividades: Actividad[] = useMemo(() => {
@@ -476,7 +485,8 @@ function DashboardContent() {
 
   const renderContent = () => {
     // Mostrar estado de carga unificado - usar preloader global como fuente principal
-    const isLoading = (activeTab === 'activities' && actividadesState.loading) || 
+    const isLoading = dataLoading || 
+                     (activeTab === 'activities' && actividadesState.loading) || 
                      (activeTab === 'products' && productosState.loading) ||
                      (activeTab === 'emprestito' && emprestitoState.loading) ||
                      (activeTab === 'contracts' && contratosState.loading) ||
@@ -501,14 +511,15 @@ function DashboardContent() {
       )
     }
 
-    // Mostrar estado de error unificado
-    const hasError = (activeTab === 'activities' && actividadesState.error) || 
+    // Mostrar estado de error unificado - usar preloader global como fuente principal
+    const hasError = dataError || 
+                    (activeTab === 'activities' && actividadesState.error) || 
                     (activeTab === 'products' && productosState.error) ||
                     (activeTab === 'emprestito' && emprestitoState.error) ||
                     (activeTab === 'contracts' && contratosState.error) ||
                     (activeTab === 'procesos' && procesosState.error)
     if (hasError) {
-      const errorMessage = actividadesState.error || productosState.error || emprestitoState.error || contratosState.error || procesosState.error
+      const errorMessage = dataError || actividadesState.error || productosState.error || emprestitoState.error || contratosState.error || procesosState.error
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -687,9 +698,6 @@ function DashboardContent() {
             />
           </div>
         )
-
-      case 'unidades-proyecto':
-        return <UnidadesProyectoPage />
 
       default:
         return null

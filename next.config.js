@@ -91,11 +91,7 @@ const nextConfig = {
         source: '/geodata/veredas.geojson',
         destination: '/data/geodata/cartografia_base/veredas.geojson'
       },
-      // Mapeos para unidades de proyecto
-      {
-        source: '/geodata/equipamientos.geojson',
-        destination: '/data/geodata/unidades_proyecto/equipamientos.geojson'
-      },
+      // Mapeos para unidades de proyecto (equipamientos removido)
       {
         source: '/geodata/infraestructura_vial.geojson',
         destination: '/data/geodata/unidades_proyecto/infraestructura_vial.geojson'

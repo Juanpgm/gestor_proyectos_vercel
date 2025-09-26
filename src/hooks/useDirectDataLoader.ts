@@ -28,18 +28,16 @@ export function useDirectDataLoader() {
       try {
         console.log('🔥 DIRECT: Fetching data...')
         
-        const equipamientosResponse = await fetch('/data/geodata/unidades_proyecto/equipamientos.geojson')
-        const equipamientosData = await equipamientosResponse.json()
-        
+        // Solo cargar infraestructura (equipamientos removido)
         const infraResponse = await fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
         const infraData = await infraResponse.json()
 
         console.log('🔥 DIRECT: Data loaded successfully!')
-        console.log('🔥 DIRECT: Equipamientos features:', equipamientosData.features?.length || 0)
         console.log('🔥 DIRECT: Infraestructura features:', infraData.features?.length || 0)
 
-        // Convert GeoJSON features to UnidadProyecto objects
-        const equipamientosUnidades: UnidadProyecto[] = equipamientosData.features?.map((feature: any) => ({
+        // Convert GeoJSON features to UnidadProyecto objects (solo infraestructura)
+        const equipamientosUnidades: UnidadProyecto[] = [] // Vacío ya que equipamientos fue removido
+        const infraestructuraUnidades: UnidadProyecto[] = infraData.features?.map((feature: any) => ({
           id: feature.properties?.id || feature.properties?.ID || `equip_${Math.random()}`,
           name: feature.properties?.name || feature.properties?.NOMBRE || 'Equipamiento',
           bpin: feature.properties?.bpin || feature.properties?.BPIN || '',
@@ -83,7 +81,7 @@ export function useDirectDataLoader() {
           properties: feature.properties
         })) || []
 
-        const allUnidades = [...equipamientosUnidades, ...infraUnidades]
+        const allUnidades = [...equipamientosUnidades, ...infraestructuraUnidades]
 
         console.log('🔥 DIRECT: Converted to UnidadProyecto objects:', allUnidades.length)
 
@@ -92,7 +90,6 @@ export function useDirectDataLoader() {
           error: null,
           unidadesProyecto: allUnidades,
           allGeoJSONData: {
-            equipamientos: equipamientosData,
             infraestructura_vial: infraData
           }
         })

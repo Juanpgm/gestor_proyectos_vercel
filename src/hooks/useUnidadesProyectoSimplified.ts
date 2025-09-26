@@ -114,9 +114,8 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
         console.log('🔥 TIMEOUT: Ejecutando carga de datos...')
         
         try {
-          // Lista de archivos a cargar
+          // Lista de archivos a cargar (equipamientos removido)
           const filesToLoad = [
-            '/data/geodata/unidades_proyecto/equipamientos.geojson',
             '/data/geodata/unidades_proyecto/infraestructura_vial.geojson',
             '/data/geodata/comunas.geojson',
             '/data/geodata/barrios.geojson',

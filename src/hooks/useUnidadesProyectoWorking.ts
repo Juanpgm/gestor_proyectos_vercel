@@ -183,24 +183,8 @@ export function useUnidadesProyectoWorking(): UnidadesProyectoState {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        // Cargar equipamientos con timeout
-        console.log('📍 WORKING: Cargando equipamientos...')
-        const equipController = new AbortController()
-        const equipTimeout = setTimeout(() => equipController.abort(), 15000)
-        
-        const equipResponse = await fetch('/data/geodata/unidades_proyecto/equipamientos.geojson', {
-          signal: equipController.signal,
-          cache: 'no-cache',
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        })
-        clearTimeout(equipTimeout)
-        
-        if (!equipResponse.ok) {
-          throw new Error(`Error cargando equipamientos: ${equipResponse.status}`)
-        }
-        const equipamientosData = await equipResponse.json()
+        // Equipamientos removidos - datos ahora desde API
+        console.log('📍 WORKING: Usando datos desde API solamente...')
 
         // Cargar infraestructura vial con timeout
         console.log('🛣️ WORKING: Cargando infraestructura vial...')
@@ -241,24 +225,21 @@ export function useUnidadesProyectoWorking(): UnidadesProyectoState {
         const centrosGravedadData = await centrosResponse.json()
 
         console.log('✅ WORKING: Datos cargados exitosamente - Enhanced')
-        console.log('📊 WORKING: Equipamientos features:', equipamientosData.features?.length || 0)
         console.log('📊 WORKING: Infraestructura features:', infraestructuraData.features?.length || 0)
         console.log('📊 WORKING: Centros Gravedad features:', centrosGravedadData.features?.length || 0)
 
-        // Procesar y convertir a UnidadProyecto
-        const equipamientosUnidades = convertGeoJSONToUnidadesProyecto(equipamientosData, 'equipamientos')
+        // Procesar y convertir a UnidadProyecto (solo infraestructura)
         const infraestructuraUnidades = convertGeoJSONToUnidadesProyecto(infraestructuraData, 'infraestructura')
         
-        const allUnidades = [...equipamientosUnidades, ...infraestructuraUnidades]
+        const allUnidades = [...infraestructuraUnidades]
 
         console.log('🎯 WORKING: Total unidades procesadas:', allUnidades.length)
 
         const newState = {
-          equipamientos: equipamientosData,
+          equipamientos: null,
           infraestructura: infraestructuraData,
           unidadesProyecto: allUnidades,
           allGeoJSONData: {
-            equipamientos: equipamientosData,
             infraestructura_vial: infraestructuraData,
             centros_gravedad_unificado: centrosGravedadData
           },
