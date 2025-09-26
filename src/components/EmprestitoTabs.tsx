@@ -64,15 +64,13 @@ const TabContent: React.FC<{ activeTab: string; props: EmprestitoTabsProps }> = 
       />
     case 'unidades-proyecto':
       return (
-        <DynamicMap 
-          className="w-full h-[600px]"
-          onFeatureClick={(feature: any, layerType: any) => {
-            console.log('🗺️ Feature clicked:', feature, 'Layer:', layerType)
-          }}
-          onLayerToggle={(layerId: string, visible: boolean) => {
-            console.log(`🗺️ Layer ${layerId} toggled:`, visible)
-          }}
-        />
+        <div className="w-full h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+          <div className="text-center text-gray-500 dark:text-gray-400">
+            <div className="text-4xl mb-4">🗺️</div>
+            <p className="text-lg font-semibold mb-2">Mapa Temporalmente Deshabilitado</p>
+            <p className="text-sm">Los archivos GeoJSON han sido eliminados</p>
+          </div>
+        </div>
       )
     default:
       return null

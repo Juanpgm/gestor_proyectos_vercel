@@ -100,26 +100,7 @@ const LAYER_CONFIG: Record<string, LayerConfig> = {
     category: 'geografia',
     filterFields: ['NOMBRE', 'BARRIO', 'codigo']
   },
-  equipamientos: {
-    name: 'Equipamientos',
-    description: 'Infraestructura de equipamientos urbanos',
-    icon: '🏢',
-    color: '#F59E0B',
-    fillOpacity: 0.4,
-    weight: 2,
-    category: 'proyectos',
-    filterFields: ['NOMBRE', 'tipo', 'estado']
-  },
-  infraestructura_vial: {
-    name: 'Vías',
-    description: 'Red de infraestructura vial',
-    icon: '🛣️',
-    color: '#8B5CF6',
-    fillOpacity: 0.5,
-    weight: 3,
-    category: 'proyectos',
-    filterFields: ['NOMBRE', 'tipo', 'categoria']
-  },
+  // equipamientos y infraestructura_vial eliminados - archivos GeoJSON no existen
   centros_gravedad: {
     name: 'Centros de Gravedad',
     description: 'Puntos de análisis y concentración',

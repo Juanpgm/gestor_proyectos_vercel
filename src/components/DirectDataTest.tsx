@@ -10,23 +10,11 @@ export default function DirectDataTest() {
   // Direct function to load data without useEffect
   const loadDataDirectly = async () => {
     try {
-      setStatus('Cargando equipamientos...')
-      const equipResponse = await fetch('/data/geodata/unidades_proyecto/equipamientos.geojson')
+      setStatus('GeoJSON files eliminados - datos vacíos')
       
-      if (!equipResponse.ok) {
-        throw new Error(`Equipamientos HTTP ${equipResponse.status}`)
-      }
-      
-      const equipData = await equipResponse.json()
-      
-      setStatus('Cargando infraestructura...')
-      const infraResponse = await fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
-      
-      if (!infraResponse.ok) {
-        throw new Error(`Infraestructura HTTP ${infraResponse.status}`)
-      }
-      
-      const infraData = await infraResponse.json()
+      // GeoJSON files eliminados - retornando datos vacíos
+      const equipData = { features: [] }
+      const infraData = { features: [] }
 
       setData({
         equipamientos: equipData.features?.length || 0,

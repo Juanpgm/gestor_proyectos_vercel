@@ -48,8 +48,8 @@ async function loadData(): Promise<OptimizedDataState> {
   try {
     // Cargar archivos GeoJSON
     const [equipamientos, infraestructura] = await Promise.all([
-      fetch('/data/geodata/unidades_proyecto/equipamientos.geojson').then(r => r.json()),
-      fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson').then(r => r.json())
+      Promise.resolve({ features: [] }), // equipamientos eliminado
+      Promise.resolve({ features: [] })  // infraestructura_vial eliminado
     ])
 
     const geoJSONData = {

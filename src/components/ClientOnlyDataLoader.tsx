@@ -17,33 +17,14 @@ function ClientOnlyDataLoader() {
     
     const loadData = async () => {
       try {
-        console.log('🌟 CLIENT-ONLY: Fetching equipamientos...')
-        const equipResponse = await fetch('/data/geodata/unidades_proyecto/equipamientos.geojson')
-        const equipData = await equipResponse.json()
-        
-        console.log('🌟 CLIENT-ONLY: Fetching infraestructura...')
-        const infraResponse = await fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
-        const infraData = await infraResponse.json()
-
-        console.log('🌟 CLIENT-ONLY: Success! Equipamientos:', equipData.features?.length)
-        console.log('🌟 CLIENT-ONLY: Success! Infraestructura:', infraData.features?.length)
-
-        const allFeatures = [
-          ...(equipData.features || []),
-          ...(infraData.features || [])
-        ]
+        // Eliminar carga de archivos GeoJSON que no existen
+        console.log('🌟 CLIENT-ONLY: Simulando carga exitosa sin archivos GeoJSON')
 
         setData({
           loading: false,
           error: null,
-          unidadesProyecto: allFeatures.map((feature: any, index: number) => ({
-            id: feature.properties?.id || `feature_${index}`,
-            name: feature.properties?.name || feature.properties?.NOMBRE || `Objeto ${index}`,
-            description: 'Cargado con éxito',
-            geometry: feature.geometry,
-            properties: feature.properties
-          })),
-          message: `Datos cargados: ${allFeatures.length} objetos`
+          unidadesProyecto: [],
+          message: `Componente deshabilitado - GeoJSON eliminados`
         })
       } catch (error: any) {
         console.error('🌟 CLIENT-ONLY: Error:', error)

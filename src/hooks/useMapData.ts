@@ -64,26 +64,6 @@ export interface MapState {
 // ===== CONFIGURACIÓN DE CAPAS =====
 const LAYER_CONFIGS = [
   {
-    id: 'equipamientos',
-    name: 'Equipamientos',
-    path: '/data/geodata/unidades_proyecto/equipamientos.geojson',
-    color: '#10B981',
-    visible: true,
-    opacity: 0.8,
-    type: 'geojson' as const,
-    priority: 1
-  },
-  {
-    id: 'infraestructura_vial',
-    name: 'Infraestructura Vial',
-    path: '/data/geodata/unidades_proyecto/infraestructura_vial.geojson',
-    color: '#F59E0B',
-    visible: true,
-    opacity: 0.8,
-    type: 'geojson' as const,
-    priority: 1
-  },
-  {
     id: 'centros_gravedad_unificado',
     name: 'Centros de Gravedad',
     path: '/data/geodata/centros_gravedad/centros_gravedad_unificado.geojson',

@@ -186,24 +186,12 @@ export function useUnidadesProyectoWorking(): UnidadesProyectoState {
         // Equipamientos removidos - datos ahora desde API
         console.log('📍 WORKING: Usando datos desde API solamente...')
 
-        // Cargar infraestructura vial con timeout
-        console.log('🛣️ WORKING: Cargando infraestructura vial...')
-        const infraController = new AbortController()
-        const infraTimeout = setTimeout(() => infraController.abort(), 15000)
-        
-        const infraResponse = await fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson', {
-          signal: infraController.signal,
-          cache: 'no-cache',
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        })
-        clearTimeout(infraTimeout)
-        
-        if (!infraResponse.ok) {
-          throw new Error(`Error cargando infraestructura: ${infraResponse.status}`)
+        // Infraestructura vial - eliminada (archivos GeoJSON no existen)
+        console.log('🛣️ WORKING: Infraestructura vial eliminada')
+        const infraestructuraData: GeoJSONData = { 
+          type: 'FeatureCollection',
+          features: [] 
         }
-        const infraestructuraData = await infraResponse.json()
 
         // Cargar centros de gravedad con timeout
         console.log('🎯 WORKING: Cargando centros de gravedad...')

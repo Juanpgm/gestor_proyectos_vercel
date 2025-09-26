@@ -28,70 +28,21 @@ export function useDirectDataLoader() {
       try {
         console.log('🔥 DIRECT: Fetching data...')
         
-        // Solo cargar infraestructura (equipamientos removido)
-        const infraResponse = await fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
-        const infraData = await infraResponse.json()
+        // Archivos GeoJSON eliminados - no cargar datos
+        console.log('🔥 DIRECT: GeoJSON files removed - returning empty data')
 
-        console.log('🔥 DIRECT: Data loaded successfully!')
-        console.log('🔥 DIRECT: Infraestructura features:', infraData.features?.length || 0)
-
-        // Convert GeoJSON features to UnidadProyecto objects (solo infraestructura)
-        const equipamientosUnidades: UnidadProyecto[] = [] // Vacío ya que equipamientos fue removido
-        const infraestructuraUnidades: UnidadProyecto[] = infraData.features?.map((feature: any) => ({
-          id: feature.properties?.id || feature.properties?.ID || `equip_${Math.random()}`,
-          name: feature.properties?.name || feature.properties?.NOMBRE || 'Equipamiento',
-          bpin: feature.properties?.bpin || feature.properties?.BPIN || '',
-          description: feature.properties?.description || feature.properties?.DESCRIPCION || '',
-          status: feature.properties?.status || feature.properties?.ESTADO || 'activo',
-          responsible: feature.properties?.responsible || feature.properties?.RESPONSABLE || '',
-          comuna: feature.properties?.comuna || feature.properties?.COMUNA || '',
-          barrio: feature.properties?.barrio || feature.properties?.BARRIO || '',
-          corregimiento: feature.properties?.corregimiento || feature.properties?.CORREGIMIENTO || '',
-          vereda: feature.properties?.vereda || feature.properties?.VEREDA || '',
-          tipoIntervencion: feature.properties?.tipo_intervencion || feature.properties?.TIPO_INTERVENCION || 'Equipamiento',
-          claseObra: feature.properties?.clase_obra || feature.properties?.CLASE_OBRA || '',
-          descripcion: feature.properties?.descripcion || feature.properties?.DESCRIPCION || '',
-          presupuesto: feature.properties?.presupuesto || feature.properties?.PRESUPUESTO || 0,
-          avance: feature.properties?.avance || feature.properties?.AVANCE || 0,
-          fechaInicio: feature.properties?.fecha_inicio || feature.properties?.FECHA_INICIO || '',
-          fechaFin: feature.properties?.fecha_fin || feature.properties?.FECHA_FIN || '',
-          geometry: feature.geometry,
-          properties: feature.properties
-        })) || []
-
-        const infraUnidades: UnidadProyecto[] = infraData.features?.map((feature: any) => ({
-          id: feature.properties?.id || feature.properties?.ID || `infra_${Math.random()}`,
-          name: feature.properties?.name || feature.properties?.NOMBRE || 'Infraestructura Vial',
-          bpin: feature.properties?.bpin || feature.properties?.BPIN || '',
-          description: feature.properties?.description || feature.properties?.DESCRIPCION || '',
-          status: feature.properties?.status || feature.properties?.ESTADO || 'activo',
-          responsible: feature.properties?.responsible || feature.properties?.RESPONSABLE || '',
-          comuna: feature.properties?.comuna || feature.properties?.COMUNA || '',
-          barrio: feature.properties?.barrio || feature.properties?.BARRIO || '',
-          corregimiento: feature.properties?.corregimiento || feature.properties?.CORREGIMIENTO || '',
-          vereda: feature.properties?.vereda || feature.properties?.VEREDA || '',
-          tipoIntervencion: feature.properties?.tipo_intervencion || feature.properties?.TIPO_INTERVENCION || 'Infraestructura Vial',
-          claseObra: feature.properties?.clase_obra || feature.properties?.CLASE_OBRA || '',
-          descripcion: feature.properties?.descripcion || feature.properties?.DESCRIPCION || '',
-          presupuesto: feature.properties?.presupuesto || feature.properties?.PRESUPUESTO || 0,
-          avance: feature.properties?.avance || feature.properties?.AVANCE || 0,
-          fechaInicio: feature.properties?.fecha_inicio || feature.properties?.FECHA_INICIO || '',
-          fechaFin: feature.properties?.fecha_fin || feature.properties?.FECHA_FIN || '',
-          geometry: feature.geometry,
-          properties: feature.properties
-        })) || []
-
+        // Return empty arrays since GeoJSON files don't exist
+        const equipamientosUnidades: UnidadProyecto[] = []
+        const infraestructuraUnidades: UnidadProyecto[] = []
         const allUnidades = [...equipamientosUnidades, ...infraestructuraUnidades]
 
-        console.log('🔥 DIRECT: Converted to UnidadProyecto objects:', allUnidades.length)
+        console.log('🔥 DIRECT: GeoJSON files eliminated, returning empty data')
 
         setMapData({
           loading: false,
           error: null,
           unidadesProyecto: allUnidades,
-          allGeoJSONData: {
-            infraestructura_vial: infraData
-          }
+          allGeoJSONData: {}
         })
       } catch (error: any) {
         console.error('🔥 DIRECT: Error loading data:', error)

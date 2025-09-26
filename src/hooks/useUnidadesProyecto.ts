@@ -354,7 +354,7 @@ async function loadUnidadesProyectoGlobal(): Promise<UnidadesProyectoState> {
 
       // Definir archivos a cargar (equipamientos removido)
       const filesToLoad = [
-        '/data/geodata/unidades_proyecto/infraestructura_vial.geojson',
+        // '/data/geodata/unidades_proyecto/infraestructura_vial.geojson', // eliminado
         '/data/geodata/centros_gravedad/centros_gravedad_unificado.geojson',
         '/data/geodata/comunas.geojson',
         '/data/geodata/barrios.geojson',

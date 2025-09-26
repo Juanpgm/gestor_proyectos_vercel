@@ -100,30 +100,7 @@ const LAYER_CONFIG = {
     description: 'Subdivisiones rurales',
     filterFields: ['NOMBRE', 'CORREGIMIENTO']
   },
-  'equipamientos': {
-    url: '/data/geodata/unidades_proyecto/equipamientos.geojson',
-    name: 'Equipamientos',
-    category: 'proyectos',
-    color: '#8B5CF6',
-    fillOpacity: 0.7,
-    weight: 2,
-    visible: true,
-    icon: '🏢',
-    description: 'Infraestructura pública y equipamientos',
-    filterFields: ['NOMBRE', 'TIPO', 'ESTADO', 'COMUNA']
-  },
-  'infraestructura_vial': {
-    url: '/data/geodata/unidades_proyecto/infraestructura_vial.geojson',
-    name: 'Infraestructura Vial',
-    category: 'proyectos',
-    color: '#F97316',
-    fillOpacity: 0.6,
-    weight: 3,
-    visible: true,
-    icon: '🛣️',
-    description: 'Proyectos de vías e infraestructura',
-    filterFields: ['NOMBRE', 'TIPO_VIA', 'ESTADO', 'LONGITUD']
-  },
+  // 'equipamientos' y 'infraestructura_vial' eliminados - archivos GeoJSON no existen
   'centros_gravedad': {
     url: '/data/geodata/centros_gravedad/centros_gravedad_unificado.geojson',
     name: 'Centros de Gravedad',

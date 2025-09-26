@@ -91,11 +91,7 @@ const nextConfig = {
         source: '/geodata/veredas.geojson',
         destination: '/data/geodata/cartografia_base/veredas.geojson'
       },
-      // Mapeos para unidades de proyecto (equipamientos removido)
-      {
-        source: '/geodata/infraestructura_vial.geojson',
-        destination: '/data/geodata/unidades_proyecto/infraestructura_vial.geojson'
-      },
+      // Mapeos para unidades de proyecto - eliminados (archivos no existen)
       // Mapeo para centros de gravedad
       {
         source: '/geodata/centros_gravedad_unificado.geojson',

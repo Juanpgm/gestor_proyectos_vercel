@@ -190,8 +190,8 @@ export function useProjectData() {
           fetch('/data/ejecucion_presupuestal/movimientos_presupuestales.json'),
           fetch('/data/contratos/contratos_proyectos.json'),
           fetch('/data/contratos/contratos_proyectos.json'),
-          fetch('/data/geodata/unidades_proyecto/equipamientos.geojson'),
-          fetch('/data/geodata/unidades_proyecto/infraestructura_vial.geojson')
+          Promise.resolve(new Response('{"features":[]}')), // equipamientos eliminado
+          Promise.resolve(new Response('{"features":[]}'))  // infraestructura_vial eliminado
         ])
 
         if (!proyectosRes.ok || !ejecucionRes.ok || !seguimientoRes.ok || !movimientosRes.ok ||
