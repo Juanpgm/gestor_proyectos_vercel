@@ -16,23 +16,15 @@ import {
   Eye,
   Download
 } from 'lucide-react'
-import type { UnidadProyectoAPI } from '@/hooks/useUnidadesProyectoAPI'
+import type { UnidadProyectoAPI, UnidadProyectoFilters } from '@/hooks/useUnidadesProyectoAPI'
 
 interface UnidadesProyectoTableProps {
   data: UnidadProyectoAPI[]
   loading: boolean
   onItemSelect?: (item: UnidadProyectoAPI) => void
-}
-
-// Tipos para filtros de la tabla
-interface TableFilters {
-  search: string
-  tipoIntervencion: string
-  claseObra: string
-  estado: string
-  centroGestor: string
-  comuna: string
-  ano: string
+  filters: UnidadProyectoFilters
+  onFiltersChange: (filters: UnidadProyectoFilters) => void
+  totalCount: number
 }
 
 // Componente para el badge de estado
@@ -100,17 +92,11 @@ const formatCurrency = (value: number): string => {
 export default function UnidadesProyectoTable({ 
   data, 
   loading, 
-  onItemSelect 
+  onItemSelect,
+  filters,
+  onFiltersChange,
+  totalCount
 }: UnidadesProyectoTableProps) {
-  const [filters, setFilters] = useState<TableFilters>({
-    search: '',
-    tipoIntervencion: '',
-    claseObra: '',
-    estado: '',
-    centroGestor: '',
-    comuna: '',
-    ano: ''
-  })
   
   const [sortField, setSortField] = useState<string>('')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -120,7 +106,6 @@ export default function UnidadesProyectoTable({
   // Obtener valores únicos para los filtros
   const filterOptions = useMemo(() => {
     const tiposIntervencion = Array.from(new Set(data.map(item => item.properties.tipo_intervencion))).sort()
-    const clasesObra = Array.from(new Set(data.map(item => item.properties.clase_obra))).sort()
     const estados = Array.from(new Set(data.map(item => item.properties.estado).filter(Boolean))).sort()
     const centrosGestores = Array.from(new Set(data.map(item => item.properties.nombre_centro_gestor))).sort()
     const comunas = Array.from(new Set(data.map(item => item.properties.comuna_corregimiento))).sort()
@@ -128,7 +113,6 @@ export default function UnidadesProyectoTable({
 
     return {
       tiposIntervencion,
-      clasesObra,
       estados,
       centrosGestores,
       comunas,
@@ -136,63 +120,32 @@ export default function UnidadesProyectoTable({
     }
   }, [data])
 
-  // Filtrar y ordenar datos
-  const filteredData = useMemo(() => {
-    let filtered = data.filter(item => {
-      const props = item.properties
+  // Ordenar datos (el filtrado ahora se hace en la API)
+  const sortedData = useMemo(() => {
+    if (!sortField) return data
+
+    const sorted = [...data].sort((a, b) => {
+      const aVal = a.properties[sortField as keyof typeof a.properties]
+      const bVal = b.properties[sortField as keyof typeof b.properties]
       
-      // Filtro de búsqueda
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
-        const searchableText = [
-          props.nombre_up,
-          props.nombre_up_detalle,
-          props.descripcion_intervencion,
-          props.bpin,
-          props.upid,
-          props.direccion,
-          props.nombre_centro_gestor
-        ].filter(Boolean).join(' ').toLowerCase()
-        
-        if (!searchableText.includes(searchTerm)) return false
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'desc' ? bVal - aVal : aVal - bVal
       }
-
-      // Filtros específicos
-      if (filters.tipoIntervencion && props.tipo_intervencion !== filters.tipoIntervencion) return false
-      if (filters.claseObra && props.clase_obra !== filters.claseObra) return false
-      if (filters.estado && props.estado !== filters.estado) return false
-      if (filters.centroGestor && props.nombre_centro_gestor !== filters.centroGestor) return false
-      if (filters.comuna && props.comuna_corregimiento !== filters.comuna) return false
-      if (filters.ano && props.ano !== filters.ano) return false
-
-      return true
+      
+      const aStr = String(aVal || '').toLowerCase()
+      const bStr = String(bVal || '').toLowerCase()
+      
+      return sortDirection === 'desc' 
+        ? bStr.localeCompare(aStr)
+        : aStr.localeCompare(bStr)
     })
 
-    // Ordenar
-    if (sortField) {
-      filtered.sort((a, b) => {
-        const aVal = a.properties[sortField as keyof typeof a.properties]
-        const bVal = b.properties[sortField as keyof typeof b.properties]
-        
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-          return sortDirection === 'desc' ? bVal - aVal : aVal - bVal
-        }
-        
-        const aStr = String(aVal || '').toLowerCase()
-        const bStr = String(bVal || '').toLowerCase()
-        
-        return sortDirection === 'desc' 
-          ? bStr.localeCompare(aStr)
-          : aStr.localeCompare(bStr)
-      })
-    }
-
-    return filtered
-  }, [data, filters, sortField, sortDirection])
+    return sorted
+  }, [data, sortField, sortDirection])
 
   // Paginación
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
-  const paginatedData = filteredData.slice(
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage)
+  const paginatedData = sortedData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
@@ -211,14 +164,13 @@ export default function UnidadesProyectoTable({
   const handleExport = () => {
     const csvContent = [
       // Headers
-      ['BPIN', 'UPID', 'Nombre', 'Tipo Intervención', 'Clase Obra', 'Estado', 'Avance', 'Presupuesto', 'Centro Gestor', 'Comuna', 'Año'].join(','),
+      ['BPIN', 'UPID', 'Nombre', 'Tipo Intervención', 'Estado', 'Avance', 'Presupuesto', 'Centro Gestor', 'Comuna', 'Año'].join(','),
       // Data
-      ...filteredData.map(item => [
+      ...sortedData.map(item => [
         item.properties.bpin,
         item.properties.upid,
         `"${item.properties.nombre_up || ''}"`,
         `"${item.properties.tipo_intervencion}"`,
-        `"${item.properties.clase_obra}"`,
         `"${item.properties.estado || ''}"`,
         item.properties.avance_obra,
         item.properties.presupuesto_base,
@@ -268,15 +220,25 @@ export default function UnidadesProyectoTable({
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Unidades de Proyecto ({filteredData.length} registros)
+            Unidades de Proyecto ({data.length.toLocaleString()} de {totalCount.toLocaleString()} registros)
           </h3>
-          <button
-            onClick={handleExport}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            <span>Exportar</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onFiltersChange({})}
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              title="Limpiar filtros"
+            >
+              <Filter className="w-4 h-4" />
+              <span>Limpiar Filtros</span>
+            </button>
+            <button
+              onClick={handleExport}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              <span>Exportar</span>
+            </button>
+          </div>
         </div>
 
         {/* Filtros */}
@@ -287,8 +249,8 @@ export default function UnidadesProyectoTable({
             <input
               type="text"
               placeholder="Buscar..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              value={filters.search || ''}
+              onChange={(e) => onFiltersChange({ ...filters, search: e.target.value || undefined })}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                          focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -297,8 +259,8 @@ export default function UnidadesProyectoTable({
 
           {/* Filtro por Tipo de Intervención */}
           <select
-            value={filters.tipoIntervencion}
-            onChange={(e) => setFilters({ ...filters, tipoIntervencion: e.target.value })}
+            value={filters.tipo_intervencion || ''}
+            onChange={(e) => onFiltersChange({ ...filters, tipo_intervencion: e.target.value || undefined })}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -311,8 +273,8 @@ export default function UnidadesProyectoTable({
 
           {/* Filtro por Estado */}
           <select
-            value={filters.estado}
-            onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
+            value={filters.estado || ''}
+            onChange={(e) => onFiltersChange({ ...filters, estado: e.target.value || undefined })}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -325,8 +287,8 @@ export default function UnidadesProyectoTable({
 
           {/* Filtro por Comuna */}
           <select
-            value={filters.comuna}
-            onChange={(e) => setFilters({ ...filters, comuna: e.target.value })}
+            value={filters.comuna_corregimiento || ''}
+            onChange={(e) => onFiltersChange({ ...filters, comuna_corregimiento: e.target.value || undefined })}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -499,7 +461,7 @@ export default function UnidadesProyectoTable({
       {totalPages > 1 && (
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="text-sm text-gray-700 dark:text-gray-300">
-            Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredData.length)} de {filteredData.length} registros
+            Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, sortedData.length)} de {sortedData.length} registros
           </div>
           <div className="flex items-center space-x-2">
             <button

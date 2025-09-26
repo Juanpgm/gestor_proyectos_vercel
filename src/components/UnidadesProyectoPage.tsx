@@ -1035,6 +1035,9 @@ export default function UnidadesProyectoPage() {
         data={data} 
         loading={loading} 
         onItemSelect={setSelectedItem}
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        totalCount={totalCount}
       />
 
       {/* Filters Panel */}
