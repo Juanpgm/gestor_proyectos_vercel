@@ -13,7 +13,10 @@
     "deploy": "vercel --prod",
     "deploy:preview": "vercel",
     "analyze": "ANALYZE=true next build",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "clean": "pwsh ./clear-cache.ps1",
+    "clean:all": "pwsh ./clear-cache.ps1 && npm install",
+    "fresh-start": "pwsh ./clear-cache.ps1 && npm install && npm run dev"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
