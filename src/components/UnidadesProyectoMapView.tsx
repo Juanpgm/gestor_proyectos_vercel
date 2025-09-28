@@ -10,6 +10,34 @@ import dynamic from 'next/dynamic'
 type MapType = 'street' | 'satellite' | 'hybrid'
 type MapTheme = 'light' | 'dark'
 
+// Función para obtener la configuración del tile layer según el tema y tipo
+const getTileLayerConfig = (mapType: MapType, theme: MapTheme) => {
+  if (mapType === 'satellite') {
+    return {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 18
+    }
+  }
+  
+  // Para mapas de calle, usar CartoDB según el tema
+  if (theme === 'dark') {
+    return {
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      maxZoom: 20,
+      subdomains: 'abcd'
+    }
+  } else {
+    return {
+      url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      maxZoom: 20,
+      subdomains: 'abcd'
+    }
+  }
+}
+
 // Interfaz para el componente del mapa
 interface LeafletMapComponentProps {
   id: string
@@ -17,6 +45,7 @@ interface LeafletMapComponentProps {
   center: { lat: number; lng: number }
   zoom: number
   mapType: MapType
+  mapTheme: MapTheme
   onMapReady: (map: any) => void
 }
 
@@ -47,16 +76,13 @@ const LeafletMapComponent = dynamic(() => Promise.resolve(
             
             map = L.map(props.id).setView([props.center.lat, props.center.lng], props.zoom)
             
-            // Agregar capa base
-            tileLayer = props.mapType === 'satellite' 
-              ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                  attribution: 'Tiles &copy; Esri',
-                  maxZoom: 18
-                })
-              : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                  maxZoom: 18
-                })
+            // Agregar capa base usando CartoDB Positron según el tema
+            const tileConfig = getTileLayerConfig(props.mapType, props.mapTheme)
+            tileLayer = L.tileLayer(tileConfig.url, {
+              attribution: tileConfig.attribution,
+              maxZoom: tileConfig.maxZoom,
+              subdomains: tileConfig.subdomains || 'abc'
+            })
             
             tileLayer.addTo(map)
             mapRef.current = { map, tileLayer, L }
@@ -92,15 +118,13 @@ const LeafletMapComponent = dynamic(() => Promise.resolve(
         try {
           mapRef.current.map.removeLayer(mapRef.current.tileLayer)
           
-          const newTileLayer = props.mapType === 'satellite' 
-            ? mapRef.current.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri',
-                maxZoom: 18
-              })
-            : mapRef.current.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 18
-              })
+          // Usar CartoDB Positron según el tema
+          const tileConfig = getTileLayerConfig(props.mapType, props.mapTheme)
+          const newTileLayer = mapRef.current.L.tileLayer(tileConfig.url, {
+            attribution: tileConfig.attribution,
+            maxZoom: tileConfig.maxZoom,
+            subdomains: tileConfig.subdomains || 'abc'
+          })
           
           newTileLayer.addTo(mapRef.current.map)
           mapRef.current.tileLayer = newTileLayer
@@ -108,7 +132,7 @@ const LeafletMapComponent = dynamic(() => Promise.resolve(
           console.error('Error actualizando tipo de mapa:', error)
         }
       }
-    }, [props.mapType])
+    }, [props.mapType, props.mapTheme])
 
     return <div ref={divRef} id={props.id} className={props.className} />
   })
@@ -383,6 +407,7 @@ export default function UnidadesProyectoMapView({
           center={CALI_CENTER}
           zoom={12}
           mapType={mapType}
+          mapTheme={mapTheme}
           onMapReady={async (map: any) => {
             try {
               // Agregar marcadores para cada proyecto
