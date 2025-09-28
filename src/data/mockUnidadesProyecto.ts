@@ -241,7 +241,7 @@ const generateMoreMockData = (baseCount: number = 50): UnidadProyectoMock[] => {
 // Combinar datos base con datos generados
 export const allMockUnidadesProyecto = [
   ...mockUnidadesProyecto,
-  ...generateMoreMockData(100)
+  ...generateMoreMockData(500) // Aumentamos a 500 registros para pruebas
 ]
 
 // Interfaz para métricas (compatibilidad con componentes)
