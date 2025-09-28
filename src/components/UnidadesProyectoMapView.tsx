@@ -3,80 +3,116 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { MapPin, Navigation, Layers, Map, Satellite, Sun, Moon } from 'lucide-react'
-import type { UnidadProyectoAPI } from '@/hooks/useUnidadesProyectoAPI'
+import type { UnidadProyectoMock } from '../data/mockUnidadesProyecto'
 import dynamic from 'next/dynamic'
-
-// Componente del mapa dinámico
-const LeafletMapComponent = dynamic(() => Promise.resolve(
-  React.forwardRef<any, any>((props: any, ref) => {
-    const mapRef = useRef<any>(null)
-    const markersRef = useRef<any[]>([])
-    
-    useEffect(() => {
-      if (typeof window !== 'undefined' && !mapRef.current) {
-        const L = require('leaflet')
-        
-        // Fix para los iconos de Leaflet
-        delete (L.Icon.Default.prototype as any)._getIconUrl
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: '/leaflet/marker-icon-2x.png',
-          iconUrl: '/leaflet/marker-icon.png',
-          shadowUrl: '/leaflet/marker-shadow.png',
-        })
-        
-        const map = L.map(props.id).setView([props.center.lat, props.center.lng], props.zoom)
-        
-        // Agregar capa base
-        const tileLayer = props.mapType === 'satellite' 
-          ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-              attribution: 'Tiles &copy; Esri'
-            })
-          : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            })
-        
-        tileLayer.addTo(map)
-        mapRef.current = { map, tileLayer }
-        
-        if (props.onMapReady) {
-          props.onMapReady(map)
-        }
-      }
-      
-      return () => {
-        if (mapRef.current?.map) {
-          mapRef.current.map.remove()
-          mapRef.current = null
-        }
-      }
-    }, [])
-    
-    // Actualizar tipo de mapa
-    useEffect(() => {
-      if (mapRef.current?.tileLayer && mapRef.current?.map) {
-        mapRef.current.map.removeLayer(mapRef.current.tileLayer)
-        
-        const L = require('leaflet')
-        const newTileLayer = props.mapType === 'satellite' 
-          ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-              attribution: 'Tiles &copy; Esri'
-            })
-          : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            })
-        
-        newTileLayer.addTo(mapRef.current.map)
-        mapRef.current.tileLayer = newTileLayer
-      }
-    }, [props.mapType])
-    
-    return <div id={props.id} className={props.className} />
-  })
-), { ssr: false })
 
 // Tipos para el mapa
 type MapType = 'street' | 'satellite' | 'hybrid'
 type MapTheme = 'light' | 'dark'
+
+// Interfaz para el componente del mapa
+interface LeafletMapComponentProps {
+  id: string
+  className: string
+  center: { lat: number; lng: number }
+  zoom: number
+  mapType: MapType
+  onMapReady: (map: any) => void
+}
+
+// Componente del mapa dinámico mejorado
+const LeafletMapComponent = dynamic(() => Promise.resolve(
+  React.forwardRef<HTMLDivElement, LeafletMapComponentProps>((props, ref) => {
+    const mapRef = useRef<any>(null)
+    const divRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+      let L: any = null
+      let map: any = null
+      let tileLayer: any = null
+
+      const initMap = async () => {
+        if (typeof window !== 'undefined' && !mapRef.current && divRef.current) {
+          try {
+            // Importar Leaflet dinámicamente
+            L = await import('leaflet')
+            
+            // Fix para los iconos de Leaflet
+            delete (L.Icon.Default.prototype as any)._getIconUrl
+            L.Icon.Default.mergeOptions({
+              iconRetinaUrl: '/leaflet/marker-icon-2x.png',
+              iconUrl: '/leaflet/marker-icon.png',
+              shadowUrl: '/leaflet/marker-shadow.png',
+            })
+            
+            map = L.map(props.id).setView([props.center.lat, props.center.lng], props.zoom)
+            
+            // Agregar capa base
+            tileLayer = props.mapType === 'satellite' 
+              ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                  attribution: 'Tiles &copy; Esri',
+                  maxZoom: 18
+                })
+              : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                  maxZoom: 18
+                })
+            
+            tileLayer.addTo(map)
+            mapRef.current = { map, tileLayer, L }
+            
+            if (props.onMapReady) {
+              props.onMapReady(map)
+            }
+          } catch (error) {
+            console.error('Error inicializando el mapa:', error)
+          }
+        }
+      }
+
+      // Pequeño delay para asegurar que el DOM esté listo
+      const timer = setTimeout(initMap, 100)
+      
+      return () => {
+        clearTimeout(timer)
+        if (mapRef.current?.map) {
+          try {
+            mapRef.current.map.remove()
+          } catch (error) {
+            console.error('Error al limpiar el mapa:', error)
+          }
+          mapRef.current = null
+        }
+      }
+    }, [props.id, props.center.lat, props.center.lng, props.zoom])
+
+    // Actualizar tipo de mapa
+    useEffect(() => {
+      if (mapRef.current?.tileLayer && mapRef.current?.map && mapRef.current?.L) {
+        try {
+          mapRef.current.map.removeLayer(mapRef.current.tileLayer)
+          
+          const newTileLayer = props.mapType === 'satellite' 
+            ? mapRef.current.L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 18
+              })
+            : mapRef.current.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 18
+              })
+          
+          newTileLayer.addTo(mapRef.current.map)
+          mapRef.current.tileLayer = newTileLayer
+        } catch (error) {
+          console.error('Error actualizando tipo de mapa:', error)
+        }
+      }
+    }, [props.mapType])
+
+    return <div ref={divRef} id={props.id} className={props.className} />
+  })
+), { ssr: false })
 
 // Tipos para configuración de visualización
 interface MapVisualizationConfig {
@@ -89,13 +125,13 @@ interface MapVisualizationConfig {
 }
 
 interface UnidadesProyectoMapViewProps {
-  data: (UnidadProyectoAPI & {
+  data: (UnidadProyectoMock & {
     visualizationColor?: string
     visualizationValue?: any
     visualizationLabel?: string
   })[]
   loading: boolean
-  onPointClick?: (item: UnidadProyectoAPI) => void
+  onPointClick?: (item: UnidadProyectoMock) => void
   visualizationConfig?: MapVisualizationConfig
 }
 
@@ -128,7 +164,7 @@ export default function UnidadesProyectoMapView({
   // Detectar tema del sistema
   useEffect(() => {
     const checkDarkMode = () => {
-      const isDark = document.documentElement.classList.contains('dark')
+      const isDark = typeof document !== "undefined" && document.documentElement.classList.contains('dark')
       setIsDarkMode(isDark)
       setMapTheme(isDark ? 'dark' : 'light')
     }
@@ -145,9 +181,19 @@ export default function UnidadesProyectoMapView({
   // Filtrar datos con coordenadas válidas dentro de los límites de Cali
   const dataWithCoordinates = useMemo(() => {
     return data.filter(item => {
-      if (!item.has_geometry || !item.geometry?.coordinates || item.geometry.coordinates.length !== 2) return false
+      // Verificar múltiples fuentes de coordenadas
+      let coordinates: [number, number] | null = null
       
-      const [lng, lat] = item.geometry.coordinates
+      if (item.geometry?.coordinates && item.geometry.coordinates.length === 2) {
+        coordinates = item.geometry.coordinates as [number, number]
+      } else if (item.coordinates?.lat && item.coordinates?.lng) {
+        // Convertir de {lat, lng} a [lng, lat] para compatibilidad GeoJSON
+        coordinates = [item.coordinates.lng, item.coordinates.lat]
+      }
+      
+      if (!coordinates) return false
+      
+      const [lng, lat] = coordinates
       if (isNaN(lng) || isNaN(lat)) return false
 
       // Verificar que las coordenadas estén dentro de los límites de Cali
@@ -168,10 +214,21 @@ export default function UnidadesProyectoMapView({
     if (dataWithCoordinates.length === 0) return []
 
     const gridSize = 3 // Tamaño más pequeño para mejor precisión en Cali
-    const clusters: Record<string, UnidadProyectoAPI[]> = {}
+    const clusters: Record<string, UnidadProyectoMock[]> = {}
 
     dataWithCoordinates.forEach(item => {
-      const [lng, lat] = item.geometry!.coordinates
+      // Obtener coordenadas de múltiples fuentes
+      let coordinates: [number, number] | null = null
+      
+      if (item.geometry?.coordinates && item.geometry.coordinates.length === 2) {
+        coordinates = item.geometry.coordinates as [number, number]
+      } else if (item.coordinates?.lat && item.coordinates?.lng) {
+        coordinates = [item.coordinates.lng, item.coordinates.lat]
+      }
+      
+      if (!coordinates) return
+      
+      const [lng, lat] = coordinates
       const { x, y } = normalizeCoordinate(lng, lat)
       
       // Crear clave de cluster basada en grilla
@@ -188,8 +245,8 @@ export default function UnidadesProyectoMapView({
     // Convertir clusters a array con información de posición
     return Object.entries(clusters).map(([key, items]) => {
       const [x, y] = key.split(',').map(Number)
-      const totalPresupuesto = items.reduce((sum, item) => sum + (item.properties.presupuesto_base || 0), 0)
-      const avgAvance = items.reduce((sum, item) => sum + (item.properties.avance_obra || 0), 0) / items.length
+      const totalPresupuesto = items.reduce((sum, item) => sum + (item.properties?.presupuesto_base || item.presupuesto_base || 0), 0)
+      const avgAvance = items.reduce((sum, item) => sum + (item.properties?.avance_obra || item.avance_obra || 0), 0) / items.length
 
       return {
         x: x + gridSize / 2, // Centro del cluster
@@ -326,18 +383,32 @@ export default function UnidadesProyectoMapView({
           center={CALI_CENTER}
           zoom={12}
           mapType={mapType}
-          onMapReady={(map: any) => {
-            // Agregar marcadores para cada proyecto
-            const L = require('leaflet')
-            
-            dataWithCoordinates.forEach(item => {
-              const [lng, lat] = item.geometry.coordinates
+          onMapReady={async (map: any) => {
+            try {
+              // Agregar marcadores para cada proyecto
+              const L = await import('leaflet')
+              
+              dataWithCoordinates.forEach(item => {
+              // Obtener coordenadas de múltiples fuentes
+              let coordinates: [number, number] | null = null
+              
+              if (item.geometry?.coordinates && item.geometry.coordinates.length === 2) {
+                coordinates = item.geometry.coordinates as [number, number]
+              } else if (item.coordinates?.lat && item.coordinates?.lng) {
+                coordinates = [item.coordinates.lng, item.coordinates.lat]
+              }
+              
+              if (!coordinates) return
+              
+              const [lng, lat] = coordinates
               
               if (lat && lng && lat >= CALI_BOUNDS.south && lat <= CALI_BOUNDS.north && 
                   lng >= CALI_BOUNDS.west && lng <= CALI_BOUNDS.east) {
                 
-                // Usar configuración de visualización o fallback
-                const color = item.visualizationColor || '#6b7280'
+                // Usar configuración de visualización o fallback basado en avance
+                const avance = item.properties?.avance_obra || item.avance_obra || 0
+                const defaultColor = getPointColor(avance)
+                const color = item.visualizationColor || defaultColor
                 const value = item.visualizationValue
                 const label = item.visualizationLabel
                 
@@ -365,21 +436,22 @@ export default function UnidadesProyectoMapView({
                 const marker = L.marker([lat, lng], { icon: customIcon })
                 
                 // Popup con información del proyecto mejorado
-                const avanceFormatted = ((item.properties.avance_obra || 0) * 100).toFixed(1)
-                const presupuestoFormatted = (item.properties.presupuesto_base || 0) >= 1e9 
-                  ? `$${(item.properties.presupuesto_base / 1e9).toFixed(1)} mil M`
-                  : `$${(item.properties.presupuesto_base / 1e6).toFixed(1)} M`
+                const avanceFormatted = (((item.properties?.avance_obra || item.avance_obra) || 0) * 100).toFixed(1)
+                const presupuestoBase = item.properties?.presupuesto_base || item.presupuesto_base || 0
+                const presupuestoFormatted = presupuestoBase >= 1e9
+                  ? `$${(presupuestoBase / 1e9).toFixed(1)} mil M`
+                  : `$${(presupuestoBase / 1e6).toFixed(1)} M`
                 
                 const popupContent = `
                   <div class="p-3 max-w-sm">
-                    <h3 class="font-bold text-sm mb-2 text-gray-900">${item.properties.nombre_up || 'Proyecto sin nombre'}</h3>
+                    <h3 class="font-bold text-sm mb-2 text-gray-900">${item.properties?.nombre_up || item.nombre_up || 'Proyecto sin nombre'}</h3>
                     <div class="text-xs space-y-1.5">
-                      <p><strong>BPIN:</strong> ${item.properties.bpin}</p>
+                      <p><strong>BPIN:</strong> ${item.properties?.bpin || item.bpin}</p>
                       <p><strong>${visualizationConfig?.label || 'Avance'}:</strong> ${label || avanceFormatted + '%'}</p>
                       <p><strong>Presupuesto:</strong> ${presupuestoFormatted}</p>
-                      <p><strong>Tipo:</strong> ${item.properties.tipo_intervencion || 'N/A'}</p>
-                      <p><strong>Estado:</strong> ${item.properties.estado || 'N/A'}</p>
-                      <p><strong>Comuna:</strong> ${item.properties.comuna_corregimiento || 'N/A'}</p>
+                      <p><strong>Tipo:</strong> ${item.properties?.tipo_intervencion || item.tipo_intervencion || 'N/A'}</p>
+                      <p><strong>Estado:</strong> ${item.properties?.estado || item.estado || 'N/A'}</p>
+                      <p><strong>Comuna:</strong> ${item.properties?.comuna_corregimiento || item.comuna_corregimiento || 'N/A'}</p>
                       <div class="mt-2 pt-2 border-t border-gray-200">
                         <p class="text-gray-600"><strong>Coordenadas WGS84:</strong></p>
                         <p class="font-mono">Lat: ${lat.toFixed(6)}°</p>
@@ -406,6 +478,9 @@ export default function UnidadesProyectoMapView({
               [CALI_BOUNDS.south, CALI_BOUNDS.west],
               [CALI_BOUNDS.north, CALI_BOUNDS.east]
             ], { padding: [20, 20] })
+            } catch (error) {
+              console.error('Error agregando marcadores al mapa:', error)
+            }
           }}
         />
         

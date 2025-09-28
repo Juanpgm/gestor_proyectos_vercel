@@ -21,7 +21,7 @@ import {
   ComposedChart,
   Line
 } from 'recharts'
-import type { UnidadesProyectoMetrics } from '@/hooks/useUnidadesProyectoAPI'
+import type { UnidadesProyectoMetrics } from '@/data/mockUnidadesProyecto'
 
 interface UnidadesProyectoChartsProps {
   metrics: UnidadesProyectoMetrics | null

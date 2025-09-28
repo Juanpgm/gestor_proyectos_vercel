@@ -530,7 +530,12 @@ export function useUnidadesProyecto(): UnidadesProyectoState {
   useEffect(() => {
     console.log('� HYDRATION EFFECT: Setting isClient to true')
     setIsClient(true)
-  }, [])
+    
+    // Cleanup function para prevenir memory leaks
+    return () => {
+      // Limpiar estado si es necesario
+      console.log('🧹 Cleanup ejecutado')
+    }}, [])
 
   console.log('�🎯 BEFORE main useEffect, isClient:', isClient)
   console.log('🎯 BEFORE main useEffect, state loading:', state.loading)

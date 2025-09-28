@@ -47,24 +47,15 @@ const nextConfig = {
     return config;
   },
   
-  // Headers para optimización
+  // Headers para optimización - DESHABILITADO
   async headers() {
     return [
       {
-        source: '/data/:path*',
+        source: '/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=3600, stale-while-revalidate=86400',
-          },
-        ],
-      },
-      {
-        source: '/geodata/:path*', 
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400',
+            value: 'no-cache, no-store, must-revalidate',
           },
         ],
       },

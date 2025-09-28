@@ -16,12 +16,13 @@ import {
   Eye,
   Download
 } from 'lucide-react'
-import type { UnidadProyectoAPI, UnidadProyectoFilters } from '@/hooks/useUnidadesProyectoAPI'
+import type { UnidadProyectoFilters } from '../hooks/useUnidadesProyectoOffline'
+import type { UnidadProyectoMock } from '../data/mockUnidadesProyecto'
 
 interface UnidadesProyectoTableProps {
-  data: UnidadProyectoAPI[]
+  data: UnidadProyectoMock[]
   loading: boolean
-  onItemSelect?: (item: UnidadProyectoAPI) => void
+  onItemSelect?: (item: UnidadProyectoMock) => void
   filters: UnidadProyectoFilters
   onFiltersChange: (filters: UnidadProyectoFilters) => void
   totalCount: number
@@ -105,11 +106,11 @@ export default function UnidadesProyectoTable({
 
   // Obtener valores únicos para los filtros
   const filterOptions = useMemo(() => {
-    const tiposIntervencion = Array.from(new Set(data.map(item => item.properties.tipo_intervencion))).sort()
-    const estados = Array.from(new Set(data.map(item => item.properties.estado).filter(Boolean))).sort()
-    const centrosGestores = Array.from(new Set(data.map(item => item.properties.nombre_centro_gestor))).sort()
-    const comunas = Array.from(new Set(data.map(item => item.properties.comuna_corregimiento))).sort()
-    const anos = Array.from(new Set(data.map(item => item.properties.ano))).sort()
+    const tiposIntervencion = Array.from(new Set(data.map(item => item.tipo_intervencion))).sort()
+    const estados = Array.from(new Set(data.map(item => item.estado).filter(Boolean))).sort()
+    const centrosGestores = Array.from(new Set(data.map(item => item.nombre_centro_gestor))).sort()
+    const comunas = Array.from(new Set(data.map(item => item.comuna_corregimiento))).sort()
+    const anos = Array.from(new Set(data.map(item => item.ano))).sort()
 
     return {
       tiposIntervencion,
@@ -125,8 +126,30 @@ export default function UnidadesProyectoTable({
     if (!sortField) return data
 
     const sorted = [...data].sort((a, b) => {
-      const aVal = a.properties[sortField as keyof typeof a.properties]
-      const bVal = b.properties[sortField as keyof typeof b.properties]
+      let aVal: any = null
+      let bVal: any = null
+
+      // Acceso seguro a las propiedades
+      switch (sortField) {
+        case 'bpin':
+          aVal = a.bpin
+          bVal = b.bpin
+          break
+        case 'nombre_up':
+          aVal = a.nombre_up
+          bVal = b.nombre_up
+          break
+        case 'avance_obra':
+          aVal = a.avance_obra
+          bVal = b.avance_obra
+          break
+        case 'presupuesto_base':
+          aVal = a.presupuesto_base
+          bVal = b.presupuesto_base
+          break
+        default:
+          return 0
+      }
       
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sortDirection === 'desc' ? bVal - aVal : aVal - bVal
@@ -162,29 +185,38 @@ export default function UnidadesProyectoTable({
 
   // Función para exportar datos
   const handleExport = () => {
-    const csvContent = [
-      // Headers
-      ['BPIN', 'UPID', 'Nombre', 'Tipo Intervención', 'Estado', 'Avance', 'Presupuesto', 'Centro Gestor', 'Comuna', 'Año'].join(','),
-      // Data
-      ...sortedData.map(item => [
-        item.properties.bpin,
-        item.properties.upid,
-        `"${item.properties.nombre_up || ''}"`,
-        `"${item.properties.tipo_intervencion}"`,
-        `"${item.properties.estado || ''}"`,
-        item.properties.avance_obra,
-        item.properties.presupuesto_base,
-        `"${item.properties.nombre_centro_gestor}"`,
-        `"${item.properties.comuna_corregimiento}"`,
-        item.properties.ano
-      ].join(','))
-    ].join('\n')
+    try {
+      const csvContent = [
+        // Headers
+        ['BPIN', 'UPID', 'Nombre', 'Tipo Intervención', 'Estado', 'Avance', 'Presupuesto', 'Centro Gestor', 'Comuna', 'Año'].join(','),
+        // Data
+        ...sortedData.map(item => [
+          `"${item.bpin || ''}"`,
+          `"${item.upid || ''}"`,
+          `"${(item.nombre_up || '').replace(/"/g, '""')}"`,
+          `"${(item.tipo_intervencion || '').replace(/"/g, '""')}"`,
+          `"${(item.estado || '').replace(/"/g, '""')}"`,
+          (item.avance_obra || 0).toFixed(4),
+          item.presupuesto_base || 0,
+          `"${(item.nombre_centro_gestor || '').replace(/"/g, '""')}"`,
+          `"${(item.comuna_corregimiento || '').replace(/"/g, '""')}"`,
+          `"${item.ano || ''}"`
+        ].join(','))
+      ].join('\n')
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `unidades_proyecto_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
+      if (typeof window !== 'undefined') {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `unidades_proyecto_${new Date().toISOString().split('T')[0]}.csv`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(link.href)
+      }
+    } catch (error) {
+      console.error('Error al exportar datos:', error)
+    }
   }
 
   if (loading) {
@@ -373,44 +405,44 @@ export default function UnidadesProyectoTable({
                 <td className="px-4 py-4 text-sm">
                   <div className="flex flex-col">
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {item.properties.bpin}
+                      {item.bpin}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {item.properties.upid}
+                      {item.upid}
                     </span>
                   </div>
                 </td>
                 <td className="px-4 py-4 text-sm">
                   <div className="flex flex-col max-w-xs">
                     <span className="font-medium text-gray-900 dark:text-white truncate">
-                      {item.properties.nombre_up || item.properties.nombre_up_detalle || 'Sin nombre'}
+                      {item.nombre_up || 'Sin nombre'}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {item.properties.nombre_centro_gestor}
+                      {item.nombre_centro_gestor}
                     </span>
                   </div>
                 </td>
                 <td className="px-4 py-4 text-sm">
                   <div className="flex flex-col">
                     <span className="text-gray-900 dark:text-white text-xs">
-                      {item.properties.tipo_intervencion}
+                      {item.tipo_intervencion || 'Sin tipo'}
                     </span>
                     <span className="text-gray-500 dark:text-gray-400 text-xs">
-                      {item.properties.clase_obra}
+                      {item.clase_obra || 'Sin clasificar'}
                     </span>
                   </div>
                 </td>
                 <td className="px-4 py-4 text-sm">
-                  <StatusBadge status={item.properties.estado} />
+                  <StatusBadge status={item.estado} />
                 </td>
                 <td className="px-4 py-4 text-sm">
-                  <ProgressBar progress={item.properties.avance_obra || 0} />
+                  <ProgressBar progress={item.avance_obra || 0} />
                 </td>
                 <td className="px-4 py-4 text-sm">
                   <div className="flex items-center space-x-1">
                     <DollarSign className="w-3 h-3 text-green-500" />
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {formatCurrency(item.properties.presupuesto_base || 0)}
+                      {formatCurrency(item.presupuesto_base || 0)}
                     </span>
                   </div>
                 </td>
@@ -418,12 +450,12 @@ export default function UnidadesProyectoTable({
                   <div className="flex items-center space-x-1">
                     <MapPin className="w-3 h-3 text-blue-500" />
                     <span className="text-gray-900 dark:text-white text-xs">
-                      {item.properties.comuna_corregimiento}
+                      {item.comuna_corregimiento || 'Sin ubicación'}
                     </span>
                   </div>
-                  {item.properties.barrio_vereda && (
+                  {item.barrio_vereda && (
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {item.properties.barrio_vereda}
+                      {item.barrio_vereda}
                     </div>
                   )}
                 </td>
@@ -438,9 +470,9 @@ export default function UnidadesProyectoTable({
                         <Eye className="w-4 h-4" />
                       </button>
                     )}
-                    {item.properties.url_proceso && (
+                    {item.url_proceso && (
                       <a
-                        href={item.properties.url_proceso}
+                        href={item.url_proceso}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"

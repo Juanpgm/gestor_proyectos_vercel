@@ -12,7 +12,7 @@ import {
   Activity,
   BarChart3
 } from 'lucide-react'
-import type { UnidadesProyectoMetrics } from '@/hooks/useUnidadesProyectoAPI'
+import type { UnidadesProyectoMetrics } from '@/data/mockUnidadesProyecto'
 
 interface UnidadesProyectoStatsProps {
   metrics: UnidadesProyectoMetrics | null

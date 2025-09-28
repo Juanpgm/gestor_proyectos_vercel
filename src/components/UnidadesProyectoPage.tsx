@@ -17,10 +17,11 @@ import {
   Palette,
   BarChart3
 } from 'lucide-react'
-import { useUnidadesProyectoAPI, type UnidadProyectoAPI, type UnidadProyectoFilters } from '@/hooks/useUnidadesProyectoAPI'
-import UnidadesProyectoTable from '@/components/UnidadesProyectoTable'
-import UnidadesProyectoMapView from '@/components/UnidadesProyectoMapView'
-import { formatCurrencyColombian, formatNumberColombian, getCategoryColor } from '@/utils/currency'
+import { useUnidadesProyectoOffline as useUnidadesProyectoAPI, type UnidadProyectoFilters } from '../hooks/useUnidadesProyectoOffline'
+import type { UnidadProyectoMock } from '../data/mockUnidadesProyecto'
+import UnidadesProyectoTable from './UnidadesProyectoTable'
+import UnidadesProyectoMapView from './UnidadesProyectoMapView'
+import { formatCurrencyColombian, formatNumberColombian, getCategoryColor } from '../utils/currency'
 
 // Tipos para visualización del mapa
 type MapVisualizationVariable = 'avance_obra' | 'presupuesto_base' | 'tipo_intervencion' | 'estado'
@@ -30,7 +31,7 @@ interface MapVisualizationConfig {
   label: string
   type: 'progress' | 'budget' | 'category'
   getColor: (value: any) => string
-  getValue: (item: UnidadProyectoAPI) => any
+  getValue: (item: UnidadProyectoMock) => any
   formatValue: (value: any) => string
 }
 
@@ -39,7 +40,7 @@ interface FiltersPanelProps {
   filters: UnidadProyectoFilters
   onFiltersChange: (filters: UnidadProyectoFilters) => void
   onClose: () => void
-  data: UnidadProyectoAPI[]
+  data: UnidadProyectoMock[]
   loading?: boolean
 }
 
@@ -66,28 +67,22 @@ const MultiSelect = ({ options, selectedValues, onSelectionChange, placeholder, 
       ? selectedValues.filter(v => v !== option)
       : [...selectedValues, option]
     
-    console.log('🔄 MultiSelect toggleOption:', option, 'Nueva selección:', newSelection)
-    
     // Primero actualizar el estado local
     onSelectionChange(newSelection)
     
     // Luego aplicar cambio inmediatamente si se proporciona la callback
     if (onImmediateChange) {
-      console.log('⚡ Aplicando cambio inmediato:', newSelection)
       onImmediateChange(newSelection)
     }
   }
 
   const clearSelection = () => {
-    console.log('🧹 MultiSelect clearSelection')
-    
     // Primero actualizar el estado local
     onSelectionChange([])
     setSearchTerm('')
     
     // Luego aplicar cambio inmediatamente si se proporciona la callback
     if (onImmediateChange) {
-      console.log('⚡ Aplicando limpieza inmediata')
       onImmediateChange([])
     }
   }
@@ -168,64 +163,24 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
 
   // Sincronizar estados locales con filtros existentes
   useEffect(() => {
-    console.log('🔄 Sincronizando filtros:', filters)
-    
-    if (filters.tipo_intervencion) {
-      const valores = filters.tipo_intervencion.split(',')
-      console.log('📝 Sincronizando tipo_intervencion:', valores)
-      setSelectedTiposIntervencion(valores)
-    } else {
-      setSelectedTiposIntervencion([])
-    }
-    
-
-    
-    if (filters.estado) {
-      setSelectedEstados(filters.estado.split(','))
-    } else {
-      setSelectedEstados([])
-    }
-    
-    if (filters.nombre_centro_gestor) {
-      setSelectedCentrosGestores(filters.nombre_centro_gestor.split(','))
-    } else {
-      setSelectedCentrosGestores([])
-    }
-    
-    if (filters.comuna_corregimiento) {
-      setSelectedComunas(filters.comuna_corregimiento.split(','))
-    } else {
-      setSelectedComunas([])
-    }
-    
-    if (filters.ano) {
-      setSelectedAnos(filters.ano.split(','))
-    } else {
-      setSelectedAnos([])
-    }
-    
-    if (filters.fuente_financiacion) {
-      setSelectedFuentesFinanciacion(filters.fuente_financiacion.split(','))
-    } else {
-      setSelectedFuentesFinanciacion([])
-    }
-    
-    if (filters.barrio_vereda) {
-      setSelectedBarriosVeredas(filters.barrio_vereda.split(','))
-    } else {
-      setSelectedBarriosVeredas([])
-    }
+    setSelectedTiposIntervencion(filters.tipo_intervencion ? filters.tipo_intervencion.split(',') : [])
+    setSelectedEstados(filters.estado ? filters.estado.split(',') : [])
+    setSelectedCentrosGestores(filters.nombre_centro_gestor ? filters.nombre_centro_gestor.split(',') : [])
+    setSelectedComunas(filters.comuna_corregimiento ? filters.comuna_corregimiento.split(',') : [])
+    setSelectedAnos(filters.ano ? filters.ano.split(',') : [])
+    setSelectedFuentesFinanciacion(filters.fuente_financiacion ? filters.fuente_financiacion.split(',') : [])
+    setSelectedBarriosVeredas(filters.barrio_vereda ? filters.barrio_vereda.split(',') : [])
   }, [filters])
 
   // Obtener opciones únicas para los filtros
   const filterOptions = useMemo(() => {
-    const tiposIntervencion = Array.from(new Set(data.map(item => item.properties.tipo_intervencion).filter(Boolean))).sort() as string[]
-    const estados = Array.from(new Set(data.map(item => item.properties.estado).filter(Boolean))).sort() as string[]
-    const centrosGestores = Array.from(new Set(data.map(item => item.properties.nombre_centro_gestor).filter(Boolean))).sort() as string[]
-    const comunas = Array.from(new Set(data.map(item => item.properties.comuna_corregimiento).filter(Boolean))).sort() as string[]
-    const anos = Array.from(new Set(data.map(item => item.properties.ano).filter(Boolean))).sort() as string[]
-    const fuentesFinanciacion = Array.from(new Set(data.map(item => item.properties.fuente_financiacion).filter(Boolean))).sort() as string[]
-    const barriosVeredas = Array.from(new Set(data.map(item => item.properties.barrio_vereda).filter(Boolean))).sort() as string[]
+    const tiposIntervencion = Array.from(new Set(data.map(item => item.tipo_intervencion).filter(Boolean))).sort() as string[]
+    const estados = Array.from(new Set(data.map(item => item.estado).filter(Boolean))).sort() as string[]
+    const centrosGestores = Array.from(new Set(data.map(item => item.nombre_centro_gestor).filter(Boolean))).sort() as string[]
+    const comunas = Array.from(new Set(data.map(item => item.comuna_corregimiento).filter(Boolean))).sort() as string[]
+    const anos = Array.from(new Set(data.map(item => item.ano).filter(Boolean))).sort() as string[]
+    const fuentesFinanciacion = Array.from(new Set(data.map(item => item.fuente_financiacion).filter(Boolean))).sort() as string[]
+    const barriosVeredas = Array.from(new Set(data.map(item => item.barrio_vereda).filter(Boolean))).sort() as string[]
 
     return {
       tiposIntervencion,
@@ -243,7 +198,6 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
       ...filters,
       [key]: value === '' ? undefined : value
     }
-    console.log('🔄 Actualizando filtro:', key, '=', value)
     onFiltersChange(newFilters)
   }
 
@@ -258,24 +212,18 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
     setSelectedBarriosVeredas([])
     
     // Limpiar filtros y recargar datos sin filtros
-    console.log('🧹 Limpiando todos los filtros')
     onFiltersChange({})
   }
 
   // Funciones para aplicar filtros inmediatamente
   const applyTipoIntervencionFilter = (values: string[]) => {
-    // Actualizar estado local primero
     setSelectedTiposIntervencion(values)
-    
-    // Aplicar filtro
     const newFilters = { ...filters }
     if (values.length > 0) {
       newFilters.tipo_intervencion = values.join(',')
     } else {
       delete newFilters.tipo_intervencion
     }
-    console.log('🔄 Aplicando filtro Tipo Intervención:', values)
-    console.log('📋 Nuevos filtros:', newFilters)
     onFiltersChange(newFilters)
   }
 
@@ -286,7 +234,6 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
     } else {
       delete newFilters.estado
     }
-    console.log('🔄 Aplicando filtro Estado:', values)
     onFiltersChange(newFilters)
   }
 
@@ -297,7 +244,6 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
     } else {
       delete newFilters.ano
     }
-    console.log('🔄 Aplicando filtro Año:', values)
     onFiltersChange(newFilters)
   }
 
@@ -308,11 +254,8 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
     } else {
       delete newFilters.fuente_financiacion
     }
-    console.log('🔄 Aplicando filtro Fuente Financiación:', values)
     onFiltersChange(newFilters)
   }
-
-
 
   const applyCentroGestorFilter = (values: string[]) => {
     const newFilters = { ...filters }
@@ -321,7 +264,6 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
     } else {
       delete newFilters.nombre_centro_gestor
     }
-    console.log('🔄 Aplicando filtro Centro Gestor:', values)
     onFiltersChange(newFilters)
   }
 
@@ -332,7 +274,6 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
     } else {
       delete newFilters.comuna_corregimiento
     }
-    console.log('🔄 Aplicando filtro Comuna:', values)
     onFiltersChange(newFilters)
   }
 
@@ -343,63 +284,10 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
     } else {
       delete newFilters.barrio_vereda
     }
-    console.log('🔄 Aplicando filtro Barrio:', values)
     onFiltersChange(newFilters)
   }
 
-  const applyFilters = () => {
-    const newFilters: UnidadProyectoFilters = { ...filters }
-    
-    // Aplicar filtros de selección múltiple como strings separados por coma
-    if (selectedTiposIntervencion.length > 0) {
-      newFilters.tipo_intervencion = selectedTiposIntervencion.join(',')
-    } else {
-      delete newFilters.tipo_intervencion
-    }
-    
 
-    
-    if (selectedEstados.length > 0) {
-      newFilters.estado = selectedEstados.join(',')
-    } else {
-      delete newFilters.estado
-    }
-    
-    if (selectedCentrosGestores.length > 0) {
-      newFilters.nombre_centro_gestor = selectedCentrosGestores.join(',')
-    } else {
-      delete newFilters.nombre_centro_gestor
-    }
-    
-    if (selectedComunas.length > 0) {
-      newFilters.comuna_corregimiento = selectedComunas.join(',')
-    } else {
-      delete newFilters.comuna_corregimiento
-    }
-    
-    if (selectedAnos.length > 0) {
-      newFilters.ano = selectedAnos.join(',')
-    } else {
-      delete newFilters.ano
-    }
-    
-    if (selectedFuentesFinanciacion.length > 0) {
-      newFilters.fuente_financiacion = selectedFuentesFinanciacion.join(',')
-    } else {
-      delete newFilters.fuente_financiacion
-    }
-    
-    if (selectedBarriosVeredas.length > 0) {
-      newFilters.barrio_vereda = selectedBarriosVeredas.join(',')
-    } else {
-      delete newFilters.barrio_vereda
-    }
-
-    console.log('🔍 Aplicando filtros:', newFilters)
-    console.log('📊 Filtros activos:', Object.keys(newFilters).filter(key => newFilters[key as keyof UnidadProyectoFilters]))
-    onFiltersChange(newFilters)
-    onClose() // Cerrar el panel después de aplicar filtros
-  }
 
   return (
     <motion.div
@@ -625,7 +513,7 @@ const FiltersPanel = ({ filters, onFiltersChange, onClose, data, loading = false
 
 // Componente de modal para detalles del item
 interface ItemDetailModalProps {
-  item: UnidadProyectoAPI
+  item: UnidadProyectoMock
   onClose: () => void
 }
 
@@ -672,13 +560,13 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">BPIN</label>
                 <div className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
-                  {item.properties.bpin}
+                  {item.bpin}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">UPID</label>
                 <div className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">
-                  {item.properties.upid}
+                  {item.upid}
                 </div>
               </div>
             </div>
@@ -687,16 +575,16 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
             <div>
               <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Nombre del Proyecto</label>
               <div className="mt-1 text-lg text-gray-900 dark:text-white">
-                {item.properties.nombre_up || item.properties.nombre_up_detalle || 'Sin nombre'}
+                {item.nombre_up || 'Sin nombre'}
               </div>
             </div>
 
             {/* Descripción */}
-            {item.properties.descripcion_intervencion && (
+            {item.descripcion_intervencion && (
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Descripción</label>
                 <div className="mt-1 text-gray-900 dark:text-white">
-                  {item.properties.descripcion_intervencion}
+                  {item.descripcion_intervencion}
                 </div>
               </div>
             )}
@@ -706,7 +594,7 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Tipo de Intervención</label>
                 <div className="mt-1 text-gray-900 dark:text-white">
-                  {item.properties.tipo_intervencion}
+                  {item.tipo_intervencion}
                 </div>
               </div>
 
@@ -717,13 +605,13 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Estado</label>
                 <div className="mt-1 text-gray-900 dark:text-white">
-                  {item.properties.estado || 'Sin estado'}
+                  {item.estado || 'Sin estado'}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Avance de Obra</label>
                 <div className="mt-1 text-gray-900 dark:text-white">
-                  {((item.properties.avance_obra || 0) * 100).toFixed(1)}%
+                  {((item.avance_obra || 0) * 100).toFixed(1)}%
                 </div>
               </div>
             </div>
@@ -732,7 +620,7 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
             <div>
               <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Presupuesto Base</label>
               <div className="mt-1 text-xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(item.properties.presupuesto_base || 0)}
+                {formatCurrency(item.presupuesto_base || 0)}
               </div>
             </div>
 
@@ -741,25 +629,25 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Comuna/Corregimiento</label>
                 <div className="mt-1 text-gray-900 dark:text-white">
-                  {item.properties.comuna_corregimiento}
+                  {item.comuna_corregimiento}
                 </div>
               </div>
-              {item.properties.barrio_vereda && (
+              {item.barrio_vereda && (
                 <div>
                   <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Barrio/Vereda</label>
                   <div className="mt-1 text-gray-900 dark:text-white">
-                    {item.properties.barrio_vereda}
+                    {item.barrio_vereda}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Dirección */}
-            {item.properties.direccion && (
+            {item.direccion && (
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Dirección</label>
                 <div className="mt-1 text-gray-900 dark:text-white">
-                  {item.properties.direccion}
+                  {item.direccion}
                 </div>
               </div>
             )}
@@ -768,45 +656,45 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
             <div>
               <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Centro Gestor</label>
               <div className="mt-1 text-gray-900 dark:text-white">
-                {item.properties.nombre_centro_gestor}
+                {item.nombre_centro_gestor}
               </div>
             </div>
 
             {/* Fechas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {item.properties.fecha_inicio && (
+              {item.fecha_inicio && (
                 <div>
                   <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Fecha de Inicio</label>
                   <div className="mt-1 text-gray-900 dark:text-white">
-                    {item.properties.fecha_inicio}
+                    {item.fecha_inicio}
                   </div>
                 </div>
               )}
-              {item.properties.fecha_fin && (
+              {item.fecha_fin && (
                 <div>
                   <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Fecha de Fin</label>
                   <div className="mt-1 text-gray-900 dark:text-white">
-                    {item.properties.fecha_fin}
+                    {item.fecha_fin}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Coordenadas geográficas */}
-            {item.has_geometry && item.geometry?.coordinates && (
+            {item.has_geometry && item.coordinates && (
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Coordenadas</label>
                 <div className="mt-1 text-gray-900 dark:text-white">
-                  Lat: {item.geometry.coordinates[1].toFixed(6)}, Lng: {item.geometry.coordinates[0].toFixed(6)}
+                  Lat: {item.coordinates.lat.toFixed(6)}, Lng: {item.coordinates.lng.toFixed(6)}
                 </div>
               </div>
             )}
 
             {/* Enlaces */}
-            {item.properties.url_proceso && (
+            {item.url_proceso && (
               <div>
                 <a
-                  href={item.properties.url_proceso}
+                  href={item.url_proceso}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -826,7 +714,7 @@ const ItemDetailModal = ({ item, onClose }: ItemDetailModalProps) => {
 export default function UnidadesProyectoPage() {
   const [filters, setFilters] = useState<UnidadProyectoFilters>({})
   const [showFiltersPanel, setShowFiltersPanel] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<UnidadProyectoAPI | null>(null)
+  const [selectedItem, setSelectedItem] = useState<UnidadProyectoMock | null>(null)
   const [mapVisualization, setMapVisualization] = useState<MapVisualizationVariable>('avance_obra')
 
   // Usar el hook principal para cargar datos
@@ -839,7 +727,7 @@ export default function UnidadesProyectoPage() {
       label: 'Avance de Obra',
       type: 'progress',
       getColor: (value) => getCategoryColor(value, 'progress'),
-      getValue: (item) => item.properties.avance_obra || 0,
+      getValue: (item) => item.avance_obra || 0,
       formatValue: (value) => `${(value * 100).toFixed(1)}%`
     },
     presupuesto_base: {
@@ -847,7 +735,7 @@ export default function UnidadesProyectoPage() {
       label: 'Presupuesto Base',
       type: 'budget',
       getColor: (value) => getCategoryColor(value, 'budget'),
-      getValue: (item) => item.properties.presupuesto_base || 0,
+      getValue: (item) => item.presupuesto_base || 0,
       formatValue: (value) => formatCurrencyColombian(value, { abbreviated: true })
     },
     tipo_intervencion: {
@@ -855,7 +743,7 @@ export default function UnidadesProyectoPage() {
       label: 'Tipo de Intervención',
       type: 'category',
       getColor: (value) => getCategoryColor(value, 'type'),
-      getValue: (item) => item.properties.tipo_intervencion || 'Sin definir',
+      getValue: (item) => item.tipo_intervencion || 'Sin definir',
       formatValue: (value) => String(value)
     },
     estado: {
@@ -863,7 +751,7 @@ export default function UnidadesProyectoPage() {
       label: 'Estado',
       type: 'category',
       getColor: (value) => getCategoryColor(value, 'status'),
-      getValue: (item) => item.properties.estado || 'Sin estado',
+      getValue: (item) => item.estado || 'Sin estado',
       formatValue: (value) => String(value)
     },
 
@@ -871,7 +759,7 @@ export default function UnidadesProyectoPage() {
 
   // Datos filtrados y procesados
   const processedData = useMemo(() => {
-    return data.map(item => ({
+    return data.map((item: UnidadProyectoMock) => ({
       ...item,
       visualizationColor: mapVisualizationConfigs[mapVisualization].getColor(
         mapVisualizationConfigs[mapVisualization].getValue(item)
@@ -885,25 +773,11 @@ export default function UnidadesProyectoPage() {
 
   // Aplicar filtros cuando cambien
   const handleFiltersChange = useCallback((newFilters: UnidadProyectoFilters) => {
-    console.log('🔄 Cambiando filtros:', newFilters)
     setFilters(newFilters)
     applyFilters(newFilters)
   }, [applyFilters])
 
-  // Estadísticas calculadas localmente para evitar problemas con datos de la API
-  const localStats = useMemo(() => {
-    if (!data || data.length === 0) return null
 
-    const totalProjects = data.length
-    const projectsWithLocation = data.filter(item => item.has_geometry).length
-    const averageProgress = data.reduce((sum, item) => sum + (item.properties.avance_obra || 0), 0) / totalProjects
-    
-    return {
-      totalProjects,
-      projectsWithLocation,
-      averageProgress: (averageProgress * 100).toFixed(1)
-    }
-  }, [data])
 
   return (
     <div className="space-y-6">

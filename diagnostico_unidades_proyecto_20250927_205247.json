@@ -1,0 +1,241 @@
+{
+  "timestamp": "2025-09-27T20:52:46.068590",
+  "project_path": ".",
+  "total_issues": 13,
+  "critical_issues": 0,
+  "high_issues": 11,
+  "medium_issues": 1,
+  "low_issues": 1,
+  "issues": [
+    {
+      "severity": "high",
+      "category": "api",
+      "title": "Fetch sin manejo de errores",
+      "description": "Llamadas fetch sin manejo de errores",
+      "file_path": "src\\hooks\\useUnidadesProyectoAPI.ts",
+      "line_number": 0,
+      "code_snippet": "",
+      "solution": "Agregar .catch() o try/catch",
+      "impact": "Errores no manejados, estado inconsistente"
+    },
+    {
+      "severity": "medium",
+      "category": "api",
+      "title": "Fetch sin timeout",
+      "description": "Llamadas fetch sin mecanismo de timeout",
+      "file_path": "src\\hooks\\useUnidadesProyectoSimplified.ts",
+      "line_number": 0,
+      "code_snippet": "",
+      "solution": "Implementar AbortController con timeout",
+      "impact": "Requests colgados, UI bloqueada"
+    },
+    {
+      "severity": "high",
+      "category": "api",
+      "title": "Fetch sin manejo de errores",
+      "description": "Llamadas fetch sin manejo de errores",
+      "file_path": "src\\hooks\\useUnidadesProyectoSimplified.ts",
+      "line_number": 0,
+      "code_snippet": "",
+      "solution": "Agregar .catch() o try/catch",
+      "impact": "Errores no manejados, estado inconsistente"
+    },
+    {
+      "severity": "high",
+      "category": "hydration",
+      "title": "Acceso directo a document sin verificación",
+      "description": "Acceso a document sin verificar si está disponible",
+      "file_path": "src\\hooks\\useUnidadesProyectoWorking.ts",
+      "line_number": 144,
+      "code_snippet": "if (typeof window !== 'undefined' && document.readyState === 'complete') {",
+      "solution": "Usar typeof document !== 'undefined' antes del acceso",
+      "impact": "Error de hidratación"
+    },
+    {
+      "severity": "high",
+      "category": "api",
+      "title": "Fetch sin manejo de errores",
+      "description": "Llamadas fetch sin manejo de errores",
+      "file_path": "src\\hooks\\useUnidadesProyectoWorking.ts",
+      "line_number": 0,
+      "code_snippet": "",
+      "solution": "Agregar .catch() o try/catch",
+      "impact": "Errores no manejados, estado inconsistente"
+    },
+    {
+      "severity": "high",
+      "category": "hydration",
+      "title": "Acceso directo a document sin verificación",
+      "description": "Acceso a document sin verificar si está disponible",
+      "file_path": "src\\components\\UnidadesProyectoMapView.tsx",
+      "line_number": 131,
+      "code_snippet": "const isDark = document.documentElement.classList.contains('dark')",
+      "solution": "Usar typeof document !== 'undefined' antes del acceso",
+      "impact": "Error de hidratación"
+    },
+    {
+      "severity": "high",
+      "category": "hydration",
+      "title": "Acceso directo a document sin verificación",
+      "description": "Acceso a document sin verificar si está disponible",
+      "file_path": "src\\components\\UnidadesProyectoMapView.tsx",
+      "line_number": 140,
+      "code_snippet": "observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })",
+      "solution": "Usar typeof document !== 'undefined' antes del acceso",
+      "impact": "Error de hidratación"
+    },
+    {
+      "severity": "high",
+      "category": "hydration",
+      "title": "Acceso directo a document sin verificación",
+      "description": "Acceso a document sin verificar si está disponible",
+      "file_path": "src\\components\\UnidadesProyectoTable.tsx",
+      "line_number": 184,
+      "code_snippet": "const link = document.createElement('a')",
+      "solution": "Usar typeof document !== 'undefined' antes del acceso",
+      "impact": "Error de hidratación"
+    },
+    {
+      "severity": "high",
+      "category": "hydration",
+      "title": "Acceso directo a window sin verificación",
+      "description": "Acceso a window sin verificar si está disponible",
+      "file_path": "src\\app\\page.tsx",
+      "line_number": 87,
+      "code_snippet": "const urlParams = new URLSearchParams(window.location.search)",
+      "solution": "Usar typeof window !== 'undefined' antes del acceso",
+      "impact": "Error de hidratación, componente congelado"
+    },
+    {
+      "severity": "high",
+      "category": "hydration",
+      "title": "Acceso directo a window sin verificación",
+      "description": "Acceso a window sin verificar si está disponible",
+      "file_path": "src\\app\\page.tsx",
+      "line_number": 518,
+      "code_snippet": "onClick={() => window.location.reload()}",
+      "solution": "Usar typeof window !== 'undefined' antes del acceso",
+      "impact": "Error de hidratación, componente congelado"
+    },
+    {
+      "severity": "high",
+      "category": "cache",
+      "title": "Fetch sin configuración de caché",
+      "description": "Llamada fetch sin configuración explícita de caché",
+      "file_path": "src\\services\\unidadesProyectoApi.ts",
+      "line_number": 245,
+      "code_snippet": "const response = await fetchWithTimeout(`${API_BASE_URL}/unidades-proyecto`)",
+      "solution": "Agregar { cache: 'no-store' } o { cache: 'no-cache' }",
+      "impact": "Datos obsoletos de caché"
+    },
+    {
+      "severity": "high",
+      "category": "api",
+      "title": "Fetch sin manejo de errores",
+      "description": "Llamadas fetch sin manejo de errores",
+      "file_path": "src\\services\\unidadesProyectoApi.ts",
+      "line_number": 0,
+      "code_snippet": "",
+      "solution": "Agregar .catch() o try/catch",
+      "impact": "Errores no manejados, estado inconsistente"
+    },
+    {
+      "severity": "low",
+      "category": "state",
+      "title": "Dependencia de estado global: redux",
+      "description": "Librería de estado global que podría tener datos persistentes",
+      "file_path": "package.json",
+      "line_number": 0,
+      "code_snippet": "",
+      "solution": "Verificar limpieza de estado en navegación",
+      "impact": "Estado persistente entre páginas"
+    }
+  ],
+  "recommendations": [
+    "🧹 Implementar limpieza de estado: Agregar cleanup functions en useEffect y resetear estados al desmontar componentes",
+    "🗄️ Configurar caché explícitamente: Usar { cache: 'no-store' } en fetch calls para evitar datos obsoletos",
+    "💧 Resolver errores de hidratación: Verificar disponibilidad de window/document antes de usarlos y usar useEffect para lógica client-side",
+    "🌐 Mejorar manejo de API: Implementar timeouts, manejo de errores y loading states apropiados",
+    "🔄 Reiniciar servidor de desarrollo: npm run dev para limpiar hot reload cache"
+  ],
+  "repair_plan": [
+    {
+      "step": 2,
+      "title": "Limpieza de Estado",
+      "description": "Implementar proper cleanup para evitar memoria persistente",
+      "actions": [
+        "Agregar cleanup functions en useEffect",
+        "Resetear estados al desmontar componentes",
+        "Implementar unsuscribe en listeners globales"
+      ],
+      "files": [
+        "package.json"
+      ],
+      "priority": "ALTO"
+    },
+    {
+      "step": 3,
+      "title": "Configuración de Caché",
+      "description": "Evitar datos obsoletos mediante configuración explícita",
+      "actions": [
+        "Agregar { cache: 'no-store' } a fetch calls",
+        "Verificar middleware de caché",
+        "Limpiar caché del navegador durante desarrollo"
+      ],
+      "files": [
+        "src\\services\\unidadesProyectoApi.ts"
+      ],
+      "priority": "ALTO"
+    },
+    {
+      "step": 4,
+      "title": "Resolver Hidratación",
+      "description": "Prevenir errores de hidratación que congelan componentes",
+      "actions": [
+        "Verificar typeof window !== 'undefined'",
+        "Mover lógica client-side a useEffect",
+        "Usar estado condicional para client-side rendering"
+      ],
+      "files": [
+        "src\\app\\page.tsx",
+        "src\\components\\UnidadesProyectoTable.tsx",
+        "src\\hooks\\useUnidadesProyectoWorking.ts",
+        "src\\components\\UnidadesProyectoMapView.tsx"
+      ],
+      "priority": "MEDIO"
+    },
+    {
+      "step": 5,
+      "title": "Optimizar API",
+      "description": "Mejorar robustez de conexiones API",
+      "actions": [
+        "Implementar timeouts en requests",
+        "Agregar manejo de errores comprehensivo",
+        "Implementar retry logic para requests fallidos"
+      ],
+      "files": [
+        "src\\hooks\\useUnidadesProyectoSimplified.ts",
+        "src\\hooks\\useUnidadesProyectoAPI.ts",
+        "src\\hooks\\useUnidadesProyectoWorking.ts",
+        "src\\services\\unidadesProyectoApi.ts"
+      ],
+      "priority": "MEDIO"
+    },
+    {
+      "step": 5,
+      "title": "Testing y Verificación",
+      "description": "Verificar que los cambios resuelven el problema",
+      "actions": [
+        "Reiniciar servidor de desarrollo",
+        "Limpiar caché del navegador",
+        "Probar navegación entre páginas",
+        "Verificar que componentes se desmontan correctamente",
+        "Probar en modo production build"
+      ],
+      "files": [
+        "Toda la aplicación"
+      ],
+      "priority": "VERIFICACIÓN"
+    }
+  ]
+}

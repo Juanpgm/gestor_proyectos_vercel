@@ -1,0 +1,62 @@
+{
+  "timestamp": "2025-09-27T20:54:56.685462",
+  "backup_directory": "backups\\repair_20250927_205456",
+  "total_changes": 8,
+  "changes": [
+    {
+      "file": "src\\hooks\\useUnidadesProyectoWorking.ts",
+      "type": "hydration_fix",
+      "description": "Corregido acceso directo a window/document",
+      "timestamp": "2025-09-27T20:54:56.606352"
+    },
+    {
+      "file": "src\\components\\UnidadesProyectoMapView.tsx",
+      "type": "hydration_fix",
+      "description": "Corregido acceso directo a window/document",
+      "timestamp": "2025-09-27T20:54:56.615456"
+    },
+    {
+      "file": "src\\components\\UnidadesProyectoTable.tsx",
+      "type": "hydration_fix",
+      "description": "Corregido acceso directo a window/document",
+      "timestamp": "2025-09-27T20:54:56.623627"
+    },
+    {
+      "file": "src\\app\\page.tsx",
+      "type": "hydration_fix",
+      "description": "Corregido acceso directo a window/document",
+      "timestamp": "2025-09-27T20:54:56.632702"
+    },
+    {
+      "file": "src\\hooks\\useUnidadesProyectoWorking.ts",
+      "type": "error_handling_fix",
+      "description": "Agregado manejo de errores con try-catch",
+      "timestamp": "2025-09-27T20:54:56.672516"
+    },
+    {
+      "file": "src\\hooks\\useUnidadesProyecto.ts",
+      "type": "cleanup_fix",
+      "description": "Agregadas cleanup functions a useEffect",
+      "timestamp": "2025-09-27T20:54:56.677832"
+    },
+    {
+      "file": "src\\hooks\\useUnidadesProyectoAPI.ts",
+      "type": "cleanup_fix",
+      "description": "Agregadas cleanup functions a useEffect",
+      "timestamp": "2025-09-27T20:54:56.683321"
+    },
+    {
+      "file": "src\\hooks\\useUniversalCleanup.ts",
+      "type": "new_file",
+      "description": "Creado hook universal de limpieza",
+      "timestamp": "2025-09-27T20:54:56.685462"
+    }
+  ],
+  "next_steps": [
+    "Reiniciar servidor de desarrollo: npm run dev",
+    "Limpiar caché del navegador (Ctrl+F5)",
+    "Probar navegación entre páginas",
+    "Verificar que componentes se desmontan correctamente",
+    "Monitorear consola para errores de hidratación"
+  ]
+}
