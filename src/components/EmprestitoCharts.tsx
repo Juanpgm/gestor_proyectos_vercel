@@ -134,7 +134,7 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.from({ length: 3 }).map((_, index) => (
           <div
-            key={index}
+            key={`loading-skeleton-${index}`}
             className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
           >
             <div className="animate-pulse">
@@ -256,7 +256,7 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
         {/* Leyenda personalizada */}
         <div className="mt-4 grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
           {contratosPorEstado.map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
+            <div key={item.estadoCompleto || `estado-${index}`} className="flex items-center gap-2">
               <div 
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: getChartColor(index) }}
@@ -327,7 +327,7 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
           <div className="flex flex-col justify-center">
             <div className="grid grid-cols-1 gap-3 max-h-64 overflow-y-auto">
               {contratosPorTipo.map((item, index) => (
-                <div key={index} className="flex items-center gap-3">
+                <div key={item.tipoCompleto || `tipo-${index}`} className="flex items-center gap-3">
                   <div 
                     className="w-4 h-4 rounded-full flex-shrink-0"
                     style={{ backgroundColor: getChartColor(index) }}

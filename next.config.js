@@ -105,6 +105,22 @@ const nextConfig = {
       type: 'asset/resource',
     });
 
+    // Optimización de chunks para librerías grandes como Plotly
+    config.optimization = config.optimization || {};
+    config.optimization.splitChunks = {
+      ...config.optimization.splitChunks,
+      cacheGroups: {
+        ...config.optimization.splitChunks?.cacheGroups,
+        plotly: {
+          test: /[\\/]node_modules[\\/](plotly\.js|react-plotly\.js)[\\/]/,
+          name: 'plotly',
+          chunks: 'async',
+          priority: 30,
+          enforce: true,
+        },
+      },
+    };
+
     // Removed Babel loader to use SWC default transformation
 
     return config;

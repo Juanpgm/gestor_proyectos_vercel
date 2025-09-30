@@ -13,6 +13,7 @@ import ProjectsTable, { Project } from '@/components/ProjectsTable'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 import IntegratedProjectsContracts from '@/components/IntegratedProjectsContracts'
+import UnidadesProyecto from '@/components/UnidadesProyecto'
 // Comentados: hooks de unidades de proyecto que ahora solo se usan en la sección específica de API
 // import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyectoWorking'
 // import { useGlobalDataPreloader } from '@/hooks/useGlobalDataPreloader'
@@ -52,7 +53,7 @@ import {
 import { CATEGORIES, ANIMATIONS } from '@/lib/design-system'
 import MobileNavigation from '@/components/MobileNavigation'
 
-type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
+type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
 export default function Dashboard() {
   return (
@@ -530,6 +531,13 @@ function DashboardContent() {
                 </div>
               </div>
             </div>
+          </div>
+        )
+
+      case 'project_units':
+        return (
+          <div className="space-y-6">
+            <UnidadesProyecto />
           </div>
         )
 

@@ -163,12 +163,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         const equipamientosData: UnidadProyecto[] = []
         const infraestructuraData: UnidadProyecto[] = []
 
-        // Cargar datos presupuestales con el loader simplificado
-        const {
-          loadDatosCaracteristicosProyectos,
-          loadMovimientosPresupuestales,
-          loadEjecucionPresupuestal
-        } = await import('@/utils/simpleDataLoader')
+        // Cargar datos presupuestales con fetch directo
+        const fetchJsonData = async (url: string) => {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        };
         
         // Cargar datos presupuestales directamente
         const [
@@ -176,9 +178,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           movimientosPresupuestalesData,
           ejecucionPresupuestalData
         ] = await Promise.all([
-          loadDatosCaracteristicosProyectos(),
-          loadMovimientosPresupuestales(),
-          loadEjecucionPresupuestal()
+          fetchJsonData('/data/datos_caracteristicos_proyectos/datos_caracteristicos_proyectos.json'),
+          fetchJsonData('/data/movimientos_presupuestales/movimientos_presupuestales.json'),
+          fetchJsonData('/data/ejecucion_presupuestal/ejecucion_presupuestal.json')
         ])
 
         // Cargar otros datos con fetch tradicional

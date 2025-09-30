@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react';
-import { loadCentrosGestores, CentroGestor } from '@/utils/simpleDataLoader';
 
 export interface CentroGestorData {
   centros_gestores: string[]
@@ -17,10 +16,16 @@ export function useCentroGestor() {
     setError(null);
     
     try {
-      const data = await loadCentrosGestores();
-      setCentrosGestores(data.centros_gestores);
+      const response = await fetch('/data/ejecucion_presupuestal/centro_gestor.json');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data: CentroGestorData = await response.json();
+      setCentrosGestores(data.centros_gestores || []);
     } catch (err) {
+      console.error('Error loading centros gestores:', err);
       setError(err instanceof Error ? err.message : 'Error loading centros gestores');
+      setCentrosGestores([]); // Set empty array as fallback
     } finally {
       setLoading(false);
     }

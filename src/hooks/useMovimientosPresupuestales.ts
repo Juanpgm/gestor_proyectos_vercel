@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { loadMovimientosPresupuestales, MovimientoPresupuestal } from '@/utils/simpleDataLoader';
+
+// Simplified interface based on what we expect from the JSON file
+interface MovimientoPresupuestal {
+  bpin: number;
+  periodo_corte: string;
+  [key: string]: any;
+}
 
 export function useMovimientosPresupuestales() {
   const [movimientos, setMovimientos] = useState<MovimientoPresupuestal[]>([])
@@ -11,10 +17,16 @@ export function useMovimientosPresupuestales() {
     setError(null);
     
     try {
-      const data = await loadMovimientosPresupuestales();
-      setMovimientos(data);
+      const response = await fetch('/data/movimientos_presupuestales/movimientos_presupuestales.json');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data: MovimientoPresupuestal[] = await response.json();
+      setMovimientos(data || []);
     } catch (err) {
+      console.error('Error loading movimientos presupuestales:', err);
       setError(err instanceof Error ? err.message : 'Error loading data');
+      setMovimientos([]); // Set empty array as fallback
     } finally {
       setLoading(false);
     }

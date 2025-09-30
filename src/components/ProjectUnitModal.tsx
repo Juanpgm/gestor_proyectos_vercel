@@ -211,7 +211,7 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
           <p className="font-semibold text-gray-900 dark:text-white mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
+            <p key={entry.name || `entry-${index}`} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {formatCurrencyShort(entry.value)}
             </p>
           ))}

@@ -541,7 +541,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                                 : 0
                               
                               return (
-                                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <tr key={producto.codigo_producto || `producto-${index}`} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                   {/* Columna PRODUCTO (70%) */}
                                   <td className="px-4 py-5 align-top w-[70%]">
                                     <div className="space-y-3 text-left">
@@ -708,7 +708,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                                 }
                                 
                                 return (
-                                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
+                                  <tr key={actividad.codigo_actividad || `actividad-${index}`} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
                                     {/* Información Principal - 70% del ancho */}
                                     <td className="border border-red-200 dark:border-red-700 px-3 py-4 w-[70%]">
                                       <div className="space-y-3 text-left">
@@ -856,7 +856,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project })
                         {/* Lista de Unidades */}
                         <div className="max-h-32 overflow-y-auto space-y-1">
                           {unidades.slice(0, 5).map((unidad, index) => (
-                            <div key={index} className="bg-white dark:bg-gray-700 p-2 rounded border text-xs">
+                            <div key={unidad.upid || unidad.id || `unidad-${index}`} className="bg-white dark:bg-gray-700 p-2 rounded border text-xs">
                               <div className="font-medium text-gray-900 dark:text-white">
                                 {unidad.nombre || unidad.nombre_equipamiento || 'Unidad sin nombre'}
                               </div>

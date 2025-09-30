@@ -1,21 +1,32 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  loadEjecucionPresupuestal,
-  loadMovimientosPresupuestales,
-  loadDatosCaracteristicosProyectos,
-  loadCentrosGestores,
-  getLatestPeriodData,
-  getDataByBpin,
-  getDataByPeriod,
-  getUniquePeriodsFromEjecucion,
-  getUniqueBpinsFromEjecucion,
-  clearDataCache,
-  getCacheStatus,
-  EjecucionPresupuestal,
-  MovimientoPresupuestal,
-  DatosCaracteristicosProyecto,
-  CentroGestor
-} from '@/utils/simpleDataLoader';
+
+// Simplified interfaces based on what we expect from the JSON files
+interface EjecucionPresupuestal {
+  bpin: number;
+  periodo_corte: string;
+  ejecucion: number;
+  pagos: number;
+  [key: string]: any;
+}
+
+interface MovimientoPresupuestal {
+  bpin: number;
+  periodo_corte: string;
+  [key: string]: any;
+}
+
+interface DatosCaracteristicosProyecto {
+  bpin: number;
+  nombre_centro_gestor: string;
+  nombre_programa: string;
+  comuna: string;
+  anio: number;
+  [key: string]: any;
+}
+
+interface CentroGestor {
+  centros_gestores: string[];
+}
 
 interface BudgetDataState {
   ejecucionPresupuestal: EjecucionPresupuestal[];
@@ -62,28 +73,38 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
     centros: false
   });
 
+  // Simplified fetch function
+  const fetchJsonData = async (url: string) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  };
+
   // Load all budget data
   const loadAllData = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
       const [ejecucion, movimientos, caracteristicos, centros] = await Promise.all([
-        loadEjecucionPresupuestal(),
-        loadMovimientosPresupuestales(),
-        loadDatosCaracteristicosProyectos(),
-        loadCentrosGestores()
+        fetchJsonData('/data/ejecucion_presupuestal/ejecucion_presupuestal.json'),
+        fetchJsonData('/data/movimientos_presupuestales/movimientos_presupuestales.json'),
+        fetchJsonData('/data/datos_caracteristicos_proyectos/datos_caracteristicos_proyectos.json'),
+        fetchJsonData('/data/ejecucion_presupuestal/centro_gestor.json')
       ]);
 
       setState(prev => ({
         ...prev,
-        ejecucionPresupuestal: ejecucion,
-        movimientosPresupuestales: movimientos,
-        datosCaracteristicos: caracteristicos,
-        centrosGestores: centros,
+        ejecucionPresupuestal: ejecucion || [],
+        movimientosPresupuestales: movimientos || [],
+        datosCaracteristicos: caracteristicos || [],
+        centrosGestores: centros || null,
         loading: false,
         lastUpdated: new Date()
       }));
     } catch (error) {
+      console.error('Error loading budget data:', error);
       setState(prev => ({
         ...prev,
         loading: false,
@@ -96,9 +117,10 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
   const loadEjecucionPresupuestalData = useCallback(async () => {
     setLoadingStates(prev => ({ ...prev, ejecucion: true }));
     try {
-      const data = await loadEjecucionPresupuestal();
-      setState(prev => ({ ...prev, ejecucionPresupuestal: data }));
+      const data = await fetchJsonData('/data/ejecucion_presupuestal/ejecucion_presupuestal.json');
+      setState(prev => ({ ...prev, ejecucionPresupuestal: data || [] }));
     } catch (error) {
+      console.error('Error loading ejecución presupuestal:', error);
       setState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Error loading ejecución presupuestal'
@@ -111,9 +133,10 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
   const loadMovimientosPresupuestalesData = useCallback(async () => {
     setLoadingStates(prev => ({ ...prev, movimientos: true }));
     try {
-      const data = await loadMovimientosPresupuestales();
-      setState(prev => ({ ...prev, movimientosPresupuestales: data }));
+      const data = await fetchJsonData('/data/movimientos_presupuestales/movimientos_presupuestales.json');
+      setState(prev => ({ ...prev, movimientosPresupuestales: data || [] }));
     } catch (error) {
+      console.error('Error loading movimientos presupuestales:', error);
       setState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Error loading movimientos presupuestales'
@@ -126,9 +149,10 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
   const loadDatosCaracteristicosData = useCallback(async () => {
     setLoadingStates(prev => ({ ...prev, caracteristicos: true }));
     try {
-      const data = await loadDatosCaracteristicosProyectos();
-      setState(prev => ({ ...prev, datosCaracteristicos: data }));
+      const data = await fetchJsonData('/data/datos_caracteristicos_proyectos/datos_caracteristicos_proyectos.json');
+      setState(prev => ({ ...prev, datosCaracteristicos: data || [] }));
     } catch (error) {
+      console.error('Error loading datos característicos:', error);
       setState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Error loading datos característicos'
@@ -141,9 +165,10 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
   const loadCentrosGestoresData = useCallback(async () => {
     setLoadingStates(prev => ({ ...prev, centros: true }));
     try {
-      const data = await loadCentrosGestores();
-      setState(prev => ({ ...prev, centrosGestores: data }));
+      const data = await fetchJsonData('/data/ejecucion_presupuestal/centro_gestor.json');
+      setState(prev => ({ ...prev, centrosGestores: data || null }));
     } catch (error) {
+      console.error('Error loading centros gestores:', error);
       setState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Error loading centros gestores'
@@ -209,37 +234,38 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
     filters.anio
   ]);
 
-  // Utility functions
+  // Simplified utility functions
   const getLatestPeriodDataUtil = useCallback((data: EjecucionPresupuestal[]) => {
-    return getLatestPeriodData(data);
+    if (!data.length) return [];
+    const periods = Array.from(new Set(data.map(item => item.periodo_corte))).sort();
+    const latestPeriod = periods[periods.length - 1];
+    return data.filter(item => item.periodo_corte === latestPeriod);
   }, []);
 
   const getUniquePeriodsUtil = useCallback((data: EjecucionPresupuestal[]) => {
-    return getUniquePeriodsFromEjecucion(data);
+    return Array.from(new Set(data.map(item => item.periodo_corte))).sort();
   }, []);
 
   const getUniqueBpinsUtil = useCallback((data: EjecucionPresupuestal[]) => {
-    return getUniqueBpinsFromEjecucion(data);
+    return Array.from(new Set(data.map(item => item.bpin))).sort();
   }, []);
 
   const getDataByBpinUtil = useCallback((data: EjecucionPresupuestal[], bpin: number) => {
-    return getDataByBpin(data, bpin);
+    return data.filter(item => item.bpin === bpin);
   }, []);
 
   const getDataByPeriodUtil = useCallback((data: EjecucionPresupuestal[], periodo: string) => {
-    return getDataByPeriod(data, periodo);
+    return data.filter(item => item.periodo_corte === periodo);
   }, []);
 
-  // Clear cache
+  // Clear cache (simplified - no actual cache)
   const clearCache = useCallback(() => {
-    if (enableCache) {
-      clearDataCache();
-    }
-  }, [enableCache]);
+    // No-op since we removed caching
+  }, []);
 
-  // Get cache status
+  // Get cache status (simplified)
   const getCacheStatusUtil = useCallback(() => {
-    return getCacheStatus();
+    return { size: 0, keys: [] };
   }, []);
 
   // Auto-load data on mount
@@ -252,8 +278,8 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
   // Summary statistics
   const summary = useMemo(() => {
     const totalProjects = new Set(state.ejecucionPresupuestal.map(item => item.bpin)).size;
-    const totalExecution = state.ejecucionPresupuestal.reduce((sum, item) => sum + item.ejecucion, 0);
-    const totalPayments = state.ejecucionPresupuestal.reduce((sum, item) => sum + item.pagos, 0);
+    const totalExecution = state.ejecucionPresupuestal.reduce((sum, item) => sum + (item.ejecucion || 0), 0);
+    const totalPayments = state.ejecucionPresupuestal.reduce((sum, item) => sum + (item.pagos || 0), 0);
     const uniquePeriods = getUniquePeriodsUtil(state.ejecucionPresupuestal);
     const uniqueCentros = new Set(state.datosCaracteristicos.map(item => item.nombre_centro_gestor)).size;
 

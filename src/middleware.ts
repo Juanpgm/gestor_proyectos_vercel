@@ -7,6 +7,13 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  
+  // Handle @vite/client requests to prevent 404 errors
+  if (pathname === '/@vite/client' || pathname.startsWith('/@vite/')) {
+    // Redirect to a stub file instead of returning empty response
+    return NextResponse.rewrite(new URL('/vite-client-stub.js', request.url))
+  }
+  
   const response = NextResponse.next()
 
   // Headers anti-caché agresivos para todas las rutas

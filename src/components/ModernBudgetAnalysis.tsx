@@ -204,7 +204,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
           </p>
           <div className="space-y-1">
             {payload.map((entry: any, index: number) => (
-              <div key={index} className="flex items-center justify-between gap-4">
+              <div key={entry.dataKey || `entry-${index}`} className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-3 h-3 rounded-full" 

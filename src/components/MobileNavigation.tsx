@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Menu } from 'lucide-react'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
 
-type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
+type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
 interface TabConfig {
   id: ActiveTab
@@ -36,6 +36,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: CATEGORIES.projects.icon,
       category: 'projects' as const,
       shortLabel: 'Proyectos'
+    },
+    { 
+      id: 'project_units' as const, 
+      label: CATEGORIES['unidades-proyecto'].name, 
+      icon: CATEGORIES['unidades-proyecto'].icon,
+      category: 'project_units' as const,
+      shortLabel: 'Unidades'
     },
     { 
       id: 'activities' as const, 
@@ -75,7 +82,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   ]
 
   const activeTabConfig = tabs.find(tab => tab.id === activeTab)
-  const categoryConfig = activeTabConfig ? CATEGORIES[activeTabConfig.category] : CATEGORIES.projects
+  const categoryConfig = activeTabConfig ? 
+    (activeTabConfig.category === 'project_units' ? CATEGORIES['unidades-proyecto'] : CATEGORIES[activeTabConfig.category as keyof typeof CATEGORIES]) 
+    : CATEGORIES.projects
 
   return (
     <>
@@ -91,7 +100,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isDisabled = tab.disabled || false
-              const tabCategoryConfig = CATEGORIES[tab.category]
+              const tabCategoryConfig = tab.category === 'project_units' ? CATEGORIES['unidades-proyecto'] : CATEGORIES[tab.category as keyof typeof CATEGORIES]
               
               return (
                 <button
@@ -202,7 +211,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   {tabs.map((tab) => {
                   const Icon = tab.icon
                   const isDisabled = tab.disabled || false
-                  const tabCategoryConfig = CATEGORIES[tab.category]
+                  const tabCategoryConfig = tab.category === 'project_units' ? CATEGORIES['unidades-proyecto'] : CATEGORIES[tab.category as keyof typeof CATEGORIES]
                   
                   return (
                       <motion.button
