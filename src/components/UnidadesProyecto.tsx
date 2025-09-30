@@ -1,21 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, BarChart3, Table, Filter, Search, RefreshCw, ChevronDown } from 'lucide-react';
+import { BarChart3, Table, Filter, Search, RefreshCw, ChevronDown } from 'lucide-react';
 import { CATEGORIES, CSS_UTILS, ANIMATIONS, formatNumber } from '@/lib/design-system';
-
-// Dynamic import for Plotly to avoid SSR issues with better error handling
-const Plot = dynamic(() => import('react-plotly.js'), { 
-  ssr: false,
-  loading: () => <div className="flex items-center justify-center h-96">
-    <div className="text-center">
-      <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-500" />
-      <p className="text-gray-600 dark:text-gray-400">Cargando visualización...</p>
-    </div>
-  </div>
-});
 
 interface UnidadProyecto {
   upid: string;
@@ -97,53 +85,55 @@ const UnidadesProyecto: React.FC = () => {
   const [selectedComuna, setSelectedComuna] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   
-  const [activeTab, setActiveTab] = useState('mapa');
+  const [activeTab, setActiveTab] = useState('tabla');
 
   // Fetch data from API using proxy
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     
-    console.log('🔄 UnidadesProyecto: Starting data fetch...');
-    
     try {
+      console.log('🔄 UnidadesProyecto: Iniciando carga de datos...');
+      
       const [geometry, attributes, dashboard, filters] = await Promise.all([
-        fetch('/api/proxy/unidades-proyecto/geometry').then(res => {
-          console.log('📍 Geometry response status:', res.status);
-          return res.json();
+        fetch('/api/proxy/unidades-proyecto/geometry').then(async res => {
+          if (!res.ok) throw new Error(`Error en geometry: ${res.status}`);
+          const data = await res.json();
+          console.log('✅ Geometry data loaded:', data?.data?.length || 0, 'items');
+          return data;
         }),
-        fetch('/api/proxy/unidades-proyecto/attributes').then(res => {
-          console.log('📋 Attributes response status:', res.status);
-          return res.json();
+        fetch('/api/proxy/unidades-proyecto/attributes').then(async res => {
+          if (!res.ok) throw new Error(`Error en attributes: ${res.status}`);
+          const data = await res.json();
+          console.log('✅ Attributes data loaded:', data?.data?.length || 0, 'items');
+          return data;
         }),
-        fetch('/api/proxy/unidades-proyecto/dashboard').then(res => {
-          console.log('📊 Dashboard response status:', res.status);
-          return res.json();
+        fetch('/api/proxy/unidades-proyecto/dashboard').then(async res => {
+          if (!res.ok) throw new Error(`Error en dashboard: ${res.status}`);
+          const data = await res.json();
+          console.log('✅ Dashboard data loaded:', data?.data ? 'OK' : 'Empty');
+          return data;
         }),
-        fetch('/api/proxy/unidades-proyecto/filters').then(res => {
-          console.log('🔍 Filters response status:', res.status);
-          return res.json();
+        fetch('/api/proxy/unidades-proyecto/filters').then(async res => {
+          if (!res.ok) throw new Error(`Error en filters: ${res.status}`);
+          const data = await res.json();
+          console.log('✅ Filters data loaded:', data?.data ? 'OK' : 'Empty');
+          return data;
         })
       ]);
-
-      console.log('✅ UnidadesProyecto: All requests completed');
-      console.log('📍 Geometry data count:', geometry.data?.length || 0);
-      console.log('📋 Attributes data count:', attributes.data?.length || 0);
-      console.log('📊 Dashboard data:', dashboard.data ? 'Available' : 'Not available');
-      console.log('🔍 Filters data:', filters.data ? 'Available' : 'Not available');
 
       setGeometryData(geometry.data || []);
       setAttributesData(attributes.data || []);
       setDashboardData(dashboard.data);
       setFiltersData(filters.data);
       
-      console.log('💾 UnidadesProyecto: State updated successfully');
+      console.log('🎉 UnidadesProyecto: Todos los datos cargados exitosamente');
+      
     } catch (err) {
       console.error('❌ UnidadesProyecto: Error fetching data:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setError(err instanceof Error ? err.message : 'Error desconocido al cargar datos');
     } finally {
       setLoading(false);
-      console.log('🏁 UnidadesProyecto: Fetch process completed');
     }
   };
 
@@ -178,29 +168,6 @@ const UnidadesProyecto: React.FC = () => {
 
     return filtered;
   }, [attributesData, selectedEstado, selectedTipo, selectedCentro, selectedComuna, searchTerm]);
-
-  // Prepare map data
-  const mapData = useMemo(() => {
-    const filteredUpids = new Set(filteredData.map(item => item.upid));
-    const filteredGeometry = geometryData.filter(item => filteredUpids.has(item.upid));
-    
-    return {
-      type: 'scattermapbox' as const,
-      lat: filteredGeometry.map(item => item.geometry.coordinates[1]),
-      lon: filteredGeometry.map(item => item.geometry.coordinates[0]),
-      mode: 'markers' as const,
-      marker: {
-        size: 8,
-        color: '#3B82F6',
-        opacity: 0.7
-      },
-      text: filteredGeometry.map(item => {
-        const attr = attributesData.find(a => a.upid === item.upid);
-        return attr ? `${attr.nombre_up}<br>Estado: ${attr.estado}<br>Tipo: ${attr.tipo_intervencion}` : item.upid;
-      }),
-      hovertemplate: '%{text}<extra></extra>'
-    };
-  }, [geometryData, filteredData, attributesData]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -248,14 +215,14 @@ const UnidadesProyecto: React.FC = () => {
       <div className={`${CSS_UTILS.card} p-6`}>
         <div className="flex items-center gap-3 mb-4">
           <div className={`p-2 rounded-lg ${CATEGORIES.projects.className.bg}`}>
-            <MapPin className={`w-6 h-6 ${CATEGORIES.projects.className.text}`} />
+            <Table className={`w-6 h-6 ${CATEGORIES.projects.className.text}`} />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Unidades de Proyecto
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Visualización interactiva de unidades de proyecto con mapas y análisis
+              Visualización de unidades de proyecto con tabla y análisis
             </p>
           </div>
         </div>
@@ -393,17 +360,6 @@ const UnidadesProyecto: React.FC = () => {
       <div className={`${CSS_UTILS.card} p-6`}>
         <div className="flex space-x-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
           <button
-            onClick={() => setActiveTab('mapa')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'mapa'
-                ? `${CATEGORIES.projects.className.button}`
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            <MapPin className="h-4 w-4" />
-            Mapa
-          </button>
-          <button
             onClick={() => setActiveTab('tabla')}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === 'tabla'
@@ -438,41 +394,6 @@ const UnidadesProyecto: React.FC = () => {
           >
 
         {/* Map Tab */}
-        {activeTab === 'mapa' && (
-          <div className="space-y-4">
-            {loading ? (
-              <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                  <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-500" />
-                  <p className="text-gray-600 dark:text-gray-400">Cargando mapa...</p>
-                </div>
-              </div>
-            ) : (
-              <div className="h-96 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                <Plot
-                  data={[mapData]}
-                  layout={{
-                    mapbox: {
-                      style: 'open-street-map',
-                      center: { lat: 3.4516, lon: -76.5320 },
-                      zoom: 11,
-                    },
-                    margin: { t: 0, b: 0, l: 0, r: 0 },
-                    height: 384,
-                    showlegend: false,
-                  }}
-                  config={{
-                    displayModeBar: true,
-                    displaylogo: false,
-                    modeBarButtonsToRemove: ['pan2d', 'lasso2d'],
-                  }}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Table Tab */}
         {activeTab === 'tabla' && (
           <div className="space-y-4">

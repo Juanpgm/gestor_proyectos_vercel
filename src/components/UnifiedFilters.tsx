@@ -124,8 +124,6 @@ export default function UnifiedFilters({
     const handleGlobalClick = (event: Event) => {
       const target = event.target as Element
       
-      console.log('🌍 Click global detectado')
-      
       // Para dropdowns normales
       const isInDropdown = target.closest('[data-dropdown]') || 
                           target.closest('.absolute.top-full') ||
@@ -149,7 +147,6 @@ export default function UnifiedFilters({
       const isInSuggestions = suggestionsDropdownRef.current?.contains(target as Node)
       
       if (!isInSearchInput && !isInSuggestions) {
-        console.log('❌ Click fuera - programando auto-ocultamiento')
         scheduleAutoHide(100) // Ocultar rápido
       }
     }
@@ -174,7 +171,6 @@ export default function UnifiedFilters({
     
     // NUEVA VERIFICACIÓN: Si las sugerencias están suprimidas, no generar
     if (suppressSuggestionsRef.current) {
-      console.log('🔇 Sugerencias suprimidas temporalmente')
       return
     }
     
@@ -186,8 +182,6 @@ export default function UnifiedFilters({
 
     const suggestions: Array<{value: string, type: string, label: string}> = []
     const isNumericSearch = /^\d+$/.test(searchTerm)
-    
-    console.log(`🔍 Generando sugerencias para sección: ${activeTab}, término: "${searchTerm}"`)
     
     if (isNumericSearch) {
       // Búsqueda prioritaria por BPIN para valores numéricos
@@ -215,7 +209,6 @@ export default function UnifiedFilters({
       
       // 1. SECCIÓN ACTIVIDADES: Priorizar actividades
       if (activeTab === 'activities') {
-        console.log('🎯 Priorizando búsqueda en actividades')
         allProjects.forEach(projectData => {
           if (suggestions.length >= 8) return
           
@@ -247,7 +240,6 @@ export default function UnifiedFilters({
       
       // 2. SECCIÓN PRODUCTOS: Priorizar productos
       else if (activeTab === 'products') {
-        console.log('🎯 Priorizando búsqueda en productos')
         allProjects.forEach(projectData => {
           if (suggestions.length >= 8) return
           
@@ -389,9 +381,6 @@ export default function UnifiedFilters({
 
   // Effect para debugging del estado de sugerencias
   useEffect(() => {
-    console.log('🔍 Estado showSuggestions cambió a:', showSuggestions)
-    console.log('📝 Número de sugerencias:', searchSuggestions.length)
-    
     // Si showSuggestions es false, asegurar que todo esté limpio
     if (!showSuggestions) {
       setSelectedSuggestionIndex(-1)
@@ -421,7 +410,6 @@ export default function UnifiedFilters({
 
   // Función simplificada para ocultar sugerencias
   const hideSuggestions = () => {
-    console.log('🔥 Ocultando sugerencias')
     setShowSuggestions(false)
     setSelectedSuggestionIndex(-1)
     setSearchSuggestions([])
@@ -435,7 +423,6 @@ export default function UnifiedFilters({
 
   // Función para forzar ocultamiento inmediato
   const forceHideSuggestions = () => {
-    console.log('🚨 Forzando ocultamiento de sugerencias')
     hideSuggestions()
     // Quitar foco del input si está activo
     if (searchInputRef.current) {
@@ -446,7 +433,6 @@ export default function UnifiedFilters({
     suppressSuggestionsRef.current = true
     setTimeout(() => {
       suppressSuggestionsRef.current = false
-      console.log('🔊 Supresión de sugerencias desactivada')
     }, 1000) // Suprimir por 1 segundo
   }
 
@@ -457,7 +443,6 @@ export default function UnifiedFilters({
     }
     
     autoHideTimerRef.current = setTimeout(() => {
-      console.log('⏰ Auto-ocultamiento por timer')
       hideSuggestions()
     }, delay)
   }
@@ -576,14 +561,12 @@ export default function UnifiedFilters({
     
     // NUEVO: Si se actualiza cualquier filtro, ocultar sugerencias
     if (showSuggestions) {
-      console.log('🔄 Filtros actualizados - ocultando sugerencias')
       hideSuggestions()
     }
   }
 
   // NUEVA función simplificada para forzar ocultamiento
   const handleSuggestionSelect = (suggestion: {value: string, type: string, label: string}) => {
-    console.log('✅ Seleccionando sugerencia:', suggestion)
     
     // NUEVA LÓGICA: Generar filtros específicos basados en el tipo de sugerencia
     switch (suggestion.type) {
@@ -596,7 +579,6 @@ export default function UnifiedFilters({
         updateFilters({ search: suggestion.value })
         // OCULTAR DESPUÉS de actualizar filtros para tipos de búsqueda de texto
         setTimeout(() => {
-          console.log('🎯 Ocultando sugerencias después de seleccionar proyecto/texto')
           forceHideSuggestions()
         }, 100)
         break
@@ -645,7 +627,6 @@ export default function UnifiedFilters({
         updateFilters({ search: suggestion.value })
         // OCULTAR DESPUÉS de actualizar filtros para tipos de búsqueda de texto
         setTimeout(() => {
-          console.log('🎯 Ocultando sugerencias después de seleccionar default/texto')
           forceHideSuggestions()
         }, 100)
         break
@@ -988,14 +969,7 @@ export default function UnifiedFilters({
           <div className="flex items-center space-x-2">
             <button
               onClick={() => {
-                console.log('🔍 Estado completo de filtros:')
-                console.log('- Comunas cargadas:', comunasOptions.length)
-                console.log('- Fuentes cargadas:', fuentesFinanciamiento.length)
-                console.log('- Comunas loading:', comunasLoading)
-                console.log('- Fuentes loading:', fuentesLoading)
-                console.log('- Datos comunas completos:', comunasBarrios)
-                console.log('- Datos fuentes completos:', fuentesFinanciamiento)
-                console.log('- Filtros actuales:', safeFilters)
+                // Debug information removed for production
               }}
               className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
               title="Mostrar información de debug en consola (F12)"
@@ -1043,7 +1017,6 @@ export default function UnifiedFilters({
                   onChange={(e) => handleSearchInputChange(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   onFocus={() => {
-                    console.log('🎯 Input enfocado')
                     // Cancelar auto-ocultamiento
                     if (autoHideTimerRef.current) {
                       clearTimeout(autoHideTimerRef.current)
@@ -1056,7 +1029,6 @@ export default function UnifiedFilters({
                     }
                   }}
                   onBlur={() => {
-                    console.log('😴 Input desenfocado')
                     // Programar ocultamiento con delay para permitir clicks en sugerencias
                     scheduleAutoHide(200)
                   }}
@@ -1070,7 +1042,6 @@ export default function UnifiedFilters({
                     ref={suggestionsDropdownRef} 
                     className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-2xl z-[99999] max-h-80 overflow-y-auto ring-1 ring-black ring-opacity-5 backdrop-blur-sm"
                     onMouseEnter={() => {
-                      console.log('🐭 Mouse entró en sugerencias')
                       // Cancelar auto-ocultamiento cuando el mouse está sobre las sugerencias
                       if (autoHideTimerRef.current) {
                         clearTimeout(autoHideTimerRef.current)
@@ -1078,7 +1049,6 @@ export default function UnifiedFilters({
                       }
                     }}
                     onMouseLeave={() => {
-                      console.log('🐭 Mouse salió de sugerencias')
                       // Programar ocultamiento cuando el mouse sale
                       scheduleAutoHide(300)
                     }}
@@ -1090,7 +1060,6 @@ export default function UnifiedFilters({
                         </span>
                         <button
                           onClick={(e) => {
-                            console.log('❌ Botón cerrar clickeado')
                             e.preventDefault()
                             e.stopPropagation()
                             forceHideSuggestions()
@@ -1105,7 +1074,6 @@ export default function UnifiedFilters({
                         <button
                           key={`${suggestion.type}-${suggestion.value}-${index}`}
                           onClick={(e) => {
-                            console.log('✅ Click en sugerencia:', suggestion.type)
                             e.preventDefault()
                             e.stopPropagation()
                             
@@ -1163,7 +1131,6 @@ export default function UnifiedFilters({
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
-                        console.log('🚨 BOTÓN DE EMERGENCIA clickeado')
                         forceHideSuggestions()
                       }}
                       className="flex-shrink-0 bg-red-100 hover:bg-red-200 text-red-600 text-xs px-2 py-1 rounded transition-colors duration-200"

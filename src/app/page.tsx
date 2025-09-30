@@ -104,7 +104,6 @@ function DashboardContent() {
 
   // Función para manejar cambios en BPIN filtrados desde Empréstito
   const handleFilteredBpinsChange = (bpins: number[] | undefined) => {
-    console.log('🔍 BPIN filtrados actualizados:', bpins)
     setFilteredBpinsFromContracts(bpins)
   }
 

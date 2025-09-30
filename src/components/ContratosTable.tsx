@@ -207,13 +207,8 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-1/4"></div>
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
-              ))}
-            </div>
+          <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
+            Cargando tabla de contratos...
           </div>
         </div>
       </div>

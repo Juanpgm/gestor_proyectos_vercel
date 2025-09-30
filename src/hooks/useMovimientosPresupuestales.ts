@@ -17,7 +17,7 @@ export function useMovimientosPresupuestales() {
     setError(null);
     
     try {
-      const response = await fetch('/data/movimientos_presupuestales/movimientos_presupuestales.json');
+      const response = await fetch('/data/ejecucion_presupuestal/movimientos_presupuestales.json');
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }

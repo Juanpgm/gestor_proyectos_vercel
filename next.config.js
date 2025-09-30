@@ -105,21 +105,10 @@ const nextConfig = {
       type: 'asset/resource',
     });
 
-    // Optimización de chunks para librerías grandes como Plotly
+    // Webpack optimization configuration
     config.optimization = config.optimization || {};
-    config.optimization.splitChunks = {
-      ...config.optimization.splitChunks,
-      cacheGroups: {
-        ...config.optimization.splitChunks?.cacheGroups,
-        plotly: {
-          test: /[\\/]node_modules[\\/](plotly\.js|react-plotly\.js)[\\/]/,
-          name: 'plotly',
-          chunks: 'async',
-          priority: 30,
-          enforce: true,
-        },
-      },
-    };
+    // Webpack optimization configuration
+    // Plotly configuration removed as it's no longer used
 
     // Removed Babel loader to use SWC default transformation
 

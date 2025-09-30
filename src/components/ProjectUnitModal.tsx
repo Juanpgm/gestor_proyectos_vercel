@@ -40,19 +40,7 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
 
   if (!projectUnit) return null
 
-  // Debug: verificar datos de la unidad de proyecto
-  console.log('🔍 ProjectUnitModal - Project Unit data:', {
-    id: projectUnit.id,
-    bpin: projectUnit.bpin,
-    name: projectUnit.name,
-    budget: projectUnit.budget,
-    executed: projectUnit.executed,
-    progress: projectUnit.progress,
-    feature: feature?.properties
-  })
-
   const handleExportPDF = () => {
-    console.log('Exportando ficha de unidad de proyecto a PDF...', projectUnit)
     alert('Función de exportación de unidad de proyecto a PDF en desarrollo')
   }
 

@@ -106,12 +106,6 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     const proyectos = proyectosState.proyectos || []
     const contratosEmprestito = emprestitoState.data.contratos
     
-    console.log('🔄 Integrando datos:', {
-      proyectos: proyectos.length,
-      contratos: contratosEmprestito.length,
-      bpinMap: Object.keys(bpinToBpMap).length
-    })
-    
     // Crear un mapa de proyectos por BPIN para referencia rápida
     const proyectosPorBpin = proyectos.reduce((acc: Record<number, any>, proyecto: any) => {
       if (proyecto.bpin) {
@@ -222,13 +216,6 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     // Ordenar por valor total de contratos descendente
     const sortedResult = result.sort((a: any, b: any) => {
       return b.totalValueContratos - a.totalValueContratos
-    })
-    
-    console.log('✅ Datos integrados:', {
-      totalProyectos: sortedResult.length,
-      conBpin: sortedResult.filter(p => p.bpin > 0).length,
-      sinBpin: sortedResult.filter(p => p.bpin < 0).length,
-      valorTotal: sortedResult.reduce((sum, p) => sum + p.totalValueContratos, 0)
     })
     
     return sortedResult
@@ -454,18 +441,8 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-1/4"></div>
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
-            ))}
-          </div>
-        </div>
-        <div className="text-center mt-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Cargando datos de proyectos y contratos...
-          </p>
+        <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
+          Cargando proyectos integrados...
         </div>
       </div>
     )

@@ -92,26 +92,8 @@ export default function ProductosStats({
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 animate-pulse">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
-                </div>
-                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 animate-pulse">
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-40 mb-4"></div>
-          <div className="space-y-2">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            ))}
-          </div>
+        <div className="text-center text-gray-500 dark:text-gray-400 animate-pulse py-12">
+          Cargando estadísticas de productos...
         </div>
       </div>
     )

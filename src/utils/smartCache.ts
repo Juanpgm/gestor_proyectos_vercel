@@ -105,19 +105,15 @@ export const cachedApiCall = async <T>(
   const currentTime = getCurrentTimestamp()
   const currentHour = getCurrentHour()
   
-  console.log(`🕐 Cache Check [${cacheKey}] - Hora actual: ${currentHour}:00`)
-  
   // Verificar cache existente
   const existingEntry = cache.get(cacheKey)
   if (existingEntry && isCacheValid(existingEntry, currentTime)) {
     cacheHitsCount++
-    console.log(`✅ Cache HIT [${cacheKey}] - Datos válidos hasta: ${new Date(existingEntry.timestamp + CACHE_CONFIG.cacheDurationMs).toLocaleTimeString()}`)
     return existingEntry
   }
   
   // Si hay cache pero está obsoleto, marcarlo como stale pero usarlo temporalmente
   if (existingEntry && !isCacheValid(existingEntry, currentTime)) {
-    console.log(`⚠️ Cache STALE [${cacheKey}] - Datos obsoletos desde: ${new Date(existingEntry.timestamp + CACHE_CONFIG.cacheDurationMs).toLocaleTimeString()}`)
     cache.set(cacheKey, markAsStale(existingEntry))
   }
   
@@ -125,7 +121,6 @@ export const cachedApiCall = async <T>(
   if (!isWithinAllowedHours(currentHour, CACHE_CONFIG.allowedHours)) {
     cacheMissesCount++
     const nextUpdate = getNextAllowedTime(currentHour, CACHE_CONFIG.allowedHours)
-    console.log(`🚫 Fuera de horario [${cacheKey}] - Próxima actualización: ${new Date(nextUpdate).toLocaleString()}`)
     
     // Usar cache stale si existe, o fallback data
     if (existingEntry) {
@@ -143,13 +138,9 @@ export const cachedApiCall = async <T>(
   
   // Evitar llamadas duplicadas concurrentes
   if (pendingRequests.has(cacheKey)) {
-    console.log(`⏳ Esperando llamada en progreso [${cacheKey}]`)
     const data = await pendingRequests.get(cacheKey)!
     return cache.get(cacheKey) || createCacheEntry(data, 'api')
   }
-  
-  // Hacer llamada a API
-  console.log(`🌐 Llamada API [${cacheKey}] - Horario permitido: ${currentHour}:00`)
   
   const apiCall = async (): Promise<T> => {
     try {
@@ -165,7 +156,6 @@ export const cachedApiCall = async <T>(
         success: true
       })
       
-      console.log(`✅ API Success [${cacheKey}] - Datos actualizados`)
       return result
       
     } catch (error) {
@@ -180,13 +170,11 @@ export const cachedApiCall = async <T>(
       
       // Si hay cache stale, usarlo en caso de error
       if (existingEntry) {
-        console.log(`🔄 Usando cache stale por error API [${cacheKey}]`)
         return existingEntry.data
       }
       
       // Si hay fallback data, usarlo
       if (fallbackData) {
-        console.log(`🔄 Usando fallback data por error API [${cacheKey}]`)
         return fallbackData
       }
       
@@ -271,7 +259,6 @@ export const clearCache = (pattern?: string): number => {
   if (!pattern) {
     const size = cache.size
     cache.clear()
-    console.log(`🧹 Cache completo limpiado: ${size} entradas eliminadas`)
     return size
   }
   
@@ -284,7 +271,6 @@ export const clearCache = (pattern?: string): number => {
     }
   })
   
-  console.log(`🧹 Cache pattern "${pattern}" limpiado: ${cleared} entradas eliminadas`)
   return cleared
 }
 
@@ -295,7 +281,6 @@ export const scheduleUpdate = (cacheKey: string): void => {
   const entry = cache.get(cacheKey)
   if (entry) {
     cache.set(cacheKey, markAsStale(entry))
-    console.log(`📅 Actualización programada para [${cacheKey}] en próximo horario permitido`)
   }
 }
 

@@ -31,17 +31,11 @@ export const fixCoordinatesForGeoJSON = (coords: any): [number, number] => {
   // Detectar formato [lat, lng] típico de la fuente de datos
   // Cali: lat ~3.4, lng ~-76.5
   if (first > 2 && first < 5 && second > -78 && second < -75) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔄 Corrigiendo [lat,lng] → [lng,lat]: [${first}, ${second}] → [${second}, ${first}]`)
-    }
     return [second, first] // Convertir a [lng, lat] para GeoJSON
   }
   
   // Si ya está en formato [lng, lat], verificar que sea válido para Cali
   if (first > -78 && first < -75 && second > 2 && second < 5) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ Coordenadas ya en formato [lng,lat]: [${first}, ${second}]`)
-    }
     return [first, second]
   }
   
@@ -129,15 +123,6 @@ export const processGeoJSONCoordinates = (geoJson: any): any => {
         
         if (validation.wasFixed) {
           correctedCount++
-          
-          if (index < 3 && process.env.NODE_ENV === 'development') {
-            console.log(`📍 Point ${index + 1} corregido:`, {
-              id: feature.properties?.identificador || feature.properties?.id || `feature-${index}`,
-              original: feature.geometry.coordinates,
-              corrected: validation.corrected,
-              format: validation.originalFormat
-            })
-          }
         }
         
         return {
@@ -159,17 +144,6 @@ export const processGeoJSONCoordinates = (geoJson: any): any => {
         const wasFixed = JSON.stringify(originalCoords) !== JSON.stringify(processedCoords)
         if (wasFixed) {
           correctedCount++
-          
-          if (index < 3 && process.env.NODE_ENV === 'development') {
-            console.log(`🛣️ LineString ${index + 1} corregido:`, {
-              id: feature.properties?.identificador || feature.properties?.id_via || `feature-${index}`,
-              coordsCount: processedCoords.length,
-              sample: {
-                original: originalCoords[0],
-                corrected: processedCoords[0]
-              }
-            })
-          }
         }
         
         return {
@@ -185,16 +159,6 @@ export const processGeoJSONCoordinates = (geoJson: any): any => {
       return feature
     })
   }
-  
-  const processingTime = Math.round(performance.now() - startTime)
-  
-  console.log(`🎯 GeoJSON optimizado procesado en ${processingTime}ms:`, {
-    total: processedCount,
-    corrected: correctedCount,
-    points: pointCount,
-    lines: lineCount,
-    correctionRate: processedCount > 0 ? `${Math.round((correctedCount / processedCount) * 100)}%` : '0%'
-  })
   
   return processedGeoJSON
 }
@@ -301,7 +265,6 @@ export const optimizeGeoJSONForRendering = (geoJson: any, options: {
 
   // Limitar número de features si es necesario
   if (features.length > maxFeatures) {
-    console.log(`⚡ Limitando features de ${features.length} a ${maxFeatures}`)
     features = features.slice(0, maxFeatures)
   }
 

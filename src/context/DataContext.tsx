@@ -178,8 +178,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           movimientosPresupuestalesData,
           ejecucionPresupuestalData
         ] = await Promise.all([
-          fetchJsonData('/data/datos_caracteristicos_proyectos/datos_caracteristicos_proyectos.json'),
-          fetchJsonData('/data/movimientos_presupuestales/movimientos_presupuestales.json'),
+          fetchJsonData('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json'),
+          fetchJsonData('/data/ejecucion_presupuestal/movimientos_presupuestales.json'),
           fetchJsonData('/data/ejecucion_presupuestal/ejecucion_presupuestal.json')
         ])
 
@@ -224,16 +224,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         setProductosPa([]) // Empty array for now
         setActividadesPa([]) // Empty array for now
 
-        console.log('📊 Datos cargados exitosamente:', {
-          proyectos: proyectosData?.length || 0,
-          equipamientos: equipamientosData?.length || 0,
-          infraestructura: infraestructuraData?.length || 0,
-          productos: productosData?.length || 0,
-          actividades: actividadesData?.length || 0,
-          contratos: contratosData?.length || 0,
-          movimientosPresupuestales: movimientosPresupuestalesData?.length || 0,
-          ejecucionPresupuestal: ejecucionPresupuestalData?.length || 0
-        })
+        setLoading(false)
 
       } catch (err) {
         console.error('Error cargando datos:', err)

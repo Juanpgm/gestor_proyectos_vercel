@@ -125,15 +125,8 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
         transition={{ duration: 0.4 }}
         className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
       >
-        <div className="animate-pulse">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
-            <div className="space-y-2">
-              <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-48"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-64"></div>
-            </div>
-          </div>
-          <div className="h-96 bg-gray-300 dark:bg-gray-600 rounded"></div>
+        <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
+          Cargando gráfico de contratos...
         </div>
       </motion.div>
     )

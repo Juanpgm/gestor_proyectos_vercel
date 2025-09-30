@@ -178,12 +178,8 @@ export default function EmprestitoInterventionAnalysis({ data, loading }: Empres
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 h-full">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4 animate-pulse"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
-          <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
-        </div>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 h-full flex items-center justify-center">
+        <p className="text-gray-600 dark:text-gray-400">Cargando análisis de intervención de empréstito...</p>
       </div>
     )
   }

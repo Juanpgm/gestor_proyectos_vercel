@@ -114,17 +114,10 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
   // ===============================================
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
-    console.log('🔄 [UnifiedMapWithFilters] Filtros actualizados:', newFilters)
     setDashboardFilters(newFilters)
   }, [])
 
   const handleUnidadClick = useCallback((unidad: any) => { // Replaced UnidadProyectoGeo with any since the type was removed
-    console.log('🎯 [UnifiedMapWithFilters] Unidad seleccionada:', {
-      nombre: unidad.nombre,
-      bpin: unidad.bpin,
-      comuna: unidad.comuna,
-      estado: unidad.estado
-    })
     onUnidadClick?.(unidad)
   }, [onUnidadClick])
 
@@ -134,7 +127,6 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
 
   const handleApiFiltersChange = useCallback((newApiFilters: any) => {
     // Sincronizar cambios desde el mapa hacia los filtros del dashboard
-    console.log('🔄 [UnifiedMapWithFilters] Filtros de API actualizados:', newApiFilters)
     
     // Actualizar solo los campos relevantes sin sobrescribir todo
     setDashboardFilters(prev => ({
@@ -203,7 +195,7 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
               Mapa Territorial Unificado
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Visualización interactiva con Plotly y filtros integrados
+              Visualización interactiva con mapas y filtros integrados
             </p>
           </div>
         </div>

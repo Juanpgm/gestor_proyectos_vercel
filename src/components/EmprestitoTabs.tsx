@@ -95,7 +95,6 @@ const EmprestitoTabs: React.FC<EmprestitoTabsProps> = ({
   
   // Función pura para cambio de tab
   const handleTabChange = useCallback((tabId: string) => {
-    console.log('📊 EmprestitoTabs: Cambiando a pestaña:', tabId)
     setActiveTab(tabId)
   }, [])
   

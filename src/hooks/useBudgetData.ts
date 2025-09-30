@@ -89,8 +89,8 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
     try {
       const [ejecucion, movimientos, caracteristicos, centros] = await Promise.all([
         fetchJsonData('/data/ejecucion_presupuestal/ejecucion_presupuestal.json'),
-        fetchJsonData('/data/movimientos_presupuestales/movimientos_presupuestales.json'),
-        fetchJsonData('/data/datos_caracteristicos_proyectos/datos_caracteristicos_proyectos.json'),
+        fetchJsonData('/data/ejecucion_presupuestal/movimientos_presupuestales.json'),
+        fetchJsonData('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json'),
         fetchJsonData('/data/ejecucion_presupuestal/centro_gestor.json')
       ]);
 
@@ -133,7 +133,7 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
   const loadMovimientosPresupuestalesData = useCallback(async () => {
     setLoadingStates(prev => ({ ...prev, movimientos: true }));
     try {
-      const data = await fetchJsonData('/data/movimientos_presupuestales/movimientos_presupuestales.json');
+      const data = await fetchJsonData('/data/ejecucion_presupuestal/movimientos_presupuestales.json');
       setState(prev => ({ ...prev, movimientosPresupuestales: data || [] }));
     } catch (error) {
       console.error('Error loading movimientos presupuestales:', error);
@@ -149,7 +149,7 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
   const loadDatosCaracteristicosData = useCallback(async () => {
     setLoadingStates(prev => ({ ...prev, caracteristicos: true }));
     try {
-      const data = await fetchJsonData('/data/datos_caracteristicos_proyectos/datos_caracteristicos_proyectos.json');
+      const data = await fetchJsonData('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json');
       setState(prev => ({ ...prev, datosCaracteristicos: data || [] }));
     } catch (error) {
       console.error('Error loading datos característicos:', error);

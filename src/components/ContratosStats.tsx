@@ -48,22 +48,8 @@ const ContratosStats: React.FC<ContratosStatsProps> = ({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-700"
-          >
-            <div className="animate-pulse">
-              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-lg mb-3"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
-              <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
-            </div>
-          </motion.div>
-        ))}
+      <div className="flex items-center justify-center p-8">
+        <p className="text-gray-600 dark:text-gray-400">Cargando estadísticas de contratos...</p>
       </div>
     )
   }

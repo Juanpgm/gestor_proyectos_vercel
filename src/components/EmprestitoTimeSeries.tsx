@@ -240,9 +240,8 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
         transition={{ duration: 0.4 }}
         className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
       >
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded mb-4"></div>
-          <div className="h-96 bg-gray-300 dark:bg-gray-600 rounded"></div>
+        <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
+          Cargando serie temporal de empréstito...
         </div>
       </motion.div>
     )
@@ -360,13 +359,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
             
             <button
               onClick={() => {
-                console.log('🔴 DESELECCIONAR TODOS - Estado antes:', {
-                  bancosDisponibles: bancos.length,
-                  bancosSeleccionados: selectedBancos.size,
-                  listaBancos: Array.from(selectedBancos)
-                })
                 setSelectedBancos(new Set())
-                console.log('🔴 DESELECCIONAR TODOS - Comando ejecutado: setSelectedBancos(new Set())')
               }}
               className={`px-3 py-1 text-xs rounded-md transition-all duration-200 font-medium ${
                 selectedBancos.size === 0

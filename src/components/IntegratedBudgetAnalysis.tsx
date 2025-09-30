@@ -159,18 +159,8 @@ const IntegratedBudgetAnalysis: React.FC = () => {
 
   if (!movimientosData.length || !ejecucionData.length) {
     return (
-      <div className="animate-pulse space-y-6">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-80 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          <div className="h-80 bg-gray-200 dark:bg-gray-700 rounded"></div>
-        </div>
+      <div className="animate-pulse text-center text-gray-500 dark:text-gray-400 py-12">
+        Cargando análisis presupuestal integrado...
       </div>
     )
   }

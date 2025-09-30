@@ -138,8 +138,7 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
             className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
           >
             <div className="animate-pulse">
-              <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded mb-4"></div>
-              <div className="h-64 bg-gray-300 dark:bg-gray-600 rounded"></div>
+              <p className="text-gray-500 dark:text-gray-400">Cargando gráficos...</p>
             </div>
           </div>
         ))}
