@@ -7,7 +7,7 @@ import StatsCards from '@/components/StatsCards'
 import BudgetAnalysisChart from '@/components/BudgetAnalysisChart'
 import ModernBudgetAnalysis from '@/components/ModernBudgetAnalysis'
 import IntegratedAnalysisDashboard from '@/components/IntegratedAnalysisDashboard'
-import OptimizedProjectSection from '@/components/OptimizedProjectSection'
+
 import dynamic from 'next/dynamic'
 import ProjectsTable, { Project } from '@/components/ProjectsTable'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
@@ -16,7 +16,7 @@ import IntegratedProjectsContracts from '@/components/IntegratedProjectsContract
 // Comentados: hooks de unidades de proyecto que ahora solo se usan en la sección específica de API
 // import { useUnidadesProyecto, type UnidadProyecto } from '@/hooks/useUnidadesProyectoWorking'
 // import { useGlobalDataPreloader } from '@/hooks/useGlobalDataPreloader'
-// import { useUnidadesProyectoSimple } from '@/hooks/useUnidadesProyectoSimple'
+// import { useDataContext } from '@/context/DataContext'
 // import { useUnidadesProyectoForced } from '@/hooks/useUnidadesProyectoForced'
 import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
@@ -40,17 +40,7 @@ import EmprestitoTabs from '@/components/EmprestitoTabs'
 import ProcesosTable from '@/components/ProcesosTable'
 import ProcesosStats from '@/components/ProcesosStats'
 
-// Import dinámico del mapa para evitar problemas SSR
-const DynamicMap = dynamic(() => import('@/components/DynamicMap'), { 
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-96 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-      <div className="text-gray-500 dark:text-gray-400">Cargando mapa...</div>
-    </div>
-  )
-})
 import ProcesosCharts from '@/components/ProcesosCharts'
-import UnidadesProyectoPage from '@/components/UnidadesProyectoPage'
 import { 
   BarChart3, 
   Table, 
@@ -62,7 +52,7 @@ import {
 import { CATEGORIES, ANIMATIONS } from '@/lib/design-system'
 import MobileNavigation from '@/components/MobileNavigation'
 
-type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos' | 'unidades-proyecto'
+type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
 export default function Dashboard() {
   return (
@@ -138,17 +128,13 @@ function DashboardContent() {
   // const { unidadesProyecto, loading: dataLoading, error: dataError } = unidadesState
 
   // TEMPORALMENTE COMENTADO: Hook optimizado
-  // const optimizedUnidades = useUnidadesProyectoOptimized()
-  // console.log('🎯 MAIN: Hook optimizado result:', {
-  //   loading: optimizedUnidades.loading,
-  //   error: optimizedUnidades.error,
-  //   unidades: optimizedUnidades.unidadesProyecto.length,
-  //   dataKeys: Object.keys(optimizedUnidades.allGeoJSONData)
-  // })
-
-  // TEMPORALMENTE COMENTADO: Hook simple para verificar useEffect
-  // const simpleTest = useUnidadesProyectoSimple()
-  // console.log('🟢 MAIN: Simple hook result:', simpleTest)
+  // Datos de prueba para verificar el estado de los hooks
+  // const testData = {
+  //   loading: false,
+  //   error: null,
+  //   unidades: 0,
+  //   dataKeys: []
+  // }
 
   // Hooks para actividades y productos
   const actividadesState = useActividades()
@@ -544,9 +530,6 @@ function DashboardContent() {
                 </div>
               </div>
             </div>
-            
-            {/* Sección Optimizada de Análisis de Proyectos */}
-            <OptimizedProjectSection />
           </div>
         )
 
@@ -671,15 +654,6 @@ function DashboardContent() {
               procesosPorEstado={procesosMetrics.procesosPorEstado}
             />
             
-            {/* Gráficos de procesos */}
-            <ProcesosCharts
-              procesosPorEstado={procesosMetrics.procesosPorEstado}
-              procesosPorFase={procesosMetrics.procesosPorFase}
-              procesosPorModalidad={procesosMetrics.procesosPorModalidad}
-              procesosPorMes={procesosMetrics.procesosPorMes}
-              procesosPorEntidad={procesosMetrics.procesosPorEntidad}
-            />
-            
             {/* Tabla de procesos */}
             <ProcesosTable
               procesos={procesosState.data.procesos}
@@ -687,9 +661,6 @@ function DashboardContent() {
             />
           </div>
         )
-
-      case 'unidades-proyecto':
-        return <UnidadesProyectoPage />
 
       default:
         return null

@@ -1,4 +1,128 @@
 {
   "type": "FeatureCollection",
-  "features": []
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010147",
+        "nombre_up": "Construcción Puente Peatonal La Esperanza",
+        "tipo_intervencion": "Construcción",
+        "clase_obra": "Infraestructura Vial",
+        "estado": "En alistamiento",
+        "comuna_corregimiento": "Comuna 2",
+        "avance_obra": 0.15,
+        "presupuesto_base": 420000000,
+        "categoria": "puente_peatonal"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.5220, 3.4616]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010152",
+        "nombre_up": "Pavimentación Vía Principal Sector Norte",
+        "tipo_intervencion": "Mejoramiento",
+        "clase_obra": "Infraestructura Vial",
+        "estado": "En ejecución",
+        "comuna_corregimiento": "Comuna 4",
+        "avance_obra": 0.75,
+        "presupuesto_base": 1800000000,
+        "categoria": "pavimentacion"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-76.5300, 3.4600],
+          [-76.5280, 3.4620],
+          [-76.5260, 3.4640],
+          [-76.5240, 3.4660]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010153",
+        "nombre_up": "Construcción Cicloruta Río Verde",
+        "tipo_intervencion": "Construcción",
+        "clase_obra": "Infraestructura Vial",
+        "estado": "Completado",
+        "comuna_corregimiento": "Comuna 6",
+        "avance_obra": 1.0,
+        "presupuesto_base": 680000000,
+        "categoria": "cicloruta"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-76.5380, 3.4500],
+          [-76.5360, 3.4520],
+          [-76.5340, 3.4540],
+          [-76.5320, 3.4560],
+          [-76.5300, 3.4580]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010154",
+        "nombre_up": "Rehabilitación Puente Vehicular Centro",
+        "tipo_intervencion": "Rehabilitación",
+        "clase_obra": "Infraestructura Vial",
+        "estado": "En ejecución",
+        "comuna_corregimiento": "Comuna 8",
+        "avance_obra": 0.40,
+        "presupuesto_base": 1200000000,
+        "categoria": "puente_vehicular"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.5250, 3.4550]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010155",
+        "nombre_up": "Construcción Andenes Barrio Las Flores",
+        "tipo_intervencion": "Construcción",
+        "clase_obra": "Infraestructura Vial",
+        "estado": "En alistamiento",
+        "comuna_corregimiento": "Comuna 10",
+        "avance_obra": 0.05,
+        "presupuesto_base": 320000000,
+        "categoria": "andenes"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-76.5420, 3.4450],
+          [-76.5400, 3.4470],
+          [-76.5380, 3.4490]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010156",
+        "nombre_up": "Mejoramiento Intersección Avenida Principal",
+        "tipo_intervencion": "Mejoramiento",
+        "clase_obra": "Infraestructura Vial",
+        "estado": "En evaluación",
+        "comuna_corregimiento": "Comuna 12",
+        "avance_obra": 0.0,
+        "presupuesto_base": 890000000,
+        "categoria": "interseccion"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.5200, 3.4700]
+      }
+    }
+  ]
 }

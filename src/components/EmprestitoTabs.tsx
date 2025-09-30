@@ -2,19 +2,8 @@
 
 import React, { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingUp, Building2 } from 'lucide-react'
-import dynamic from 'next/dynamic'
+import { TrendingUp } from 'lucide-react'
 import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
-
-// Import dinámico de componentes con mapas para evitar problemas SSR
-const DynamicMap = dynamic(() => import('@/components/DynamicMap'), { 
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-96 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-      <div className="text-gray-500 dark:text-gray-400">Cargando mapa...</div>
-    </div>
-  )
-})
 
 // Tipos para las props
 interface EmprestitoTabsProps {
@@ -32,13 +21,6 @@ const TAB_CONFIG = [
     icon: TrendingUp,
     description: 'Análisis temporal de flujo de caja y evolución presupuestal',
     component: 'EmprestitoTimeSeries'
-  },
-  {
-    id: 'unidades-proyecto',
-    label: 'Unidades de Proyecto',
-    description: 'Mapa interactivo de unidades de proyecto',
-    icon: Building2,
-    component: 'DynamicMap'
   }
 ] as const
 
@@ -62,16 +44,6 @@ const TabContent: React.FC<{ activeTab: string; props: EmprestitoTabsProps }> = 
         data={props.flujoCajaData}
         loading={props.flujoCajaLoading}
       />
-    case 'unidades-proyecto':
-      return (
-        <div className="w-full h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-          <div className="text-center text-gray-500 dark:text-gray-400">
-            <div className="text-4xl mb-4">🗺️</div>
-            <p className="text-lg font-semibold mb-2">Mapa Temporalmente Deshabilitado</p>
-            <p className="text-sm">Los archivos GeoJSON han sido eliminados</p>
-          </div>
-        </div>
-      )
     default:
       return null
   }
@@ -118,8 +90,8 @@ const EmprestitoTabs: React.FC<EmprestitoTabsProps> = ({
   onFilteredBpinsChange,
   className = ''
 }) => {
-  // Estado del tab activo - mostrando unidades-proyecto para ver el mapa
-  const [activeTab, setActiveTab] = useState<string>('unidades-proyecto')
+  // Estado del tab activo - solo flujo-caja disponible
+  const [activeTab, setActiveTab] = useState<string>('flujo-caja')
   
   // Función pura para cambio de tab
   const handleTabChange = useCallback((tabId: string) => {

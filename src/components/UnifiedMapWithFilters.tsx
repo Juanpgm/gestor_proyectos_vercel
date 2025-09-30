@@ -11,7 +11,7 @@ const UnifiedMapComponent = ({ className, ...props }: any) => (
   </div>
 )
 import UnifiedFilters, { type FilterState } from './UnifiedFilters'
-import type { UnidadProyectoGeo, UnidadProyectoFilters } from '@/services/unidadesProyectoApi'
+// Removed import of UnidadProyectoGeo and UnidadProyectoFilters as Unidades de Proyecto section was deleted
 import { 
   MapPin, 
   Filter,
@@ -31,7 +31,7 @@ interface UnifiedMapWithFiltersProps {
   height?: number
   showFiltersPanel?: boolean
   showAnalytics?: boolean
-  onUnidadClick?: (unidad: UnidadProyectoGeo) => void
+  onUnidadClick?: (unidad: any) => void // Replaced UnidadProyectoGeo with any since the type was removed
   isDarkMode?: boolean
 }
 
@@ -73,8 +73,8 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
   // ===============================================
 
   // Convertir filtros del dashboard a filtros de la API
-  const apiFilters = useMemo((): UnidadProyectoFilters => {
-    const filters: UnidadProyectoFilters = {}
+  const apiFilters = useMemo((): any => {
+    const filters: any = {}
 
     // Búsqueda global
     if (dashboardFilters.search && dashboardFilters.search.trim()) {
@@ -118,7 +118,7 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
     setDashboardFilters(newFilters)
   }, [])
 
-  const handleUnidadClick = useCallback((unidad: UnidadProyectoGeo) => {
+  const handleUnidadClick = useCallback((unidad: any) => { // Replaced UnidadProyectoGeo with any since the type was removed
     console.log('🎯 [UnifiedMapWithFilters] Unidad seleccionada:', {
       nombre: unidad.nombre,
       bpin: unidad.bpin,
@@ -132,7 +132,7 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
     setIsFullscreen(!isFullscreen)
   }, [isFullscreen])
 
-  const handleApiFiltersChange = useCallback((newApiFilters: UnidadProyectoFilters) => {
+  const handleApiFiltersChange = useCallback((newApiFilters: any) => {
     // Sincronizar cambios desde el mapa hacia los filtros del dashboard
     console.log('🔄 [UnifiedMapWithFilters] Filtros de API actualizados:', newApiFilters)
     

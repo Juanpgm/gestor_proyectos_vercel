@@ -19,7 +19,8 @@ import {
   Area,
   AreaChart
 } from 'recharts'
-import { type UnidadProyectoGeo } from '@/hooks/useUnidadesProyectoGeo'
+// Removed import of UnidadProyectoGeo as Unidades de Proyecto section was deleted
+// import { type UnidadProyectoGeo } from '@/hooks/useUnidadesProyectoGeo'
 import {
   TrendingUp,
   MapPin,
@@ -32,7 +33,7 @@ import {
 } from 'lucide-react'
 
 interface GeographicAnalyticsProps {
-  unidades: UnidadProyectoGeo[]
+  unidades: any[] // Replaced UnidadProyectoGeo with any[] since the type was removed
   loading?: boolean
 }
 

@@ -1,4 +1,65 @@
 /** @type {import('next').NextConfig} */
+
+// Función para detectar el entorno
+const getEnvironment = () => {
+  return process.env.NODE_ENV || 'development';
+};
+
+// Función para configurar optimizaciones según el entorno
+const getOptimizations = (env) => {
+  const isProduction = env === 'production';
+  
+  return {
+    compress: isProduction,
+    poweredByHeader: false,
+    generateEtags: false, // Disable ETags
+    trailingSlash: false,
+    swcMinify: true, // Always enable SWC Minifier
+  };
+};
+
+// Función para configurar headers según el entorno
+const getHeaders = (env) => {
+  const isProduction = env === 'production';
+  
+  return isProduction ? [
+    {
+      source: '/:path*',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'public, max-age=31536000, immutable',
+        },
+        {
+          key: 'X-Content-Type-Options',
+          value: 'nosniff',
+        },
+        {
+          key: 'X-Frame-Options',
+          value: 'DENY',
+        },
+        {
+          key: 'X-XSS-Protection',
+          value: '1; mode=block',
+        },
+      ],
+    },
+  ] : [
+    {
+      source: '/:path*',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-cache, no-store, must-revalidate',
+        },
+      ],
+    },
+  ];
+};
+
+const environment = getEnvironment();
+const optimizations = getOptimizations(environment);
+
 const nextConfig = {
   eslint: {
     // Desactivar ESLint durante el build
@@ -14,9 +75,9 @@ const nextConfig = {
   experimental: {
     esmExternals: 'loose',
   },
-  // Optimización para producción
-  compress: true,
-  poweredByHeader: false,
+  
+  // Aplicar optimizaciones según el entorno
+  ...optimizations,
   
   webpack: (config, { isServer }) => {
     // Handle kepler.gl and related dependencies
@@ -44,22 +105,14 @@ const nextConfig = {
       type: 'asset/resource',
     });
 
+    // Removed Babel loader to use SWC default transformation
+
     return config;
   },
   
-  // Headers para optimización - DESHABILITADO
+  // Headers configurados según el entorno
   async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
-          },
-        ],
-      },
-    ];
+    return getHeaders(environment);
   },
 
   // Rewrite para redirigir /geodata/ a /data/geodata/ con mapeo específico

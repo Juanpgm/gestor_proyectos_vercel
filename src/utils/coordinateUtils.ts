@@ -203,7 +203,7 @@ export const processGeoJSONCoordinates = (geoJson: any): any => {
  * Constantes útiles para Cali, Colombia
  */
 export const CALI_COORDINATES = {
-  // Centro de Cali en formato [lat, lng] para react-leaflet MapContainer
+  // Centro de Cali en formato [lat, lng]
   CENTER_LAT_LNG: [3.4516, -76.5320] as [number, number],
   
   // Centro de Cali en formato [lng, lat] para GeoJSON

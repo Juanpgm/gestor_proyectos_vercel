@@ -1,32 +1,39 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import '../styles/symbology.css'
-import { ThemeProvider } from '@/context/ThemeContext'
-import { DashboardProvider } from '@/context/DashboardContext'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { DashboardProvider } from '@/context/DashboardContext';
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin', 'latin-ext'],
   display: 'swap',
-})
+});
 
 export const metadata: Metadata = {
-  title: 'Unidad de Cumplimiento',
+  title: 'Dashboard Alcaldía Cali - Unidad de Cumplimiento',
   description: 'Sistema de Gestión de Proyectos - Alcaldía de Santiago de Cali',
-}
+  generator: 'Next.js',
+  applicationName: 'Dashboard Alcaldía Cali',
+  referrer: 'origin-when-cross-origin',
+  keywords: ['gestión', 'proyectos', 'alcaldía', 'cali', 'dashboard'],
+  authors: [{ name: 'Alcaldía de Santiago de Cali' }],
+  creator: 'Alcaldía de Santiago de Cali',
+  publisher: 'Alcaldía de Santiago de Cali',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </head>
-      <body className={inter.className}>
+    <html lang="es" className={inter.className}>
+      <body className="min-h-screen bg-gray-50 antialiased">
         <ThemeProvider>
           <DashboardProvider>
             {children}
@@ -34,5 +41,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

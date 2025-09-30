@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useSmartCacheStats } from '../hooks/useUnidadesProyectoWithSmartCache'
+// Removed import of useSmartCacheStats as Unidades de Proyecto section was deleted
+// import { useSmartCacheStats } from '../hooks/useUnidadesProyectoWithSmartCache'
 import { clearCache } from '../utils/smartCache'
 
 /**
@@ -9,8 +10,51 @@ import { clearCache } from '../utils/smartCache'
  * Muestra estadísticas, rendimiento y optimización de llamadas API
  */
 export default function SmartCacheReport() {
-  const { stats, refreshStats } = useSmartCacheStats()
+  // Commented out as hook was removed
+  // const { stats, refreshStats } = useSmartCacheStats()
   const [autoRefresh, setAutoRefresh] = useState(true)
+  
+  // Mock data since hook was removed
+  const stats = {
+    totalRequests: 0,
+    cacheHits: 0,
+    cacheMisses: 0,
+    hitRate: 0,
+    totalSavings: 0,
+    lastUpdate: null,
+    performance: {
+      estimatedDailyCalls: 4,
+      actualDailyCalls: 0,
+      cacheDurationHours: 4
+    },
+    schedule: {
+      currentHour: new Date().getHours(),
+      isAllowedHour: true,
+      nextAllowedTime: null,
+      nextUpdateTime: 'N/A',
+      hoursUntilNextUpdate: 0,
+      allowedHours: [5, 12, 16, 20]
+    },
+    cache: {
+      size: 0,
+      maxSize: 100,
+      hitRate: 0,
+      validEntries: 0,
+      staleEntries: 0
+    },
+    api: {
+      successRate: 0,
+      totalCalls: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      lastCallTime: 'N/A',
+      callsByHour: {} as { [key: number]: number }
+    }
+  }
+  
+  const refreshStats = () => {
+    // No-op since hook was removed
+  }
   
   // Auto-refresh cada 30 segundos
   useEffect(() => {

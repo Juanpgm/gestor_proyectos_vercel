@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Download, DollarSign, Clock, Building, FolderOpen, Printer, MapPin, BarChart3, PieChart as PieChartIcon, Activity, AreaChart as AreaChartIcon, Info, Settings } from 'lucide-react'
-import { UnidadProyecto } from '../hooks/useUnidadesProyecto'
+// Removed import of UnidadProyecto as Unidades de Proyecto section was deleted
+// import { UnidadProyecto } from '../hooks/useUnidadesProyecto'
 import { useDataContext } from '../context/DataContext'
 import { 
   BarChart, 
@@ -26,7 +27,7 @@ import {
 interface ProjectUnitModalProps {
   isOpen: boolean
   onClose: () => void
-  projectUnit: UnidadProyecto | null
+  projectUnit: any | null // Replaced UnidadProyecto with any since the type was removed
   feature?: any // Datos adicionales del feature GeoJSON
 }
 

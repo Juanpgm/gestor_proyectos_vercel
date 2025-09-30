@@ -97,12 +97,20 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
 
   // Integración de datos - mostrar TODOS los contratos de empréstito
   const integratedData = useMemo(() => {
-    if (!emprestitoState.data.contratos) {
+    // Verificar que tenemos datos de contratos
+    if (!emprestitoState.data?.contratos || emprestitoState.data.contratos.length === 0) {
+      console.warn('⚠️ No hay datos de contratos de empréstito disponibles')
       return []
     }
 
     const proyectos = proyectosState.proyectos || []
     const contratosEmprestito = emprestitoState.data.contratos
+    
+    console.log('🔄 Integrando datos:', {
+      proyectos: proyectos.length,
+      contratos: contratosEmprestito.length,
+      bpinMap: Object.keys(bpinToBpMap).length
+    })
     
     // Crear un mapa de proyectos por BPIN para referencia rápida
     const proyectosPorBpin = proyectos.reduce((acc: Record<number, any>, proyecto: any) => {
@@ -212,9 +220,18 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     })
 
     // Ordenar por valor total de contratos descendente
-    return result.sort((a: any, b: any) => {
+    const sortedResult = result.sort((a: any, b: any) => {
       return b.totalValueContratos - a.totalValueContratos
     })
+    
+    console.log('✅ Datos integrados:', {
+      totalProyectos: sortedResult.length,
+      conBpin: sortedResult.filter(p => p.bpin > 0).length,
+      sinBpin: sortedResult.filter(p => p.bpin < 0).length,
+      valorTotal: sortedResult.reduce((sum, p) => sum + p.totalValueContratos, 0)
+    })
+    
+    return sortedResult
   }, [proyectosState.proyectos, emprestitoState.data.contratos, bpinToBpMap])
 
   // Opciones dinámicas para filtros
@@ -404,6 +421,36 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
 
   const loading = proyectosState.loading || emprestitoState.loading
 
+  // Mostrar errores específicos si los hay
+  if (proyectosState.error || emprestitoState.error) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="text-center py-8">
+          <div className="text-red-500 mb-4">
+            <FileText className="h-12 w-12 mx-auto mb-3" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Error al cargar datos de proyectos
+          </h3>
+          <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            {proyectosState.error && (
+              <p>• Proyectos: {proyectosState.error}</p>
+            )}
+            {emprestitoState.error && (
+              <p>• Empréstito: {emprestitoState.error}</p>
+            )}
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -413,6 +460,35 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="h-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
             ))}
+          </div>
+        </div>
+        <div className="text-center mt-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Cargando datos de proyectos y contratos...
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Mostrar mensaje si no hay datos después de cargar
+  if (!loading && integratedData.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="text-center py-8">
+          <div className="text-gray-400 mb-4">
+            <FileText className="h-12 w-12 mx-auto mb-3" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No hay datos de proyectos disponibles
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            No se encontraron contratos de empréstito para mostrar.
+          </p>
+          <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
+            <p>Estado de carga:</p>
+            <p>• Proyectos: {proyectosState.proyectos?.length || 0} registros</p>
+            <p>• Contratos: {emprestitoState.data?.contratos?.length || 0} registros</p>
           </div>
         </div>
       </div>

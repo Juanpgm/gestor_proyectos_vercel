@@ -1,4 +1,95 @@
 {
   "type": "FeatureCollection",
-  "features": []
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010146",
+        "nombre_up": "Adecuación Institución Educativa La Libertad",
+        "tipo_intervencion": "Adecuación",
+        "clase_obra": "Infraestructura Educativa",
+        "estado": "En ejecución",
+        "comuna_corregimiento": "Comuna 1",
+        "avance_obra": 0.65,
+        "presupuesto_base": 850000000,
+        "categoria": "equipamiento_educativo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.5320, 3.4516]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010148",
+        "nombre_up": "Centro de Salud San Antonio",
+        "tipo_intervencion": "Construcción",
+        "clase_obra": "Infraestructura de Salud",
+        "estado": "En alistamiento",
+        "comuna_corregimiento": "Comuna 3",
+        "avance_obra": 0.25,
+        "presupuesto_base": 1200000000,
+        "categoria": "equipamiento_salud"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.5280, 3.4580]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010149",
+        "nombre_up": "Biblioteca Comunitaria El Progreso",
+        "tipo_intervencion": "Rehabilitación",
+        "clase_obra": "Infraestructura Cultural",
+        "estado": "Completado",
+        "comuna_corregimiento": "Comuna 5",
+        "avance_obra": 1.0,
+        "presupuesto_base": 380000000,
+        "categoria": "equipamiento_cultural"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.5180, 3.4650]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010150",
+        "nombre_up": "Polideportivo La Victoria",
+        "tipo_intervencion": "Mejoramiento",
+        "clase_obra": "Infraestructura Deportiva",
+        "estado": "En ejecución",
+        "comuna_corregimiento": "Comuna 7",
+        "avance_obra": 0.45,
+        "presupuesto_base": 950000000,
+        "categoria": "equipamiento_deportivo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.5400, 3.4720]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bpin": "2023760010151",
+        "nombre_up": "Casa de la Cultura Barrio Nuevo",
+        "tipo_intervencion": "Ampliación",
+        "clase_obra": "Infraestructura Cultural",
+        "estado": "En evaluación",
+        "comuna_corregimiento": "Comuna 9",
+        "avance_obra": 0.10,
+        "presupuesto_base": 620000000,
+        "categoria": "equipamiento_cultural"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.5350, 3.4480]
+      }
+    }
+  ]
 }

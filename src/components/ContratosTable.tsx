@@ -457,10 +457,10 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {paginatedData.map((contrato, index) => {
-              const isExpanded = expandedRows.has(contrato.id_contrato)
+              const isExpanded = expandedRows.has(`${contrato.id_contrato}-${index}`)
               
               return (
-                <React.Fragment key={contrato.id_contrato}>
+                <React.Fragment key={`${contrato.id_contrato}-${index}`}>
                   <motion.tr
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -551,7 +551,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => toggleRowExpansion(contrato.id_contrato)}
+                          onClick={() => toggleRowExpansion(`${contrato.id_contrato}-${index}`)}
                           className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
                           title="Ver detalles"
                         >
@@ -574,7 +574,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                         )}
 
                         <button
-                          onClick={() => toggleRowExpansion(contrato.id_contrato)}
+                          onClick={() => toggleRowExpansion(`${contrato.id_contrato}-${index}`)}
                           className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
                         >
                           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

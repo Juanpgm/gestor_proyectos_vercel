@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import type { UnidadProyecto } from './useUnidadesProyecto'
+// Removed import of UnidadProyecto as Unidades de Proyecto section was deleted
+// import type { UnidadProyecto } from './useUnidadesProyecto'
 
 // Direct data loading without useEffect
 export function useDirectDataLoader() {
@@ -9,7 +10,7 @@ export function useDirectDataLoader() {
   const [mapData, setMapData] = useState({
     loading: true,
     error: null,
-    unidadesProyecto: [] as UnidadProyecto[],
+    unidadesProyecto: [] as any[],
     allGeoJSONData: {}
   })
 
@@ -32,8 +33,8 @@ export function useDirectDataLoader() {
         console.log('🔥 DIRECT: GeoJSON files removed - returning empty data')
 
         // Return empty arrays since GeoJSON files don't exist
-        const equipamientosUnidades: UnidadProyecto[] = []
-        const infraestructuraUnidades: UnidadProyecto[] = []
+        const equipamientosUnidades: any[] = []
+        const infraestructuraUnidades: any[] = []
         const allUnidades = [...equipamientosUnidades, ...infraestructuraUnidades]
 
         console.log('🔥 DIRECT: GeoJSON files eliminated, returning empty data')

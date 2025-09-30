@@ -399,18 +399,18 @@ export default function UnifiedFilters({
     }
   }, [showSuggestions, searchSuggestions.length])
 
-  // Effect adicional para cleanup agresivo
-  useEffect(() => {
-    // Si no hay sugerencias visibles pero el array no está vacío, limpiarlo
-    if (!showSuggestions && searchSuggestions.length > 0) {
-      console.log('🧹 Limpieza agresiva de sugerencias')
-      setTimeout(() => {
-        if (!showSuggestions) { // Verificar nuevamente después del timeout
-          setSearchSuggestions([])
-        }
-      }, 500) // Delay para evitar parpadeos
-    }
-  }, [showSuggestions, searchSuggestions.length])
+  // Effect adicional para cleanup agresivo - REMOVED: Causaba loops infinitos
+  // useEffect(() => {
+  //   // Si no hay sugerencias visibles pero el array no está vacío, limpiarlo
+  //   if (!showSuggestions && searchSuggestions.length > 0) {
+  //     console.log('🧹 Limpieza agresiva de sugerencias')
+  //     setTimeout(() => {
+  //       if (!showSuggestions) { // Verificar nuevamente después del timeout
+  //         setSearchSuggestions([])
+  //       }
+  //     }, 500) // Delay para evitar parpadeos
+  //   }
+  // }, [showSuggestions, searchSuggestions.length])
 
   // Effect para limpiar las sugerencias cuando no hay búsqueda activa
   useEffect(() => {

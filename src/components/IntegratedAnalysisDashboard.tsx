@@ -4,7 +4,6 @@ import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   TrendingUp, 
-  Map as MapIcon, 
   BarChart3,
   Target,
   Activity,
@@ -26,12 +25,12 @@ interface IntegratedAnalysisProps {
   className?: string
 }
 
-type ViewMode = 'split' | 'budget' | 'map' | 'overlay'
+type ViewMode = 'budget'
 
 const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
   className = ''
 }) => {
-  const [viewMode, setViewMode] = useState<ViewMode>('split')
+  const [viewMode, setViewMode] = useState<ViewMode>('budget')
   const [selectedComuna, setSelectedComuna] = useState<string | null>(null)
   const { filteredMovimientosPresupuestales, filteredEjecucionPresupuestal } = useDataContext()
 
@@ -122,165 +121,15 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
   )
 
   const viewModes = [
-    { id: 'split', name: 'División', icon: Layers, description: 'Vista lado a lado' },
-    { id: 'budget', name: 'Presupuesto', icon: BarChart3, description: 'Solo análisis presupuestal' },
-    { id: 'map', name: 'Mapa', icon: MapIcon, description: 'Solo vista geográfica' },
-    { id: 'overlay', name: 'Integrado', icon: Target, description: 'Métricas sobre mapa' }
+    { id: 'budget', name: 'Presupuesto', icon: BarChart3, description: 'Análisis presupuestal completo' }
   ]
 
   const renderContent = () => {
-    switch (viewMode) {
-      case 'split':
-        return (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-full">
-            <div className="space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                    <BarChart3 className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Análisis Presupuestal
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Tendencias financieras municipales
-                    </p>
-                  </div>
-                </div>
-                <ModernBudgetAnalysis height="400px" showControls={true} />
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
-                    <MapIcon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Vista Geográfica
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Distribución territorial de proyectos
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-gray-600 dark:text-gray-400">
-                      Funcionalidad de mapa coroplético temporalmente no disponible
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'budget':
-        return (
-          <div className="h-full">
-            <ModernBudgetAnalysis height="600px" showControls={true} />
-          </div>
-        )
-
-      case 'map':
-        return (
-          <div className="h-full">
-            <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <div className="text-center">
-                <div className="text-gray-600 dark:text-gray-400">
-                  Funcionalidad de mapa coroplético temporalmente no disponible
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 'overlay':
-        return (
-          <div className="relative h-full">
-            <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <div className="text-center">
-                <div className="text-gray-600 dark:text-gray-400">
-                  Funcionalidad de mapa coroplético temporalmente no disponible
-                </div>
-              </div>
-            </div>
-            
-            {/* Overlay de métricas */}
-            <div className="absolute top-4 left-4 z-[1000] space-y-3 max-w-sm">
-              <QuickMetric
-                title="Presupuesto Total"
-                value={quickMetrics.totalPresupuesto}
-                icon={DollarSign}
-                trend="neutral"
-                color="bg-blue-500"
-              />
-              
-              <QuickMetric
-                title="Ejecutado"
-                value={quickMetrics.totalEjecucion}
-                icon={Target}
-                trend={quickMetrics.eficiencia > 70 ? 'up' : quickMetrics.eficiencia > 40 ? 'neutral' : 'down'}
-                color="bg-green-500"
-              />
-              
-              <QuickMetric
-                title="Eficiencia"
-                value={`${quickMetrics.eficiencia.toFixed(1)}%`}
-                icon={Activity}
-                trend={quickMetrics.eficiencia > 70 ? 'up' : quickMetrics.eficiencia > 40 ? 'neutral' : 'down'}
-                color="bg-purple-500"
-              />
-            </div>
-
-            {/* Mini gráfico flotante en la esquina inferior derecha */}
-            <motion.div
-              className="absolute bottom-4 right-4 z-[1000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-gray-200/50 dark:border-gray-700/50 max-w-xs"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  Tendencia Rápida
-                </span>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-600 dark:text-gray-400">Pagos</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {formatCurrencyCompact(quickMetrics.totalPagos)}
-                  </span>
-                </div>
-                
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${Math.min((quickMetrics.totalPagos / quickMetrics.totalEjecucion) * 100, 100)}%` 
-                    }}
-                  />
-                </div>
-                
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {quickMetrics.totalEjecucion > 0 ? 
-                    `${((quickMetrics.totalPagos / quickMetrics.totalEjecucion) * 100).toFixed(1)}% de lo ejecutado` : 
-                    'Sin datos de ejecución'}
-                </p>
-              </div>
-            </motion.div>
-          </div>
-        )
-
-      default:
-        return null
-    }
+    return (
+      <div className="h-full">
+        <ModernBudgetAnalysis height="600px" showControls={true} />
+      </div>
+    )
   }
 
   return (

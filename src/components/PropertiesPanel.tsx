@@ -3,9 +3,10 @@
 import React from 'react'
 import { X, MapPin, Building2, Route, Info, Target } from 'lucide-react'
 import PopupGaugeChart from './PopupGaugeChart'
+import type { GeoJSONFeature } from '../types/common'
 
 interface PropertiesPanelProps {
-  feature: any | null // Feature de GeoJSON seleccionado
+  feature: GeoJSONFeature | null // Feature de GeoJSON seleccionado
   layerType: string // Tipo de capa (equipamientos, infraestructura_vial, etc.)
   onClose: () => void // Función para cerrar el panel
   className?: string
@@ -38,36 +39,36 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     if (isGeoJSONFeature) {
       // Para vías, priorizar campos específicos
       if (layerType.includes('infraestructura') || layerType.includes('vias')) {
-        return properties.nickname ||
-               properties.id_via ||
-               properties.seccion_via ||
-               properties.identificador ||
-               `Vía ${properties.bpin || 'Sin ID'}` ||
+        return (properties as any).nickname ||
+               (properties as any).id_via ||
+               (properties as any).seccion_via ||
+               (properties as any).identificador ||
+               `Vía ${(properties as any).bpin || 'Sin ID'}` ||
                'Vía sin nombre'
       }
       
       // Para otros tipos de features
-      return properties.NOMBRE || 
-             properties.nombre || 
-             properties.NAME || 
-             properties.name ||
-             properties.NOMCOMUNA ||
-             properties.NOMBARRIO ||
-             properties.nickname ||
-             properties.identificador ||
-             properties.seccion_via ||
-             properties.barrio ||
-             properties.comuna ||
+      return (properties as any).NOMBRE || 
+             (properties as any).nombre || 
+             (properties as any).NAME || 
+             (properties as any).name ||
+             (properties as any).NOMCOMUNA ||
+             (properties as any).NOMBARRIO ||
+             (properties as any).nickname ||
+             (properties as any).identificador ||
+             (properties as any).seccion_via ||
+             (properties as any).barrio ||
+             (properties as any).comuna ||
              'Sin nombre'
     } else {
-      return feature.name ||
-             feature.NOMBRE || 
-             feature.nombre || 
-             feature.NAME ||
-             feature.titulo ||
-             feature.proyecto ||
-             feature.nickname ||
-             feature.identificador ||
+      return (feature as any).name ||
+             (feature as any).NOMBRE || 
+             (feature as any).nombre || 
+             (feature as any).NAME ||
+             (feature as any).titulo ||
+             (feature as any).proyecto ||
+             (feature as any).nickname ||
+             (feature as any).identificador ||
              'Proyecto sin nombre'
     }
   }
@@ -85,8 +86,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     ]
     
     for (const field of progressFields) {
-      if (properties[field] !== undefined && properties[field] !== null) {
-        let progress = parseFloat(properties[field])
+      if ((properties as any)[field] !== undefined && (properties as any)[field] !== null) {
+        let progress = parseFloat((properties as any)[field])
         // Si el valor está entre 0 y 1, convertir a porcentaje
         if (progress >= 0 && progress <= 1) {
           progress = progress * 100
@@ -101,7 +102,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const progressValue = getProgressData()
 
   // Función para formatear valores
-  const formatValue = (key: string, value: any) => {
+  const formatValue = (key: string, value: unknown): string => {
     if (value === null || value === undefined || value === '') {
       return 'No especificado'
     }
@@ -117,7 +118,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     if (keyLower.includes('progress') || keyLower.includes('avance') || 
         keyLower.includes('físico') || keyLower.includes('fisico') ||
         keyLower.includes('porcentaje') || keyLower.includes('percent')) {
-      let percentage = parseFloat(value)
+      let percentage = parseFloat(String(value))
       // Si el valor está entre 0 y 1, convertir a porcentaje
       if (percentage >= 0 && percentage <= 1) {
         percentage = percentage * 100
@@ -127,7 +128,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     
     // Formatear como porcentaje para ejecución financiera (calculada)
     if (keyLower.includes('ejecucion') && keyLower.includes('financier')) {
-      let percentage = parseFloat(value)
+      let percentage = parseFloat(String(value))
       return `${percentage.toFixed(2)}%`
     }
     
@@ -229,21 +230,21 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   // Obtener presupuesto base
   const getPresupuestoBase = () => {
-    return properties.ppto_base || properties.presupuesto_base || properties.budget || null
+    return (properties as any).ppto_base || (properties as any).presupuesto_base || (properties as any).budget || null
   }
 
   // Obtener información de ubicación
   const getLocationInfo = () => {
-    const barrio = properties.NOMBARRIO || properties.barrio || properties.neighborhood || ''
-    const comuna = properties.NOMCOMUNA || properties.comuna || properties.district || ''
-    const direccion = properties.direccion || properties.address || properties.DIRECCION || ''
+    const barrio = (properties as any).NOMBARRIO || (properties as any).barrio || (properties as any).neighborhood || ''
+    const comuna = (properties as any).NOMCOMUNA || (properties as any).comuna || (properties as any).district || ''
+    const direccion = (properties as any).direccion || (properties as any).address || (properties as any).DIRECCION || ''
     
     return { barrio, comuna, direccion }
   }
 
   // Obtener BPIN
   const getBPIN = () => {
-    return properties.BPIN || properties.bpin || properties.codigo_bpin || ''
+    return (properties as any).BPIN || (properties as any).bpin || (properties as any).codigo_bpin || ''
   }
 
   const presupuestoBase = getPresupuestoBase()
@@ -284,8 +285,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   // Obtener imagen para centros de gravedad
   const getImageInfo = () => {
-    if (layerType.includes('centros_gravedad') && properties.imagen) {
-      const originalUrl = properties.imagen
+    if (layerType.includes('centros_gravedad') && (properties as any).imagen) {
+      const originalUrl = (properties as any).imagen
       const directImageUrl = convertGoogleDriveUrl(originalUrl)
       return { originalUrl, directImageUrl }
     }

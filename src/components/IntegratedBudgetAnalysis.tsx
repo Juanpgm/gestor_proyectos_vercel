@@ -207,39 +207,41 @@ const IntegratedBudgetAnalysis: React.FC = () => {
         <CompactMetricsCard
           title="Presupuesto Total"
           value={metrics.presupuesto}
-          icon={<DollarSign className="w-5 h-5 text-white" />}
-          color="blue"
-          delay={0.1}
+          icon={DollarSign}
+          color="from-blue-500 to-blue-600"
+          index={0}
         />
         
         <CompactMetricsCard
           title="Ejecutado"
           value={metrics.ejecutado}
-          subtitle={`${metrics.executionPercentage.toFixed(1)}% del presupuesto`}
-          percentage={metrics.executionPercentage}
-          icon={<Target className="w-5 h-5 text-white" />}
-          color="green"
-          trend="up"
-          delay={0.2}
+          icon={Target}
+          color="from-green-500 to-green-600"
+          trend={{
+            value: metrics.executionPercentage,
+            isPositive: true
+          }}
+          index={1}
         />
         
         <CompactMetricsCard
           title="Pagado"
           value={metrics.pagado}
-          subtitle={`${metrics.paymentPercentage.toFixed(1)}% de lo ejecutado`}
-          percentage={metrics.paymentPercentage}
-          icon={<Activity className="w-5 h-5 text-white" />}
-          color="orange"
-          trend="up"
-          delay={0.3}
+          icon={Activity}
+          color="from-orange-500 to-orange-600"
+          trend={{
+            value: metrics.paymentPercentage,
+            isPositive: true
+          }}
+          index={2}
         />
         
         <CompactMetricsCard
           title="Saldo Disponible"
           value={metrics.saldo}
-          icon={<TrendingUp className="w-5 h-5 text-white" />}
-          color="purple"
-          delay={0.4}
+          icon={TrendingUp}
+          color="from-purple-500 to-purple-600"
+          index={3}
         />
       </div>
 

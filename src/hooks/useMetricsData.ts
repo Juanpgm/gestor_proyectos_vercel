@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { budgetDataLoader } from '@/utils/budgetDataLoader'
 
 export interface MetricsDataItem {
   bpin?: number
@@ -36,20 +37,22 @@ export const useMetricsData = (): MetricsResult => {
         // Cargar datos en paralelo
         const [
           contractsResponse,
-          budgetResponse,
-          projectsResponse,
           activitiesResponse
         ] = await Promise.allSettled([
           fetch('/data/contratos/contratos_proyectos.json'),
-          fetch('/data/ejecucion_presupuestal/ejecucion_presupuestal.json'),
-          fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json'),
           fetch('/data/seguimiento_pa/seguimiento_actividades_pa.json')
+        ])
+
+        // Cargar datos presupuestales con el nuevo loader
+        const [budgetData, projectsData] = await Promise.all([
+          budgetDataLoader.loadEjecucionPresupuestal(),
+          budgetDataLoader.loadDatosCaracteristicosProyectos()
         ])
 
         const newData = {
           contratos: [],
-          presupuesto: [],
-          proyectos: [],
+          presupuesto: budgetData || [],
+          proyectos: projectsData || [],
           actividades: []
         } as Omit<MetricsResult, 'loading' | 'error'>
 
@@ -58,16 +61,7 @@ export const useMetricsData = (): MetricsResult => {
           newData.contratos = await contractsResponse.value.json()
         }
 
-        // Procesar presupuesto
-        if (budgetResponse.status === 'fulfilled' && budgetResponse.value.ok) {
-          newData.presupuesto = await budgetResponse.value.json()
-        }
-
-        // Procesar proyectos
-        if (projectsResponse.status === 'fulfilled' && projectsResponse.value.ok) {
-          newData.proyectos = await projectsResponse.value.json()
-        }
-
+        // Procesar actividades
         // Procesar actividades
         if (activitiesResponse.status === 'fulfilled' && activitiesResponse.value.ok) {
           newData.actividades = await activitiesResponse.value.json()

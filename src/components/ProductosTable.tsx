@@ -230,7 +230,7 @@ export default function ProductosTable({
                 
                 return (
                   <motion.tr
-                    key={`${producto.bpin}-${producto.cod_producto}`}
+                    key={`${producto.bpin}-${producto.cod_producto}-${producto.periodo_corte || 'no-period'}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"

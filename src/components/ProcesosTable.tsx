@@ -257,7 +257,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {paginatedProcesos.map((proceso, index) => (
-              <tr key={proceso.id_proceso} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <tr key={`${proceso.id_proceso}-${index}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                 <td className="px-4 py-4">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">

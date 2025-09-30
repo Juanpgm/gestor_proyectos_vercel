@@ -1,7 +1,6 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { loadGeoJSON, loadMapDataWithFallback } from '@/utils/geoJSONLoader'
 
 // Tipos para cada fuente de datos
 interface Proyecto {
@@ -160,62 +159,59 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         setLoading(true)
         setError(null)
 
-        // Cargar datos GeoJSON usando el loader centralizado con fallback
-        const geoJSONData = await loadMapDataWithFallback()
-        const equipamientosData = geoJSONData.equipamientos
-        const infraestructuraData = geoJSONData.infraestructura_vial
+        // Datos mock para equipamientos e infraestructura (ya no se cargan desde GeoJSON)
+        const equipamientosData: UnidadProyecto[] = []
+        const infraestructuraData: UnidadProyecto[] = []
+
+        // Cargar datos presupuestales con el loader simplificado
+        const {
+          loadDatosCaracteristicosProyectos,
+          loadMovimientosPresupuestales,
+          loadEjecucionPresupuestal
+        } = await import('@/utils/simpleDataLoader')
+        
+        // Cargar datos presupuestales directamente
+        const [
+          proyectosData,
+          movimientosPresupuestalesData,
+          ejecucionPresupuestalData
+        ] = await Promise.all([
+          loadDatosCaracteristicosProyectos(),
+          loadMovimientosPresupuestales(),
+          loadEjecucionPresupuestal()
+        ])
 
         // Cargar otros datos con fetch tradicional
         const [
-          proyectosRes,
           productosRes,
           actividadesRes,
           contratosRes,
-          movimientosPresupuestalesRes,
-          ejecucionPresupuestalRes,
-          seguimientoPaRes,
-          productosPaRes,
-          actividadesPaRes
+          seguimientoPaRes
         ] = await Promise.all([
-          fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json'),
           fetch('/data/seguimiento_pa/seguimiento_productos_pa.json'),
           fetch('/data/seguimiento_pa/seguimiento_actividades_pa.json'),
           fetch('/data/contratos/contratos_proyectos.json'),
-          fetch('/data/ejecucion_presupuestal/movimientos_presupuestales.json'),
-          fetch('/data/ejecucion_presupuestal/ejecucion_presupuestal.json'),
-          fetch('/data/seguimiento_pa/seguimiento_pa.json'),
-          fetch('/data/seguimiento_pa/seguimiento_productos_pa.json'),
-          fetch('/data/seguimiento_pa/seguimiento_actividades_pa.json')
+          fetch('/data/seguimiento_pa/seguimiento_pa.json')
         ])
 
         // Verificar que todas las respuestas sean exitosas
-        if (!proyectosRes.ok) throw new Error('Error cargando proyectos')
         if (!productosRes.ok) throw new Error('Error cargando productos')
         if (!actividadesRes.ok) throw new Error('Error cargando actividades')
         if (!contratosRes.ok) throw new Error('Error cargando contratos')
-        if (!movimientosPresupuestalesRes.ok) throw new Error('Error cargando movimientos presupuestales')
-        if (!ejecucionPresupuestalRes.ok) throw new Error('Error cargando ejecución presupuestal')
         if (!seguimientoPaRes.ok) throw new Error('Error cargando seguimiento PA')
-        if (!productosPaRes.ok) throw new Error('Error cargando productos PA')
-        if (!actividadesPaRes.ok) throw new Error('Error cargando actividades PA')
 
-        // Parsear los datos JSON
-        const proyectosData = await proyectosRes.json()
+        // Parsear los datos JSON (solo para datos no presupuestales)
         const productosData = await productosRes.json()
         const actividadesData = await actividadesRes.json()
         const contratosData = await contratosRes.json()
-        const movimientosPresupuestalesData = await movimientosPresupuestalesRes.json()
-        const ejecucionPresupuestalData = await ejecucionPresupuestalRes.json()
         const seguimientoPaData = await seguimientoPaRes.json()
-        const productosPaData = await productosPaRes.json()
-        const actividadesPaData = await actividadesPaRes.json()
 
         // Establecer los datos en el estado
         setProyectos(proyectosData || [])
         
-        // Para GeoJSON, extraer las features (los datos ya vienen procesados del loader)
-        setEquipamientos(equipamientosData?.features?.map((f: any) => f.properties) || [])
-        setInfraestructuraVial(infraestructuraData?.features?.map((f: any) => f.properties) || [])
+        // Usar datos mock vacíos para equipamientos e infraestructura
+        setEquipamientos(equipamientosData)
+        setInfraestructuraVial(infraestructuraData)
         
         setProductos(productosData || [])
         setActividades(actividadesData || [])
@@ -223,13 +219,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         setMovimientosPresupuestales(movimientosPresupuestalesData || [])
         setEjecucionPresupuestal(ejecucionPresupuestalData || [])
         setSeguimientoPa(seguimientoPaData || [])
-        setProductosPa(productosPaData || [])
-        setActividadesPa(actividadesPaData || [])
+        setProductosPa([]) // Empty array for now
+        setActividadesPa([]) // Empty array for now
 
         console.log('📊 Datos cargados exitosamente:', {
           proyectos: proyectosData?.length || 0,
-          equipamientos: equipamientosData?.features?.length || 0,
-          infraestructura: infraestructuraData?.features?.length || 0,
+          equipamientos: equipamientosData?.length || 0,
+          infraestructura: infraestructuraData?.length || 0,
           productos: productosData?.length || 0,
           actividades: actividadesData?.length || 0,
           contratos: contratosData?.length || 0,
@@ -255,20 +251,20 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   ): T[] => {
     return data.filter(item => {
       // Filtro por BPIN específico (desde búsqueda)
-      if (searchFilters.search) {
-        const searchTerm = searchFilters.search.toLowerCase()
+      if (searchFilters.search && searchFilters.search.trim() !== '') {
+        const searchTerm = searchFilters.search.toLowerCase().trim()
         
         // Buscar por BPIN exacto (convertir número a string)
         if (item.bpin && item.bpin.toString().includes(searchTerm)) {
-          return true
+          // Si encuentra coincidencia en BPIN, continúa con otros filtros
+        } else {
+          // Buscar en todos los campos
+          const matchesSearch = Object.values(item).some(value => 
+            value && value.toString().toLowerCase().includes(searchTerm)
+          )
+          
+          if (!matchesSearch) return false
         }
-        
-        // Buscar en todos los campos
-        const matchesSearch = Object.values(item).some(value => 
-          value && value.toString().toLowerCase().includes(searchTerm)
-        )
-        
-        if (!matchesSearch) return false
       }
 
       // Filtro por centro gestor (para proyectos que tienen nombre_centro_gestor)

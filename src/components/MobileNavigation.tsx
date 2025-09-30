@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Menu } from 'lucide-react'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
 
-type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos' | 'unidades-proyecto'
+type ActiveTab = 'projects' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
 interface TabConfig {
   id: ActiveTab
@@ -36,13 +36,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       icon: CATEGORIES.projects.icon,
       category: 'projects' as const,
       shortLabel: 'Proyectos'
-    },
-    { 
-      id: 'unidades-proyecto' as const, 
-      label: CATEGORIES['unidades-proyecto'].name, 
-      icon: CATEGORIES['unidades-proyecto'].icon,
-      category: 'unidades-proyecto' as const,
-      shortLabel: 'Unidades API'
     },
     { 
       id: 'activities' as const, 

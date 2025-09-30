@@ -213,7 +213,7 @@ export default function ActividadesTable({
                 
                 return (
                   <motion.tr
-                    key={`${actividad.bpin}-${actividad.cod_actividad}`}
+                    key={`${actividad.bpin}-${actividad.cod_actividad}-${actividad.periodo_corte || 'no-period'}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
