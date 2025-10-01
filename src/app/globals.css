@@ -434,3 +434,94 @@ body.map-fullscreen {
 
 /* Leaflet CSS - Importado globalmente para dynamic imports */
 @import 'leaflet/dist/leaflet.css';
+
+/* Estilos mejorados para popups de Unidades de Proyecto */
+.custom-popup .leaflet-popup-content-wrapper {
+  background: white !important;
+  color: #1e293b !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  padding: 0 !important;
+  max-width: 320px !important;
+  min-width: 280px !important;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.5 !important;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.custom-popup .leaflet-popup-close-button {
+  color: #6b7280 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  padding: 8px 12px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 50% !important;
+  margin: 8px 8px 0 0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e5e7eb !important;
+  text-decoration: none !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-popup .leaflet-popup-close-button:hover {
+  color: #dc2626 !important;
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  transform: scale(1.05) !important;
+}
+
+/* Modo oscuro para popups */
+.dark .custom-popup .leaflet-popup-content-wrapper {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+
+.dark .custom-popup .leaflet-popup-tip {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+.dark .custom-popup .leaflet-popup-close-button {
+  background: rgba(31, 41, 55, 0.9) !important;
+  color: #9ca3af !important;
+  border-color: #4b5563 !important;
+}
+
+.dark .custom-popup .leaflet-popup-close-button:hover {
+  color: #f87171 !important;
+  background: #7f1d1d !important;
+  border-color: #dc2626 !important;
+}
+
+/* Animación suave para popups */
+.leaflet-popup {
+  animation: popupFadeIn 0.2s ease-out;
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

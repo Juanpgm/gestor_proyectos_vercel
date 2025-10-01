@@ -31,7 +31,8 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
   // Función para obtener color según avance de obra
   const getFeatureColor = (properties: any) => {
     const attributeItem = filteredData.find(item => item.upid === properties.upid);
-    const avance = attributeItem?.avance_obra || properties.avance_obra || 0;
+    const avanceDecimal = attributeItem?.avance_obra || properties.avance_obra || 0;
+    const avance = avanceDecimal * 100; // Convertir decimal a porcentaje
     
     if (avance >= 80) return '#10B981'; // Verde
     if (avance >= 60) return '#F59E0B'; // Amarillo
@@ -49,8 +50,8 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
         color: '#ffffff',
         fillColor: color,
         fillOpacity: 0.8,
-        weight: 2,
-        radius: 8
+        weight: 1,
+        radius: 3
       };
     } else {
       return {
@@ -70,8 +71,8 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
       color: '#ffffff',
       fillColor: color,
       fillOpacity: 0.8,
-      weight: 2,
-      radius: 8
+      weight: 1,
+      radius: 3
     };
   };
 
@@ -121,58 +122,252 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
             return L.circleMarker(latlng, getCircleMarkerStyle(feature));
           }}
           onEachFeature={(feature: any, layer: any) => {
+            const attributeItem = filteredData.find(item => item.upid === feature.properties.upid);
+            const avanceDecimal = attributeItem?.avance_obra || 0;
+            const avance = Math.round(avanceDecimal * 100); // Convertir decimal a porcentaje y redondear
+            
+            // Función para formatear valores monetarios
+            const formatCurrency = (amount: number) => {
+              if (!amount) return '0';
+              if (amount >= 1000000000) return `${(amount / 1000000000).toFixed(1)}MM`;
+              if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
+              if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
+              return amount.toLocaleString('es-CO');
+            };
+
             const popupContent = document.createElement('div');
+            
+            // Estilos basados en el tema
+            const bgGradient = isDark 
+              ? 'linear-gradient(135deg, #1f2937 0%, #111827 100%)'
+              : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)';
+            
+            const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            const textColor = isDark ? '#f9fafb' : '#1e293b';
+            const labelColor = isDark ? '#9ca3af' : '#64748b';
+            const cardBg = isDark ? '#374151' : '#f1f5f9';
+            const cardBorder = isDark ? '#4b5563' : '#e2e8f0';
+            
             popupContent.innerHTML = `
-              <div class="p-2 min-w-[200px]">
-                <div class="font-bold text-sm mb-2 text-gray-900">
-                  ${filteredData.find(item => item.upid === feature.properties.upid)?.nombre_up || feature.properties.upid}
+              <div style="
+                min-width: 280px;
+                background: ${bgGradient};
+                border-radius: 12px;
+                padding: 16px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                border: 1px solid ${borderColor};
+                color: ${textColor};
+              ">
+                <!-- Header -->
+                <div style="
+                  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+                  color: white;
+                  padding: 12px 16px;
+                  margin: -16px -16px 16px -16px;
+                  border-radius: 12px 12px 0 0;
+                  font-weight: 700;
+                  font-size: 14px;
+                  line-height: 1.4;
+                  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                ">
+                  ${attributeItem?.nombre_up || feature.properties.upid}
                 </div>
                 
-                <div class="space-y-1 text-xs">
-                  <div>
-                    <span class="font-medium text-gray-700">UPID:</span>
-                    <span class="ml-1 font-mono text-gray-600">${feature.properties.upid}</span>
+                <!-- UPID Badge -->
+                <div style="margin-bottom: 16px;">
+                  <span style="
+                    background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
+                    color: white;
+                    padding: 4px 12px;
+                    border-radius: 20px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 12px;
+                    font-weight: 600;
+                    display: inline-block;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                  ">
+                    ${feature.properties.upid}
+                  </span>
+                </div>
+                
+                ${attributeItem ? `
+                  <!-- Avance Progress Bar -->
+                  <div style="margin-bottom: 16px;">
+                    <div style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      margin-bottom: 8px;
+                    ">
+                      <span style="
+                        font-weight: 600;
+                        color: ${labelColor};
+                        font-size: 12px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                      ">Avance de Obra</span>
+                      <span style="
+                        font-weight: 700;
+                        color: ${avance >= 80 ? '#10b981' : avance >= 60 ? '#3b82f6' : avance >= 40 ? '#f59e0b' : avance >= 20 ? '#ef4444' : '#6b7280'};
+                        font-size: 14px;
+                      ">${avance}%</span>
+                    </div>
+                    <div style="
+                      background: ${isDark ? '#374151' : '#e5e7eb'};
+                      border-radius: 10px;
+                      height: 8px;
+                      overflow: hidden;
+                      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+                    ">
+                      <div style="
+                        background: ${avance >= 80 ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 
+                                    avance >= 60 ? 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)' : 
+                                    avance >= 40 ? 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)' : 
+                                    avance >= 20 ? 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(90deg, #9ca3af 0%, #6b7280 100%)'};
+                        height: 100%;
+                        width: ${Math.min(avance, 100)}%;
+                        border-radius: 10px;
+                        transition: width 0.3s ease;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                      "></div>
+                    </div>
                   </div>
                   
-                  ${filteredData.find(item => item.upid === feature.properties.upid) ? `
-                    <div>
-                      <span class="font-medium text-gray-700">Avance:</span>
-                      <span class="ml-1 text-gray-600">${filteredData.find(item => item.upid === feature.properties.upid)?.avance_obra}%</span>
+                  <!-- Info Grid -->
+                  <div style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                  ">
+                    <div style="
+                      background: ${cardBg};
+                      padding: 8px 12px;
+                      border-radius: 8px;
+                      border-left: 3px solid #3b82f6;
+                      border: 1px solid ${cardBorder};
+                    ">
+                      <div style="
+                        font-size: 10px;
+                        font-weight: 600;
+                        color: ${labelColor};
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 2px;
+                      ">Estado</div>
+                      <div style="
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: ${textColor};
+                      ">${attributeItem.estado}</div>
                     </div>
                     
-                    <div>
-                      <span class="font-medium text-gray-700">Estado:</span>
-                      <span class="ml-1 text-gray-600">${filteredData.find(item => item.upid === feature.properties.upid)?.estado}</span>
+                    <div style="
+                      background: ${cardBg};
+                      padding: 8px 12px;
+                      border-radius: 8px;
+                      border-left: 3px solid #059669;
+                      border: 1px solid ${cardBorder};
+                    ">
+                      <div style="
+                        font-size: 10px;
+                        font-weight: 600;
+                        color: ${labelColor};
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 2px;
+                      ">Tipo</div>
+                      <div style="
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: ${textColor};
+                        line-height: 1.2;
+                      ">${attributeItem.tipo_intervencion}</div>
                     </div>
-                    
-                    <div>
-                      <span class="font-medium text-gray-700">Tipo:</span>
-                      <span class="ml-1 text-gray-600">${filteredData.find(item => item.upid === feature.properties.upid)?.tipo_intervencion}</span>
-                    </div>
-                    
-                    <div>
-                      <span class="font-medium text-gray-700">Centro:</span>
-                      <span class="ml-1 text-gray-600">${filteredData.find(item => item.upid === feature.properties.upid)?.nombre_centro_gestor}</span>
-                    </div>
-                    
-                    ${filteredData.find(item => item.upid === feature.properties.upid)?.presupuesto_base ? `
-                      <div>
-                        <span class="font-medium text-gray-700">Presupuesto:</span>
-                        <span class="ml-1 text-gray-600">
-                          $${filteredData.find(item => item.upid === feature.properties.upid)?.presupuesto_base?.toLocaleString('es-CO')}
-                        </span>
+                  </div>
+                  
+                  <!-- Presupuesto -->
+                  ${attributeItem.presupuesto_base ? `
+                    <div style="
+                      background: ${isDark ? 'linear-gradient(135deg, #065f46 0%, #047857 100%)' : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'};
+                      padding: 12px;
+                      border-radius: 8px;
+                      border: 1px solid ${isDark ? '#059669' : '#a7f3d0'};
+                      margin-bottom: 12px;
+                    ">
+                      <div style="
+                        font-size: 10px;
+                        font-weight: 600;
+                        color: ${isDark ? '#6ee7b7' : '#059669'};
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 4px;
+                      ">Presupuesto Base</div>
+                      <div style="
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: ${isDark ? '#d1fae5' : '#065f46'};
+                        display: flex;
+                        align-items: baseline;
+                        gap: 4px;
+                      ">
+                        <span style="font-size: 12px;">$</span>
+                        ${formatCurrency(attributeItem.presupuesto_base)}
                       </div>
-                    ` : ''}
+                    </div>
                   ` : ''}
                   
-                  <div>
-                    <span class="font-medium text-gray-700">Tipo Geom:</span>
-                    <span class="ml-1 text-gray-600">${feature.geometry.type}</span>
+                  <!-- Ubicación -->
+                  <div style="
+                    background: ${isDark ? 'linear-gradient(135deg, #92400e 0%, #b45309 100%)' : '#fefbea'};
+                    padding: 12px;
+                    border-radius: 8px;
+                    border: 1px solid ${isDark ? '#d97706' : '#fbbf24'};
+                  ">
+                    <div style="
+                      font-size: 10px;
+                      font-weight: 600;
+                      color: ${isDark ? '#fcd34d' : '#d97706'};
+                      text-transform: uppercase;
+                      letter-spacing: 0.5px;
+                      margin-bottom: 4px;
+                    ">Ubicación</div>
+                    <div style="
+                      font-size: 12px;
+                      font-weight: 600;
+                      color: ${isDark ? '#fef3c7' : '#92400e'};
+                      margin-bottom: 2px;
+                    ">${attributeItem.barrio_vereda || 'N/A'}</div>
+                    <div style="
+                      font-size: 11px;
+                      color: ${isDark ? '#fed7aa' : '#a16207'};
+                    ">${attributeItem.comuna_corregimiento || 'N/A'}</div>
                   </div>
-                </div>
+                ` : `
+                  <!-- Solo info básica para features sin datos de atributos -->
+                  <div style="
+                    background: ${cardBg};
+                    padding: 12px;
+                    border-radius: 8px;
+                    border: 1px solid ${cardBorder};
+                    text-align: center;
+                  ">
+                    <div style="
+                      font-size: 12px;
+                      color: ${labelColor};
+                      font-weight: 500;
+                    ">
+                      Tipo de geometría: <strong style="color: ${textColor};">${feature.geometry.type}</strong>
+                    </div>
+                  </div>
+                `}
               </div>
             `;
-            layer.bindPopup(popupContent);
+            
+            layer.bindPopup(popupContent, {
+              maxWidth: 320,
+              className: 'custom-popup'
+            });
           }}
         />
       )}

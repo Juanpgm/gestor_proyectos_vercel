@@ -7,37 +7,43 @@ import {
   Filter, 
   Eye, 
   Calendar,
-  MapPin,
-  BarChart3,
-  PieChart,
-  TrendingUp,
   RefreshCw,
   X,
   Layers,
-  Satellite,
-  ChevronDown
+  Satellite
 } from 'lucide-react';
-import { CSS_UTILS, CATEGORIES } from '@/lib/design-system';
+import { CSS_UTILS } from '@/lib/design-system';
 import dynamic from 'next/dynamic';
-import { LatLngExpression } from 'leaflet';
 
 // Importación dinámica del componente de mapa
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
-import { 
-  BarChart, 
-  Bar, 
-  PieChart as RechartsPieChart, 
-  Pie, 
-  Cell, 
-  ScatterChart, 
-  Scatter as RechartsScatter,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
+
+// Función para formatear valores monetarios de manera elegante
+const formatCurrency = (amount: number): { formatted: string; unit: string } => {
+  if (!amount || amount === 0) return { formatted: '0', unit: '' };
+  
+  if (amount >= 1000000000) {
+    return {
+      formatted: (amount / 1000000000).toFixed(1),
+      unit: 'MM'
+    };
+  } else if (amount >= 1000000) {
+    return {
+      formatted: (amount / 1000000).toFixed(1),
+      unit: 'M'
+    };
+  } else if (amount >= 1000) {
+    return {
+      formatted: (amount / 1000).toFixed(0),
+      unit: 'K'
+    };
+  } else {
+    return {
+      formatted: amount.toLocaleString('es-CO'),
+      unit: ''
+    };
+  }
+};
 
 // Componente de mapa real con Leaflet
 const MapComponent: React.FC<{
@@ -296,10 +302,8 @@ const UnidadesProyecto: React.FC = () => {
   // Estados de UI
   const [selectedRecord, setSelectedRecord] = useState<AttributeData | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'mapa' | 'tabla' | 'graficos'>('mapa');
   
-  // Colores para gráficos
-  const CHART_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'];
+
 
   // Función para generar filtros dinámicamente desde los datos
   const generateFiltersFromData = (data: AttributeData[]): FilterData => {
@@ -457,51 +461,27 @@ const UnidadesProyecto: React.FC = () => {
     return filtered;
   }, [attributeData, searchTerm, selectedFilters]);
 
-  // Datos para gráficos
-  const chartData = useMemo(() => {
-    if (!filteredData || !Array.isArray(filteredData) || !filteredData.length) return { bar: [], pie: [], scatter: [] };
+  // Geometría filtrada basada en los datos de atributos filtrados
+  const filteredGeometryData = useMemo(() => {
+    if (!geometryData || !geometryData.features || !filteredData) {
+      return geometryData;
+    }
 
-    // Datos para gráfico de barras - Avance por Centro Gestor
-    const avancePorCentro = filteredData.reduce((acc, item) => {
-      const centro = item.nombre_centro_gestor || 'Sin especificar';
-      if (!acc[centro]) acc[centro] = { total: 0, count: 0 };
-      acc[centro].total += item.avance_obra || 0;
-      acc[centro].count += 1;
-      return acc;
-    }, {} as Record<string, { total: number; count: number }>);
+    const filteredUPIDs = new Set(filteredData.map(item => item.upid));
+    
+    const filteredFeatures = geometryData.features.filter(feature => {
+      return filteredUPIDs.has(feature.properties.upid);
+    });
 
-    const barData = Object.entries(avancePorCentro)
-      .map(([centro, data]) => ({
-        name: centro.length > 20 ? centro.substring(0, 20) + '...' : centro,
-        avance: Math.round(data.total / data.count)
-      }))
-      .sort((a, b) => b.avance - a.avance)
-      .slice(0, 10);
+    return {
+      ...geometryData,
+      features: filteredFeatures
+    };
+  }, [geometryData, filteredData]);
 
-    // Datos para gráfico circular - Distribución por Estado
-    const estadoCount = filteredData.reduce((acc, item) => {
-      const estado = item.estado || 'Sin especificar';
-      acc[estado] = (acc[estado] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
 
-    const pieData = Object.entries(estadoCount).map(([estado, count]) => ({
-      name: estado,
-      value: count
-    }));
 
-    // Datos para gráfico de dispersión - Presupuesto vs Avance
-    const scatterData = filteredData
-      .filter(item => item.presupuesto_base && item.avance_obra)
-      .map(item => ({
-        x: item.presupuesto_base / 1000000, // En millones
-        y: item.avance_obra,
-        name: item.nombre_up
-      }))
-      .slice(0, 100); // Limitar para mejor rendimiento
 
-    return { bar: barData, pie: pieData, scatter: scatterData };
-  }, [filteredData]);
 
   const handleFilterChange = (key: string, value: string) => {
     setSelectedFilters(prev => ({
@@ -540,24 +520,25 @@ const UnidadesProyecto: React.FC = () => {
 
   return (
     <main className="space-y-6">
-      {/* Header con fecha de actualización */}
-      <section className={`${CSS_UTILS.card} p-4`}>
+      {/* Header simplificado */}
+      <section className={`${CSS_UTILS.card} p-6`}>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               Unidades de Proyecto
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {filteredData?.length || 0} de {attributeData.length} unidades
+              {filteredData?.length || 0} de {attributeData.length} unidades seleccionadas
             </p>
           </div>
+          
           {lastUpdate && (
             <div className="text-right">
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <Calendar className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <Calendar className="w-3 h-3" />
                 <span>Última actualización:</span>
               </div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className="text-xs font-medium text-gray-900 dark:text-white mt-1">
                 {lastUpdate.toLocaleString('es-CO')}
               </p>
             </div>
@@ -648,218 +629,230 @@ const UnidadesProyecto: React.FC = () => {
         </div>
       </section>
 
-      {/* Navegación de pestañas */}
-      <section className={`${CSS_UTILS.card} p-1`}>
-        <nav className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-          <button
-            onClick={() => setActiveTab('mapa')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'mapa'
-                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            <MapPin className="w-4 h-4" />
-            Mapa
-          </button>
-          <button
-            onClick={() => setActiveTab('tabla')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'tabla'
-                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            <Filter className="w-4 h-4" />
-            Tabla
-          </button>
-          <button
-            onClick={() => setActiveTab('graficos')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'graficos'
-                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            Gráficos
-          </button>
-        </nav>
+
+
+      {/* Mapa principal */}
+      <section className={`${CSS_UTILS.card} p-4`}>
+        <div className="h-[500px] rounded-lg overflow-hidden">
+          <MapComponent 
+            geometryData={filteredGeometryData}
+            filteredData={filteredData || []}
+          />
+        </div>
       </section>
 
-      {/* Contenido de pestañas */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.2 }}
-        >
-          {activeTab === 'mapa' && (
-            <section className={`${CSS_UTILS.card} p-4`}>
-              <div className="h-96">
-                <MapComponent 
-                  geometryData={geometryData}
-                  filteredData={filteredData || []}
-                />
-              </div>
-            </section>
-          )}
-
-          {activeTab === 'tabla' && (
-            <section className={`${CSS_UTILS.card} overflow-hidden`}>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        UPID
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Nombre
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Avance
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Presupuesto
-                      </th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                    {(filteredData || []).slice(0, 50).map((item) => (
-                      <tr key={item.upid} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td className="px-4 py-2 text-sm font-mono text-gray-900 dark:text-white">
-                          {item.upid}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
-                          {item.nombre_up}
-                        </td>
-                        <td className="px-4 py-2 text-sm">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            item.estado === 'Activo' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                          }`}>
-                            {item.estado}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
-                          {item.avance_obra}%
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
-                          ${item.presupuesto_base?.toLocaleString('es-CO')}
-                        </td>
-                        <td className="px-4 py-2 text-sm">
-                          <button
-                            onClick={() => openModal(item)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {(filteredData?.length || 0) > 50 && (
-                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                    Mostrando primeros 50 de {filteredData?.length || 0} registros
+      {/* Tabla de atributos mejorada */}
+      <section className={`${CSS_UTILS.card} overflow-hidden`}>
+        <div className="p-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            Tabla de Atributos
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Detalle de las unidades de proyecto filtradas
+          </p>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 dark:from-gray-700 dark:via-gray-800 dark:to-gray-700">
+                <th className="px-6 py-4 text-left">
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
+                    UPID
                   </div>
-                )}
+                </th>
+                <th className="px-6 py-4 text-left">
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
+                    Proyecto
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-left">
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
+                    Estado
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-left">
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
+                    Ubicación
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-center">
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
+                    Avance de Obra
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-right">
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
+                    Presupuesto Base
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-center">
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">
+                    Acciones
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {(filteredData || []).slice(0, 100).map((item, index) => {
+                const currency = formatCurrency(item.presupuesto_base || 0);
+                return (
+                  <tr key={item.upid} className={`group hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/10 dark:hover:to-indigo-900/10 transition-all duration-200 ${
+                    index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/50'
+                  }`}>
+                    {/* UPID */}
+                    <td className="px-6 py-5">
+                      <div className="flex items-center">
+                        <div className="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                          {item.upid}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Proyecto */}
+                    <td className="px-6 py-5">
+                      <div className="max-w-sm">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                          {item.nombre_up}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center">
+                          <span className="inline-block w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full mr-2"></span>
+                          {item.tipo_intervencion}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Estado */}
+                    <td className="px-6 py-5">
+                      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${
+                        item.estado === 'Activo' 
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/50'
+                          : item.estado === 'En Ejecución'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50'
+                          : item.estado === 'Finalizado'
+                          ? 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300 border border-gray-200 dark:border-gray-600/50'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700/50'
+                      }`}>
+                        {item.estado}
+                      </span>
+                    </td>
+
+                    {/* Ubicación */}
+                    <td className="px-6 py-5">
+                      <div className="max-w-44">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {item.barrio_vereda}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {item.comuna_corregimiento}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Avance de Obra */}
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col items-center space-y-2">
+                        {(() => {
+                          const avanceDecimal = item.avance_obra || 0;
+                          const avancePercent = Math.round(avanceDecimal * 100);
+                          return (
+                            <>
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 shadow-inner">
+                                <div 
+                                  className={`h-2.5 rounded-full shadow-sm transition-all duration-500 ${
+                                    avancePercent >= 80 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' :
+                                    avancePercent >= 60 ? 'bg-gradient-to-r from-blue-400 to-blue-500' :
+                                    avancePercent >= 40 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                                    avancePercent >= 20 ? 'bg-gradient-to-r from-orange-400 to-orange-500' : 'bg-gradient-to-r from-red-400 to-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min(avancePercent, 100)}%` }}
+                                ></div>
+                              </div>
+                              <span className={`text-sm font-bold ${
+                                avancePercent >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
+                                avancePercent >= 60 ? 'text-blue-600 dark:text-blue-400' :
+                                avancePercent >= 40 ? 'text-yellow-600 dark:text-yellow-400' :
+                                avancePercent >= 20 ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'
+                              }`}>
+                                {avancePercent}%
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </td>
+
+                    {/* Presupuesto */}
+                    <td className="px-6 py-5">
+                      <div className="text-right">
+                        <div className="flex items-baseline justify-end space-x-1">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">$</span>
+                          <span className="text-lg font-bold text-gray-900 dark:text-white">
+                            {currency.formatted}
+                          </span>
+                          {currency.unit && (
+                            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                              {currency.unit}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate max-w-32" title={item.fuente_financiacion}>
+                          {item.fuente_financiacion}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Acciones */}
+                    <td className="px-6 py-5">
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => openModal(item)}
+                          className="group/btn inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105"
+                        >
+                          <Eye className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+                          Ver
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          
+          {/* Footer/Paginación */}
+          {(filteredData?.length || 0) > 100 && (
+            <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  Mostrando <span className="font-semibold text-blue-600 dark:text-blue-400">1-100</span> de{' '}
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">{filteredData?.length || 0}</span> resultados
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+                  Use los filtros para refinar la búsqueda
+                </div>
               </div>
-            </section>
-          )}
-
-          {activeTab === 'graficos' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Gráfico de barras */}
-              <section className={`${CSS_UTILS.card} p-4`}>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Avance Promedio por Centro Gestor
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData.bar}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      fontSize={12}
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="avance" fill={CHART_COLORS[0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </section>
-
-              {/* Gráfico circular */}
-              <section className={`${CSS_UTILS.card} p-4`}>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Distribución por Estado
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                    <Pie
-                      data={chartData.pie}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {chartData.pie.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </section>
-
-              {/* Gráfico de dispersión */}
-              <section className={`${CSS_UTILS.card} p-4 lg:col-span-2`}>
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-                  Presupuesto vs Avance de Obra
-                </h3>
-                <ResponsiveContainer width="100%" height={400}>
-                  <ScatterChart>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      type="number" 
-                      dataKey="x" 
-                      name="Presupuesto (Millones COP)"
-                      label={{ value: 'Presupuesto (Millones COP)', position: 'insideBottom', offset: -5 }}
-                    />
-                    <YAxis 
-                      type="number" 
-                      dataKey="y" 
-                      name="Avance (%)"
-                      label={{ value: 'Avance (%)', angle: -90, position: 'insideLeft' }}
-                    />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                    <RechartsScatter 
-                      name="Proyectos" 
-                      data={chartData.scatter} 
-                      fill={CHART_COLORS[2]} 
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </section>
             </div>
           )}
-        </motion.div>
-      </AnimatePresence>
+          
+          {/* Estado vacío */}
+          {(filteredData?.length || 0) === 0 && (
+            <div className="px-6 py-16 text-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+              <div className="max-w-sm mx-auto">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Filter className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  No se encontraron resultados
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400">
+                  Ajusta los filtros para ver más unidades de proyecto
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Modal de detalles */}
       <DetailModal 
