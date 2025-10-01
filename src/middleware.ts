@@ -14,9 +14,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/vite-client-stub.js', request.url))
   }
   
+  // Skip middleware for API routes to avoid cache conflicts
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next()
+  }
+  
   const response = NextResponse.next()
 
-  // Headers anti-caché agresivos para todas las rutas
+  // Headers anti-caché SOLO para rutas de páginas, no para API
   response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
   response.headers.set('Pragma', 'no-cache')
   response.headers.set('Expires', '0')
@@ -37,7 +42,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Aplicar a todas las rutas principales
-    '/((?!_next/static|_next/image|favicon.ico).*)'
+    // Aplicar solo a rutas de páginas, excluir API y archivos estáticos
+    '/((?!api|_next/static|_next/image|favicon.ico).*)'
   ]
 }

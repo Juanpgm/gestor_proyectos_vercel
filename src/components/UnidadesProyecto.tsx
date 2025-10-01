@@ -18,6 +18,11 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { CSS_UTILS, CATEGORIES } from '@/lib/design-system';
+import dynamic from 'next/dynamic';
+import { LatLngExpression } from 'leaflet';
+
+// Importación dinámica del componente de mapa
+const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 import { 
   BarChart, 
   Bar, 
@@ -34,17 +39,56 @@ import {
   Legend
 } from 'recharts';
 
-// Componente de mapa simplificado
+// Componente de mapa real con Leaflet
 const MapComponent: React.FC<{
   geometryData: GeometryData | null;
   filteredData: AttributeData[];
 }> = ({ geometryData, filteredData }) => {
   const [mapType, setMapType] = useState<'streets' | 'satellite'>('streets');
-  
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    
+    // Detectar tema
+    const checkTheme = () => {
+      const htmlElement = document.documentElement;
+      setIsDark(htmlElement.classList.contains('dark'));
+    };
+    
+    checkTheme();
+    
+    // Observer para cambios de tema
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
+
+
+
+  if (!mounted) {
+    return (
+      <div className="h-full bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-500" />
+          <p className="text-gray-600 dark:text-gray-400">Cargando mapa...</p>
+        </div>
+      </div>
+    );
+  }
+
+
+
   return (
-    <div className="relative h-full w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+    <div className="relative h-full w-full rounded-lg overflow-hidden">
       {/* Controles del mapa */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-1">
           <button
             onClick={() => setMapType(mapType === 'streets' ? 'satellite' : 'streets')}
@@ -86,37 +130,18 @@ const MapComponent: React.FC<{
         </div>
       </div>
 
-      {/* Placeholder del mapa */}
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <MapPin className="w-12 h-12 mx-auto mb-4 text-blue-500" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Mapa de Unidades de Proyecto
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Vista {mapType === 'streets' ? 'de calles' : 'satelital'}
-          </p>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="bg-white dark:bg-gray-700 rounded-lg p-3">
-              <div className="text-blue-600 dark:text-blue-400 font-semibold">
-                {geometryData?.features?.length || 0}
-              </div>
-              <div className="text-gray-600 dark:text-gray-400">Total puntos</div>
-            </div>
-            <div className="bg-white dark:bg-gray-700 rounded-lg p-3">
-              <div className="text-green-600 dark:text-green-400 font-semibold">
-                {filteredData.length}
-              </div>
-              <div className="text-gray-600 dark:text-gray-400">Filtrados</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Mapa de Leaflet usando componente dinámico */}
+      <LeafletMap
+        geometryData={geometryData}
+        filteredData={filteredData}
+        mapType={mapType}
+        isDark={isDark}
+      />
 
-      {/* Indicador de cantidad de puntos */}
-      <div className="absolute bottom-4 left-4 z-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-2">
+      {/* Indicador de cantidad de features */}
+      <div className="absolute bottom-4 left-4 z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-2">
         <div className="text-sm font-medium text-gray-900 dark:text-white">
-          {filteredData.length} unidades mostradas
+          {geometryData?.features?.length || 0} elementos geográficos
         </div>
       </div>
     </div>
@@ -276,34 +301,105 @@ const UnidadesProyecto: React.FC = () => {
   // Colores para gráficos
   const CHART_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'];
 
+  // Función para generar filtros dinámicamente desde los datos
+  const generateFiltersFromData = (data: AttributeData[]): FilterData => {
+    const estados = Array.from(new Set(data.map(item => item.estado).filter(Boolean))).sort();
+    const tipos_intervencion = Array.from(new Set(data.map(item => item.tipo_intervencion).filter(Boolean))).sort();
+    const centros_gestores = Array.from(new Set(data.map(item => item.nombre_centro_gestor).filter(Boolean))).sort();
+    const comunas_corregimientos = Array.from(new Set(data.map(item => item.comuna_corregimiento).filter(Boolean))).sort();
+    const fuentes_financiacion = Array.from(new Set(data.map(item => item.fuente_financiacion).filter(Boolean))).sort();
+    const anos = Array.from(new Set(data.map(item => item.ano).filter(Boolean))).sort((a, b) => b - a);
+
+    return {
+      estados,
+      tipos_intervencion,
+      centros_gestores,
+      comunas_corregimientos,
+      fuentes_financiacion,
+      anos
+    };
+  };
+
   // Función para obtener datos de la API
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [geometryResponse, attributesResponse, filtersResponse] = await Promise.all([
+      console.log('[FRONTEND] Starting data fetch...');
+      
+      const [geometryResponse, attributesResponse] = await Promise.all([
         fetch('/api/proxy/unidades-proyecto/geometry'),
-        fetch('/api/proxy/unidades-proyecto/attributes'),
-        fetch('/api/proxy/unidades-proyecto/filters')
+        fetch('/api/proxy/unidades-proyecto/attributes')
       ]);
+
+      console.log('[FRONTEND] Response statuses:', {
+        geometry: geometryResponse.status,
+        attributes: attributesResponse.status
+      });
 
       if (geometryResponse.ok) {
         const geometry = await geometryResponse.json();
+        console.log('[FRONTEND] Geometry data:', geometry?.type, geometry?.features?.length ? `${geometry.features.length} features` : 'No features');
         setGeometryData(geometry);
+      } else {
+        console.error('[FRONTEND] Geometry error:', await geometryResponse.text());
       }
 
       if (attributesResponse.ok) {
         const attributes = await attributesResponse.json();
-        setAttributeData(attributes);
-      }
-
-      if (filtersResponse.ok) {
-        const filters = await filtersResponse.json();
-        setFilterData(filters);
+        console.log('[FRONTEND] Attributes data:', Array.isArray(attributes) ? `Array with ${attributes.length} items` : typeof attributes);
+        if (Array.isArray(attributes) && attributes.length > 0) {
+          console.log('[FRONTEND] First attribute sample:', attributes[0]);
+        }
+        
+        // Procesar datos de atributos - la API devuelve Features con properties
+        const attributesArray = Array.isArray(attributes) ? attributes : [];
+        
+        // Convertir Features a AttributeData plano
+        const processedAttributes = attributesArray.map(feature => {
+          if (feature.properties) {
+            return {
+              upid: feature.properties.upid || '',
+              nombre_up: feature.properties.nombre_up || '',
+              estado: feature.properties.estado || '',
+              tipo_intervencion: feature.properties.tipo_intervencion || '',
+              nombre_centro_gestor: feature.properties.nombre_centro_gestor || '',
+              comuna_corregimiento: feature.properties.comuna_corregimiento || '',
+              barrio_vereda: feature.properties.barrio_vereda || '',
+              presupuesto_base: feature.properties.presupuesto_base || 0,
+              avance_obra: feature.properties.avance_obra || 0,
+              fecha_inicio: feature.properties.fecha_inicio || '',
+              fecha_fin: feature.properties.fecha_fin || '',
+              descripcion_intervencion: feature.properties.descripcion_intervencion || '',
+              fuente_financiacion: feature.properties.fuente_financiacion || '',
+              ano: feature.properties.ano || 0,
+              ...feature.properties // Incluir todas las propiedades adicionales
+            };
+          }
+          return feature; // En caso de que ya esté en formato plano
+        });
+        
+        console.log('[FRONTEND] Processed attributes:', processedAttributes.length, 'items');
+        if (processedAttributes.length > 0) {
+          console.log('[FRONTEND] First processed item:', processedAttributes[0]);
+        }
+        
+        console.log('[FRONTEND] Setting attributeData with', processedAttributes.length, 'items');
+        setAttributeData(processedAttributes);
+        console.log('[FRONTEND] attributeData state updated');
+        
+        // Generar filtros dinámicamente desde los datos procesados
+        if (processedAttributes.length > 0) {
+          const generatedFilters = generateFiltersFromData(processedAttributes);
+          console.log('[FRONTEND] Generated filters:', Object.keys(generatedFilters).join(', '));
+          setFilterData(generatedFilters);
+        }
+      } else {
+        console.error('[FRONTEND] Attributes error:', await attributesResponse.text());
       }
 
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('[FRONTEND] Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -315,11 +411,19 @@ const UnidadesProyecto: React.FC = () => {
 
   // Datos filtrados
   const filteredData = useMemo(() => {
+    console.log('[FRONTEND] Filtering data, attributeData:', Array.isArray(attributeData) ? `${attributeData.length} items` : typeof attributeData);
+    
     if (!Array.isArray(attributeData)) {
+      console.log('[FRONTEND] attributeData is not array, returning empty');
       return [];
     }
     
-    return attributeData.filter(item => {
+    if (attributeData.length === 0) {
+      console.log('[FRONTEND] attributeData is empty array');
+      return [];
+    }
+    
+    const filtered = attributeData.filter(item => {
       const matchesSearch = !searchTerm || 
         item.nombre_up?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.descripcion_intervencion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -348,11 +452,14 @@ const UnidadesProyecto: React.FC = () => {
 
       return matchesSearch && matchesFilters;
     });
+    
+    console.log('[FRONTEND] Filtered result:', filtered.length, 'items');
+    return filtered;
   }, [attributeData, searchTerm, selectedFilters]);
 
   // Datos para gráficos
   const chartData = useMemo(() => {
-    if (!Array.isArray(filteredData) || !filteredData.length) return { bar: [], pie: [], scatter: [] };
+    if (!filteredData || !Array.isArray(filteredData) || !filteredData.length) return { bar: [], pie: [], scatter: [] };
 
     // Datos para gráfico de barras - Avance por Centro Gestor
     const avancePorCentro = filteredData.reduce((acc, item) => {
@@ -441,7 +548,7 @@ const UnidadesProyecto: React.FC = () => {
               Unidades de Proyecto
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {filteredData.length} de {attributeData.length} unidades
+              {filteredData?.length || 0} de {attributeData.length} unidades
             </p>
           </div>
           {lastUpdate && (
@@ -594,7 +701,7 @@ const UnidadesProyecto: React.FC = () => {
               <div className="h-96">
                 <MapComponent 
                   geometryData={geometryData}
-                  filteredData={filteredData}
+                  filteredData={filteredData || []}
                 />
               </div>
             </section>
@@ -627,7 +734,7 @@ const UnidadesProyecto: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                    {filteredData.slice(0, 50).map((item) => (
+                    {(filteredData || []).slice(0, 50).map((item) => (
                       <tr key={item.upid} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td className="px-4 py-2 text-sm font-mono text-gray-900 dark:text-white">
                           {item.upid}
@@ -662,9 +769,9 @@ const UnidadesProyecto: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
-                {filteredData.length > 50 && (
+                {(filteredData?.length || 0) > 50 && (
                   <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                    Mostrando primeros 50 de {filteredData.length} registros
+                    Mostrando primeros 50 de {filteredData?.length || 0} registros
                   </div>
                 )}
               </div>
