@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ChevronDown, 
@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
 import { useProyectos } from '@/hooks/useProyectos'
-import { useEmprestito } from '@/hooks/useEmprestito'
 import ContractDetailCard from '@/components/ContractDetailCard'
 
 // Interfaz para proyecto con contratos asociados
@@ -67,44 +66,72 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
 
   // Hooks para datos
   const proyectosState = useProyectos()
-  const emprestitoState = useEmprestito()
+  
+  // Estados para datos de contratos
+  const [contratosData, setContratosData] = React.useState<any[]>([])
+  const [loadingContratos, setLoadingContratos] = React.useState(true)
+  const [errorContratos, setErrorContratos] = React.useState<string | null>(null)
 
   // Estado para mapa BPIN -> BP
   const [bpinToBpMap, setBpinToBpMap] = React.useState<Record<number, string>>({})
+
+  // Cargar datos de emp_contratos.json
+  React.useEffect(() => {
+    const loadContratosData = async () => {
+      try {
+        setLoadingContratos(true)
+        const response = await fetch('/data/emprestito/emp_contratos.json')
+        if (!response.ok) {
+          throw new Error('Error al cargar los datos de contratos')
+        }
+        const data = await response.json()
+        setContratosData(data)
+        setErrorContratos(null)
+      } catch (error) {
+        console.error('Error cargando contratos:', error)
+        setErrorContratos(error instanceof Error ? error.message : 'Error desconocido')
+        setContratosData([])
+      } finally {
+        setLoadingContratos(false)
+      }
+    }
+
+    loadContratosData()
+  }, [])
 
   // Cargar datos de características de proyectos para obtener el BP real
   React.useEffect(() => {
     const loadBpinToBpMap = async () => {
       try {
-        const response = await fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json')
+        const response = await fetch('/data/emprestito/caracteristicas_proyectos.json')
         if (response.ok) {
           const data = await response.json()
           const map: Record<number, string> = {}
-          data.forEach((proyecto: any) => {
-            if (proyecto.bpin && proyecto.bp) {
-              map[proyecto.bpin] = proyecto.bp
+          data.forEach((item: any) => {
+            if (item.bpin && item.bp) {
+              map[parseInt(item.bpin)] = item.bp
             }
           })
           setBpinToBpMap(map)
         }
       } catch (error) {
-        console.warn('No se pudo cargar el mapa BPIN -> BP:', error)
+        console.warn('No se pudieron cargar las características de proyectos:', error)
       }
     }
-    
+
     loadBpinToBpMap()
   }, [])
 
   // Integración de datos - mostrar TODOS los contratos de empréstito
   const integratedData = useMemo(() => {
     // Verificar que tenemos datos de contratos
-    if (!emprestitoState.data?.contratos || emprestitoState.data.contratos.length === 0) {
+    if (!contratosData || contratosData.length === 0) {
       console.warn('⚠️ No hay datos de contratos de empréstito disponibles')
       return []
     }
 
     const proyectos = proyectosState.proyectos || []
-    const contratosEmprestito = emprestitoState.data.contratos
+    const contratosEmprestito = contratosData
     
     // Crear un mapa de proyectos por BPIN para referencia rápida
     const proyectosPorBpin = proyectos.reduce((acc: Record<number, any>, proyecto: any) => {
@@ -119,8 +146,10 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     const contratosSinBpin: any[] = []
     
     contratosEmprestito.forEach((contrato: any) => {
-      if (contrato.bpin) {
-        contratosConBpin.push(contrato)
+      // Buscar BPIN en diferentes campos posibles
+      const bpinValue = contrato.bpin || contrato.codigo_bpin || contrato.id_bpin
+      if (bpinValue) {
+        contratosConBpin.push({...contrato, bpin: bpinValue})
       } else {
         contratosSinBpin.push(contrato)
       }
@@ -152,30 +181,30 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
       result.push({
         // Datos del proyecto (reales o generados)
         bpin: bpin,
-        nombre_proyecto: proyectoExistente?.nombre_proyecto || primerContrato?.descripcion_del_proceso || `Proyecto BPIN ${bpin}`,
-        nombre_actividad: proyectoExistente?.nombre_actividad || primerContrato?.objeto_del_contrato || 'Actividad no especificada',
+        nombre_proyecto: proyectoExistente?.nombre_proyecto || primerContrato?.objeto_contrato || `Proyecto BPIN ${bpin}`,
+        nombre_actividad: proyectoExistente?.nombre_actividad || primerContrato?.objeto_contrato || 'Actividad no especificada',
         nombre_centro_gestor: proyectoExistente?.nombre_centro_gestor || primerContrato?.nombre_entidad || 'Centro gestor no especificado',
         nombre_programa: proyectoExistente?.nombre_programa || 'Programa no especificado',
         tipo_gasto: proyectoExistente?.tipo_gasto || 'No especificado',
         tipo_objetivo: proyectoExistente?.tipo_objetivo || 'No especificado',
         anio: proyectoExistente?.anio || new Date().getFullYear(),
-        valor_proyecto: proyectoExistente?.valor_proyecto || contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_del_contrato || c.valor_contrato || 0), 0),
+        valor_proyecto: proyectoExistente?.valor_proyecto || contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_contrato || 0), 0),
         
         // Datos de contratos
         contratos: contratosAsociados,
         contratosCount: contratosAsociados.length,
-        totalValueContratos: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_del_contrato || c.valor_contrato || 0), 0),
+        totalValueContratos: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_contrato || 0), 0),
         valorPagado: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_pagado || 0), 0),
-        valorPendiente: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_pendiente_de_pago || c.valor_pendiente_pago || 0), 0),
+        valorPendiente: contratosAsociados.reduce((sum: number, c: any) => sum + (c.valor_pendiente || 0), 0),
         estadosContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.estado_contrato).filter(Boolean))),
-        tiposContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.tipo_de_contrato || c.tipo_contrato).filter(Boolean))),
+        tiposContratos: Array.from(new Set(contratosAsociados.map((c: any) => c.tipo_contrato).filter(Boolean))),
         
         // Datos de empréstito
         isEmprestito: true,
         valor_emprestito: 0,
-        fuente_emprestito: primerContrato?._registro_origen?.banco || primerContrato?.banco || '',
+        fuente_emprestito: primerContrato?.registro_origen?.banco || '',
         bp: bpinToBpMap[bpin] || '',
-        nombre_comercial: primerContrato?.objeto_del_contrato || ''
+        nombre_comercial: primerContrato?.objeto_contrato || ''
       } as ProjectWithContracts)
     })
 
@@ -186,31 +215,31 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
       result.push({
         // Datos generados para contrato sin BPIN
         bpin: bpinVirtual,
-        nombre_proyecto: contrato.descripcion_del_proceso || `Contrato sin BPIN ${Math.abs(bpinVirtual)}`,
-        nombre_actividad: contrato.objeto_del_contrato || 'Actividad no especificada',
+        nombre_proyecto: contrato.objeto_contrato || `Contrato sin BPIN ${Math.abs(bpinVirtual)}`,
+        nombre_actividad: contrato.objeto_contrato || 'Actividad no especificada',
         nombre_centro_gestor: contrato.nombre_entidad || 'Centro gestor no especificado',
         nombre_programa: 'Programa no especificado',
         tipo_gasto: 'No especificado',
         tipo_objetivo: 'No especificado',
         anio: new Date().getFullYear(),
-        valor_proyecto: contrato.valor_del_contrato || contrato.valor_contrato || 0,
+        valor_proyecto: contrato.valor_contrato || 0,
         
         // Datos de contratos
         contratos: [contrato],
         contratosCount: 1,
-        totalValueContratos: contrato.valor_del_contrato || contrato.valor_contrato || 0,
+        totalValueContratos: contrato.valor_contrato || 0,
         valorPagado: contrato.valor_pagado || 0,
-        valorPendiente: contrato.valor_pendiente_de_pago || contrato.valor_pendiente_pago || 0,
+        valorPendiente: contrato.valor_pendiente || 0,
         estadosContratos: contrato.estado_contrato ? [contrato.estado_contrato] : [],
-        tiposContratos: (contrato.tipo_de_contrato || contrato.tipo_contrato) ? [contrato.tipo_de_contrato || contrato.tipo_contrato] : [],
+        tiposContratos: contrato.tipo_contrato ? [contrato.tipo_contrato] : [],
         
         // Datos de empréstito
         isEmprestito: true,
         valor_emprestito: 0,
-        fuente_emprestito: contrato._registro_origen?.banco || contrato.banco || '',
+        fuente_emprestito: contrato.registro_origen?.banco || '',
         bp: '',
-        nombre_comercial: contrato.objeto_del_contrato || ''
-      } as ProjectWithContracts)
+        nombre_comercial: contrato.objeto_contrato || ''
+      } as ProjectWithContratos)
     })
 
     // Ordenar por valor total de contratos descendente
@@ -219,7 +248,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     })
     
     return sortedResult
-  }, [proyectosState.proyectos, emprestitoState.data.contratos, bpinToBpMap])
+  }, [contratosData, proyectosState.proyectos, bpinToBpMap])
 
   // Opciones dinámicas para filtros
   const centrosGestor = useMemo(() => {
@@ -406,10 +435,10 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     return filters.length > 0 ? ` (${filters.join(', ')})` : ''
   }
 
-  const loading = proyectosState.loading || emprestitoState.loading
+  const loading = proyectosState.loading || loadingContratos
 
   // Mostrar errores específicos si los hay
-  if (proyectosState.error || emprestitoState.error) {
+  if (proyectosState.error || errorContratos) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="text-center py-8">
@@ -423,8 +452,8 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
             {proyectosState.error && (
               <p>• Proyectos: {proyectosState.error}</p>
             )}
-            {emprestitoState.error && (
-              <p>• Empréstito: {emprestitoState.error}</p>
+            {errorContratos && (
+              <p>• Contratos: {errorContratos}</p>
             )}
           </div>
           <button 
@@ -465,7 +494,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
           <div className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
             <p>Estado de carga:</p>
             <p>• Proyectos: {proyectosState.proyectos?.length || 0} registros</p>
-            <p>• Contratos: {emprestitoState.data?.contratos?.length || 0} registros</p>
+            <p>• Contratos: {contratosData?.length || 0} registros</p>
           </div>
         </div>
       </div>
