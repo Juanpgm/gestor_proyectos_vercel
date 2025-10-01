@@ -330,14 +330,16 @@ const UnidadesProyecto: React.FC = () => {
     try {
       console.log('[FRONTEND] Starting data fetch...');
       
-      const [geometryResponse, attributesResponse] = await Promise.all([
+      const [geometryResponse, attributesResponse, filtersResponse] = await Promise.all([
         fetch('/api/proxy/unidades-proyecto/geometry'),
-        fetch('/api/proxy/unidades-proyecto/attributes')
+        fetch('/api/proxy/unidades-proyecto/attributes'),
+        fetch('/api/proxy/unidades-proyecto/filters')
       ]);
 
       console.log('[FRONTEND] Response statuses:', {
         geometry: geometryResponse.status,
-        attributes: attributesResponse.status
+        attributes: attributesResponse.status,
+        filters: filtersResponse.status
       });
 
       if (geometryResponse.ok) {
@@ -399,6 +401,33 @@ const UnidadesProyecto: React.FC = () => {
         }
       } else {
         console.error('[FRONTEND] Attributes error:', await attributesResponse.text());
+      }
+
+      // Procesar filtros de la API si están disponibles
+      if (filtersResponse.ok) {
+        const apiFilters = await filtersResponse.json();
+        console.log('[FRONTEND] API Filters data:', typeof apiFilters, apiFilters);
+        
+        // Convertir filtros de la API al formato esperado por el componente
+        if (apiFilters && typeof apiFilters === 'object') {
+          const convertedFilters: FilterData = {
+            estados: apiFilters.estados || [],
+            tipos_intervencion: apiFilters.tipos_intervencion || [],
+            centros_gestores: apiFilters.centros_gestores || [],
+            comunas_corregimientos: apiFilters.comunas || [],
+            fuentes_financiacion: apiFilters.fuentes_financiacion || [],
+            anos: apiFilters.anos ? apiFilters.anos.map((ano: string) => parseInt(ano)).filter((ano: number) => !isNaN(ano)) : []
+          };
+          
+          console.log('[FRONTEND] Converted API filters:', Object.keys(convertedFilters).map(k => `${k}: ${convertedFilters[k as keyof FilterData].length}`).join(', '));
+          
+          // Usar filtros de la API si no hay datos procesados o como complemento
+          if (!filterData || Object.values(filterData).every(arr => arr.length === 0)) {
+            setFilterData(convertedFilters);
+          }
+        }
+      } else {
+        console.error('[FRONTEND] Filters error:', await filtersResponse.text());
       }
 
       setLastUpdate(new Date());
