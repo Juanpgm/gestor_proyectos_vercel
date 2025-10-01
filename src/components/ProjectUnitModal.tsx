@@ -323,14 +323,14 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <motion.section
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[99999]"
           onClick={onClose}
         >
-          <motion.div
+          <motion.article
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -340,11 +340,11 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
             id="project-unit-modal-content"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-700 dark:to-purple-800 text-white p-6 border-b border-purple-500 dark:border-purple-600">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
+            <header className="bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-700 dark:to-purple-800 text-white p-6 border-b border-purple-500 dark:border-purple-600">
+              <section className="flex justify-between items-start">
+                <section className="flex-1">
                   <h2 className="text-2xl font-bold mb-2 text-white">{projectUnit.name}</h2>
-                  <div className="flex items-center space-x-4 text-purple-100 dark:text-purple-200 mb-3">
+                  <section className="flex items-center space-x-4 text-purple-100 dark:text-purple-200 mb-3">
                     <span className="flex items-center">
                       <Building className="w-5 h-5 mr-2" />
                       ID: {projectUnit.id}
@@ -353,8 +353,8 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                       <MapPin className="w-5 h-5 mr-2" />
                       BPIN: {projectUnit.bpin}
                     </span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-purple-200 dark:text-purple-300 text-sm">
+                  </section>
+                  <section className="grid grid-cols-1 md:grid-cols-2 gap-6 text-purple-200 dark:text-purple-300 text-sm">
                     <div>
                       <span className="font-medium block">Centro Gestor:</span>
                       <span className="text-purple-100 font-semibold text-base">{projectUnit.responsible}</span>
@@ -365,9 +365,9 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                         {projectUnit.status}
                       </span>
                     </div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
+                  </section>
+                </section>
+                <nav className="flex items-center space-x-2">
                   <button
                     onClick={handleExportPDF}
                     className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
@@ -383,105 +383,105 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                   >
                     <X className="w-6 h-6" />
                   </button>
-                </div>
-              </div>
-            </div>
+                </nav>
+              </section>
+            </header>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(95vh-140px)] bg-white dark:bg-gray-900">
-              <div className="p-3 space-y-3">
+            <main className="overflow-y-auto max-h-[calc(95vh-140px)] bg-white dark:bg-gray-900">
+              <section className="p-3 space-y-3">
                 {/* Información General */}
-                <div className="space-y-3">
+                <section className="space-y-3">
                   {/* Progress Bars */}
-                  <div className="space-y-2">
+                  <section className="space-y-2">
                     {/* Progreso Físico */}
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                      <div className="flex justify-between items-center mb-1">
+                    <article className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                      <section className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progreso Físico</span>
                         <span className={`text-sm font-semibold ${getProgressTextColor('physical', projectUnit.progress)}`}>
                           {formatPercentage(projectUnit.progress)}
                         </span>
-                      </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      </section>
+                      <section className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
                           className={`bg-gradient-to-r ${getProgressBarColor('physical', projectUnit.progress)} h-2 rounded-full transition-all duration-300`}
                           style={{ width: `${Math.min(projectUnit.progress, 100)}%` }}
                         ></div>
-                      </div>
-                    </div>
+                      </section>
+                    </article>
 
                     {/* Progreso Financiero */}
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                      <div className="flex justify-between items-center mb-1">
+                    <article className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                      <section className="flex justify-between items-center mb-1">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progreso Financiero</span>
                         <span className={`text-sm font-semibold ${getProgressTextColor('financial', (projectUnit.executed / projectUnit.budget) * 100)}`}>
                           {formatPercentage((projectUnit.executed / projectUnit.budget) * 100)}
                         </span>
-                      </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      </section>
+                      <section className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
                           className={`bg-gradient-to-r ${getProgressBarColor('financial', (projectUnit.executed / projectUnit.budget) * 100)} h-2 rounded-full transition-all duration-300`}
                           style={{ width: `${Math.min((projectUnit.executed / projectUnit.budget) * 100, 100)}%` }}
                         ></div>
-                      </div>
-                    </div>
-                  </div>
+                      </section>
+                    </article>
+                  </section>
 
                   {/* Información de la Unidad */}
-                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                  <article className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
                       <Info className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
                       Información de la Unidad de Proyecto
                     </h3>
-                    <div className="space-y-2 text-sm">
+                    <dl className="space-y-2 text-sm">
                       {projectUnit.tipoIntervencion && (
                         <div className="flex justify-between items-start">
-                          <span className="text-gray-600 dark:text-gray-300 font-medium">Tipo de Intervención:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.tipoIntervencion}</span>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Tipo de Intervención:</dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.tipoIntervencion}</dd>
                         </div>
                       )}
                       {projectUnit.claseObra && (
                         <div className="flex justify-between items-start">
-                          <span className="text-gray-600 dark:text-gray-300 font-medium">Clase de Obra:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.claseObra}</span>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Clase de Obra:</dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.claseObra}</dd>
                         </div>
                       )}
                       {projectUnit.comuna && (
                         <div className="flex justify-between items-start">
-                          <span className="text-gray-600 dark:text-gray-300 font-medium">Comuna:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.comuna}</span>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Comuna:</dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.comuna}</dd>
                         </div>
                       )}
                       {projectUnit.barrio && (
                         <div className="flex justify-between items-start">
-                          <span className="text-gray-600 dark:text-gray-300 font-medium">Barrio:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.barrio}</span>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Barrio:</dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.barrio}</dd>
                         </div>
                       )}
                       {projectUnit.corregimiento && (
                         <div className="flex justify-between items-start">
-                          <span className="text-gray-600 dark:text-gray-300 font-medium">Corregimiento:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.corregimiento}</span>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Corregimiento:</dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.corregimiento}</dd>
                         </div>
                       )}
                       {projectUnit.direccion && (
                         <div className="flex justify-between items-start">
-                          <span className="text-gray-600 dark:text-gray-300 font-medium">Dirección:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.direccion}</span>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Dirección:</dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.direccion}</dd>
                         </div>
                       )}
                       {projectUnit.beneficiaries > 0 && (
                         <div className="flex justify-between items-start">
-                          <span className="text-gray-600 dark:text-gray-300 font-medium">Beneficiarios:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.beneficiaries.toLocaleString()}</span>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Beneficiarios:</dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.beneficiaries.toLocaleString()}</dd>
                         </div>
                       )}
-                    </div>
-                  </div>
+                    </dl>
+                  </article>
 
                   {/* Descripción de la Unidad */}
                   {projectUnit.descripcion && (
-                    <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
+                    <article className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
                       <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
                         <Building className="w-4 h-4 mr-2 text-indigo-600 dark:text-indigo-400" />
                         Descripción de la Unidad
@@ -489,51 +489,51 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                       <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed bg-white dark:bg-gray-700 p-2 rounded-lg border">
                         {projectUnit.descripcion}
                       </p>
-                    </div>
+                    </article>
                   )}
 
                   {/* Información Financiera */}
-                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                  <article className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                       <DollarSign className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
                       Información Financiera
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Presupuesto</div>
-                        <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                    <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <article className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Presupuesto</p>
+                        <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                           {formatCurrency(projectUnit.budget)}
-                        </div>
-                      </div>
-                      <div className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ejecutado</div>
-                        <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        </p>
+                      </article>
+                      <article className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ejecutado</p>
+                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                           {formatCurrency(projectUnit.executed)}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">
                           {formatPercentage((projectUnit.executed / projectUnit.budget) * 100)}
-                        </div>
-                      </div>
-                      <div className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pagado</div>
-                        <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                        </p>
+                      </article>
+                      <article className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pagado</p>
+                        <p className="text-lg font-bold text-green-600 dark:text-green-400">
                           {formatCurrency(projectUnit.pagado)}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">
                           {formatPercentage((projectUnit.pagado / projectUnit.budget) * 100)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                        </p>
+                      </article>
+                    </section>
+                  </article>
 
                   {/* Análisis Presupuestario con Gráficos */}
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
-                    <div className="flex justify-between items-center mb-3">
+                  <article className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3">
+                    <section className="flex justify-between items-center mb-3">
                       <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center">
                         <BarChart3 className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
                         Análisis Presupuestario
                       </h3>
-                      <div className="flex gap-1">
+                      <nav className="flex gap-1">
                         {(['bar', 'pie', 'line', 'area'] as ChartType[]).map(type => (
                           <button
                             key={type}
@@ -547,43 +547,43 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                             {type === 'bar' ? 'Barras' : type === 'pie' ? 'Torta' : type === 'line' ? 'Línea' : 'Área'}
                           </button>
                         ))}
-                      </div>
-                    </div>
+                      </nav>
+                    </section>
                     {renderChart()}
-                  </div>
+                  </article>
 
                   {/* Fechas del Proyecto */}
-                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                  <article className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
                       <Clock className="w-4 h-4 mr-2 text-orange-600 dark:text-orange-400" />
                       Cronograma
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600 dark:text-gray-300 font-medium">Fecha de Inicio:</span>
-                        <div className="font-semibold text-gray-900 dark:text-white">
+                        <dt className="text-gray-600 dark:text-gray-300 font-medium">Fecha de Inicio:</dt>
+                        <dd className="font-semibold text-gray-900 dark:text-white">
                           {new Date(projectUnit.startDate).toLocaleDateString('es-CO')}
-                        </div>
+                        </dd>
                       </div>
                       <div>
-                        <span className="text-gray-600 dark:text-gray-300 font-medium">Fecha de Finalización:</span>
-                        <div className="font-semibold text-gray-900 dark:text-white">
+                        <dt className="text-gray-600 dark:text-gray-300 font-medium">Fecha de Finalización:</dt>
+                        <dd className="font-semibold text-gray-900 dark:text-white">
                           {new Date(projectUnit.endDate).toLocaleDateString('es-CO')}
-                        </div>
+                        </dd>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                    </dl>
+                  </article>
+                </section>
+              </section>
+            </main>
 
             {/* Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/70">
-              <div className="flex justify-between items-center">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+            <footer className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/70">
+              <section className="flex justify-between items-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Ficha de unidad de proyecto generada el {new Date().toLocaleDateString('es-CO')}
-                </div>
-                <div className="flex space-x-2">
+                </p>
+                <nav className="flex space-x-2">
                   <button
                     onClick={handlePrintModal}
                     className="bg-gray-600 hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200 font-medium text-sm"
@@ -593,16 +593,16 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                   </button>
                   <button
                     onClick={handleExportPDF}
-                    className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200 font-medium text-sm"
+                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Exportar</span>
+                    <span className="text-sm">Exportar PDF</span>
                   </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
+                </nav>
+              </section>
+            </footer>
+          </motion.article>
+        </motion.section>
       )}
     </AnimatePresence>
   )

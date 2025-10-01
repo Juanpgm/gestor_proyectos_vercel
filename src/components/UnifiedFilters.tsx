@@ -952,11 +952,11 @@ export default function UnifiedFilters({
   const filteredFiltrosPersonalizados = filtrosPersonalizadosOptions.filter((f: string) => f.toLowerCase().includes(filtrosPersonalizadosSearch.toLowerCase()))
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 transition-colors duration-300 ${className}`}>
+    <section className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 transition-colors duration-300 ${className}`}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+      <header className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <section className="flex items-center justify-between">
+          <section className="flex items-center space-x-3">
             <Filter className="w-5 h-5 text-blue-500" />
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Filtros de Búsqueda</h3>
             {getActiveFiltersCount() > 0 && (
@@ -964,9 +964,9 @@ export default function UnifiedFilters({
                 {getActiveFiltersCount()}
               </span>
             )}
-          </div>
+          </section>
 
-          <div className="flex items-center space-x-2">
+          <nav className="flex items-center space-x-2">
             <button
               onClick={() => {
                 // Debug information removed for production
@@ -991,25 +991,25 @@ export default function UnifiedFilters({
               <span className="text-sm">{isExpanded ? 'Contraer' : 'Expandir'}</span>
               <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
             </button>
-          </div>
-        </div>
-      </div>
+          </nav>
+        </section>
+      </header>
 
       {/* Filters Content */}
-      <motion.div
+      <motion.section
         initial={false}
         animate={{ height: isExpanded ? 'auto' : 0, opacity: isExpanded ? 1 : 0 }}
         transition={{ duration: 0.3 }}
         className="overflow-visible"
       >
-        <div className="p-4 space-y-4 overflow-visible">
+        <main className="p-4 space-y-4 overflow-visible">
           {/* Barra de Búsqueda Global */}
-          <div className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl p-4 relative">
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">
+          <article className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl p-4 relative">
+            <section className="flex items-center space-x-3">
+              <section className="flex-shrink-0">
                 <Search className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </div>
-              <div className="flex-1 relative" ref={searchDropdownRef}>
+              </section>
+              <section className="flex-1 relative" ref={searchDropdownRef}>
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -1038,7 +1038,7 @@ export default function UnifiedFilters({
                 
                 {/* Dropdown de sugerencias - SIMPLIFICADO */}
                 {showSuggestions && searchSuggestions.length > 0 && (
-                  <div 
+                  <section 
                     ref={suggestionsDropdownRef} 
                     className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-2xl z-[99999] max-h-80 overflow-y-auto ring-1 ring-black ring-opacity-5 backdrop-blur-sm"
                     onMouseEnter={() => {
@@ -1053,8 +1053,8 @@ export default function UnifiedFilters({
                       scheduleAutoHide(300)
                     }}
                   >
-                    <div className="p-2">
-                      <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-1 uppercase tracking-wide border-b border-gray-200 dark:border-gray-600 mb-2">
+                    <section className="p-2">
+                      <header className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 py-1 uppercase tracking-wide border-b border-gray-200 dark:border-gray-600 mb-2">
                         <span>
                           {/^\d+$/.test(safeFilters.search.trim()) ? 'Resultados BPIN (Optimizado)' : 'Filtros Sugeridos - Click para Aplicar'}
                         </span>
@@ -1069,7 +1069,7 @@ export default function UnifiedFilters({
                         >
                           ✕
                         </button>
-                      </div>
+                      </header>
                       {searchSuggestions.map((suggestion, index) => (
                         <button
                           key={`${suggestion.type}-${suggestion.value}-${index}`}
@@ -1086,12 +1086,12 @@ export default function UnifiedFilters({
                               : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
                           }`}
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white break-words leading-5">
+                          <section className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white break-words leading-5">
                               {suggestion.label}
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0">
+                            </p>
+                          </section>
+                          <section className="flex-shrink-0">
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               suggestion.type === 'BPIN' ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300 border border-cyan-300 font-semibold' :
                               suggestion.type === 'Centro Gestor' ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300 border border-teal-300' :
@@ -1105,15 +1105,15 @@ export default function UnifiedFilters({
                             }`}>
                               {suggestion.type}
                             </span>
-                          </div>
+                          </section>
                         </button>
                       ))}
-                    </div>
-                  </div>
+                    </section>
+                  </section>
                 )}
-              </div>
+              </section>
               {safeFilters.search && (
-                <div className="flex items-center space-x-2">
+                <section className="flex items-center space-x-2">
                   <button
                     onClick={() => {
                       updateFilters({ search: '' })
@@ -1139,27 +1139,27 @@ export default function UnifiedFilters({
                       ✕ Cerrar
                     </button>
                   )}
-                </div>
+                </section>
               )}
-            </div>
+            </section>
             {safeFilters.search && (
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-xs text-blue-600 dark:text-blue-400">
+              <section className="mt-2 flex items-center justify-between">
+                <p className="text-xs text-blue-600 dark:text-blue-400">
                   Buscando: &ldquo;<span className="font-medium">{safeFilters.search}</span>&rdquo;
                   {/^\d+$/.test(safeFilters.search.trim()) && (
                     <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs bg-cyan-100 text-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300 border border-cyan-300">
                       🎯 Búsqueda optimizada por BPIN
                     </span>
                   )}
-                </div>
-              </div>
+                </p>
+              </section>
             )}
-          </div>
+          </article>
 
           {/* Centro Gestor y Año */}
-          <div className="flex gap-3">
+          <section className="flex gap-3">
             {/* Centro Gestor - 80% del espacio */}
-            <div className="relative flex-1 w-4/5" data-dropdown="centro_gestor">
+            <section className="relative flex-1 w-4/5" data-dropdown="centro_gestor">
               <button
                 onClick={(e) => {
                   e.preventDefault()
@@ -1176,11 +1176,11 @@ export default function UnifiedFilters({
               </button>
 
               {openDropdowns.centro_gestor && (
-                <div 
+                <section 
                   className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto"
                 >
-                  <div className="p-3">
-                    <div className="mb-2">
+                  <section className="p-3">
+                    <section className="mb-2">
                       <input
                         type="text"
                         value={centroGestorSearch}
@@ -1188,8 +1188,8 @@ export default function UnifiedFilters({
                         placeholder="Buscar centro gestor..."
                         className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       />
-                    </div>
-                    <div className="space-y-1 max-h-60 overflow-y-auto">
+                    </section>
+                    <section className="space-y-1 max-h-60 overflow-y-auto">
                       {filteredCentroGestor.map(centro => (
                         <label 
                           key={centro} 
@@ -1207,18 +1207,18 @@ export default function UnifiedFilters({
                         </label>
                       ))}
                       {filteredCentroGestor.length === 0 && (
-                        <div className="text-sm text-gray-500 text-center py-2">
+                        <p className="text-sm text-gray-500 text-center py-2">
                           No se encontraron centros gestores
-                        </div>
+                        </p>
                       )}
-                    </div>
-                  </div>
-                </div>
+                    </section>
+                  </section>
+                </section>
               )}
-            </div>
+            </section>
 
             {/* Dropdown de Período - 20% del espacio */}
-            <div className="relative w-1/5" data-dropdown="periodo">
+            <section className="relative w-1/5" data-dropdown="periodo">
               <button
                 onClick={(e) => {
                   e.preventDefault()
@@ -1235,12 +1235,12 @@ export default function UnifiedFilters({
               </button>
 
               {openDropdowns.periodo && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-60 overflow-y-auto">
-                  <div className="p-2">
-                    <div className="space-y-1">
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1 border-b border-gray-200 dark:border-gray-600">
+                <section className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-60 overflow-y-auto">
+                  <section className="p-2">
+                    <section className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1 border-b border-gray-200 dark:border-gray-600">
                         Filtrar por Año
-                      </div>
+                      </p>
                       {['2024', '2025', '2026', '2027'].map(año => (
                         <label
                           key={año}
@@ -1256,9 +1256,9 @@ export default function UnifiedFilters({
                         </label>
                       ))}
                       
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1 border-b border-t border-gray-200 dark:border-gray-600 mt-2">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-1 border-b border-t border-gray-200 dark:border-gray-600 mt-2">
                         Filtrar por Período
-                      </div>
+                      </p>
                       {['2024-2027', '2020-2023', '2016-2019'].map(periodo => (
                         <label
                           key={periodo}
@@ -1285,18 +1285,18 @@ export default function UnifiedFilters({
                           Limpiar todos los períodos
                         </button>
                       )}
-                    </div>
-                  </div>
-                </div>
+                    </section>
+                  </section>
+                </section>
               )}
-            </div>
-          </div>
+            </section>
+          </section>
 
           {/* Geographical filters */}
-          <div ref={dropdownRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-1 relative" data-dropdown="filters-container">
+          <section ref={dropdownRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-1 relative" data-dropdown="filters-container">
             
             {/* Filtros Personalizados - Nuevo dropdown al principio */}
-            <div className="relative">
+            <article className="relative">
               <button
                 onClick={() => toggleDropdown('filtros_personalizados')}
                 className="flex items-center justify-between w-full px-1.5 py-2 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-700 rounded-lg cursor-pointer hover:bg-pink-100 dark:hover:bg-pink-800/30 transition-colors duration-200"
@@ -1306,8 +1306,8 @@ export default function UnifiedFilters({
               </button>
 
               {openDropdowns.filtros_personalizados && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
-                  <div className="p-3">
+                <section className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
+                  <section className="p-3">
                     <input
                       type="text"
                       value={filtrosPersonalizadosSearch}
@@ -1315,7 +1315,7 @@ export default function UnifiedFilters({
                       placeholder="Buscar filtro..."
                       className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2"
                     />
-                    <div className="space-y-1 max-h-60 overflow-y-auto">
+                    <section className="space-y-1 max-h-60 overflow-y-auto">
                       {filteredFiltrosPersonalizados.map((filtro: string) => (
                         <label key={filtro} className="flex items-center space-x-2 p-1 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded cursor-pointer">
                           <input
@@ -1328,18 +1328,18 @@ export default function UnifiedFilters({
                         </label>
                       ))}
                       {filteredFiltrosPersonalizados.length === 0 && (
-                        <div className="text-sm text-gray-500 text-center py-2">
+                        <p className="text-sm text-gray-500 text-center py-2">
                           No se encontraron filtros personalizados
-                        </div>
+                        </p>
                       )}
-                    </div>
-                  </div>
-                </div>
+                    </section>
+                  </section>
+                </section>
               )}
-            </div>
+            </article>
             
             {/* Estado - Convertido a dropdown con opciones coloridas */}
-            <div className="relative">
+            <article className="relative">
               <button
                 onClick={() => toggleDropdown('estado')}
                 className="flex items-center justify-between w-full px-1.5 py-2 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 rounded-lg cursor-pointer hover:bg-teal-100 dark:hover:bg-teal-800/30 transition-colors duration-200"
@@ -1349,9 +1349,9 @@ export default function UnifiedFilters({
               </button>
 
               {openDropdowns.estado && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
-                  <div className="p-3">
-                    <div className="space-y-1">
+                <section className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
+                  <section className="p-3">
+                    <section className="space-y-1">
                       {estadosOptions.map(option => (
                         <button
                           key={option.value}
@@ -1368,33 +1368,33 @@ export default function UnifiedFilters({
                           {option.label}
                         </button>
                       ))}
-                    </div>
-                  </div>
-                </div>
+                    </section>
+                  </section>
+                </section>
               )}
-            </div>
+            </article>
 
             {/* Fuente de Financiamiento */}
-            <div className="relative">
+            <article className="relative">
               <button
                 onClick={() => toggleDropdown('fuente_financiamiento')}
                 className="flex items-center justify-between w-full px-1.5 py-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-800/30 transition-colors duration-200"
               >
-                <div className="flex items-center space-x-1 min-w-0 flex-1">
+                <section className="flex items-center space-x-1 min-w-0 flex-1">
                   <span className="text-xs font-medium text-purple-700 dark:text-purple-300 truncate">Financiamiento</span>
                   {fuentesLoading && (
-                    <div className="w-3 h-3 border border-purple-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                    <section className="w-3 h-3 border border-purple-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></section>
                   )}
                   {!fuentesLoading && fuentesFinanciamiento.length === 0 && (
                     <span className="text-xs text-red-600 dark:text-red-400 flex-shrink-0">(Sin datos)</span>
                   )}
-                </div>
+                </section>
                 <ChevronDown className={`w-3 h-3 text-purple-600 transition-transform duration-200 ml-1 flex-shrink-0 ${openDropdowns.fuente_financiamiento ? 'rotate-180' : ''}`} />
               </button>
 
               {openDropdowns.fuente_financiamiento && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
-                  <div className="p-3">
+                <section className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
+                  <section className="p-3">
                     <input
                       type="text"
                       value={fuenteFinanciamientoSearch}
@@ -1402,7 +1402,7 @@ export default function UnifiedFilters({
                       placeholder="Buscar fuente..."
                       className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2"
                     />
-                    <div className="space-y-1 max-h-60 overflow-y-auto">
+                    <section className="space-y-1 max-h-60 overflow-y-auto">
                       {filteredFuentesFinanciamiento.map((fuente: string) => (
                         <label key={fuente} className="flex items-center space-x-2 p-1 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded cursor-pointer">
                           <input
@@ -1415,43 +1415,43 @@ export default function UnifiedFilters({
                         </label>
                       ))}
                       {filteredFuentesFinanciamiento.length === 0 && (
-                        <div className="text-sm text-gray-500 text-center py-2">
+                        <p className="text-sm text-gray-500 text-center py-2">
                           {fuentesLoading ? 'Cargando...' : 'No se encontraron fuentes'}
-                        </div>
+                        </p>
                       )}
-                    </div>
-                  </div>
-                </div>
+                    </section>
+                  </section>
+                </section>
               )}
-            </div>
+            </article>
             {/* Comunas & Barrios */}
-            <div className="relative">
+            <article className="relative">
               <button
                 onClick={() => toggleDropdown('comunas_barrios')}
                 className="flex items-center justify-between w-full px-1.5 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800/30 transition-colors duration-200"
               >
-                <div className="flex items-center space-x-1 min-w-0 flex-1">
+                <section className="flex items-center space-x-1 min-w-0 flex-1">
                   <span className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate">Comunas</span>
                   {comunasLoading && (
-                    <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                    <section className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></section>
                   )}
                   {!comunasLoading && comunasOptions.length === 0 && (
                     <span className="text-xs text-red-600 dark:text-red-400 flex-shrink-0">(Sin datos)</span>
                   )}
-                </div>
+                </section>
                 <ChevronDown className={`w-3 h-3 text-blue-600 transition-transform duration-200 ml-1 flex-shrink-0 ${openDropdowns.comunas_barrios ? 'rotate-180' : ''}`} />
               </button>
 
               {openDropdowns.comunas_barrios && (
-                <div 
+                <section 
                   className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="p-3">
+                  <section className="p-3">
                     {/* Comunas list with search */}
-                    <div className="mb-4">
+                    <section className="mb-4">
                       <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2 border-b border-blue-200 dark:border-blue-700 pb-1">Comunas</h4>
-                      <div className="mb-2">
+                      <section className="mb-2">
                         <input
                           type="text"
                           value={comunasSearch}
@@ -1460,8 +1460,8 @@ export default function UnifiedFilters({
                           className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           onClick={(e) => e.stopPropagation()}
                         />
-                      </div>
-                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                      </section>
+                      <section className="space-y-1 max-h-32 overflow-y-auto">
                         {filteredComunas.map(comuna => (
                           <label 
                             key={comuna} 
@@ -1481,20 +1481,20 @@ export default function UnifiedFilters({
                           </label>
                         ))}
                         {filteredComunas.length === 0 && (
-                          <div className="text-sm text-gray-500 text-center py-2">
+                          <p className="text-sm text-gray-500 text-center py-2">
                             {comunasLoading ? 'Cargando comunas...' : 'No se encontraron comunas'}
-                          </div>
+                          </p>
                         )}
-                      </div>
-                    </div>
+                      </section>
+                    </section>
 
                     {/* Barrios list with search */}
-                    <div>
+                    <section>
                       <h4 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2 border-b border-green-200 dark:border-green-700 pb-1">
                         <span>Barrios</span>
                       </h4>
 
-                      <div className="mb-2">
+                      <section className="mb-2">
                         <input
                           type="text"
                           value={barriosSearch}
@@ -1503,9 +1503,9 @@ export default function UnifiedFilters({
                           className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           onClick={(e) => e.stopPropagation()}
                         />
-                      </div>
+                      </section>
 
-                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                      <section className="space-y-1 max-h-32 overflow-y-auto">
                         {filteredBarrios.length > 0 ? (
                           filteredBarrios.map(barrio => (
                             <label 
@@ -1526,19 +1526,19 @@ export default function UnifiedFilters({
                             </label>
                           ))
                         ) : (
-                          <div className="text-center py-2 text-gray-500 dark:text-gray-400 text-sm">
+                          <p className="text-center py-2 text-gray-500 dark:text-gray-400 text-sm">
                             No hay barrios disponibles
-                          </div>
+                          </p>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                      </section>
+                    </section>
+                  </section>
+                </section>
               )}
-            </div>
+            </article>
 
             {/* Corregimientos & Veredas */}
-            <div className="relative">
+            <article className="relative">
               <button
                 onClick={() => toggleDropdown('corregimientos_veredas')}
                 className="flex items-center justify-between w-full px-1.5 py-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-800/30 transition-colors duration-200"
@@ -1548,15 +1548,15 @@ export default function UnifiedFilters({
               </button>
 
               {openDropdowns.corregimientos_veredas && (
-                <div 
+                <section 
                   className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="p-3">
-                    <div className="mb-4">
+                  <section className="p-3">
+                    <section className="mb-4">
                       <h4 className="text-sm font-semibold text-orange-700 dark:text-orange-300 mb-2 border-b border-orange-200 dark:border-orange-700 pb-1">Corregimientos</h4>
 
-                      <div className="mb-2">
+                      <section className="mb-2">
                         <input
                           type="text"
                           value={corregimientosSearch}
@@ -1565,9 +1565,9 @@ export default function UnifiedFilters({
                           className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           onClick={(e) => e.stopPropagation()}
                         />
-                      </div>
+                      </section>
 
-                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                      <section className="space-y-1 max-h-32 overflow-y-auto">
                         {filteredCorregimientos.map(corregimiento => (
                           <label 
                             key={corregimiento} 
@@ -1586,11 +1586,11 @@ export default function UnifiedFilters({
                             <span className="text-sm text-gray-700 dark:text-gray-300">{corregimiento}</span>
                           </label>
                         ))}
-                      </div>
-                    </div>
+                      </section>
+                    </section>
 
-                    <div>
-                      <h4 className="text-sm font-semibold text-purple-700 dark:text-purple-300 mb-2 border-b border-purple-200 dark:border-purple-700 pb-1 flex items-center justify-between">
+                    <section>
+                      <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 mb-2 border-b border-purple-200 dark:border-purple-700 pb-1 flex items-center justify-between">
                         <span>Veredas</span>
                         {(!safeFilters.corregimientos || safeFilters.corregimientos.length === 0) && (
                           <span className="text-xs text-gray-500 italic">Selecciona primero un corregimiento</span>
@@ -1598,9 +1598,9 @@ export default function UnifiedFilters({
                         {(safeFilters.corregimientos && safeFilters.corregimientos.length > 0 && displayedVeredas.length === 0) && (
                           <span className="text-xs text-orange-500 italic">No hay veredas disponibles</span>
                         )}
-                      </h4>
+                      </p>
 
-                      <div className="mb-2">
+                      <section className="mb-2">
                         <input
                           type="text"
                           value={veredasSearch}
@@ -1610,9 +1610,9 @@ export default function UnifiedFilters({
                           disabled={!safeFilters.corregimientos || safeFilters.corregimientos.length === 0}
                           onClick={(e) => e.stopPropagation()}
                         />
-                      </div>
+                      </section>
 
-                      <div className={`space-y-1 max-h-32 overflow-y-auto ${(!safeFilters.corregimientos || safeFilters.corregimientos.length === 0) ? 'opacity-50' : ''}`}>
+                      <section className={`space-y-1 max-h-32 overflow-y-auto ${(!safeFilters.corregimientos || safeFilters.corregimientos.length === 0) ? 'opacity-50' : ''}`}>
                         {filteredVeredas.length > 0 ? (
                           filteredVeredas.map(vereda => (
                             <label 
@@ -1634,41 +1634,38 @@ export default function UnifiedFilters({
                             </label>
                           ))
                         ) : (
-                          <div className="text-center py-2 text-gray-500 dark:text-gray-400 text-sm">
+                          <section className="text-center py-2 text-gray-500 dark:text-gray-400 text-sm">
                             {(!safeFilters.corregimientos || safeFilters.corregimientos.length === 0) 
                               ? 'Selecciona un corregimiento para ver veredas'
                               : 'No hay veredas disponibles para los corregimientos seleccionados'
                             }
-                          </div>
+                          </section>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                      </section>
+                    </section>
+                  </section>
+                </section>
               )}
-            </div>
-
-
-          </div>
-
+            </article>
+          </section>
           {/* Active filters - Solo se muestra si hay filtros activos */}
           {getActiveFiltersCount() > 0 && (
-            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
+            <section className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <section className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center space-x-2">
                   <span>Filtros Activos</span>
                   <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium px-2 py-1 rounded-full">
                     {getActiveFiltersCount()}
                   </span>
-                </h4>
+                </p>
                 <button
                   onClick={resetFilters}
                   className="text-xs text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors duration-200"
                 >
                   Limpiar todos
                 </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
+              </section>
+              <section className="flex flex-wrap gap-2">
                 {safeFilters.search && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm rounded-full border border-gray-200 dark:border-gray-600">
                     <Search className="w-3 h-3" />
@@ -1769,12 +1766,12 @@ export default function UnifiedFilters({
                   </span>
                 ))}
 
-              </div>
-            </div>
+              </section>
+            </section>
           )}
-        </div>
-      </motion.div>
-    </div>
+        </main>
+      </motion.section>
+    </section>
   )
 }
 

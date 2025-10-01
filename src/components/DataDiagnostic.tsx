@@ -19,95 +19,95 @@ export default function DataDiagnosticComponent() {
   const isProduction = process.env.NODE_ENV === 'production'
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6">
+    <main className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6">
       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
         🔍 Diagnóstico de Datos
       </h2>
       
       {/* Configuración de entorno */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+      <section className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
         <h3 className="font-bold text-blue-800 dark:text-blue-200 mb-2">📋 Configuración</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
+        <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <span>
             <strong>API URL:</strong> {apiUrl || 'No configurada'}
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Data Mode:</strong> {dataMode || 'No configurado'}
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Environment:</strong> {process.env.NODE_ENV}
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Window Available:</strong> {typeof window !== 'undefined' ? 'Sí' : 'No'}
-          </div>
-        </div>
-      </div>
+          </span>
+        </dl>
+      </section>
 
       {/* Datos API */}
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+      <section className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
         <h3 className="font-bold text-purple-800 dark:text-purple-200 mb-2">🌐 Datos API</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
+        <dl className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <span>
             <strong>Estado:</strong> No disponible (hooks removidos)
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Registros:</strong> N/A
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Error:</strong> N/A
-          </div>
-          <div className="md:col-span-3">
+          </span>
+          <span className="md:col-span-3">
             <strong>Archivos GeoJSON:</strong> N/A
-          </div>
-          <div className="md:col-span-3">
+          </span>
+          <span className="md:col-span-3">
             <strong>Archivos cargados:</strong> N/A
-          </div>
-        </div>
-      </div>
+          </span>
+        </dl>
+      </section>
 
       {/* Datos Smart Cache */}
-      <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg">
+      <section className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg">
         <h3 className="font-bold text-cyan-800 dark:text-cyan-200 mb-2">🧠 Cache Inteligente</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
+        <dl className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <span>
             <strong>Estado:</strong> No disponible (hooks removidos)
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Registros:</strong> N/A
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Fuente:</strong> N/A
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Desde cache:</strong> N/A
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Horario permitido:</strong> N/A
-          </div>
-          <div>
+          </span>
+          <span>
             <strong>Error:</strong> N/A
-          </div>
-          <div className="md:col-span-3">
+          </span>
+          <span className="md:col-span-3">
             <strong>Próxima actualización:</strong> N/A
-          </div>
-          <div className="md:col-span-3">
+          </span>
+          <span className="md:col-span-3">
             <strong>Cache timestamp:</strong> N/A
-          </div>
-        </div>
-      </div>
+          </span>
+        </dl>
+      </section>
 
       {/* Muestra de datos */}
-      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+      <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
         <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-2">🌐 Muestra de Datos API</h3>
-        <div className="text-xs overflow-x-auto">
+        <pre className="text-xs overflow-x-auto">
           <p className="text-gray-600 dark:text-gray-400">
             No hay datos disponibles (hooks removidos)
           </p>
-        </div>
-      </div>
+        </pre>
+      </section>
 
       {/* Recomendaciones */}
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+      <section className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
         <h3 className="font-bold text-yellow-800 dark:text-yellow-200 mb-2">💡 Recomendaciones</h3>
         <ul className="text-sm space-y-1">
           {!apiUrl && (
@@ -116,22 +116,22 @@ export default function DataDiagnosticComponent() {
           <li>• Los hooks de Unidades de Proyecto han sido removidos</li>
           <li>• Este componente necesita ser actualizado o removido</li>
         </ul>
-      </div>
+      </section>
 
       {/* Botones de acción */}
-      <div className="flex flex-wrap gap-3">
+      <nav className="flex flex-wrap gap-3">
         <button
           onClick={() => window.location.reload()}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           🔄 Recargar Página
         </button>
-      </div>
+      </nav>
 
       {/* Reporte del Smart Cache */}
-      <div className="mt-8">
+      <section className="mt-8">
         <SmartCacheReport />
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }

@@ -60,13 +60,13 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className={`${CSS_UTILS.card} p-3 shadow-lg max-w-xs`}>
+        <article className={`${CSS_UTILS.card} p-3 shadow-lg max-w-xs`}>
           <p className={`${TYPOGRAPHY.h6} font-semibold text-gray-900 dark:text-white mb-2`}>
             {label || payload[0]?.payload?.[nameKey]}
           </p>
           {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2">
-              <div 
+            <section key={index} className="flex items-center gap-2">
+              <span 
                 className="w-3 h-3 rounded-full" 
                 style={{ backgroundColor: entry.color }}
               />
@@ -76,9 +76,9 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
                   {typeof entry.value === 'number' ? entry.value.toLocaleString() : entry.value}
                 </span>
               </span>
-            </div>
+            </section>
           ))}
-        </div>
+        </article>
       )
     }
     return null
@@ -87,11 +87,11 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   const renderChart = () => {
     if (loading || !data || data.length === 0) {
       return (
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-pulse text-gray-400">
+        <section className="flex items-center justify-center h-full">
+          <p className="animate-pulse text-gray-400">
             Cargando gráfico...
-          </div>
-        </div>
+          </p>
+        </section>
       )
     }
 
@@ -178,34 +178,34 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
   }
 
   return (
-    <motion.div
+    <motion.article
       {...ANIMATIONS.slideUp}
       className={`${CSS_UTILS.card} flex flex-col ${className}`}
     >
       {/* Header */}
-      <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 ${categoryConfig.className.accent} rounded-lg`}>
+      <header className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 dark:border-gray-700">
+        <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <section className="flex items-center gap-3">
+            <span className={`p-2 ${categoryConfig.className.accent} rounded-lg`}>
               {chartTypes.find(t => t.id === activeType)?.icon && (
                 React.createElement(chartTypes.find(t => t.id === activeType)!.icon, {
                   className: `w-4 h-4 md:w-5 md:h-5 ${categoryConfig.className.text}`
                 })
               )}
-            </div>
-            <div>
+            </span>
+            <section>
               <h3 className={`${compact ? TYPOGRAPHY.h6 : TYPOGRAPHY.h5} font-semibold text-gray-900 dark:text-white`}>
                 {title}
               </h3>
               <p className={`${TYPOGRAPHY.bodySmall} text-gray-600 dark:text-gray-400`}>
                 {data?.length || 0} elementos
               </p>
-            </div>
-          </div>
+            </section>
+          </section>
 
           {/* Controles de tipo de gráfico */}
           {showControls && !compact && (
-            <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <nav className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
               {chartTypes.map(({ id, icon: Icon, label }) => (
                 <button
                   key={id}
@@ -220,37 +220,37 @@ const ResponsiveChart: React.FC<ResponsiveChartProps> = ({
                   <Icon className="w-4 h-4" />
                 </button>
               ))}
-            </div>
+            </nav>
           )}
-        </div>
-      </div>
+        </section>
+      </header>
 
       {/* Área del gráfico */}
-      <div className="flex-1 p-4 md:p-6" style={{ height: `${height}px` }}>
+      <main className="flex-1 p-4 md:p-6" style={{ height: `${height}px` }}>
         <ResponsiveContainer width="100%" height="100%">
           {renderChart()}
         </ResponsiveContainer>
-      </div>
+      </main>
 
       {/* Leyenda compacta para móvil */}
       {showLegend && activeType === 'pie' && data && data.length > 0 && (
-        <div className="px-4 md:px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        <footer className="px-4 md:px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {data.slice(0, compact ? 4 : 8).map((entry, index) => (
-              <div key={entry[nameKey]} className="flex items-center gap-2">
-                <div 
+              <section key={entry[nameKey]} className="flex items-center gap-2">
+                <span 
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                 />
                 <span className={`${TYPOGRAPHY.caption} text-gray-600 dark:text-gray-400 truncate`}>
                   {entry[nameKey]}
                 </span>
-              </div>
+              </section>
             ))}
-          </div>
-        </div>
+          </section>
+        </footer>
       )}
-    </motion.div>
+    </motion.article>
   )
 }
 

@@ -26,9 +26,9 @@ export const Tabs = ({ children, defaultValue, className = "" }: {
   
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab }}>
-      <div className={`w-full ${className}`} data-active-tab={activeTab}>
+      <section className={`w-full ${className}`} data-active-tab={activeTab}>
         {children}
-      </div>
+      </section>
     </TabsContext.Provider>
   );
 };
@@ -37,9 +37,9 @@ export const TabsList = ({ children, className = "" }: {
   children: React.ReactNode;
   className?: string;
 }) => (
-  <div className={`flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg mb-4 ${className}`}>
+  <nav className={`flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg mb-4 ${className}`}>
     {children}
-  </div>
+  </nav>
 );
 
 export const TabsTrigger = ({ children, value, className = "" }: {
@@ -71,5 +71,5 @@ export const TabsContent = ({ children, value, className = "" }: {
 }) => {
   const { activeTab } = useTabsContext();
   if (activeTab !== value) return null;
-  return <div className={className}>{children}</div>;
+  return <article className={className}>{children}</article>;
 };

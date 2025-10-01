@@ -77,12 +77,12 @@ export default function SmartCacheReport() {
   const callReduction = ((estimatedMonthlyCalls - actualMonthlyCalls) / estimatedMonthlyCalls) * 100
   
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <article className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-6">
+      <header className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           📊 Reporte del Sistema de Cache Inteligente
         </h2>
-        <div className="flex items-center space-x-3">
+        <nav className="flex items-center space-x-3">
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -104,57 +104,57 @@ export default function SmartCacheReport() {
           >
             🗑️ Limpiar Cache
           </button>
-        </div>
-      </div>
+        </nav>
+      </header>
       
       {/* Estado Actual */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <article className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
           <h3 className="font-bold text-blue-800 dark:text-blue-200 mb-2">🕐 Estado Actual</h3>
-          <div className="space-y-2 text-sm">
-            <div><strong>Hora actual:</strong> {stats.schedule.currentHour}:00</div>
+          <dl className="space-y-2 text-sm">
+            <div><dt className="inline"><strong>Hora actual:</strong></dt> <dd className="inline">{stats.schedule.currentHour}:00</dd></div>
             <div>
-              <strong>Estado:</strong>{' '}
-              <span className={stats.schedule.isAllowedHour ? 'text-green-600' : 'text-red-600'}>
+              <dt className="inline"><strong>Estado:</strong></dt>{' '}
+              <dd className={`inline ${stats.schedule.isAllowedHour ? 'text-green-600' : 'text-red-600'}`}>
                 {stats.schedule.isAllowedHour ? '✅ Permitido API' : '🚫 Solo Cache'}
-              </span>
+              </dd>
             </div>
-            <div><strong>Próxima actualización:</strong> {stats.schedule.nextUpdateTime}</div>
-            <div><strong>Horas hasta actualización:</strong> {stats.schedule.hoursUntilNextUpdate}h</div>
-          </div>
-        </div>
+            <div><dt className="inline"><strong>Próxima actualización:</strong></dt> <dd className="inline">{stats.schedule.nextUpdateTime}</dd></div>
+            <div><dt className="inline"><strong>Horas hasta actualización:</strong></dt> <dd className="inline">{stats.schedule.hoursUntilNextUpdate}h</dd></div>
+          </dl>
+        </article>
         
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+        <article className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
           <h3 className="font-bold text-green-800 dark:text-green-200 mb-2">📈 Rendimiento</h3>
-          <div className="space-y-2 text-sm">
-            <div><strong>Hit Rate:</strong> {(stats.cache.hitRate * 100).toFixed(1)}%</div>
-            <div><strong>Entradas válidas:</strong> {stats.cache.validEntries}</div>
-            <div><strong>Entradas obsoletas:</strong> {stats.cache.staleEntries}</div>
-            <div><strong>Tasa de éxito API:</strong> {(stats.api.successRate * 100).toFixed(1)}%</div>
-          </div>
-        </div>
+          <dl className="space-y-2 text-sm">
+            <div><dt className="inline"><strong>Hit Rate:</strong></dt> <dd className="inline">{(stats.cache.hitRate * 100).toFixed(1)}%</dd></div>
+            <div><dt className="inline"><strong>Entradas válidas:</strong></dt> <dd className="inline">{stats.cache.validEntries}</dd></div>
+            <div><dt className="inline"><strong>Entradas obsoletas:</strong></dt> <dd className="inline">{stats.cache.staleEntries}</dd></div>
+            <div><dt className="inline"><strong>Tasa de éxito API:</strong></dt> <dd className="inline">{(stats.api.successRate * 100).toFixed(1)}%</dd></div>
+          </dl>
+        </article>
         
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+        <article className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
           <h3 className="font-bold text-purple-800 dark:text-purple-200 mb-2">💰 Optimización</h3>
-          <div className="space-y-2 text-sm">
-            <div><strong>Reducción de llamadas:</strong> {callReduction.toFixed(1)}%</div>
-            <div><strong>Llamadas estimadas/mes:</strong> {estimatedMonthlyCalls}</div>
-            <div><strong>Llamadas reales/mes:</strong> {actualMonthlyCalls}</div>
-            <div><strong>Ahorro mensual:</strong> {estimatedMonthlyCalls - actualMonthlyCalls} llamadas</div>
-          </div>
-        </div>
-      </div>
+          <dl className="space-y-2 text-sm">
+            <div><dt className="inline"><strong>Reducción de llamadas:</strong></dt> <dd className="inline">{callReduction.toFixed(1)}%</dd></div>
+            <div><dt className="inline"><strong>Llamadas estimadas/mes:</strong></dt> <dd className="inline">{estimatedMonthlyCalls}</dd></div>
+            <div><dt className="inline"><strong>Llamadas reales/mes:</strong></dt> <dd className="inline">{actualMonthlyCalls}</dd></div>
+            <div><dt className="inline"><strong>Ahorro mensual:</strong></dt> <dd className="inline">{estimatedMonthlyCalls - actualMonthlyCalls} llamadas</dd></div>
+          </dl>
+        </article>
+      </section>
       
       {/* Horarios Configurados */}
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+      <section className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
         <h3 className="font-bold text-yellow-800 dark:text-yellow-200 mb-3">⏰ Horarios de API Configurados</h3>
-        <div className="grid grid-cols-4 gap-4">
+        <section className="grid grid-cols-4 gap-4">
           {stats.schedule.allowedHours.map(hour => {
             const callsInHour = stats.api.callsByHour[hour] || 0
             const isCurrentHour = stats.schedule.currentHour === hour
             
             return (
-              <div
+              <article
                 key={hour}
                 className={`p-3 rounded-lg text-center ${
                   isCurrentHour 
@@ -162,49 +162,49 @@ export default function SmartCacheReport() {
                     : 'bg-gray-100 dark:bg-gray-700'
                 }`}
               >
-                <div className="font-bold text-lg">{hour}:00</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="font-bold text-lg">{hour}:00</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {callsInHour} llamadas
-                </div>
+                </p>
                 {isCurrentHour && (
-                  <div className="text-xs text-green-600 dark:text-green-400 font-semibold">
+                  <p className="text-xs text-green-600 dark:text-green-400 font-semibold">
                     Actual
-                  </div>
+                  </p>
                 )}
-              </div>
+              </article>
             )
           })}
-        </div>
-      </div>
+        </section>
+      </section>
       
       {/* Estadísticas de API */}
-      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+      <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
         <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3">🌐 Estadísticas de API</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <strong>Total de llamadas:</strong> {stats.api.totalCalls}
+            <dt className="inline"><strong>Total de llamadas:</strong></dt> <dd className="inline">{stats.api.totalCalls}</dd>
           </div>
           <div>
-            <strong>Cache hits:</strong> {stats.api.cacheHits}
+            <dt className="inline"><strong>Cache hits:</strong></dt> <dd className="inline">{stats.api.cacheHits}</dd>
           </div>
           <div>
-            <strong>Cache misses:</strong> {stats.api.cacheMisses}
+            <dt className="inline"><strong>Cache misses:</strong></dt> <dd className="inline">{stats.api.cacheMisses}</dd>
           </div>
           <div>
-            <strong>Última llamada:</strong> {stats.api.lastCallTime}
+            <dt className="inline"><strong>Última llamada:</strong></dt> <dd className="inline">{stats.api.lastCallTime}</dd>
           </div>
           <div className="md:col-span-2">
-            <strong>Llamadas hoy:</strong> {stats.performance.actualDailyCalls} / {stats.performance.estimatedDailyCalls} estimadas
+            <dt className="inline"><strong>Llamadas hoy:</strong></dt> <dd className="inline">{stats.performance.actualDailyCalls} / {stats.performance.estimatedDailyCalls} estimadas</dd>
           </div>
           <div className="md:col-span-2">
-            <strong>Duración del cache:</strong> {stats.performance.cacheDurationHours}h
+            <dt className="inline"><strong>Duración del cache:</strong></dt> <dd className="inline">{stats.performance.cacheDurationHours}h</dd>
           </div>
-        </div>
-      </div>
+        </dl>
+      </section>
       
       {/* Configuración y Beneficios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <article className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
           <h3 className="font-bold text-indigo-800 dark:text-indigo-200 mb-3">⚙️ Configuración</h3>
           <ul className="text-sm space-y-1">
             <li>• <strong>Horarios API:</strong> 5:00, 12:00, 16:00, 20:00</li>
@@ -213,9 +213,9 @@ export default function SmartCacheReport() {
             <li>• <strong>Timeout:</strong> 30 segundos</li>
             <li>• <strong>Fallback:</strong> Datos offline</li>
           </ul>
-        </div>
+        </article>
         
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg">
+        <article className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg">
           <h3 className="font-bold text-emerald-800 dark:text-emerald-200 mb-3">✨ Beneficios</h3>
           <ul className="text-sm space-y-1">
             <li>• <strong>Reducción de costos:</strong> {callReduction.toFixed(1)}% menos llamadas</li>
@@ -224,39 +224,39 @@ export default function SmartCacheReport() {
             <li>• <strong>Tolerancia a fallos:</strong> Fallback automático</li>
             <li>• <strong>Optimización horaria:</strong> Solo 4 llamadas/día vs 24</li>
           </ul>
-        </div>
-      </div>
+        </article>
+      </section>
       
       {/* Recomendaciones */}
-      <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+      <section className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
         <h3 className="font-bold text-orange-800 dark:text-orange-200 mb-3">💡 Recomendaciones</h3>
-        <div className="text-sm space-y-2">
+        <section className="text-sm space-y-2">
           {stats.cache.hitRate < 0.7 && (
-            <div className="text-orange-600">
+            <p className="text-orange-600">
               • Hit rate bajo ({(stats.cache.hitRate * 100).toFixed(1)}%). Considera aumentar la duración del cache.
-            </div>
+            </p>
           )}
           {stats.api.successRate < 0.9 && (
-            <div className="text-red-600">
+            <p className="text-red-600">
               • Tasa de éxito API baja ({(stats.api.successRate * 100).toFixed(1)}%). Revisa la conectividad.
-            </div>
+            </p>
           )}
           {stats.cache.staleEntries > 5 && (
-            <div className="text-yellow-600">
+            <p className="text-yellow-600">
               • Muchas entradas obsoletas ({stats.cache.staleEntries}). Considera limpiar el cache.
-            </div>
+            </p>
           )}
           {stats.performance.actualDailyCalls > stats.performance.estimatedDailyCalls && (
-            <div className="text-orange-600">
+            <p className="text-orange-600">
               • Más llamadas de las esperadas. Revisa la lógica de cache.
-            </div>
+            </p>
           )}
-        </div>
-      </div>
+        </section>
+      </section>
       
-      <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+      <footer className="text-xs text-gray-500 dark:text-gray-400 text-center">
         Última actualización: {new Date().toLocaleString()}
-      </div>
-    </div>
+      </footer>
+    </article>
   )
 }

@@ -71,7 +71,7 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
 
   if (orientation === 'horizontal') {
     return (
-      <motion.div
+      <motion.article
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4, delay: index * 0.1 }}
@@ -79,20 +79,20 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
         className={`${CSS_UTILS.card} ${CSS_UTILS.cardHover} ${config.container} flex items-center`}
       >
         {/* Ícono a la izquierda */}
-        <div className={`${categoryConfig.className.accent} rounded-lg shadow-md flex-shrink-0 mr-3`}>
+        <span className={`${categoryConfig.className.accent} rounded-lg shadow-md flex-shrink-0 mr-3`}>
           <Icon className={`${config.icon.replace('p-', '')} ${categoryConfig.className.text}`} />
-        </div>
+        </span>
 
         {/* Contenido principal */}
-        <div className="flex-1 min-w-0">
+        <section className="flex-1 min-w-0">
           <h3 className={`${config.title} text-gray-600 dark:text-gray-400 mb-1 line-clamp-1`}>
             {title}
           </h3>
           
-          <div className="flex items-baseline gap-2">
-            <p className={`${config.value} font-bold ${categoryConfig.className.text} truncate`}>
+          <p className="flex items-baseline gap-2">
+            <span className={`${config.value} font-bold ${categoryConfig.className.text} truncate`}>
               {formatValue(value)}
-            </p>
+            </span>
             
             {trend && (
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${
@@ -103,15 +103,15 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </span>
             )}
-          </div>
-        </div>
-      </motion.div>
+          </p>
+        </section>
+      </motion.article>
     )
   }
 
   // Orientación vertical (por defecto)
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
@@ -119,10 +119,10 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
       className={`${CSS_UTILS.card} ${CSS_UTILS.cardHover} ${config.container} flex flex-col`}
     >
       {/* Header con ícono y trend */}
-      <div className="flex justify-between items-start mb-2">
-        <div className={`${categoryConfig.className.accent} rounded-lg shadow-md flex-shrink-0`}>
+      <header className="flex justify-between items-start mb-2">
+        <span className={`${categoryConfig.className.accent} rounded-lg shadow-md flex-shrink-0`}>
           <Icon className={`${config.icon} ${categoryConfig.className.text}`} />
-        </div>
+        </span>
         
         {trend && (
           <span className={`text-xs px-2 py-1 rounded-full ${
@@ -133,7 +133,7 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
             {trend.isPositive ? '+' : ''}{trend.value}%
           </span>
         )}
-      </div>
+      </header>
 
       {/* Título */}
       <h3 className={`${config.title} text-center text-gray-600 dark:text-gray-400 mb-1 line-clamp-2`}>
@@ -141,12 +141,12 @@ const ResponsiveMetricCard: React.FC<ResponsiveMetricCardProps> = ({
       </h3>
 
       {/* Valor principal */}
-      <div className="flex-1 flex items-center justify-center">
+      <main className="flex-1 flex items-center justify-center">
         <p className={`${config.value} font-bold ${categoryConfig.className.text} text-center`}>
           {formatValue(value)}
         </p>
-      </div>
-    </motion.div>
+      </main>
+    </motion.article>
   )
 }
 

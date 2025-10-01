@@ -6,9 +6,9 @@ import { motion } from 'framer-motion'
 
 // Componente temporal de reemplazo
 const UnifiedMapComponent = ({ className, ...props }: any) => (
-  <div className={`${className} bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center`}>
-    <div className="text-gray-500 dark:text-gray-400">Mapa no disponible temporalmente</div>
-  </div>
+  <section className={`${className} bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center`}>
+    <p className="text-gray-500 dark:text-gray-400">Mapa no disponible temporalmente</p>
+  </section>
 )
 import UnifiedFilters, { type FilterState } from './UnifiedFilters'
 // Removed import of UnidadProyectoGeo and UnidadProyectoFilters as Unidades de Proyecto section was deleted
@@ -160,7 +160,7 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
 
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900">
+      <main className="fixed inset-0 z-50 bg-white dark:bg-gray-900">
         <UnifiedMapComponent
           className="w-full h-full"
           height={window.innerHeight}
@@ -174,40 +174,40 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
           isFullscreen={true}
           onFullscreenToggle={handleFullscreenToggle}
         />
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className={className}>
+    <main className={className}>
       {/* Header con información y controles */}
-      <motion.div
+      <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+        <section className="flex items-center gap-3">
+          <span className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
             <MapPin className="w-5 h-5 text-white" />
-          </div>
-          <div>
+          </span>
+          <hgroup>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Mapa Territorial Unificado
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Visualización interactiva con mapas y filtros integrados
             </p>
-          </div>
-        </div>
+          </hgroup>
+        </section>
 
         {/* Controles de la interfaz */}
-        <div className="flex items-center gap-2">
+        <nav className="flex items-center gap-2">
           {/* Contador de filtros activos */}
           {activeFiltersCount > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
+            <span className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
               <Filter className="w-4 h-4" />
               <span>{activeFiltersCount} filtro{activeFiltersCount !== 1 ? 's' : ''} activo{activeFiltersCount !== 1 ? 's' : ''}</span>
-            </div>
+            </span>
           )}
 
           {/* Toggle filtros en móvil */}
@@ -227,25 +227,25 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
           >
             <Maximize2 className="w-4 h-4" />
           </button>
-        </div>
-      </motion.div>
+        </nav>
+      </motion.header>
 
       {/* Layout responsivo */}
-      <div className="flex flex-col lg:flex-row gap-4">
+      <section className="flex flex-col lg:flex-row gap-4">
         {/* Panel de filtros */}
         {showFiltersPanel && (
-          <motion.div
+          <motion.aside
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className={`lg:w-80 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}
           >
-            <div className="sticky top-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
+            <section className="sticky top-4">
+              <article className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <header className="flex items-center justify-between mb-4">
+                  <hgroup className="flex items-center gap-2">
                     <Filter className="w-5 h-5 text-blue-600" />
                     <h3 className="font-semibold text-gray-900 dark:text-white">Filtros</h3>
-                  </div>
+                  </hgroup>
                   {showMobileFilters && (
                     <button
                       onClick={() => setShowMobileFilters(false)}
@@ -254,7 +254,7 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
                       <X className="w-4 h-4" />
                     </button>
                   )}
-                </div>
+                </header>
                 
                 <UnifiedFilters
                   filters={dashboardFilters}
@@ -262,13 +262,13 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
                   activeTab="project_units"
                   className="space-y-4"
                 />
-              </div>
-            </div>
-          </motion.div>
+              </article>
+            </section>
+          </motion.aside>
         )}
 
         {/* Mapa principal */}
-        <motion.div
+        <motion.section
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="flex-1"
@@ -286,45 +286,45 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
             isFullscreen={false}
             onFullscreenToggle={handleFullscreenToggle}
           />
-        </motion.div>
-      </div>
+        </motion.section>
+      </section>
 
       {/* Panel móvil de filtros (overlay) */}
       {showMobileFilters && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm">
-          <motion.div
+        <aside className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm">
+          <motion.article
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             exit={{ x: -300 }}
             className="absolute left-0 top-0 bottom-0 w-80 bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
           >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+            <header className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <hgroup className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
                   <Filter className="w-5 h-5 text-blue-600" />
                   <h3 className="font-semibold text-gray-900 dark:text-white">Filtros</h3>
-                </div>
+                </span>
                 <button
                   onClick={() => setShowMobileFilters(false)}
                   className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
-              </div>
-            </div>
+              </hgroup>
+            </header>
             
-            <div className="p-4">
+            <section className="p-4">
               <UnifiedFilters
                 filters={dashboardFilters}
                 onFiltersChange={handleFiltersChange}
                 activeTab="project_units"
                 className="space-y-4"
               />
-            </div>
-          </motion.div>
-        </div>
+            </section>
+          </motion.article>
+        </aside>
       )}
-    </div>
+    </main>
   )
 }
 

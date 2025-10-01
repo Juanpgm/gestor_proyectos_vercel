@@ -21,12 +21,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   
   if (!feature) {
     return (
-      <div className={`bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${className}`}>
-        <div className="text-center text-gray-500 dark:text-gray-400">
+      <article className={`bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${className}`}>
+        <section className="text-center text-gray-500 dark:text-gray-400">
           <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">Selecciona un elemento del mapa para ver sus propiedades</p>
-        </div>
-      </div>
+        </section>
+      </article>
     )
   }
 
@@ -296,14 +296,14 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const imageInfo = getImageInfo()
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
+    <article className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg border ${getLayerColor()}`}>
+      <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <section className="flex items-center gap-3">
+          <section className={`p-2 rounded-lg border ${getLayerColor()}`}>
             {getLayerIcon()}
-          </div>
-          <div className="flex-1">
+          </section>
+          <section className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               {getName()}
             </h3>
@@ -314,7 +314,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               </p>
             )}
             {/* Ubicación: Barrio, Comuna, Dirección */}
-            <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <section className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
               {locationInfo.barrio && (
                 <p>📍 {locationInfo.barrio}</p>
               )}
@@ -324,12 +324,12 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               {locationInfo.direccion && (
                 <p>🏠 {locationInfo.direccion}</p>
               )}
-            </div>
+            </section>
             <p className="text-sm text-gray-500 dark:text-gray-500 capitalize mt-1">
               {layerType.replace(/_/g, ' ')}
             </p>
-          </div>
-        </div>
+          </section>
+        </section>
         
         <button
           onClick={onClose}
@@ -338,21 +338,21 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         >
           <X className="w-4 h-4 text-gray-500" />
         </button>
-      </div>
+      </header>
 
       {/* Content - propiedades categorizadas */}
-      <div className="p-4 space-y-4">
+      <main className="p-4 space-y-4">
         {categoryOrder
           .filter(category => categorizedProps[category] && categorizedProps[category].length > 0)
           .map(category => {
             const config = categoryConfig[category as keyof typeof categoryConfig]
             return (
-              <div key={category} className="space-y-2">
+              <section key={category} className="space-y-2">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                   <span className="text-base">{config.icon}</span>
                   {config.name}
                 </h4>
-                <div className="space-y-1 pl-6">
+                <dl className="space-y-1 pl-6">
                   {categorizedProps[category].map(([key, value], index) => {
                     // Determinar colores para valores en la sección de inversión
                     const isPaymentValue = category === 'investment' && 
@@ -394,26 +394,26 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                       </div>
                     )
                   })}
-                </div>
-              </div>
+                </dl>
+              </section>
             )
           })
         }
-      </div>
+      </main>
 
       {/* Sección de imagen para Centros de Gravedad */}
       {imageInfo && (
-        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+        <section className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
           <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-3">
             <span className="text-base">📷</span>
             Imagen de referencia
           </h4>
           
           {/* Contenedor horizontal para imagen y enlace */}
-          <div className="flex items-center gap-3">
+          <section className="flex items-center gap-3">
             {/* Imagen compacta */}
-            <div className="flex-shrink-0">
-              <div className="w-20 h-20 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
+            <section className="flex-shrink-0">
+              <section className="w-20 h-20 border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
                 <img 
                   src={imageInfo.directImageUrl}
                   alt="Imagen del centro de gravedad"
@@ -428,11 +428,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     target.parentElement?.appendChild(errorDiv);
                   }}
                 />
-              </div>
-            </div>
+              </section>
+            </section>
             
             {/* Enlace para ver imagen completa */}
-            <div className="flex-1">
+            <section className="flex-1">
               <button
                 onClick={() => window.open(imageInfo.originalUrl, '_blank')}
                 className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
@@ -442,23 +442,23 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Haz clic para ampliar
               </p>
-            </div>
-          </div>
-        </div>
+            </section>
+          </section>
+        </section>
       )}
 
       {/* Footer */}
-      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-b-lg border-t border-gray-200 dark:border-gray-700">
-        <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+      <footer className="px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-b-lg border-t border-gray-200 dark:border-gray-700">
+        <section className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
           <span>
             {Object.values(categorizedProps).flat().length} propiedades
           </span>
           <span className="capitalize">
             Capa: {layerType.replace(/_/g, ' ')}
           </span>
-        </div>
-      </div>
-    </div>
+        </section>
+      </footer>
+    </article>
   )
 }
 

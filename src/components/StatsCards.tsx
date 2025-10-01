@@ -50,20 +50,20 @@ const StatCard: React.FC<StatCardProps> = ({
   const categoryConfig = CATEGORIES[category]
 
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       whileHover={{ scale: 1.02 }}
       className={`${CSS_UTILS.card} ${CSS_UTILS.cardHover} p-4 md:p-5 min-h-[120px] md:min-h-[140px]`}
     >
-      <div className="flex flex-col h-full">
+      <section className="flex flex-col h-full">
         {/* Header con ícono */}
-        <div className="flex justify-center mb-3">
-          <div className={`p-2 md:p-2.5 rounded-lg ${categoryConfig.className.accent} shadow-md`}>
+        <header className="flex justify-center mb-3">
+          <span className={`p-2 md:p-2.5 rounded-lg ${categoryConfig.className.accent} shadow-md`}>
             <IconComponent className={`w-5 h-5 md:w-6 md:h-6 ${categoryConfig.className.text}`} />
-          </div>
-        </div>
+          </span>
+        </header>
 
         {/* Título */}
         <h3 className={`${TYPOGRAPHY.h6} text-center text-gray-600 dark:text-gray-400 mb-2 line-clamp-2`}>
@@ -71,11 +71,11 @@ const StatCard: React.FC<StatCardProps> = ({
         </h3>
 
         {/* Valor principal */}
-        <div className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center">
           <p className={`${TYPOGRAPHY.h4} font-bold ${categoryConfig.className.text} text-center`}>
             {formatValue(value)}
           </p>
-        </div>
+        </main>
 
         {/* Subtítulo opcional */}
         {subtitle && (
@@ -83,8 +83,8 @@ const StatCard: React.FC<StatCardProps> = ({
             {subtitle}
           </p>
         )}
-      </div>
-    </motion.div>
+      </section>
+    </motion.article>
   )
 }
 
@@ -138,7 +138,7 @@ const StatsCards: React.FC = () => {
   ]
 
   return (
-    <motion.div 
+    <motion.section 
       className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 lg:gap-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -152,7 +152,7 @@ const StatsCards: React.FC = () => {
           {...stat}
         />
       ))}
-    </motion.div>
+    </motion.section>
   )
 }
 
