@@ -239,7 +239,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
         fuente_emprestito: contrato.registro_origen?.banco || '',
         bp: '',
         nombre_comercial: contrato.objeto_contrato || ''
-      } as ProjectWithContratos)
+      } as ProjectWithContracts)
     })
 
     // Ordenar por valor total de contratos descendente
