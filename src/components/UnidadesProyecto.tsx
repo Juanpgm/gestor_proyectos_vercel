@@ -341,32 +341,37 @@ const UnidadesProyecto: React.FC = () => {
 
       if (attributesResponse.ok) {
         const apiResponse = await attributesResponse.json();
+        console.log('[FRONTEND] API Response received:', apiResponse?.success ? 'success wrapper' : 'direct data');
+        
         const attributes = apiResponse?.success && apiResponse?.data ? apiResponse.data : apiResponse;
         const attributesArray = Array.isArray(attributes) ? attributes : [];
         
+        console.log('[FRONTEND] Processing', attributesArray.length, 'attribute records');
+        
         const processedAttributes = attributesArray.map(feature => {
-          if (feature.properties) {
-            return {
-              upid: feature.properties.upid || '',
-              nombre_up: feature.properties.nombre_up || '',
-              estado: feature.properties.estado || '',
-              tipo_intervencion: feature.properties.tipo_intervencion || '',
-              nombre_centro_gestor: feature.properties.nombre_centro_gestor || '',
-              comuna_corregimiento: feature.properties.comuna_corregimiento || '',
-              barrio_vereda: feature.properties.barrio_vereda || '',
-              presupuesto_base: parseFloat(feature.properties.presupuesto_base) || 0,
-              avance_obra: parseFloat(feature.properties.avance_obra) || 0,
-              fecha_inicio: feature.properties.fecha_inicio || '',
-              fecha_fin: feature.properties.fecha_fin || '',
-              descripcion_intervencion: feature.properties.descripcion_intervencion || '',
-              fuente_financiacion: feature.properties.fuente_financiacion || '',
-              ano: parseInt(feature.properties.ano) || 0,
-              ...feature.properties
-            };
-          }
-          return feature;
+          // Los datos están en feature.properties según la nueva estructura de la API
+          const props = feature.properties || {};
+          
+          return {
+            upid: props.upid || '',
+            nombre_up: props.nombre_up || '',
+            estado: props.estado || '',
+            tipo_intervencion: props.tipo_intervencion || '',
+            nombre_centro_gestor: props.nombre_centro_gestor || '',
+            comuna_corregimiento: props.comuna_corregimiento || '',
+            barrio_vereda: props.barrio_vereda || '',
+            presupuesto_base: parseFloat(props.presupuesto_base) || 0,
+            avance_obra: parseFloat(props.avance_obra) || 0,
+            fecha_inicio: props.fecha_inicio || '',
+            fecha_fin: props.fecha_fin || '',
+            descripcion_intervencion: props.descripcion_intervencion || '',
+            fuente_financiacion: props.fuente_financiacion || '',
+            ano: parseInt(props.ano) || 0,
+            ...props
+          };
         });
         
+        console.log('[FRONTEND] Processed', processedAttributes.length, 'attributes successfully');
         setAttributeData(processedAttributes);
         
         // Generar filtros dinámicamente desde los datos procesados
