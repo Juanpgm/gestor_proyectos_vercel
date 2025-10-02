@@ -104,8 +104,6 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
     setError(null);
     
     try {
-      console.log('[HOOK] Starting data fetch...');
-      
       const [geometryResponse, attributesResponse, filtersResponse, dashboardResponse] = await Promise.all([
         fetch('/api/proxy/unidades-proyecto/geometry'),
         fetch('/api/proxy/unidades-proyecto/attributes'),
@@ -113,34 +111,18 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
         fetch('/api/proxy/unidades-proyecto/dashboard')
       ]);
 
-      console.log('[HOOK] Response statuses:', {
-        geometry: geometryResponse.status,
-        attributes: attributesResponse.status,
-        filters: filtersResponse.status,
-        dashboard: dashboardResponse.status
-      });
-
       // Procesar geometría
       if (geometryResponse.ok) {
         const geometry = await geometryResponse.json();
-        console.log('[HOOK] Geometry data:', geometry?.type, geometry?.features?.length ? `${geometry.features.length} features` : 'No features');
-        console.log('[HOOK] Geometry count:', geometry?.count, 'Message:', geometry?.message);
         setGeometryData(geometry);
-      } else {
-        console.error('[HOOK] Geometry error:', await geometryResponse.text());
       }
 
       // Procesar atributos
       if (attributesResponse.ok) {
         const apiResponse = await attributesResponse.json();
-        console.log('[HOOK] Attributes response:', apiResponse?.success ? 'Has success wrapper' : 'Direct data');
-        console.log('[HOOK] Attributes count:', apiResponse?.count, 'Total before limit:', apiResponse?.total_before_limit);
-        
-        // Extraer datos de la nueva estructura de respuesta
         const attributes = apiResponse?.success && apiResponse?.data ? apiResponse.data : apiResponse;
         const attributesArray = Array.isArray(attributes) ? attributes : [];
         
-        // Convertir Features a AttributeData plano
         const processedAttributes = attributesArray.map(feature => {
           if (feature.properties) {
             return {
@@ -158,28 +140,20 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
               descripcion_intervencion: feature.properties.descripcion_intervencion || '',
               fuente_financiacion: feature.properties.fuente_financiacion || '',
               ano: parseInt(feature.properties.ano) || 0,
-              ...feature.properties // Incluir todas las propiedades adicionales
+              ...feature.properties
             };
           }
-          return feature; // En caso de que ya esté en formato plano
+          return feature;
         });
         
-        console.log('[HOOK] Processed attributes:', processedAttributes.length, 'items from', apiResponse?.count || 'unknown', 'total');
         setAttributeData(processedAttributes);
-      } else {
-        console.error('[HOOK] Attributes error:', await attributesResponse.text());
       }
 
       // Procesar filtros
       if (filtersResponse.ok) {
         const apiResponse = await filtersResponse.json();
-        console.log('[HOOK] Filters response:', apiResponse?.success ? 'Has success wrapper' : 'Direct data');
-        console.log('[HOOK] Filters message:', apiResponse?.message);
-        
-        // Extraer filtros de la nueva estructura de respuesta
         const apiFilters = apiResponse?.success && apiResponse?.filters ? apiResponse.filters : apiResponse;
         
-        // Convertir filtros de la API al formato esperado
         if (apiFilters && typeof apiFilters === 'object') {
           const convertedFilters: FilterData = {
             estados: apiFilters.estados || [],
@@ -190,30 +164,19 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
             anos: apiFilters.anos ? apiFilters.anos.map((ano: string) => parseInt(ano)).filter((ano: number) => !isNaN(ano)) : []
           };
           
-          console.log('[HOOK] Converted API filters:', Object.keys(convertedFilters).map(k => `${k}: ${convertedFilters[k as keyof FilterData].length}`).join(', '));
           setFilterData(convertedFilters);
         }
-      } else {
-        console.error('[HOOK] Filters error:', await filtersResponse.text());
       }
 
       // Procesar dashboard
       if (dashboardResponse.ok) {
         const apiResponse = await dashboardResponse.json();
-        console.log('[HOOK] Dashboard response:', apiResponse?.success ? 'Has success wrapper' : 'Direct data');
-        console.log('[HOOK] Dashboard message:', apiResponse?.message);
-        
-        // Extraer dashboard de la nueva estructura de respuesta
         const dashboard = apiResponse?.success && apiResponse?.dashboard ? apiResponse.dashboard : apiResponse;
-        console.log('[HOOK] Dashboard sections:', dashboard ? Object.keys(dashboard).join(', ') : 'No dashboard');
         setDashboardData(dashboard);
-      } else {
-        console.error('[HOOK] Dashboard error:', await dashboardResponse.text());
       }
 
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('[HOOK] Error fetching data:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setLoading(false);

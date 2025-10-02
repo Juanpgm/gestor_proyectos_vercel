@@ -328,43 +328,22 @@ const UnidadesProyecto: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      console.log('[FRONTEND] Starting data fetch...');
-      
       const [geometryResponse, attributesResponse, filtersResponse] = await Promise.all([
         fetch('/api/proxy/unidades-proyecto/geometry'),
         fetch('/api/proxy/unidades-proyecto/attributes'),
         fetch('/api/proxy/unidades-proyecto/filters')
       ]);
 
-      console.log('[FRONTEND] Response statuses:', {
-        geometry: geometryResponse.status,
-        attributes: attributesResponse.status,
-        filters: filtersResponse.status
-      });
-
       if (geometryResponse.ok) {
         const geometry = await geometryResponse.json();
-        console.log('[FRONTEND] Geometry data:', geometry?.type, geometry?.features?.length ? `${geometry.features.length} features` : 'No features');
-        console.log('[FRONTEND] Geometry count:', geometry?.count, 'Message:', geometry?.message);
         setGeometryData(geometry);
-      } else {
-        console.error('[FRONTEND] Geometry error:', await geometryResponse.text());
       }
 
       if (attributesResponse.ok) {
         const apiResponse = await attributesResponse.json();
-        console.log('[FRONTEND] Attributes response:', apiResponse?.success ? 'Has success wrapper' : 'Direct data');
-        console.log('[FRONTEND] Attributes count:', apiResponse?.count, 'Total before limit:', apiResponse?.total_before_limit);
-        
-        // Extraer datos de la nueva estructura de respuesta
         const attributes = apiResponse?.success && apiResponse?.data ? apiResponse.data : apiResponse;
         const attributesArray = Array.isArray(attributes) ? attributes : [];
         
-        if (attributesArray.length > 0) {
-          console.log('[FRONTEND] First attribute sample:', attributesArray[0]);
-        }
-        
-        // Convertir Features a AttributeData plano
         const processedAttributes = attributesArray.map(feature => {
           if (feature.properties) {
             return {
@@ -382,20 +361,13 @@ const UnidadesProyecto: React.FC = () => {
               descripcion_intervencion: feature.properties.descripcion_intervencion || '',
               fuente_financiacion: feature.properties.fuente_financiacion || '',
               ano: parseInt(feature.properties.ano) || 0,
-              ...feature.properties // Incluir todas las propiedades adicionales
+              ...feature.properties
             };
           }
-          return feature; // En caso de que ya esté en formato plano
+          return feature;
         });
         
-        console.log('[FRONTEND] Processed attributes:', processedAttributes.length, 'items from', apiResponse?.count || 'unknown', 'total');
-        if (processedAttributes.length > 0) {
-          console.log('[FRONTEND] First processed item:', processedAttributes[0]);
-        }
-        
-        console.log('[FRONTEND] Setting attributeData with', processedAttributes.length, 'items');
         setAttributeData(processedAttributes);
-        console.log('[FRONTEND] attributeData state updated');
         
         // Generar filtros dinámicamente desde los datos procesados
         if (processedAttributes.length > 0) {
@@ -427,20 +399,15 @@ const UnidadesProyecto: React.FC = () => {
             anos: apiFilters.anos ? apiFilters.anos.map((ano: string) => parseInt(ano)).filter((ano: number) => !isNaN(ano)) : []
           };
           
-          console.log('[FRONTEND] Converted API filters:', Object.keys(convertedFilters).map(k => `${k}: ${convertedFilters[k as keyof FilterData].length}`).join(', '));
-          
-          // Usar filtros de la API si no hay datos procesados o como complemento
           if (!filterData || Object.values(filterData).every(arr => arr.length === 0)) {
             setFilterData(convertedFilters);
           }
         }
-      } else {
-        console.error('[FRONTEND] Filters error:', await filtersResponse.text());
       }
 
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('[FRONTEND] Error fetching data:', error);
+      // Error handling without excessive logging
     } finally {
       setLoading(false);
     }
@@ -452,15 +419,7 @@ const UnidadesProyecto: React.FC = () => {
 
   // Datos filtrados
   const filteredData = useMemo(() => {
-    console.log('[FRONTEND] Filtering data, attributeData:', Array.isArray(attributeData) ? `${attributeData.length} items` : typeof attributeData);
-    
-    if (!Array.isArray(attributeData)) {
-      console.log('[FRONTEND] attributeData is not array, returning empty');
-      return [];
-    }
-    
-    if (attributeData.length === 0) {
-      console.log('[FRONTEND] attributeData is empty array');
+    if (!Array.isArray(attributeData) || attributeData.length === 0) {
       return [];
     }
     
