@@ -178,7 +178,7 @@
     "search_field": null,
     "referencia_buscada": null,
     "search_type": null,
-    "total_campos": NaN,
+    "total_campos": null,
     "bpin": 0,
     "registro_origen": {
       "plataforma": null,

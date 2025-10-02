@@ -201,17 +201,23 @@ export const useEmprestito = (): EmprestitoState => {
         }
 
         // Parsear los datos
-        const contratosData = await contratosRes.json()
+        let contratosData
+        try {
+          contratosData = await contratosRes.json()
+        } catch (jsonError) {
+          throw new Error(`Error al parsear JSON: ${jsonError instanceof Error ? jsonError.message : 'JSON inválido'}`)
+        }
         
-        // Los contratos ya vienen listos para usar en contratos_encontrados
-        const contratos: EmprestitoContrato[] = contratosData.contratos_encontrados?.map((contrato: any) => {
-          const banco = contrato._registro_origen?.banco || contrato.banco || contrato.nombre_del_banco || 'No definido'
+        // Los contratos pueden venir como array directo o envueltos en contratos_encontrados
+        const contratosArray = contratosData.contratos_encontrados || (Array.isArray(contratosData) ? contratosData : [])
+        const contratos: EmprestitoContrato[] = contratosArray.map((contrato: any) => {
+          const banco = contrato.registro_origen?.banco || contrato._registro_origen?.banco || contrato.banco || contrato.nombre_del_banco || 'No definido'
           return {
             ...contrato,
             // Asegurar que el campo banco esté disponible directamente
             banco: banco
           }
-        }) || []
+        })
 
         // Generar proyectos sintéticos basados en los contratos para mantener compatibilidad
         const proyectos: EmprestitoProyecto[] = contratos.map((contrato, index) => ({
