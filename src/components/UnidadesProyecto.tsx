@@ -345,20 +345,24 @@ const UnidadesProyecto: React.FC = () => {
       if (geometryResponse.ok) {
         const geometry = await geometryResponse.json();
         console.log('[FRONTEND] Geometry data:', geometry?.type, geometry?.features?.length ? `${geometry.features.length} features` : 'No features');
+        console.log('[FRONTEND] Geometry count:', geometry?.count, 'Message:', geometry?.message);
         setGeometryData(geometry);
       } else {
         console.error('[FRONTEND] Geometry error:', await geometryResponse.text());
       }
 
       if (attributesResponse.ok) {
-        const attributes = await attributesResponse.json();
-        console.log('[FRONTEND] Attributes data:', Array.isArray(attributes) ? `Array with ${attributes.length} items` : typeof attributes);
-        if (Array.isArray(attributes) && attributes.length > 0) {
-          console.log('[FRONTEND] First attribute sample:', attributes[0]);
-        }
+        const apiResponse = await attributesResponse.json();
+        console.log('[FRONTEND] Attributes response:', apiResponse?.success ? 'Has success wrapper' : 'Direct data');
+        console.log('[FRONTEND] Attributes count:', apiResponse?.count, 'Total before limit:', apiResponse?.total_before_limit);
         
-        // Procesar datos de atributos - la API devuelve Features con properties
+        // Extraer datos de la nueva estructura de respuesta
+        const attributes = apiResponse?.success && apiResponse?.data ? apiResponse.data : apiResponse;
         const attributesArray = Array.isArray(attributes) ? attributes : [];
+        
+        if (attributesArray.length > 0) {
+          console.log('[FRONTEND] First attribute sample:', attributesArray[0]);
+        }
         
         // Convertir Features a AttributeData plano
         const processedAttributes = attributesArray.map(feature => {
@@ -371,20 +375,20 @@ const UnidadesProyecto: React.FC = () => {
               nombre_centro_gestor: feature.properties.nombre_centro_gestor || '',
               comuna_corregimiento: feature.properties.comuna_corregimiento || '',
               barrio_vereda: feature.properties.barrio_vereda || '',
-              presupuesto_base: feature.properties.presupuesto_base || 0,
-              avance_obra: feature.properties.avance_obra || 0,
+              presupuesto_base: parseFloat(feature.properties.presupuesto_base) || 0,
+              avance_obra: parseFloat(feature.properties.avance_obra) || 0,
               fecha_inicio: feature.properties.fecha_inicio || '',
               fecha_fin: feature.properties.fecha_fin || '',
               descripcion_intervencion: feature.properties.descripcion_intervencion || '',
               fuente_financiacion: feature.properties.fuente_financiacion || '',
-              ano: feature.properties.ano || 0,
+              ano: parseInt(feature.properties.ano) || 0,
               ...feature.properties // Incluir todas las propiedades adicionales
             };
           }
           return feature; // En caso de que ya esté en formato plano
         });
         
-        console.log('[FRONTEND] Processed attributes:', processedAttributes.length, 'items');
+        console.log('[FRONTEND] Processed attributes:', processedAttributes.length, 'items from', apiResponse?.count || 'unknown', 'total');
         if (processedAttributes.length > 0) {
           console.log('[FRONTEND] First processed item:', processedAttributes[0]);
         }
@@ -405,8 +409,12 @@ const UnidadesProyecto: React.FC = () => {
 
       // Procesar filtros de la API si están disponibles
       if (filtersResponse.ok) {
-        const apiFilters = await filtersResponse.json();
-        console.log('[FRONTEND] API Filters data:', typeof apiFilters, apiFilters);
+        const apiResponse = await filtersResponse.json();
+        console.log('[FRONTEND] Filters response:', apiResponse?.success ? 'Has success wrapper' : 'Direct data');
+        console.log('[FRONTEND] Filters message:', apiResponse?.message);
+        
+        // Extraer filtros de la nueva estructura de respuesta
+        const apiFilters = apiResponse?.success && apiResponse?.filters ? apiResponse.filters : apiResponse;
         
         // Convertir filtros de la API al formato esperado por el componente
         if (apiFilters && typeof apiFilters === 'object') {
@@ -414,7 +422,7 @@ const UnidadesProyecto: React.FC = () => {
             estados: apiFilters.estados || [],
             tipos_intervencion: apiFilters.tipos_intervencion || [],
             centros_gestores: apiFilters.centros_gestores || [],
-            comunas_corregimientos: apiFilters.comunas || [],
+            comunas_corregimientos: apiFilters.comunas || apiFilters.comunas_corregimientos || [],
             fuentes_financiacion: apiFilters.fuentes_financiacion || [],
             anos: apiFilters.anos ? apiFilters.anos.map((ano: string) => parseInt(ano)).filter((ano: number) => !isNaN(ano)) : []
           };

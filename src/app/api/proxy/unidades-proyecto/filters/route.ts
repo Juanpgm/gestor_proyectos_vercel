@@ -30,10 +30,25 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     console.log(`[PROXY FILTERS] Data received:`, data?.success ? 'Has success wrapper' : 'Direct data');
     console.log(`[PROXY FILTERS] Filters structure:`, data?.filters ? Object.keys(data.filters).join(', ') : 'No filters');
+    console.log(`[PROXY FILTERS] Message:`, data?.message);
     
-    // Extraer los datos reales si vienen envueltos en success/filters
-    const actualData = data?.success && data?.filters ? data.filters : data;
-    console.log(`[PROXY FILTERS] Actual data keys:`, typeof actualData === 'object' ? Object.keys(actualData).join(', ') : typeof actualData);
+    // Extraer los datos reales desde la nueva estructura de respuesta
+    let actualData;
+    if (data?.success && data?.filters) {
+      // Nueva estructura: mantener metadatos importantes
+      actualData = {
+        success: data.success,
+        filters: data.filters,
+        metadata: data.metadata,
+        message: data.message,
+        timestamp: data.timestamp
+      };
+    } else {
+      // Fallback para estructura antigua
+      actualData = data;
+    }
+    
+    console.log(`[PROXY FILTERS] Final filters:`, actualData?.filters ? Object.keys(actualData.filters).join(', ') : 'No filters');
     
     return NextResponse.json(actualData, {
       headers: {

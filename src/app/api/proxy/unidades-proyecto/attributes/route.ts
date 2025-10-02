@@ -29,12 +29,27 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`[PROXY] Data received:`, Array.isArray(data) ? `Array with ${data.length} items` : typeof data);
-    console.log(`[PROXY] Data structure:`, data?.success ? 'Has success wrapper' : 'Direct data');
+    console.log(`[PROXY ATTRIBUTES] Data received:`, data?.success ? 'Has success wrapper' : 'Direct data');
+    console.log(`[PROXY ATTRIBUTES] Count:`, data?.count, 'Total:', data?.total_before_limit);
     
-    // Extraer los datos reales si vienen envueltos en success/data
-    const actualData = data?.success && data?.data ? data.data : data;
-    console.log(`[PROXY] Actual data:`, Array.isArray(actualData) ? `Array with ${actualData.length} items` : typeof actualData);
+    // Extraer los datos reales desde la nueva estructura de respuesta
+    let actualData;
+    if (data?.success && data?.data) {
+      // Nueva estructura: envolver en el formato esperado por el frontend
+      actualData = {
+        success: data.success,
+        data: data.data,
+        count: data.count,
+        total_before_limit: data.total_before_limit,
+        pagination: data.pagination,
+        message: data.message
+      };
+    } else {
+      // Fallback para estructura antigua
+      actualData = data;
+    }
+    
+    console.log(`[PROXY ATTRIBUTES] Final data:`, actualData?.data ? `${actualData.data.length} features` : typeof actualData);
     
     return NextResponse.json(actualData, {
       headers: {

@@ -25,27 +25,41 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`[PROXY GEOMETRY] Data received:`, data?.type, data?.features?.length ? `${data.features.length} features` : 'No features');
-    console.log(`[PROXY GEOMETRY] Data structure:`, data?.success ? 'Has success wrapper' : 'Direct data');
+    console.log(`[PROXY GEOMETRY] Data received:`, data?.success ? 'Has success wrapper' : 'Direct data');
+    console.log(`[PROXY GEOMETRY] Count:`, data?.count, 'Message:', data?.message);
     
     // Extraer y transformar los datos de geometry a formato GeoJSON
     let actualData;
-    if (data?.success && data?.data) {
-      // Transformar al formato GeoJSON esperado
+    if (data?.success && data?.data && Array.isArray(data.data)) {
+      // Nueva estructura: transformar al formato GeoJSON esperado
       actualData = {
         type: "FeatureCollection",
-        features: data.data.map((item: any) => ({
-          type: "Feature",
-          geometry: item.geometry,
-          properties: {
-            upid: item.upid
-          }
-        }))
+        features: data.data
+          .filter((item: any) => item.geometry !== null) // Filtrar items sin geometría
+          .map((item: any) => ({
+            type: "Feature",
+            geometry: item.geometry,
+            properties: {
+              upid: item.upid
+            }
+          })),
+        count: data.count,
+        message: data.message,
+        timestamp: data.timestamp
       };
-      console.log(`[PROXY GEOMETRY] Transformed to GeoJSON:`, actualData.features.length, 'features');
-    } else {
+      console.log(`[PROXY GEOMETRY] Transformed to GeoJSON:`, actualData.features.length, 'valid features of', data.count, 'total');
+    } else if (data?.type === "FeatureCollection") {
+      // Ya es GeoJSON válido
       actualData = data;
-      console.log(`[PROXY GEOMETRY] Using raw data:`, typeof actualData);
+      console.log(`[PROXY GEOMETRY] Already GeoJSON:`, data.features?.length, 'features');
+    } else {
+      // Fallback
+      actualData = {
+        type: "FeatureCollection",
+        features: [],
+        message: "No geometry data available"
+      };
+      console.log(`[PROXY GEOMETRY] Fallback: empty FeatureCollection`);
     }
     
     return NextResponse.json(actualData, {

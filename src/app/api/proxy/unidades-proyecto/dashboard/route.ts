@@ -30,10 +30,25 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     console.log(`[PROXY DASHBOARD] Data received:`, data?.success ? 'Has success wrapper' : 'Direct data');
     console.log(`[PROXY DASHBOARD] Dashboard sections:`, data?.dashboard ? Object.keys(data.dashboard).join(', ') : 'No dashboard');
+    console.log(`[PROXY DASHBOARD] Message:`, data?.message);
     
-    // Extraer los datos reales si vienen envueltos en success/dashboard
-    const actualData = data?.success && data?.dashboard ? data.dashboard : data;
-    console.log(`[PROXY DASHBOARD] Actual data structure:`, typeof actualData === 'object' ? Object.keys(actualData).join(', ') : typeof actualData);
+    // Extraer los datos reales desde la nueva estructura de respuesta
+    let actualData;
+    if (data?.success && data?.dashboard) {
+      // Nueva estructura: mantener metadatos importantes
+      actualData = {
+        success: data.success,
+        dashboard: data.dashboard,
+        message: data.message,
+        timestamp: data.timestamp,
+        last_updated: data.last_updated
+      };
+    } else {
+      // Fallback para estructura antigua
+      actualData = data;
+    }
+    
+    console.log(`[PROXY DASHBOARD] Final dashboard sections:`, actualData?.dashboard ? Object.keys(actualData.dashboard).join(', ') : 'No dashboard');
     
     return NextResponse.json(actualData, {
       headers: {
