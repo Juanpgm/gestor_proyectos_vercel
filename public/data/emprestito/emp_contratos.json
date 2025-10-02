@@ -78,7 +78,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4134.010.26.1.0252-2025",
     "search_type": "exact",
-    "total_campos": 85,
+    "total_campos": 85.0,
     "bpin": 2024760010190,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -91,9 +91,119 @@
       "refs_originales": "4134.010.26.1.0252-2025",
       "referencia_original": "4134.010.26.1.0252-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": null,
     "fecha_fin_liquidacion": null,
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría de Bienestar Social"
+  },
+  {
+    "nombre_entidad": null,
+    "localizaci_n": null,
+    "sector": null,
+    "entidad_centralizada": null,
+    "proceso_compra": null,
+    "id_contrato": null,
+    "referencia_contrato": null,
+    "estado_contrato": null,
+    "codigo_categoria_principal": null,
+    "descripcion_proceso": null,
+    "tipo_contrato": null,
+    "modalidad_contratacion": null,
+    "justificacion_modalidad": null,
+    "fecha_firma": null,
+    "fecha_inicio_contrato": null,
+    "fecha_fin_contrato": null,
+    "tipodocproveedor": null,
+    "documento_proveedor": null,
+    "proveedor_adjudicado": null,
+    "es_grupo": null,
+    "es_pyme": null,
+    "habilita_pago_adelantado": 0,
+    "liquidaci_n": null,
+    "obligaci_n_ambiental": null,
+    "obligaciones_postconsumo": null,
+    "reversion": null,
+    "origen_recursos": null,
+    "destino_gasto": null,
+    "valor_contrato": 0,
+    "valor_pago_adelantado": 0,
+    "valor_facturado": 0,
+    "valor_pendiente_pago": 0,
+    "valor_pagado": 0,
+    "valor_amortizado": 0,
+    "valor_pendiente": 0,
+    "valor_pendiente_ejecucion": 0,
+    "estado_bpin": null,
+    "anno_bpin": null,
+    "saldo_cdp": 0,
+    "saldo_vigencia": 0,
+    "espostconflicto": null,
+    "dias_adicionados": null,
+    "puntos_acuerdo": null,
+    "pilares_acuerdo": null,
+    "urlproceso": null,
+    "nombre_representante_legal": null,
+    "nacionalidad_representante_legal": null,
+    "domicilio_representante_legal": null,
+    "tipo_identificaci_n_representante_legal": null,
+    "identificaci_n_representante_legal": null,
+    "g_nero_representante_legal": null,
+    "presupuesto_general_nacion_pgn": 0,
+    "sistema_general_participaciones": 0,
+    "sistema_general_regal_as": null,
+    "recursos_propios_alcald_as_gobernaciones_resguardos_ind_genas": null,
+    "recursos_credito": 0,
+    "recursos_propios": 0,
+    "codigo_entidad": null,
+    "codigo_proveedor": null,
+    "objeto_contrato": null,
+    "duraci_n_contrato": null,
+    "nombre_banco": null,
+    "tipo_cuenta": null,
+    "n_mero_cuenta": null,
+    "contrato_puede_ser_prorrogado": null,
+    "nombre_ordenador_gasto": null,
+    "tipo_documento_ordenador_gasto": null,
+    "n_mero_documento_ordenador_gasto": null,
+    "nombre_supervisor": null,
+    "tipo_documento_supervisor": null,
+    "n_mero_documento_supervisor": null,
+    "nombre_ordenador_pago": 0,
+    "tipo_documento_ordenador_pago": 0,
+    "n_mero_documento_ordenador_pago": 0,
+    "dataset_source": null,
+    "search_field": null,
+    "referencia_buscada": null,
+    "search_type": null,
+    "total_campos": NaN,
+    "bpin": 0,
+    "registro_origen": {
+      "plataforma": null,
+      "nombre_abreviado": "DATIC",
+      "id_paa": 18924,
+      "banco": "Bancolombia",
+      "bp": "BP26005260",
+      "descripcion": "Fortalecimiento de la Plataforma Tecnológica de la Alcaldia de Santiago de Cali",
+      "link_del_proceso": "https://drive.google.com/file/d/13UemXfM0tdZLBOzpKLVoD79x539LH7X5/view",
+      "estado_proceso": "Adjudicado",
+      "referencia_proceso": [],
+      "referencia_contrato": "OC 150273",
+      "bpin": 2024760010045,
+      "nombre_centro_gestor": "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones",
+      "referencia_contrato_original": "OC 150273",
+      "_multiple_refs": false,
+      "_original_refs": "OC 150273"
+    },
+    "referencia_contrato_no_encontrada": "OC 150273",
+    "motivo": "no_encontrado_en_secop",
+    "timestamp_busqueda": "2025-10-02T14:21:33.433363",
+    "fecha_inicio_liquidacion": null,
+    "fecha_fin_liquidacion": null,
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": null
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - DEPARTAMENTO ADMINISTRATIVO DE TECNOLOGIAS DE LA INFORMACION Y LAS COMUNICACIONES",
@@ -174,7 +284,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4134.010.26.1.0253-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010045,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -187,9 +297,13 @@
       "refs_originales": "4134.010.26.1.0253-2025",
       "referencia_original": "4134.010.26.1.0253-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2026-01-01",
     "fecha_fin_liquidacion": "2026-04-04",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - DEPARTAMENTO ADMINISTRATIVO DE TECNOLOGIAS DE LA INFORMACION Y LAS COMUNICACIONES",
@@ -270,7 +384,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4134.010.26.1.0251-2025",
     "search_type": "exact",
-    "total_campos": 85,
+    "total_campos": 85.0,
     "bpin": 2024760010231,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -283,9 +397,13 @@
       "refs_originales": "4134.010.26.1.0251-2025",
       "referencia_original": "4134.010.26.1.0251-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": null,
     "fecha_fin_liquidacion": null,
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DEL DEPORTE Y LA RECREACIÓN",
@@ -366,7 +484,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4162.010.26.1.3229-2025",
     "search_type": "exact",
-    "total_campos": 86,
+    "total_campos": 86.0,
     "bpin": 2022760010080,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -379,9 +497,13 @@
       "refs_originales": "4162.010.26.1.3229-2025",
       "referencia_original": "4162.010.26.1.3229-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-06-15",
     "fecha_fin_liquidacion": "2028-06-15",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría del Deporte y la Recreación"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DEL DEPORTE Y LA RECREACIÓN",
@@ -462,7 +584,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4162.010.26.1.3225-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010466,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -475,9 +597,13 @@
       "refs_originales": "4162.010.26.1.3225-2025",
       "referencia_original": "4162.010.26.1.3225-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-16",
     "fecha_fin_liquidacion": "2028-06-16",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría del Deporte y la Recreación"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -558,7 +684,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0887-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010333,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -571,9 +697,13 @@
       "refs_originales": "4151.010.26.1.0887-2025",
       "referencia_original": "4151.010.26.1.0887-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-20",
     "fecha_fin_liquidacion": "2026-06-20",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría de Infraestructura"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -654,7 +784,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0907-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010333,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -667,9 +797,13 @@
       "refs_originales": "4151.010.26.1.0907-2025",
       "referencia_original": "4151.010.26.1.0907-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-20",
     "fecha_fin_liquidacion": "2026-06-05",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría de Infraestructura"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -750,7 +884,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0927-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010333,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -763,9 +897,13 @@
       "refs_originales": "4151.010.26.1.0927-2025",
       "referencia_original": "4151.010.26.1.0927-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-26",
     "fecha_fin_liquidacion": "2026-06-30",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría de Infraestructura"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -846,7 +984,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0834-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 0,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -859,9 +997,13 @@
       "refs_originales": "4151.010.26.1.0834-2025",
       "referencia_original": "4151.010.26.1.0834-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-31",
     "fecha_fin_liquidacion": "2026-04-30",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": null
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -942,7 +1084,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0834-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 0,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -955,9 +1097,13 @@
       "refs_originales": "4151.010.26.1.0834-2025",
       "referencia_original": "4151.010.26.1.0834-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-31",
     "fecha_fin_liquidacion": "2026-04-30",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": null
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -1038,7 +1184,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0932-2025",
     "search_type": "por_partes",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 0,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1051,9 +1197,13 @@
       "refs_originales": "4151.010.26.1.0932 - 2025",
       "referencia_original": "4151.010.26.1.0932 - 2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-26",
     "fecha_fin_liquidacion": "2026-06-27",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": null
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -1063,15 +1213,15 @@
     "proceso_compra": "CO1.BDOS.8482731",
     "id_contrato": "CO1.PCCNTR.8298578",
     "referencia_contrato": "4151.010.26.1.0933-2025",
-    "estado_contrato": "Aprobado",
+    "estado_contrato": "En ejecución",
     "codigo_categoria_principal": "V1.80101500",
     "descripcion_proceso": "REALIZAR LA INTERVENTORÍA TECNICA; ADMINISTRATIVA; JURIDICA; FINANCIERA; AMBIENTAL Y CONTABLE AL CONTRATO DE OBRA QUE RESULTE ADJUDICADO EN EL PROCESO DE LICITACIÓN PÚBLICA No. 4151.010.32.1.0577-2025; CUYO OBJETO ES: REALIZAR LA CONSTRUCCIÓN; MEJORAMIENTO Y MANTENIMIENTO DE CICLO INFRAESTRUCTURA EN",
     "tipo_contrato": "Interventoría",
     "modalidad_contratacion": "Concurso de méritos abierto",
     "justificacion_modalidad": "Ley 1150 de 2007",
     "fecha_firma": "2025-09-11",
-    "fecha_inicio_contrato": null,
-    "fecha_fin_contrato": "2025-12-25",
+    "fecha_inicio_contrato": "2025-09-30",
+    "fecha_fin_contrato": "2025-12-31",
     "tipodocproveedor": "NIT",
     "documento_proveedor": "900237861",
     "proveedor_adjudicado": "GPM PROYECTOS DE INGENIERÍA SAS",
@@ -1134,7 +1284,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0933-2025",
     "search_type": "exact",
-    "total_campos": 86,
+    "total_campos": 87.0,
     "bpin": 0,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1147,9 +1297,13 @@
       "refs_originales": "4151.010.26.1.0933-2025",
       "referencia_original": "4151.010.26.1.0933-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-26",
     "fecha_fin_liquidacion": "2026-06-27",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": null
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -1159,15 +1313,15 @@
     "proceso_compra": "CO1.BDOS.8335654",
     "id_contrato": "CO1.PCCNTR.8224755",
     "referencia_contrato": "4151.010.26.1.0837-2025",
-    "estado_contrato": "Aprobado",
+    "estado_contrato": "En ejecución",
     "codigo_categoria_principal": "V1.72141001",
     "descripcion_proceso": "REALIZAR LA CONSTRUCCIÓN; MEJORAMIENTO Y MANTENIMIENTO DE CICLO INFRAESTRUCTURA EN EL DISTRITO DE SANTIAGO DE CALI",
     "tipo_contrato": "Obra",
     "modalidad_contratacion": "Licitación pública Obra Publica",
     "justificacion_modalidad": "Article30_1993",
     "fecha_firma": "2025-09-01",
-    "fecha_inicio_contrato": null,
-    "fecha_fin_contrato": "2025-11-30",
+    "fecha_inicio_contrato": "2025-09-30",
+    "fecha_fin_contrato": "2025-12-30",
     "tipodocproveedor": "No Definido",
     "documento_proveedor": "No Definido",
     "proveedor_adjudicado": "CONSORCIO CICLOCIUDAD",
@@ -1230,7 +1384,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0837-2025",
     "search_type": "exact",
-    "total_campos": 86,
+    "total_campos": 87.0,
     "bpin": 2024760010333,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1243,9 +1397,13 @@
       "refs_originales": "4151.010.26.1.0837-2025",
       "referencia_original": "4151.010.26.1.0837-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-02",
     "fecha_fin_liquidacion": "2026-07-02",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría de Infraestructura"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -1326,7 +1484,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0887-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010333,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1339,9 +1497,13 @@
       "refs_originales": "4151.010.26.1.0887-2025",
       "referencia_original": "4151.010.26.1.0887-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-20",
     "fecha_fin_liquidacion": "2026-06-20",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría de Infraestructura"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -1422,7 +1584,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0907-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010333,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1435,9 +1597,13 @@
       "refs_originales": "4151.010.26.1.0907-2025",
       "referencia_original": "4151.010.26.1.0907-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-20",
     "fecha_fin_liquidacion": "2026-06-05",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría de Infraestructura"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE INFRAESTRUCTURA",
@@ -1518,7 +1684,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4151.010.26.1.0954-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010333,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1531,9 +1697,13 @@
       "refs_originales": "4151.010.26.1.0954-2025",
       "referencia_original": "4151.010.26.1.0954-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-12-16",
     "fecha_fin_liquidacion": "2026-04-16",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Secretaría de Infraestructura"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE DESARROLLO TERRITORIAL Y PARTICIPACION CIUDADANA",
@@ -1614,7 +1784,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4173.010.26.1.1268-2025",
     "search_type": "exact",
-    "total_campos": 86,
+    "total_campos": 86.0,
     "bpin": 2024760010026,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1627,9 +1797,13 @@
       "refs_originales": "4173.010.26.1.1268-2025",
       "referencia_original": "4173.010.26.1.1268-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": null,
     "fecha_fin_liquidacion": null,
-    "fecha_notificaci_n_prorrogaci_n": "2025-12-30"
+    "fecha_notificaci_n_prorrogaci_n": "2025-12-30",
+    "nombre_centro_gestor": "Departamento Administrativo de Planeación Municipal"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE DESARROLLO TERRITORIAL Y PARTICIPACION CIUDADANA",
@@ -1710,7 +1884,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4173.010.26.1.1277-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 2024760010026,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1723,9 +1897,13 @@
       "refs_originales": "4173.010.26.1.1277-2025",
       "referencia_original": "4173.010.26.1.1277-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2025-04-01",
     "fecha_fin_liquidacion": "2027-04-04",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": "Departamento Administrativo de Planeación Municipal"
   },
   {
     "nombre_entidad": "SANTIAGO DE CALI DISTRITO ESPECIAL - SECRETARIA DE DESARROLLO TERRITORIAL Y PARTICIPACION CIUDADANA",
@@ -1806,7 +1984,7 @@
     "search_field": "referencia_del_contrato",
     "referencia_buscada": "4173.010.26.1.1274-2025",
     "search_type": "exact",
-    "total_campos": 87,
+    "total_campos": 87.0,
     "bpin": 0,
     "registro_origen": {
       "banco": "Bancolombia",
@@ -1819,8 +1997,12 @@
       "refs_originales": "4173.010.26.1.1274-2025",
       "referencia_original": "4173.010.26.1.1274-2025"
     },
+    "referencia_contrato_no_encontrada": null,
+    "motivo": null,
+    "timestamp_busqueda": null,
     "fecha_inicio_liquidacion": "2026-06-06",
     "fecha_fin_liquidacion": "2026-12-31",
-    "fecha_notificaci_n_prorrogaci_n": null
+    "fecha_notificaci_n_prorrogaci_n": null,
+    "nombre_centro_gestor": null
   }
 ]
