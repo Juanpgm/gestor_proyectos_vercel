@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "dashboard-alcaldia-cali",
+  "name": "gestor-proyectos-vercel",
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
