@@ -18,6 +18,22 @@ class AuthService {
   private apiBaseUrl = API_CONFIG.BASE_URL
   private isInitialized = false
 
+  // Determinar la URL correcta basada en el entorno
+  private getApiUrl(): string {
+    // Si estamos en desarrollo local, usar la API directamente
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      return 'https://gestorproyectoapi-production.up.railway.app'
+    }
+    
+    // En producción, usar el proxy para evitar CORS
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/api/proxy`
+    }
+    
+    // Fallback a la configuración
+    return this.apiBaseUrl || '/api/proxy'
+  }
+
   private constructor() {}
 
   static getInstance(): AuthService {
@@ -97,13 +113,19 @@ class AuthService {
   async signInWithEmail({ email, password, remember = true }: LoginCredentials): Promise<User> {
     try {
       console.log('🔐 Attempting login with email:', email)
-      console.log('🌐 API Base URL:', this.apiBaseUrl)
+      console.log('🌐 Original API Base URL:', this.apiBaseUrl)
+      console.log('🌐 Window hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server-side')
+      console.log('🌐 NODE_ENV:', process.env.NODE_ENV)
+      console.log('🌐 APP_ENV:', process.env.NEXT_PUBLIC_APP_ENV)
       
       // Agregar timeout y manejo robusto de errores de red
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 segundos timeout
       
-      const response = await fetch(`${this.apiBaseUrl}/auth/login`, {
+      const apiUrl = this.getApiUrl()
+      console.log('🌐 Using API URL:', apiUrl)
+      
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -294,7 +316,10 @@ class AuthService {
       console.log('Token obtenido, enviando a API...')
 
       // Enviar token a nuestra API
-      const response = await fetch(`${this.apiBaseUrl}/auth/google`, {
+      const apiUrl = this.getApiUrl()
+      console.log('🌐 Using API URL for Google:', apiUrl)
+      
+      const response = await fetch(`${apiUrl}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
