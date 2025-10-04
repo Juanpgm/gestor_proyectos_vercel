@@ -41,34 +41,8 @@ function log(message, color = "reset") {
 function validateEnvironment() {
   log("\n🔍 Validando configuración de variables de entorno...\n", "blue");
 
-  // Verificar si existe .env.local
-  const envLocalPath = path.join(process.cwd(), ".env.local");
-  const envExamplePath = path.join(process.cwd(), ".env.example");
-
-  if (!fs.existsSync(envLocalPath)) {
-    log("❌ Archivo .env.local no encontrado", "red");
-
-    if (fs.existsSync(envExamplePath)) {
-      log(
-        "💡 Sugerencia: Copia .env.example a .env.local y configura tus valores",
-        "yellow"
-      );
-      log("   cp .env.example .env.local\n", "yellow");
-    }
-
-    return false;
-  }
-
-  // Cargar variables de entorno desde .env.local
-  const envContent = fs.readFileSync(envLocalPath, "utf8");
-  const envVars = {};
-
-  envContent.split("\n").forEach((line) => {
-    const [key, ...valueParts] = line.split("=");
-    if (key && key.trim() && !key.startsWith("#")) {
-      envVars[key.trim()] = valueParts.join("=").trim();
-    }
-  });
+  // En lugar de leer archivos .env, usar solo process.env (que incluye variables de Vercel)
+  const envVars = process.env;
 
   let hasErrors = false;
   let hasWarnings = false;

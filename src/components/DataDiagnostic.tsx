@@ -4,7 +4,7 @@ import React from 'react'
 // Removed imports of Unidades de Proyecto hooks as section was deleted
 // import { useUnidadesProyecto } from '../hooks/useUnidadesProyecto'
 // import { useUnidadesProyectoWithSmartCache } from '../hooks/useUnidadesProyectoWithSmartCache'
-import SmartCacheReport from './SmartCacheReport'
+// import SmartCacheReport from './SmartCacheReport'
 
 /**
  * Componente de diagnóstico para entender qué está pasando con los datos
@@ -130,7 +130,7 @@ export default function DataDiagnosticComponent() {
 
       {/* Reporte del Smart Cache */}
       <section className="mt-8">
-        <SmartCacheReport />
+        {/* SmartCacheReport temporalmente deshabilitado */}
       </section>
     </main>
   )
