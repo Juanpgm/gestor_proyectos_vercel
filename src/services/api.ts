@@ -1,8 +1,8 @@
 // Centralized API service to handle connections with the backend
 import { fetchWithErrorHandling } from '../utils/errorHandler';
 
-// API base URL - FastAPI backend
-export const API_BASE_URL = 'https://gestorproyectoapi-production.up.railway.app';
+// API base URL - FastAPI backend (desde variable de entorno)
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Next.js API proxy URL for better error handling and CORS
 export const API_PROXY_URL = '/api/proxy';

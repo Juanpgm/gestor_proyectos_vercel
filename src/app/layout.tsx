@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { DashboardProvider } from '@/context/DashboardContext';
+import { AuthProvider } from '@/context/AuthContext';
+import AuthWrapper from '@/components/AuthWrapper';
 
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
@@ -34,11 +36,15 @@ export default function RootLayout({
   return (
     <html lang="es" className={inter.className}>
       <body className="min-h-screen bg-gray-50 antialiased">
-        <ThemeProvider>
-          <DashboardProvider>
-            {children}
-          </DashboardProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <DashboardProvider>
+              <AuthWrapper>
+                {children}
+              </AuthWrapper>
+            </DashboardProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

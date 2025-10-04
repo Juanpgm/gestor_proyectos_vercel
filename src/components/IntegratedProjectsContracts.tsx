@@ -103,7 +103,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
   React.useEffect(() => {
     const loadBpinToBpMap = async () => {
       try {
-        const response = await fetch('/data/emprestito/caracteristicas_proyectos.json')
+        const response = await fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json')
         if (response.ok) {
           const data = await response.json()
           const map: Record<number, string> = {}

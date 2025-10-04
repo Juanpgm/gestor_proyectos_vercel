@@ -44,16 +44,25 @@ export function ThemeProvider({
     if (!mounted) return
     
     const root = window.document.documentElement
-
     root.classList.remove('light', 'dark')
 
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light'
-
-      root.classList.add(systemTheme)
+      // Detectar tema basado en la hora del día
+      const currentHour = new Date().getHours()
+      
+      // Modo diurno: 6:00 AM - 6:00 PM (claro)
+      // Modo nocturno: 6:00 PM - 6:00 AM (oscuro)
+      const isNightTime = currentHour >= 18 || currentHour < 6
+      
+      const timeBasedTheme = isNightTime ? 'dark' : 'light'
+      
+      // También considerar las preferencias del sistema como respaldo
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      
+      // Priorizar la detección por hora, pero usar sistema como respaldo si hay dudas
+      const finalTheme = timeBasedTheme
+      
+      root.classList.add(finalTheme)
       return
     }
 

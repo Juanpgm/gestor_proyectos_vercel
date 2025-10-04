@@ -4,6 +4,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Bell, Settings, User, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
+import { UserProfile } from '@/components/AuthWrapper'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
 
 const Header = () => {
@@ -77,18 +78,12 @@ const Header = () => {
               <Settings className="w-5 h-5" />
             </motion.button>
 
-            {/* User Profile - Adaptativo */}
+            {/* User Profile - Componente de autenticación */}
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className={`flex items-center space-x-2 ${CSS_UTILS.badge} ${CATEGORIES.projects.className.bg} cursor-pointer hover:shadow-md transition-all duration-200 px-2 py-1 md:px-3 md:py-2`}
+              className="flex items-center"
             >
-              <div className={`w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br ${CATEGORIES.projects.gradient} rounded-full flex items-center justify-center flex-shrink-0`}>
-                <User className="w-3 h-3 md:w-4 md:h-4 text-white" />
-              </div>
-              <div className="hidden md:block min-w-0">
-                <p className={`${TYPOGRAPHY.bodySmall} font-medium text-gray-800 dark:text-white transition-colors duration-300 truncate`}>Admin</p>
-                <p className={`${TYPOGRAPHY.caption} text-gray-600 dark:text-gray-400 transition-colors duration-300 truncate`}>Administrador</p>
-              </div>
+              <UserProfile />
             </motion.div>
 
             {/* Mobile menu button - Solo visible en móvil */}
