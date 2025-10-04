@@ -96,21 +96,42 @@ class AuthService {
   // Login con email y contraseña usando API
   async signInWithEmail({ email, password, remember = true }: LoginCredentials): Promise<User> {
     try {
+      console.log('🔐 Attempting login with email:', email)
+      console.log('🌐 API Base URL:', this.apiBaseUrl)
+      
+      // Agregar timeout y manejo robusto de errores de red
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 segundos timeout
+      
       const response = await fetch(`${this.apiBaseUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal
       })
 
-      const data = await response.json()
+      clearTimeout(timeoutId)
+
+      console.log('📡 Response status:', response.status)
+      console.log('📡 Response ok:', response.ok)
+
+      // Manejar respuesta
+      let data
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError)
+        throw new Error('Error de comunicación con el servidor - respuesta inválida')
+      }
+
+      console.log('📄 Response data:', { success: data?.success, hasUser: !!data?.user })
 
       if (!response.ok) {
         // Manejar diferentes tipos de respuestas de error de la API
         let errorMessage = 'Error al iniciar sesión'
-        
-
         
         if (response.status === 500) {
           // Error interno del servidor - mensaje más informativo
@@ -122,6 +143,8 @@ class AuthService {
           // Error de validación (422) - Extraer el primer mensaje de validación
           const firstError = data.detail[0]
           errorMessage = firstError?.msg || 'Error de validación'
+        } else if (response.status === 0 || !response.status) {
+          errorMessage = 'Error de conexión con el servidor. Verifique su conexión a internet.'
         } else if (data.error) {
           // Error estándar con campo 'error'
           errorMessage = data.error
@@ -133,6 +156,7 @@ class AuthService {
           errorMessage = data.message
         }
         
+        console.error('❌ Login failed:', errorMessage)
         throw new Error(errorMessage)
       }
 
@@ -154,10 +178,24 @@ class AuthService {
       // Guardar sesión localmente
       this.saveSession(user, remember)
       
+      console.log('✅ Login successful for:', user.email)
       return user
     } catch (error) {
-      console.error('Login error:', error)
-      throw error
+      console.error('❌ Login error:', error)
+      
+      // Manejar errores específicos de red
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Tiempo de espera agotado. Verifique su conexión a internet.')
+        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
+          throw new Error('Error de conexión. Verifique su conexión a internet y que el servidor esté disponible.')
+        } else if (error.message?.includes('NetworkError') || error.message?.includes('network')) {
+          throw new Error('Error de red. Verifique su conexión a internet.')
+        }
+        throw error
+      }
+      
+      throw new Error('Error desconocido durante el login')
     }
   }
 
