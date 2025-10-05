@@ -27,6 +27,7 @@ import { useUnidadesProyecto, useUnidadesProyectoDashboard } from '@/hooks/useUn
 // Tipos
 import { type FilterParams } from '@/services/unidades-proyecto.service';
 
+
 // Estados de vista
 type ViewMode = 'dashboard' | 'map' | 'split';
 
