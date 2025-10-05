@@ -26,7 +26,6 @@
     "env:check": "node -e \"console.log('NODE_ENV:', process.env.NODE_ENV); console.log('NEXT_PUBLIC_APP_ENV:', process.env.NEXT_PUBLIC_APP_ENV);\"",
     "env:validate": "node scripts/validate-env.js",
     "setup:env": "cp .env.example .env.local && echo '✅ Archivo .env.local creado. Por favor edítalo con tus valores reales.'"
-
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -62,14 +61,14 @@
     "react-leaflet": "^4.2.1",
     "react-map-gl": "^8.0.4",
     "react-redux": "^9.2.0",
-    "recharts": "^2.10.0",
+    "recharts": "^2.15.4",
     "redux": "^5.0.1",
     "shapefile": "^0.6.6",
     "styled-components": "^6.1.19",
     "tailwind-merge": "^2.2.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5",
-    "zod": "^3.22.0"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@babel/core": "^7.28.3",

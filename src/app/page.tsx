@@ -1,12 +1,14 @@
 'use client'
 
+import UnidadesProyecto from '@/components/UnidadesProyecto'
+
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Header from '@/components/Header'
 import StatsCards from '@/components/StatsCards'
 import ProjectsTable from '@/components/ProjectsTable'
 import { DataProvider, useDataContext } from '@/context/DataContext'
-import UnidadesProyecto from '@/components/UnidadesProyecto'
+
 import MobileNavigation from '@/components/MobileNavigation'
 import IntegratedProjectsContracts from '@/components/IntegratedProjectsContracts'
 import EmprestitoTabs from '@/components/EmprestitoTabs'
