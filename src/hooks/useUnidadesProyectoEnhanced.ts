@@ -146,9 +146,18 @@ export const useUnidadesProyecto = (
   }, [enableLocalFiltering, fetchAllData]);
 
   const clearFilters = useCallback(() => {
+    console.log('🧹 Limpiando todos los filtros...');
     setFiltersState({});
     setSearchTermState('');
+    
+    // Forzar recarga completa de datos
+    setState(createInitialState());
+    
+    // Recargar datos desde el servidor
     if (!enableLocalFiltering) {
+      fetchAllData({}); 
+    } else {
+      // En modo local, también recargar para asegurar datos frescos
       fetchAllData({});
     }
   }, [enableLocalFiltering, fetchAllData]);

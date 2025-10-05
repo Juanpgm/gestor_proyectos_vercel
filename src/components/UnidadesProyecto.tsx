@@ -10,7 +10,8 @@ import {
   Map,
   Filter as FilterIcon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { CSS_UTILS } from '@/lib/design-system';
 import dynamic from 'next/dynamic';
@@ -148,7 +149,12 @@ const UnidadesProyecto: React.FC = () => {
   };
 
   const handleClearFilters = () => {
+    console.log('🧹 Limpiando filtros desde componente principal...');
     actions.clearFilters();
+    // Forzar un refresh adicional para asegurar que se recarguen los datos
+    setTimeout(() => {
+      actions.refetch();
+    }, 100);
   };
 
   const handleRefresh = () => {
@@ -258,6 +264,17 @@ const UnidadesProyecto: React.FC = () => {
                 <span>Mapa</span>
               </button>
             </div>
+
+            {/* Botón limpiar filtros - más visible */}
+            {(Object.values(filters).some(value => value && value !== '') || filters.searchTerm) && (
+              <button
+                onClick={handleClearFilters}
+                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+                <span>Limpiar ({Object.values(filters).filter(v => v && v !== '').length + (filters.searchTerm ? 1 : 0)})</span>
+              </button>
+            )}
 
             {/* Toggle filtros */}
             <button
