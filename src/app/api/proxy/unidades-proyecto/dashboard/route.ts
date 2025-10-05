@@ -22,12 +22,11 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    // Extraer los datos reales desde la nueva estructura de respuesta
-    const actualData = data?.success && data?.dashboard ? {
-      success: data.success,
-      dashboard: data.dashboard,
-      message: data.message
-    } : data;
+    // Unwrap FastAPI response
+    let actualData = data;
+    if (data?.success === true && data.dashboard) {
+      actualData = data.dashboard;
+    }
     
     return NextResponse.json(actualData);
   } catch (error) {

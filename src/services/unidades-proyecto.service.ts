@@ -241,31 +241,43 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
     const response = await fetchWithRetry(url);
     const apiResponse: ApiResponse<any> = await response.json();
     
-    // Manejar diferentes estructuras de respuesta de la API
-    const rawData = apiResponse.success && apiResponse.data ? apiResponse.data : apiResponse;
-    const dataArray = Array.isArray(rawData) ? rawData : [];
+    // Los datos ahora vienen unwrapped desde el proxy
+    const dataArray = Array.isArray(apiResponse) ? apiResponse : [];
     
-    // Procesar y validar cada elemento
-    return dataArray.map((item: any) => {
-      const properties = item.properties || item;
-      
-      return AttributeSchema.parse({
-        upid: properties.upid || '',
-        nombre_up: properties.nombre_up || '',
-        estado: properties.estado || '',
-        tipo_intervencion: properties.tipo_intervencion || '',
-        nombre_centro_gestor: properties.nombre_centro_gestor || '',
-        comuna_corregimiento: properties.comuna_corregimiento || '',
-        barrio_vereda: properties.barrio_vereda || '',
-        presupuesto_base: parseFloat(properties.presupuesto_base) || 0,
-        avance_obra: parseFloat(properties.avance_obra) || 0,
-        fecha_inicio: properties.fecha_inicio || '',
-        fecha_fin: properties.fecha_fin || '',
-        descripcion_intervencion: properties.descripcion_intervencion || '',
-        fuente_financiacion: properties.fuente_financiacion || '',
-        ano: parseInt(properties.ano) || 0
-      });
+    // Procesar y validar cada elemento con manejo de errores individuales
+    const validatedData: AttributeData[] = [];
+    
+    dataArray.forEach((item: any, index: number) => {
+      try {
+        const properties = item.properties || item;
+        
+        const validatedItem = AttributeSchema.parse({
+          upid: properties.upid || '',
+          nombre_up: properties.nombre_up || '',
+          estado: properties.estado || '',
+          tipo_intervencion: properties.tipo_intervencion || '',
+          nombre_centro_gestor: properties.nombre_centro_gestor || '',
+          comuna_corregimiento: properties.comuna_corregimiento || '',
+          barrio_vereda: properties.barrio_vereda || '',
+          presupuesto_base: parseFloat(properties.presupuesto_base) || 0,
+          avance_obra: parseFloat(properties.avance_obra) || 0,
+          fecha_inicio: properties.fecha_inicio || '',
+          fecha_fin: properties.fecha_fin || '',
+          descripcion_intervencion: properties.descripcion_intervencion || '',
+          fuente_financiacion: properties.fuente_financiacion || '',
+          ano: parseInt(properties.ano) || 0
+        });
+        
+        validatedData.push(validatedItem);
+      } catch (validationError) {
+        console.warn(`⚠️ Validation failed for item ${index}:`, validationError);
+        console.warn('Item data:', item);
+        // Continuar con el siguiente elemento sin interrumpir el proceso
+      }
     });
+    
+    console.log(`✅ fetchAttributeData: Processed ${dataArray.length} items, validated ${validatedData.length} items`);
+    return validatedData;
   } catch (error) {
     return handleApiError(error);
   }

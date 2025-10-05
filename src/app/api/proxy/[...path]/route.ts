@@ -71,6 +71,18 @@ async function handleRequest(request: NextRequest, method: string) {
     if (contentType?.includes('application/json')) {
       try {
         responseData = await response.json()
+        
+        // Unwrap API responses with { success: true, data: [...] } structure
+        // This is specifically for unidades-proyecto endpoints
+        if (apiPath.includes('unidades-proyecto') && 
+            responseData && 
+            typeof responseData === 'object' && 
+            responseData.success === true && 
+            'data' in responseData) {
+          console.log(`🔄 Unwrapping API response: ${Array.isArray(responseData.data) ? responseData.data.length : 'N/A'} items`)
+          responseData = responseData.data
+        }
+        
       } catch (error) {
         console.warn('Failed to parse JSON response:', error)
         responseData = { error: 'Invalid JSON response from backend' }

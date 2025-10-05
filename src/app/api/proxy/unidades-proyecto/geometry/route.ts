@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'NextJS-Proxy/1.0',
       }
     });
 
@@ -20,34 +22,33 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    // Extraer y transformar los datos de geometry a formato GeoJSON
-    let actualData;
-    if (data?.success && data?.data && Array.isArray(data.data)) {
-      actualData = {
-        type: "FeatureCollection",
-        features: data.data
-          .filter((item: any) => item.geometry !== null)
-          .map((item: any) => ({
-            type: "Feature",
-            geometry: item.geometry,
-            properties: {
-              upid: item.upid
-            }
-          })),
-        count: data.count,
-        message: data.message
-      };
-    } else if (data?.type === "FeatureCollection") {
-      actualData = data;
-    } else {
-      actualData = {
-        type: "FeatureCollection",
-        features: [],
-        message: "No geometry data available"
-      };
+    // API now returns direct GeoJSON FeatureCollection
+    if (data?.type === "FeatureCollection") {
+      return NextResponse.json(data);
     }
     
-    return NextResponse.json(actualData);
+    // Legacy handling for old wrapper format (if still used)
+    if (data?.success === true && data.data) {
+      const actualData = {
+        type: "FeatureCollection",
+        features: Array.isArray(data.data) 
+          ? data.data.filter((item: any) => item.geometry !== null)
+              .map((item: any) => ({
+                type: "Feature",
+                geometry: item.geometry,
+                properties: { upid: item.upid }
+              }))
+          : []
+      };
+      return NextResponse.json(actualData);
+    }
+    
+    // Fallback for unexpected format
+    return NextResponse.json({
+      type: "FeatureCollection",
+      features: [],
+      message: "No geometry data available"
+    });
   } catch (error) {
     return NextResponse.json(
       { 

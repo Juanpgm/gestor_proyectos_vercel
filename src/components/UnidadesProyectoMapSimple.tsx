@@ -376,7 +376,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         <div className="flex items-center space-x-2">
           <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span className="text-sm font-medium text-gray-900 dark:text-white">
-            {geometryData?.features?.length || 0} elementos
+            {filteredData.length} elementos ({geometryData?.features?.length || 0} con ubicación)
           </span>
         </div>
       </div>
