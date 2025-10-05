@@ -260,7 +260,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           comuna_corregimiento: properties.comuna_corregimiento || '',
           barrio_vereda: properties.barrio_vereda || '',
           presupuesto_base: parseFloat(properties.presupuesto_base) || 0,
-          avance_obra: parseFloat(properties.avance_obra) || 0,
+          avance_obra: (parseFloat(properties.avance_obra) || 0) * 100,
           fecha_inicio: properties.fecha_inicio || '',
           fecha_fin: properties.fecha_fin || '',
           descripcion_intervencion: properties.descripcion_intervencion || '',

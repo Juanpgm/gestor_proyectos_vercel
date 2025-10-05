@@ -31,8 +31,7 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
   // Función para obtener color según avance de obra
   const getFeatureColor = (properties: any) => {
     const attributeItem = filteredData.find(item => item.upid === properties.upid);
-    const avanceDecimal = attributeItem?.avance_obra || properties.avance_obra || 0;
-    const avance = avanceDecimal * 100; // Convertir decimal a porcentaje
+    const avance = attributeItem?.avance_obra || properties.avance_obra || 0;
     
     if (avance >= 80) return '#10B981'; // Verde
     if (avance >= 60) return '#F59E0B'; // Amarillo
@@ -123,8 +122,7 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
           }}
           onEachFeature={(feature: any, layer: any) => {
             const attributeItem = filteredData.find(item => item.upid === feature.properties.upid);
-            const avanceDecimal = attributeItem?.avance_obra || 0;
-            const avance = Math.round(avanceDecimal * 100); // Convertir decimal a porcentaje y redondear
+            const avance = Math.round(attributeItem?.avance_obra || 0);
             
             // Función para formatear valores monetarios
             const formatCurrency = (amount: number) => {

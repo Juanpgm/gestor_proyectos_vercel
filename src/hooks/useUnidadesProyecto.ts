@@ -134,7 +134,7 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
               comuna_corregimiento: feature.properties.comuna_corregimiento || '',
               barrio_vereda: feature.properties.barrio_vereda || '',
               presupuesto_base: parseFloat(feature.properties.presupuesto_base) || 0,
-              avance_obra: parseFloat(feature.properties.avance_obra) || 0,
+              avance_obra: (parseFloat(feature.properties.avance_obra) || 0) * 100,
               fecha_inicio: feature.properties.fecha_inicio || '',
               fecha_fin: feature.properties.fecha_fin || '',
               descripcion_intervencion: feature.properties.descripcion_intervencion || '',

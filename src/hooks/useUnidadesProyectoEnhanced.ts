@@ -215,7 +215,7 @@ export const useUnidadesProyecto = (
       total: data.length,
       byStatus,
       byType,
-      avgProgress: Math.round(avgProgress * 100) / 100, // Redondear a 2 decimales
+      avgProgress: Math.round(avgProgress * 100) / 100, // Mantener escala 0-100 y redondear a 2 decimales
       totalBudget
     };
   }, [filteredData]);

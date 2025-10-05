@@ -78,11 +78,20 @@ const CompactMetrics: React.FC<{
     totalBudget: number;
   };
 }> = ({ metrics }) => {
-  const formatCurrency = (amount: number): string => {
-    if (amount >= 1000000000) return `$${(amount / 1000000000).toFixed(1)}B`;
-    if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
-    return `$${amount.toLocaleString('es-CO')}`;
+  const formatCurrency = (amount: number, compact: boolean = false): string => {
+    // Solo usar formato compacto si se especifica explícitamente
+    if (compact) {
+      if (amount >= 1000000000000) return `$${(amount / 1000000000000).toFixed(1).replace('.', ',')} B`; // Billones
+      if (amount >= 1000000000) return `$${(amount / 1000000000).toFixed(1).replace('.', ',')} MM`; // Miles de millones
+      if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1).replace('.', ',')} M`; // Millones
+      if (amount >= 1000) return `$${(amount / 1000).toFixed(1).replace('.', ',')} K`; // Miles
+    }
+    
+    // Formato completo con notación colombiana (por defecto)
+    return `$${amount.toLocaleString('es-CO', { 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0 
+    })}`;
   };
 
   return (

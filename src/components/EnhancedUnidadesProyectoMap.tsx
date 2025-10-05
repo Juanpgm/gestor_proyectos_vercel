@@ -180,11 +180,11 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
     switch (coloringType) {
       case 'avance_obra': {
         const ranges = [
-          { min: 0, max: 0.2, color: COLOR_SCHEMES.avance[0], label: '0-20%' },
-          { min: 0.2, max: 0.4, color: COLOR_SCHEMES.avance[1], label: '20-40%' },
-          { min: 0.4, max: 0.6, color: COLOR_SCHEMES.avance[2], label: '40-60%' },
-          { min: 0.6, max: 0.8, color: COLOR_SCHEMES.avance[3], label: '60-80%' },
-          { min: 0.8, max: 1, color: COLOR_SCHEMES.avance[4], label: '80-100%' }
+          { min: 0, max: 20, color: COLOR_SCHEMES.avance[0], label: '0-20%' },
+          { min: 20, max: 40, color: COLOR_SCHEMES.avance[1], label: '20-40%' },
+          { min: 40, max: 60, color: COLOR_SCHEMES.avance[2], label: '40-60%' },
+          { min: 60, max: 80, color: COLOR_SCHEMES.avance[3], label: '60-80%' },
+          { min: 80, max: 100, color: COLOR_SCHEMES.avance[4], label: '80-100%' }
         ];
         
         const colorMap = new Map<string, string>();
@@ -417,7 +417,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
                       <div><strong>UPID:</strong> ${attributeItem.upid}</div>
                       <div><strong>Estado:</strong> ${attributeItem.estado}</div>
                       <div><strong>Tipo:</strong> ${attributeItem.tipo_intervencion}</div>
-                      <div><strong>Avance:</strong> ${Math.round((attributeItem.avance_obra || 0) * 100)}%</div>
+                      <div><strong>Avance:</strong> ${Math.round(attributeItem.avance_obra || 0)}%</div>
                       <div style="grid-column: span 2;"><strong>Centro Gestor:</strong> ${attributeItem.nombre_centro_gestor}</div>
                       <div style="grid-column: span 2;"><strong>Ubicación:</strong> ${attributeItem.barrio_vereda}, ${attributeItem.comuna_corregimiento}</div>
                     </div>

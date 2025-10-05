@@ -80,7 +80,7 @@ export const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = ({
     return Array.from(locationMap.values())
       .map(item => ({
         ...item,
-        avance_promedio: item.avance_promedio / item.count
+        avance_promedio: (item.avance_promedio / item.count) / 100 // Convertir de 0-100 a 0-1
       }))
       .sort((a, b) => b.presupuesto_total - a.presupuesto_total)
       .slice(0, 10) // Top 10
@@ -109,7 +109,7 @@ export const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = ({
     return Array.from(typeMap.values())
       .map(item => ({
         ...item,
-        avance_promedio: item.avance_promedio / item.count
+        avance_promedio: (item.avance_promedio / item.count) / 100 // Convertir de 0-100 a 0-1
       }))
       .sort((a, b) => b.count - a.count)
   }, [unidades])
@@ -139,7 +139,7 @@ export const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = ({
     return Array.from(yearMap.values())
       .map(item => ({
         ...item,
-        avance_promedio: item.avance_promedio / item.count,
+        avance_promedio: (item.avance_promedio / item.count) / 100, // Convertir de 0-100 a 0-1
         tasa_completado: (item.completados / item.count) * 100
       }))
       .sort((a, b) => a.ano.localeCompare(b.ano))
@@ -172,7 +172,7 @@ export const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = ({
   const metrics = useMemo(() => {
     const totalUnidades = unidades.length
     const totalPresupuesto = unidades.reduce((sum, u) => sum + u.presupuesto_base, 0)
-    const promedioAvance = totalUnidades > 0 ? unidades.reduce((sum, u) => sum + u.avance_obra, 0) / totalUnidades : 0
+    const promedioAvance = totalUnidades > 0 ? (unidades.reduce((sum, u) => sum + u.avance_obra, 0) / totalUnidades) / 100 : 0 // Convertir de 0-100 a 0-1
     const unidadesCompletadas = unidades.filter(u => u.avance_obra >= 90).length
     const tasaCompletado = totalUnidades > 0 ? (unidadesCompletadas / totalUnidades) * 100 : 0
     
