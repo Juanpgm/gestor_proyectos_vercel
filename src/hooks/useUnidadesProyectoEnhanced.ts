@@ -170,7 +170,31 @@ export const useUnidadesProyecto = (
   const filteredData = useMemo(() => {
     if (!enableLocalFiltering) return state.attributeData;
     
-    return filterAttributeData(state.attributeData, { ...filters, searchTerm });
+    // Verificar si hay filtros activos
+    const hasActiveFilters = Object.values(filters).some(value => value && value !== '') || 
+                            (searchTerm && searchTerm.trim() !== '');
+    
+    // Si no hay filtros activos, devolver todos los datos
+    if (!hasActiveFilters) {
+      console.log('📊 No filters active, returning all data:', {
+        totalData: state.attributeData.length,
+        sampleBudgets: state.attributeData.slice(0, 5).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base }))
+      });
+      return state.attributeData;
+    }
+    
+    const filtered = filterAttributeData(state.attributeData, { ...filters, searchTerm });
+    
+    // Debug filtrado
+    console.log('📊 Debug filteredData with active filters:', {
+      totalRawData: state.attributeData.length,
+      appliedFilters: { ...filters, searchTerm },
+      filteredCount: filtered.length,
+      sampleRawBudgets: state.attributeData.slice(0, 3).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base })),
+      sampleFilteredBudgets: filtered.slice(0, 3).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base }))
+    });
+    
+    return filtered;
   }, [state.attributeData, filters, searchTerm, enableLocalFiltering]);
 
   // Geometría filtrada basada en datos filtrados
@@ -211,11 +235,32 @@ export const useUnidadesProyecto = (
 
     const totalBudget = data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
 
+    // Debug logging
+    console.log('🔍 Debug avgProgress calculation:', {
+      totalItems: data.length,
+      sampleAvances: data.slice(0, 5).map(item => ({ upid: item.upid, avance_obra: item.avance_obra })),
+      sumAvances: data.reduce((sum, item) => sum + (item.avance_obra || 0), 0),
+      avgProgressRaw: avgProgress,
+      avgProgressFinal: Math.round(avgProgress * 10) / 10
+    });
+
+    // Debug presupuesto total
+    const presupuestosNonZero = data.filter(item => (item.presupuesto_base || 0) > 0);
+    console.log('💰 Debug totalBudget calculation:', {
+      totalItems: data.length,
+      itemsWithBudget: presupuestosNonZero.length,
+      samplePresupuestos: data.slice(0, 5).map(item => ({ upid: item.upid, presupuesto_base: item.presupuesto_base })),
+      sumPresupuestos: totalBudget,
+      allPresupuestos: data.map(item => item.presupuesto_base || 0).slice(0, 10),
+      maxBudget: Math.max(...data.map(item => item.presupuesto_base || 0)),
+      minBudget: Math.min(...data.map(item => item.presupuesto_base || 0))
+    });
+
     return {
       total: data.length,
       byStatus,
       byType,
-      avgProgress: Math.round(avgProgress * 100) / 100, // Mantener escala 0-100 y redondear a 2 decimales
+      avgProgress: Math.round(avgProgress * 10) / 10, // Redondear a 1 decimal (ya viene en escala 0-100 desde el servicio)
       totalBudget
     };
   }, [filteredData]);
