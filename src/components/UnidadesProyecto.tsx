@@ -20,6 +20,7 @@ import dynamic from 'next/dynamic';
 const UnidadesProyectoMapSimple = dynamic(() => import('./UnidadesProyectoMapSimple'), { ssr: false });
 const UnidadesProyectoDashboard = dynamic(() => import('./UnidadesProyectoDashboard'), { ssr: false });
 const UnidadesProyectoFilters = dynamic(() => import('./UnidadesProyectoFilters'), { ssr: false });
+const UnidadesProyectoAttributesTable = dynamic(() => import('./UnidadesProyectoAttributesTable'), { ssr: false });
 
 // Hooks mejorados
 import { useUnidadesProyecto, useUnidadesProyectoDashboard } from '@/hooks/useUnidadesProyectoEnhanced';
@@ -355,12 +356,22 @@ const UnidadesProyecto: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`${CSS_UTILS.card} p-6`}
+            className={`${CSS_UTILS.card}`}
           >
             {dashboardError ? (
-              <ErrorDisplay error={dashboardError} onRetry={refetchDashboard} />
+              <div className="p-6">
+                <ErrorDisplay error={dashboardError} onRetry={refetchDashboard} />
+              </div>
+            ) : dashboardData ? (
+              <div className="p-6">
+                {memoizedDashboard}
+              </div>
             ) : (
-              memoizedDashboard
+              <UnidadesProyectoAttributesTable
+                data={filteredData}
+                className="h-[600px]"
+                maxHeight="550px"
+              />
             )}
           </motion.div>
         )}
@@ -393,20 +404,18 @@ const UnidadesProyecto: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Dashboard */}
+            {/* Tabla de Atributos */}
             <motion.div
-              key="split-dashboard"
+              key="split-attributes"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className={`${CSS_UTILS.card} p-6`}
+              className={`${CSS_UTILS.card} p-0`}
             >
-              <div className="h-[500px]">
-                {dashboardError ? (
-                  <ErrorDisplay error={dashboardError} onRetry={refetchDashboard} />
-                ) : (
-                  memoizedDashboard
-                )}
-              </div>
+              <UnidadesProyectoAttributesTable
+                data={filteredData}
+                className="h-[500px]"
+                maxHeight="450px"
+              />
             </motion.div>
           </div>
         )}
