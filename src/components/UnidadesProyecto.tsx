@@ -19,6 +19,7 @@ import dynamic from 'next/dynamic';
 // Componentes dinámicos para evitar problemas de SSR
 const UnidadesProyectoMapSimple = dynamic(() => import('./UnidadesProyectoMapSimple'), { ssr: false });
 const UnidadesProyectoDashboard = dynamic(() => import('./UnidadesProyectoDashboard'), { ssr: false });
+const CompactDashboardTab = dynamic(() => import('./CompactDashboardTab'), { ssr: false });
 const UnidadesProyectoFilters = dynamic(() => import('./UnidadesProyectoFilters'), { ssr: false });
 const UnidadesProyectoAttributesTable = dynamic(() => import('./UnidadesProyectoAttributesTable'), { ssr: false });
 
@@ -585,9 +586,9 @@ const UnidadesProyecto: React.FC = () => {
         </div>
       </section>
 
-      {/* Filtros para dashboard y vista de mapa */}
+      {/* Filtros solamente para vista de mapa (excluimos dashboard) */}
       <AnimatePresence>
-        {showFilters && (viewMode === 'dashboard' || viewMode === 'map') && (
+        {showFilters && viewMode === 'map' && (
           <motion.section
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -614,25 +615,12 @@ const UnidadesProyecto: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`${CSS_UTILS.card}`}
+            className={`${CSS_UTILS.card} p-6`}
           >
-            {dashboardError ? (
-              <div className="p-6">
-                <ErrorDisplay error={dashboardError} onRetry={refetchDashboard} />
-              </div>
-            ) : dashboardData ? (
-              <div className="p-6">
-                {memoizedDashboard}
-              </div>
-            ) : (
-              <UnidadesProyectoAttributesTable
-                data={filteredData}
-                className="h-[700px]"
-                maxHeight="500px"
-                pageSize={20}
-                onShowDetails={handleShowDetails}
-              />
-            )}
+            <CompactDashboardTab 
+              filters={filters}
+              className="w-full"
+            />
           </motion.div>
         )}
 
