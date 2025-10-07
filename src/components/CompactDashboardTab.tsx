@@ -258,109 +258,136 @@ const AdvancedChartCard: React.FC<{
   </motion.div>
 );
 
+// Helper function para acceso seguro a datos
+const safeGet = (obj: any, path: string, defaultValue: any = 0) => {
+  return path.split('.').reduce((acc, key) => acc?.[key], obj) ?? defaultValue;
+};
+
+const safePercentage = (numerator: number, denominator: number): string => {
+  return denominator > 0 ? ((numerator / denominator) * 100).toFixed(1) : '0';
+};
+
 // Componente principal
 const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, className = '' }) => {
   const { data, loading, error } = useDashboardFetch(filters);
 
   // Procesamiento de datos mejorado para gráficos
   const chartData = useMemo(() => {
-    if (!data) return null;
+    if (!data || !data.distribuciones) return null;
 
-    // Estados - datos reales del endpoint
-    const estados = data.distribuciones.por_estado.top_3.map(([name, value], index) => ({
-      name: name === 'En ejecución' ? 'Ejecutando' : name === 'En alistamiento' ? 'Alistando' : name,
-      fullName: name,
-      value,
-      fill: CHART_COLORS[index],
-      percentage: data.distribuciones.por_estado.porcentajes[name]?.toFixed(1) || '0'
-    }));
+    // Estados - datos reales del endpoint con validaciones defensivas
+    const estados = data.distribuciones.por_estado?.top_3 
+      ? data.distribuciones.por_estado.top_3.map(([name, value], index) => ({
+          name: name === 'En ejecución' ? 'Ejecutando' : name === 'En alistamiento' ? 'Alistando' : name,
+          fullName: name,
+          value,
+          fill: CHART_COLORS[index],
+          percentage: data.distribuciones.por_estado.porcentajes?.[name]?.toFixed(1) || '0'
+        }))
+      : [];
 
-    // Tipos de intervención - todos los datos
-    const tipos = Object.entries(data.distribuciones.por_tipo_intervencion.conteos)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 6)
-      .map(([name, value], index) => ({
-        name: name.length > 15 ? `${name.substring(0, 12)}...` : name,
-        fullName: name,
-        value,
-        fill: CHART_COLORS[index],
-        percentage: data.distribuciones.por_tipo_intervencion.porcentajes[name]?.toFixed(1) || '0'
-      }));
+    // Tipos de intervención - todos los datos con validaciones
+    const tipos = data.distribuciones.por_tipo_intervencion?.conteos
+      ? Object.entries(data.distribuciones.por_tipo_intervencion.conteos)
+          .sort(([, a], [, b]) => (b as number) - (a as number))
+          .slice(0, 6)
+          .map(([name, value], index) => ({
+            name: name.length > 15 ? `${name.substring(0, 12)}...` : name,
+            fullName: name,
+            value: value as number,
+            fill: CHART_COLORS[index],
+            percentage: data.distribuciones.por_tipo_intervencion.porcentajes?.[name]?.toFixed(1) || '0'
+          }))
+      : [];
 
-    // Centros gestores - Top 5
-    const centros = data.distribuciones.por_centro_gestor.top_3.map(([name, value], index) => ({
-      name: name.includes('Secretaría') ? name.replace('Secretaría de ', '').replace('Secretaría del ', '').replace('Secretaría para la ', '') : name.length > 15 ? `${name.substring(0, 12)}...` : name,
-      fullName: name,
-      value: data.distribuciones.por_centro_gestor.porcentajes[name] || 0,
-      count: value,
-      fill: CHART_COLORS[index]
-    }));
+    // Centros gestores - Top 5 con validaciones
+    const centros = data.distribuciones.por_centro_gestor?.top_3
+      ? data.distribuciones.por_centro_gestor.top_3.map(([name, value], index) => ({
+          name: name.includes('Secretaría') ? name.replace('Secretaría de ', '').replace('Secretaría del ', '').replace('Secretaría para la ', '') : name.length > 15 ? `${name.substring(0, 12)}...` : name,
+          fullName: name,
+          value: data.distribuciones.por_centro_gestor.porcentajes?.[name] || 0,
+          count: value,
+          fill: CHART_COLORS[index]
+        }))
+      : [];
 
-    // Comunas - Top 10 para mejor visualización
-    const comunas = Object.entries(data.distribuciones.por_comuna_corregimiento.conteos)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([name, value], index) => ({
-        name: name.replace('COMUNA ', 'C'),
-        fullName: name,
-        value,
-        fill: CHART_COLORS[index % CHART_COLORS.length],
-        percentage: data.distribuciones.por_comuna_corregimiento.porcentajes[name]?.toFixed(1) || '0'
-      }));
+    // Comunas - Top 10 para mejor visualización con validaciones
+    const comunas = data.distribuciones.por_comuna_corregimiento?.conteos
+      ? Object.entries(data.distribuciones.por_comuna_corregimiento.conteos)
+          .sort(([, a], [, b]) => (b as number) - (a as number))
+          .slice(0, 10)
+          .map(([name, value], index) => ({
+            name: name.replace('COMUNA ', 'C'),
+            fullName: name,
+            value: value as number,
+            fill: CHART_COLORS[index % CHART_COLORS.length],
+            percentage: data.distribuciones.por_comuna_corregimiento.porcentajes?.[name]?.toFixed(1) || '0'
+          }))
+      : [];
 
-    // Barrios - Top 8
-    const barrios = Object.entries(data.distribuciones.por_barrio_vereda.conteos)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 8)
-      .map(([name, value], index) => ({
-        name: name.length > 12 ? `${name.substring(0, 10)}...` : name,
-        fullName: name,
-        value,
-        fill: CHART_COLORS[index % CHART_COLORS.length],
-        percentage: data.distribuciones.por_barrio_vereda.porcentajes[name]?.toFixed(1) || '0'
-      }));
+    // Barrios - Top 8 con validaciones
+    const barrios = data.distribuciones.por_barrio_vereda?.conteos
+      ? Object.entries(data.distribuciones.por_barrio_vereda.conteos)
+          .sort(([, a], [, b]) => (b as number) - (a as number))
+          .slice(0, 8)
+          .map(([name, value], index) => ({
+            name: name.length > 12 ? `${name.substring(0, 10)}...` : name,
+            fullName: name,
+            value: value as number,
+            fill: CHART_COLORS[index % CHART_COLORS.length],
+            percentage: data.distribuciones.por_barrio_vereda.porcentajes?.[name]?.toFixed(1) || '0'
+          }))
+      : [];
 
-    // Análisis de calidad mejorado
-    const calidad = Object.entries(data.analisis_calidad).map(([field, info], index) => ({
-      field: field === 'upid' ? 'UPID' : 
-             field === 'estado' ? 'Estado' :
-             field === 'tipo_intervencion' ? 'Tipo Intervención' :
-             field === 'nombre_centro_gestor' ? 'Centro Gestor' : field,
-      completitud: info.completitud_porcentaje,
-      validos: info.valores_validos,
-      faltantes: info.valores_faltantes,
-      calidad: info.calidad,
-      color: info.calidad === 'Excelente' ? '#10B981' : 
-             info.calidad === 'Buena' ? '#3B82F6' :
-             info.calidad === 'Regular' ? '#F59E0B' : '#EF4444',
-      fill: CHART_COLORS[index % CHART_COLORS.length]
-    }));
+    // Análisis de calidad mejorado con validaciones
+    const calidad = data.analisis_calidad
+      ? Object.entries(data.analisis_calidad).map(([field, info], index) => ({
+          field: field === 'upid' ? 'UPID' : 
+                 field === 'estado' ? 'Estado' :
+                 field === 'tipo_intervencion' ? 'Tipo Intervención' :
+                 field === 'nombre_centro_gestor' ? 'Centro Gestor' : field,
+          completitud: info.completitud_porcentaje,
+          validos: info.valores_validos,
+          faltantes: info.valores_faltantes,
+          calidad: info.calidad,
+          color: info.calidad === 'Excelente' ? '#10B981' : 
+                 info.calidad === 'Buena' ? '#3B82F6' :
+                 info.calidad === 'Regular' ? '#F59E0B' : '#EF4444',
+          fill: CHART_COLORS[index % CHART_COLORS.length]
+        }))
+      : [];
 
-    // Datos de distribución territorial
+    // Datos de distribución territorial con validaciones
     const territorial = [
       {
         categoria: 'Estados',
-        total: data.distribuciones.por_estado.total_categorias,
-        activos: Object.keys(data.distribuciones.por_estado.conteos).length,
+        total: data.distribuciones.por_estado?.total_categorias || 0,
+        activos: data.distribuciones.por_estado?.conteos ? Object.keys(data.distribuciones.por_estado.conteos).length : 0,
         porcentaje: 100
       },
       {
         categoria: 'Tipos Intervención',
-        total: data.distribuciones.por_tipo_intervencion.total_categorias,
-        activos: data.kpis_negocio.diversidad_tipos,
-        porcentaje: (data.kpis_negocio.diversidad_tipos / data.distribuciones.por_tipo_intervencion.total_categorias) * 100
+        total: data.distribuciones.por_tipo_intervencion?.total_categorias || 0,
+        activos: data.kpis_negocio?.diversidad_tipos || 0,
+        porcentaje: data.distribuciones.por_tipo_intervencion?.total_categorias 
+          ? ((data.kpis_negocio?.diversidad_tipos || 0) / data.distribuciones.por_tipo_intervencion.total_categorias) * 100
+          : 0
       },
       {
         categoria: 'Centros Gestores',
-        total: data.distribuciones.por_centro_gestor.total_categorias,
-        activos: data.kpis_negocio.centros_gestores_activos,
-        porcentaje: (data.kpis_negocio.centros_gestores_activos / data.distribuciones.por_centro_gestor.total_categorias) * 100
+        total: data.distribuciones.por_centro_gestor?.total_categorias || 0,
+        activos: data.kpis_negocio?.centros_gestores_activos || 0,
+        porcentaje: data.distribuciones.por_centro_gestor?.total_categorias
+          ? ((data.kpis_negocio?.centros_gestores_activos || 0) / data.distribuciones.por_centro_gestor.total_categorias) * 100
+          : 0
       },
       {
         categoria: 'Comunas',
-        total: data.distribuciones.por_comuna_corregimiento.total_categorias,
-        activos: data.kpis_negocio.cobertura_territorial.comunas_corregimientos,
-        porcentaje: (data.kpis_negocio.cobertura_territorial.comunas_corregimientos / data.distribuciones.por_comuna_corregimiento.total_categorias) * 100
+        total: data.distribuciones.por_comuna_corregimiento?.total_categorias || 0,
+        activos: data.kpis_negocio?.cobertura_territorial?.comunas_corregimientos || 0,
+        porcentaje: data.distribuciones.por_comuna_corregimiento?.total_categorias
+          ? ((data.kpis_negocio?.cobertura_territorial?.comunas_corregimientos || 0) / data.distribuciones.por_comuna_corregimiento.total_categorias) * 100
+          : 0
       }
     ];
 
@@ -405,9 +432,87 @@ const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, clas
   if (!data || !chartData) {
     return (
       <div className={`${className}`}>
-        <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-center">
-          <BarChart3 className="w-5 h-5 text-gray-400 mx-auto mb-1" />
-          <p className="text-sm text-gray-500">Sin datos disponibles</p>
+        <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-6 text-center">
+          <BarChart3 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Dashboard no disponible</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Los datos del endpoint no están disponibles o tienen una estructura diferente</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Validación adicional de estructura de datos críticos
+  const hasCriticalData = data?.resumen_general && data?.kpis_negocio;
+  const hasChartData = chartData && chartData.estados.length > 0;
+  
+  if (!hasCriticalData) {
+    return (
+      <div className={`${className}`}>
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-6 text-center">
+          <Activity className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+          <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-1">Dashboard en modo limitado</p>
+          <p className="text-xs text-yellow-600 dark:text-yellow-400">Estructura de datos no disponible. Verifique el endpoint /unidades-proyecto/dashboard</p>
+          <div className="mt-4 p-3 bg-white dark:bg-gray-800 rounded border">
+            <p className="text-xs text-gray-500">Datos recibidos: {data ? 'Parcialmente' : 'No disponibles'}</p>
+            <p className="text-xs text-gray-500">Estado: {JSON.stringify(Object.keys(data || {}))}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Modo degradado si no hay datos de gráficos
+  if (!hasChartData) {
+    return (
+      <div className={`${className}`}>
+        <div className="space-y-4">
+          {/* Header simplificado */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-4 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <BarChart3 className="w-6 h-6" />
+                <div>
+                  <h2 className="text-lg font-bold">Dashboard Básico</h2>
+                  <p className="text-blue-100 text-sm">Datos limitados disponibles</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Métricas básicas */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">{safeGet(data, 'resumen_general.total_proyectos', 0)}</p>
+                <p className="text-sm text-gray-500">Total Proyectos</p>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">{safeGet(data, 'kpis_negocio.proyectos_activos', 0)}</p>
+                <p className="text-sm text-gray-500">En Ejecución</p>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-teal-600">{safeGet(data, 'kpis_negocio.proyectos_finalizados', 0)}</p>
+                <p className="text-sm text-gray-500">Finalizados</p>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-purple-600">{safeGet(data, 'kpis_negocio.centros_gestores_activos', 0)}</p>
+                <p className="text-sm text-gray-500">Centros Gestores</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mensaje informativo */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4 text-center">
+            <AlertCircle className="w-5 h-5 text-blue-500 mx-auto mb-2" />
+            <p className="text-sm text-blue-700 dark:text-blue-300">Dashboard funcionando en modo simplificado</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">Los gráficos avanzados requieren estructura de datos completa</p>
+          </div>
         </div>
       </div>
     );
@@ -445,8 +550,8 @@ const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, clas
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         <MetricCard
           label="Total Proyectos"
-          value={formatNumber(data.resumen_general.total_proyectos)}
-          subtitle={`100% con geometría`}
+          value={formatNumber(data.resumen_general?.total_proyectos || 0)}
+          subtitle={`${data.resumen_general?.porcentaje_geo?.toFixed(1) || '0'}% con geometría`}
           icon={<Building2 />}
           gradient="from-blue-500 to-blue-600"
           trend="up"
@@ -455,8 +560,8 @@ const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, clas
         
         <MetricCard
           label="En Ejecución"
-          value={formatNumber(data.kpis_negocio.proyectos_activos)}
-          subtitle={`${((data.kpis_negocio.proyectos_activos / data.resumen_general.total_proyectos) * 100).toFixed(1)}% del total`}
+          value={formatNumber(data.kpis_negocio?.proyectos_activos || 0)}
+          subtitle={`${data.resumen_general?.total_proyectos ? ((data.kpis_negocio?.proyectos_activos || 0) / data.resumen_general.total_proyectos * 100).toFixed(1) : '0'}% del total`}
           icon={<Activity />}
           gradient="from-green-500 to-emerald-600"
           trend="up"
@@ -465,8 +570,8 @@ const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, clas
         
         <MetricCard
           label="Finalizados"
-          value={data.kpis_negocio.proyectos_finalizados}
-          subtitle={`${((data.kpis_negocio.proyectos_finalizados / data.resumen_general.total_proyectos) * 100).toFixed(1)}% completados`}
+          value={data.kpis_negocio?.proyectos_finalizados || 0}
+          subtitle={`${data.resumen_general?.total_proyectos ? ((data.kpis_negocio?.proyectos_finalizados || 0) / data.resumen_general.total_proyectos * 100).toFixed(1) : '0'}% completados`}
           icon={<CheckCircle2 />}
           gradient="from-teal-500 to-cyan-600"
           trend="stable"
@@ -475,8 +580,8 @@ const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, clas
         
         <MetricCard
           label="Centros Gestores"
-          value={data.kpis_negocio.centros_gestores_activos}
-          subtitle={`${data.kpis_negocio.diversidad_tipos} tipos intervención`}
+          value={data.kpis_negocio?.centros_gestores_activos || 0}
+          subtitle={`${data.kpis_negocio?.diversidad_tipos || 0} tipos intervención`}
           icon={<Users />}
           gradient="from-purple-500 to-violet-600"
           trend="stable"
@@ -485,8 +590,8 @@ const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, clas
         
         <MetricCard
           label="Comunas Activas"
-          value={data.kpis_negocio.cobertura_territorial.comunas_corregimientos}
-          subtitle={`de ${data.distribuciones.por_comuna_corregimiento.total_categorias} total`}
+          value={data.kpis_negocio?.cobertura_territorial?.comunas_corregimientos || 0}
+          subtitle={`de ${data.distribuciones?.por_comuna_corregimiento?.total_categorias || 0} total`}
           icon={<MapPin />}
           gradient="from-orange-500 to-red-500"
           trend="up"
@@ -495,8 +600,8 @@ const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, clas
 
         <MetricCard
           label="Barrios Cubiertos"
-          value={data.kpis_negocio.cobertura_territorial.barrios_veredas}
-          subtitle={`de ${data.distribuciones.por_barrio_vereda.total_categorias} total`}
+          value={data.kpis_negocio?.cobertura_territorial?.barrios_veredas || 0}
+          subtitle={`de ${data.distribuciones?.por_barrio_vereda?.total_categorias || 0} total`}
           icon={<Map />}
           gradient="from-pink-500 to-rose-600"
           trend="up"
