@@ -24,6 +24,8 @@ const GeometrySchema = z.object({
 const AttributeSchema = z.object({
   upid: z.string(),
   nombre_up: z.string(),
+  nombre_up_detalle: z.string().optional(),
+  identificador: z.string().optional(),
   estado: z.string(),
   tipo_intervencion: z.string(),
   nombre_centro_gestor: z.string(),
@@ -254,6 +256,8 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
         const validatedItem = AttributeSchema.parse({
           upid: properties.upid || '',
           nombre_up: properties.nombre_up || '',
+          nombre_up_detalle: properties.nombre_up_detalle || undefined,
+          identificador: properties.identificador || undefined,
           estado: properties.estado || '',
           tipo_intervencion: properties.tipo_intervencion || '',
           nombre_centro_gestor: properties.nombre_centro_gestor || '',

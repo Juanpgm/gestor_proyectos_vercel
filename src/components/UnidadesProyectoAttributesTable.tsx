@@ -22,6 +22,7 @@ import {
   FileText,
   Clock,
   Target,
+  Hash,
   X
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
@@ -188,6 +189,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   const [visibleColumns, setVisibleColumns] = useState({
     upid: true,
     nombre_up: true,
+    identificador: false, // Nueva columna de identificador (oculta por defecto)
     estado: true,
     tipo_intervencion: false,
     avance_obra: true,
@@ -195,7 +197,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     nombre_centro_gestor: false,
     ubicacion: true, // Nueva columna unificada de barrio y comuna
     fuente_financiacion: false,
-    duracion_proyecto: true, // Nueva columna combinada de fechas
+    duracion_proyecto: false, // Nueva columna combinada de fechas
     ano: false,
     descripcion_intervencion: false,
     acciones: true // Nueva columna de acciones
@@ -211,6 +213,8 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       filtered = data.filter(item =>
         item.upid.toLowerCase().includes(term) ||
         item.nombre_up.toLowerCase().includes(term) ||
+        (item.nombre_up_detalle && item.nombre_up_detalle.toLowerCase().includes(term)) ||
+        (item.identificador && item.identificador.toLowerCase().includes(term)) ||
         item.estado.toLowerCase().includes(term) ||
         item.tipo_intervencion.toLowerCase().includes(term) ||
         item.nombre_centro_gestor.toLowerCase().includes(term) ||
@@ -331,6 +335,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       setVisibleColumns({
         upid: true,
         nombre_up: true,
+        identificador: false,
         estado: true,
         avance_obra: true,
         presupuesto_base: true,
@@ -348,6 +353,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       setVisibleColumns({
         upid: true,
         nombre_up: true,
+        identificador: false,
         estado: true,
         tipo_intervencion: true,
         avance_obra: true,
@@ -498,6 +504,13 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<Activity className="w-3 h-3" />} 
                   />
                 )}
+                {visibleColumns.identificador && (
+                  <ColumnHeader 
+                    label="Identificador" 
+                    sortKey="identificador" 
+                    icon={<Hash className="w-3 h-3" />} 
+                  />
+                )}
                 {visibleColumns.avance_obra && (
                   <ColumnHeader 
                     label="Avance Obra" 
@@ -601,8 +614,22 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   )}
                   {visibleColumns.nombre_up && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div title={item.nombre_up}>
-                        {truncateText(item.nombre_up, 40)}
+                      <div className="space-y-1">
+                        <div title={item.nombre_up}>
+                          {truncateText(item.nombre_up, 40)}
+                        </div>
+                        {item.nombre_up_detalle && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400" title={item.nombre_up_detalle}>
+                            {truncateText(item.nombre_up_detalle, 50)}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.identificador && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      <div className="font-mono text-xs" title={item.identificador}>
+                        {item.identificador || 'N/A'}
                       </div>
                     </td>
                   )}
@@ -693,19 +720,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                             <div className="flex items-center space-x-2">
                               <Calendar className="w-3 h-3 text-blue-500" />
                               <span className="font-medium">{duracionInfo.duracion}</span>
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                duracionInfo.estado === 'en-curso' 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                  : duracionInfo.estado === 'finalizado'
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                  : duracionInfo.estado === 'no-iniciado'
-                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                              }`}>
-                                {duracionInfo.estado === 'en-curso' ? 'En curso' :
-                                 duracionInfo.estado === 'finalizado' ? 'Finalizado' :
-                                 duracionInfo.estado === 'no-iniciado' ? 'No iniciado' : 'Sin fechas'}
-                              </span>
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
                               {duracionInfo.fechas}

@@ -207,6 +207,24 @@ const ProjectDetailsModal: React.FC<{
               </span>
             </div>
             
+            {item.nombre_up_detalle && (
+              <div className="flex items-start gap-3">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Detalle</span>
+                <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
+                  {item.nombre_up_detalle}
+                </span>
+              </div>
+            )}
+            
+            {item.identificador && (
+              <div className="flex items-start gap-3">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">ID</span>
+                <span className="text-sm text-gray-900 dark:text-white font-mono text-xs leading-relaxed">
+                  {item.identificador}
+                </span>
+              </div>
+            )}
+            
             <div className="flex items-start gap-3">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Ubicación</span>
               <div className="text-sm text-gray-900 dark:text-white leading-relaxed">
