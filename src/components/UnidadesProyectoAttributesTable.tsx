@@ -13,7 +13,16 @@ import {
   ChevronUp,
   ChevronDown,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  User,
+  FileText,
+  Clock,
+  Target,
+  X
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
 
@@ -21,6 +30,10 @@ interface UnidadesProyectoAttributesTableProps {
   data: AttributeData[];
   className?: string;
   maxHeight?: string;
+  pageSize?: number;
+  onRowClick?: (upid: string) => void; // Callback para cuando se hace clic en una fila
+  focusedItem?: string | null; // UPID del elemento enfocado
+  onShowDetails?: (upid: string) => void; // Callback para mostrar detalles en modal
 }
 
 // Componente de barra de progreso
@@ -67,29 +80,129 @@ const truncateText = (text: string, maxLength: number = 30): string => {
   return `${text.substring(0, maxLength)}...`;
 };
 
+// Función para calcular duración del proyecto
+const calculateProjectDuration = (fechaInicio: string, fechaFin: string): {
+  duracion: string;
+  estado: 'en-curso' | 'finalizado' | 'no-iniciado' | 'sin-fechas';
+  fechas: string;
+} => {
+  if (!fechaInicio || !fechaFin) {
+    return {
+      duracion: 'N/A',
+      estado: 'sin-fechas',
+      fechas: fechaInicio || fechaFin || 'Sin fechas'
+    };
+  }
+
+  const inicio = new Date(fechaInicio);
+  const fin = new Date(fechaFin);
+  const hoy = new Date();
+  
+  const duracionMs = fin.getTime() - inicio.getTime();
+  const duracionDias = Math.ceil(duracionMs / (1000 * 60 * 60 * 24));
+  const duracionMeses = Math.round(duracionDias / 30);
+  
+  let estado: 'en-curso' | 'finalizado' | 'no-iniciado' | 'sin-fechas';
+  if (hoy < inicio) estado = 'no-iniciado';
+  else if (hoy > fin) estado = 'finalizado';
+  else estado = 'en-curso';
+  
+  let duracionTexto: string;
+  if (duracionMeses >= 12) {
+    const años = Math.round(duracionMeses / 12);
+    duracionTexto = `${años} año${años > 1 ? 's' : ''}`;
+  } else if (duracionMeses > 0) {
+    duracionTexto = `${duracionMeses} mes${duracionMeses > 1 ? 'es' : ''}`;
+  } else {
+    duracionTexto = `${duracionDias} día${duracionDias > 1 ? 's' : ''}`;
+  }
+  
+  const fechasFormateadas = `${inicio.toLocaleDateString('es-CO')} - ${fin.toLocaleDateString('es-CO')}`;
+  
+  return {
+    duracion: duracionTexto,
+    estado,
+    fechas: fechasFormateadas
+  };
+};
+
+// Función para formatear fechas
+const formatDate = (dateString: string): string => {
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-CO', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  } catch {
+    return dateString; // Retorna la fecha original si no se puede parsear
+  }
+};
+
+// Función para calcular duración del proyecto
+const calculateDuration = (startDate: string, endDate: string): string => {
+  if (!startDate || !endDate) return 'N/A';
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 30) return `${diffDays} días`;
+    if (diffDays < 365) return `${Math.round(diffDays / 30)} meses`;
+    return `${Math.round(diffDays / 365)} años`;
+  } catch {
+    return 'N/A';
+  }
+};
+
+// Función para obtener estado de avance
+const getProgressStatus = (progress: number): { color: string; label: string } => {
+  if (progress >= 100) return { color: 'text-green-600 dark:text-green-400', label: 'Completado' };
+  if (progress >= 80) return { color: 'text-blue-600 dark:text-blue-400', label: 'Avanzado' };
+  if (progress >= 60) return { color: 'text-yellow-600 dark:text-yellow-400', label: 'En progreso' };
+  if (progress >= 40) return { color: 'text-orange-600 dark:text-orange-400', label: 'Intermedio' };
+  if (progress > 0) return { color: 'text-red-600 dark:text-red-400', label: 'Inicial' };
+  return { color: 'text-gray-600 dark:text-gray-400', label: 'Sin iniciar' };
+};
+
 const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableProps> = ({
   data,
   className = '',
-  maxHeight = '500px'
+  maxHeight = '500px',
+  pageSize = 20,
+  onRowClick,
+  focusedItem = null,
+  onShowDetails
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(pageSize);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof AttributeData;
     direction: 'asc' | 'desc';
   } | null>(null);
+  const [viewMode, setViewMode] = useState<'compact' | 'complete'>('complete');
   const [visibleColumns, setVisibleColumns] = useState({
     upid: true,
     nombre_up: true,
+    estado: true,
+    tipo_intervencion: false,
     avance_obra: true,
     presupuesto_base: true,
-    barrio_vereda: true,
-    comuna_corregimiento: true,
-    estado: false,
-    tipo_intervencion: false
+    nombre_centro_gestor: false,
+    ubicacion: true, // Nueva columna unificada de barrio y comuna
+    fuente_financiacion: false,
+    duracion_proyecto: true, // Nueva columna combinada de fechas
+    ano: false,
+    descripcion_intervencion: false,
+    acciones: true // Nueva columna de acciones
   });
 
-  // Datos filtrados y ordenados
-  const processedData = useMemo(() => {
+  // Datos filtrados, ordenados y paginados
+  const { filteredData, paginatedData, totalPages, totalItems } = useMemo(() => {
     let filtered = data;
 
     // Filtrar por término de búsqueda
@@ -98,9 +211,14 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       filtered = data.filter(item =>
         item.upid.toLowerCase().includes(term) ||
         item.nombre_up.toLowerCase().includes(term) ||
+        item.estado.toLowerCase().includes(term) ||
+        item.tipo_intervencion.toLowerCase().includes(term) ||
+        item.nombre_centro_gestor.toLowerCase().includes(term) ||
         item.barrio_vereda.toLowerCase().includes(term) ||
         item.comuna_corregimiento.toLowerCase().includes(term) ||
-        item.estado.toLowerCase().includes(term)
+        item.fuente_financiacion.toLowerCase().includes(term) ||
+        item.descripcion_intervencion.toLowerCase().includes(term) ||
+        item.ano.toString().includes(term)
       );
     }
 
@@ -125,8 +243,19 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       });
     }
 
-    return filtered;
-  }, [data, searchTerm, sortConfig]);
+    // Calcular paginación
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedData = filtered.slice(startIndex, endIndex);
+
+    return {
+      filteredData: filtered,
+      paginatedData,
+      totalPages,
+      totalItems: filtered.length
+    };
+  }, [data, searchTerm, sortConfig, currentPage, itemsPerPage]);
 
   // Manejar ordenamiento
   const handleSort = (key: keyof AttributeData) => {
@@ -139,6 +268,49 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       }
       return { key, direction: 'asc' };
     });
+    // Resetear a la primera página al ordenar
+    setCurrentPage(1);
+  };
+
+  // Manejar cambio de página
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Manejar cambio de elementos por página
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Resetear a la primera página
+  };
+
+  // Manejar cambio de término de búsqueda
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Resetear a la primera página al buscar
+  };
+
+  // Manejar navegación con teclado
+  const handleKeyNavigation = (event: React.KeyboardEvent) => {
+    if (event.ctrlKey || event.metaKey) {
+      switch (event.key) {
+        case 'ArrowLeft':
+          event.preventDefault();
+          if (currentPage > 1) handlePageChange(currentPage - 1);
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          if (currentPage < totalPages) handlePageChange(currentPage + 1);
+          break;
+        case 'Home':
+          event.preventDefault();
+          handlePageChange(1);
+          break;
+        case 'End':
+          event.preventDefault();
+          handlePageChange(totalPages);
+          break;
+      }
+    }
   };
 
   // Alternar visibilidad de columnas
@@ -147,6 +319,48 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       ...prev,
       [column]: !prev[column]
     }));
+  };
+
+  // Alternar entre vista compacta y completa
+  const toggleViewMode = () => {
+    const newMode = viewMode === 'compact' ? 'complete' : 'compact';
+    setViewMode(newMode);
+    
+    if (newMode === 'compact') {
+      // Vista compacta: mostrar solo campos esenciales
+      setVisibleColumns({
+        upid: true,
+        nombre_up: true,
+        estado: true,
+        avance_obra: true,
+        presupuesto_base: true,
+        ubicacion: true,
+        tipo_intervencion: false,
+        nombre_centro_gestor: false,
+        fuente_financiacion: false,
+        duracion_proyecto: false,
+        ano: false,
+        descripcion_intervencion: false,
+        acciones: true
+      });
+    } else {
+      // Vista completa: mostrar todos los campos relevantes
+      setVisibleColumns({
+        upid: true,
+        nombre_up: true,
+        estado: true,
+        tipo_intervencion: true,
+        avance_obra: true,
+        presupuesto_base: true,
+        nombre_centro_gestor: true,
+        ubicacion: true,
+        fuente_financiacion: true,
+        duracion_proyecto: true,
+        ano: true,
+        descripcion_intervencion: false,
+        acciones: true
+      });
+    }
   };
 
   // Componente de header de columna
@@ -190,6 +404,8 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 ${className}`}
+      onKeyDown={handleKeyNavigation}
+      tabIndex={0}
     >
       {/* Header con controles */}
       <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -200,7 +416,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
               Atributos de Unidades de Proyecto
             </h3>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              {processedData.length} de {data.length}
+              {totalItems} de {data.length}
             </span>
           </div>
 
@@ -210,12 +426,26 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por UPID, nombre, ubicación..."
+                placeholder="Buscar por UPID, nombre, centro gestor, ubicación, año..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+
+            {/* Botón vista compacta/completa */}
+            <button
+              onClick={toggleViewMode}
+              className={`flex items-center space-x-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                viewMode === 'complete'
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              title={viewMode === 'complete' ? 'Cambiar a vista compacta' : 'Cambiar a vista completa'}
+            >
+              <Table className="w-4 h-4" />
+              <span>{viewMode === 'complete' ? 'Completa' : 'Compacta'}</span>
+            </button>
 
             {/* Control de columnas visibles */}
             <div className="relative group">
@@ -282,17 +512,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<DollarSign className="w-3 h-3" />} 
                   />
                 )}
-                {visibleColumns.barrio_vereda && (
+                {visibleColumns.ubicacion && (
                   <ColumnHeader 
-                    label="Barrio" 
+                    label="Ubicación" 
                     sortKey="barrio_vereda" 
-                    icon={<MapPin className="w-3 h-3" />} 
-                  />
-                )}
-                {visibleColumns.comuna_corregimiento && (
-                  <ColumnHeader 
-                    label="Comuna" 
-                    sortKey="comuna_corregimiento" 
                     icon={<MapPin className="w-3 h-3" />} 
                   />
                 )}
@@ -310,16 +533,66 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<Building2 className="w-3 h-3" />} 
                   />
                 )}
+                {visibleColumns.nombre_centro_gestor && (
+                  <ColumnHeader 
+                    label="Centro Gestor" 
+                    sortKey="nombre_centro_gestor" 
+                    icon={<User className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.fuente_financiacion && (
+                  <ColumnHeader 
+                    label="Fuente Financiación" 
+                    sortKey="fuente_financiacion" 
+                    icon={<DollarSign className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.duracion_proyecto && (
+                  <ColumnHeader 
+                    label="Duración" 
+                    sortKey="fecha_inicio" 
+                    icon={<Calendar className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.acciones && (
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <div className="flex items-center space-x-1">
+                      <Eye className="w-3 h-3" />
+                      <span>Acciones</span>
+                    </div>
+                  </th>
+                )}
+                {visibleColumns.ano && (
+                  <ColumnHeader 
+                    label="Año" 
+                    sortKey="ano" 
+                    icon={<Clock className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.descripcion_intervencion && (
+                  <ColumnHeader 
+                    label="Descripción" 
+                    sortKey="descripcion_intervencion" 
+                    icon={<FileText className="w-3 h-3" />} 
+                  />
+                )}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {processedData.map((item, index) => (
+              {paginatedData.map((item: AttributeData, index: number) => {
+                const isFocused = focusedItem === item.upid;
+                return (
                 <motion.tr
                   key={item.upid}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.01 }}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  onClick={() => onRowClick && onRowClick(item.upid)}
+                  className={`transition-colors cursor-pointer ${
+                    isFocused 
+                      ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500' 
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  }`}
                 >
                   {visibleColumns.upid && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
@@ -335,7 +608,15 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   )}
                   {visibleColumns.avance_obra && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      <ProgressBar value={item.avance_obra || 0} max={100} />
+                      <div className="space-y-1">
+                        <ProgressBar value={item.avance_obra || 0} max={100} />
+                        <div className={`text-xs font-medium ${getProgressStatus(item.avance_obra || 0).color}`}>
+                          <div className="flex items-center space-x-1">
+                            <Target className="w-3 h-3" />
+                            <span>{getProgressStatus(item.avance_obra || 0).label}</span>
+                          </div>
+                        </div>
+                      </div>
                     </td>
                   )}
                   {visibleColumns.presupuesto_base && (
@@ -343,17 +624,15 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       {formatCurrency(item.presupuesto_base || 0)}
                     </td>
                   )}
-                  {visibleColumns.barrio_vereda && (
+                  {visibleColumns.ubicacion && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div title={item.barrio_vereda}>
-                        {truncateText(item.barrio_vereda, 20)}
-                      </div>
-                    </td>
-                  )}
-                  {visibleColumns.comuna_corregimiento && (
-                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div title={item.comuna_corregimiento}>
-                        {truncateText(item.comuna_corregimiento, 20)}
+                      <div className="space-y-1">
+                        <div className="font-medium text-gray-900 dark:text-white" title={item.barrio_vereda}>
+                          {truncateText(item.barrio_vereda || 'N/A', 25)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400" title={item.comuna_corregimiento}>
+                          {truncateText(item.comuna_corregimiento || 'N/A', 25)}
+                        </div>
                       </div>
                     </td>
                   )}
@@ -377,20 +656,274 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       </div>
                     </td>
                   )}
+                  {visibleColumns.nombre_centro_gestor && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      <div 
+                        title={item.nombre_centro_gestor}
+                        className="flex items-center space-x-2"
+                      >
+                        <User className="w-3 h-3 text-purple-500 flex-shrink-0" />
+                        <span>{truncateText(item.nombre_centro_gestor, 25)}</span>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.fuente_financiacion && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      <div title={item.fuente_financiacion}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          item.fuente_financiacion.toLowerCase().includes('nacional') 
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            : item.fuente_financiacion.toLowerCase().includes('departamental')
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : item.fuente_financiacion.toLowerCase().includes('municipal')
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                        }`}>
+                          {truncateText(item.fuente_financiacion, 15)}
+                        </span>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.duracion_proyecto && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      {(() => {
+                        const duracionInfo = calculateProjectDuration(item.fecha_inicio, item.fecha_fin);
+                        return (
+                          <div className="flex flex-col space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="w-3 h-3 text-blue-500" />
+                              <span className="font-medium">{duracionInfo.duracion}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                duracionInfo.estado === 'en-curso' 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : duracionInfo.estado === 'finalizado'
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                  : duracionInfo.estado === 'no-iniciado'
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                              }`}>
+                                {duracionInfo.estado === 'en-curso' ? 'En curso' :
+                                 duracionInfo.estado === 'finalizado' ? 'Finalizado' :
+                                 duracionInfo.estado === 'no-iniciado' ? 'No iniciado' : 'Sin fechas'}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {duracionInfo.fechas}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
+                  )}
+                  {visibleColumns.acciones && (
+                    <td className="px-3 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onShowDetails && onShowDetails(item.upid);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="Ver detalles"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.ano && (
+                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{item.ano}</span>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.descripcion_intervencion && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white max-w-xs">
+                      <div 
+                        title={item.descripcion_intervencion}
+                        className="flex items-start space-x-2"
+                      >
+                        <FileText className="w-3 h-3 text-gray-500 flex-shrink-0 mt-0.5" />
+                        <span 
+                          className="leading-relaxed"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {truncateText(item.descripcion_intervencion, 120)}
+                        </span>
+                      </div>
+                    </td>
+                  )}
                 </motion.tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Controles de Paginación */}
+      {totalPages > 1 && (
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
+            {/* Selector de elementos por página */}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Mostrar:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-600 dark:text-gray-400">por página</span>
+            </div>
+
+            {/* Información de paginación y navegación rápida */}
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Página <span className="font-medium">{currentPage}</span> de{' '}
+                <span className="font-medium">{totalPages}</span>
+                {' '}({totalItems} registros)
+              </span>
+              
+              {/* Ir a página específica */}
+              {totalPages > 10 && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Ir a:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={currentPage}
+                    onChange={(e) => {
+                      const page = Math.max(1, Math.min(totalPages, parseInt(e.target.value) || 1));
+                      handlePageChange(page);
+                    }}
+                    className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    title="Escriba el número de página y presione Enter"
+                  />
+                </div>
+              )}
+              
+              {/* Ayuda de navegación con teclado */}
+              <div className="hidden lg:block">
+                <span 
+                  className="text-xs text-gray-500 dark:text-gray-400 cursor-help"
+                  title="Ctrl+← Página anterior | Ctrl+→ Página siguiente | Ctrl+Home Primera página | Ctrl+End Última página"
+                >
+                  ⌨️ Atajos
+                </span>
+              </div>
+
+              {/* Controles de navegación */}
+              <div className="flex items-center space-x-1">
+                {/* Primera página */}
+                <button
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Primera página"
+                >
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+
+                {/* Página anterior */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Página anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Números de página */}
+                <div className="flex items-center space-x-1">
+                  {(() => {
+                    const pageNumbers = [];
+                    const maxVisiblePages = 5;
+                    const halfVisible = Math.floor(maxVisiblePages / 2);
+                    
+                    let startPage = Math.max(1, currentPage - halfVisible);
+                    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                    
+                    if (endPage - startPage < maxVisiblePages - 1) {
+                      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                    }
+
+                    for (let i = startPage; i <= endPage; i++) {
+                      pageNumbers.push(
+                        <button
+                          key={i}
+                          onClick={() => handlePageChange(i)}
+                          className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                            i === currentPage
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                    return pageNumbers;
+                  })()}
+                </div>
+
+                {/* Página siguiente */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Página siguiente"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                {/* Última página */}
+                <button
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Última página"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer con información */}
-      {processedData.length > 0 && (
+      {paginatedData.length > 0 && (
         <div className="px-6 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
             <div>
-              Mostrando <span className="font-medium">{processedData.length}</span> de{' '}
-              <span className="font-medium">{data.length}</span> unidades de proyecto
+              Mostrando{' '}
+              <span className="font-medium">
+                {((currentPage - 1) * itemsPerPage) + 1}
+              </span>
+              {' '}-{' '}
+              <span className="font-medium">
+                {Math.min(currentPage * itemsPerPage, totalItems)}
+              </span>
+              {' '}de{' '}
+              <span className="font-medium">{totalItems}</span> unidades de proyecto
+              {totalItems !== data.length && (
+                <span className="text-gray-400"> (filtradas de {data.length} totales)</span>
+              )}
             </div>
             {searchTerm && (
               <div>

@@ -16,6 +16,7 @@ interface UnidadesProyectoFiltersProps {
   onClearFilters: () => void;
   isLoading?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
 // Componente de selector mejorado con searchbar y checkboxes
@@ -153,7 +154,8 @@ const EnhancedFilterSelect: React.FC<{
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-64 overflow-hidden"
+            className="absolute w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-64 overflow-hidden"
+            style={{ zIndex: 10001 }}
           >
             {/* Search bar */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
@@ -273,7 +275,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   onSearchChange,
   onClearFilters,
   isLoading = false,
-  className = ''
+  className = '',
+  compact = false
 }) => {
   // Estado para manejar filtros múltiples
   const [multiFilters, setMultiFilters] = useState<{
@@ -383,15 +386,16 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 ${className}`}
+      className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 relative z-50 ${className}`}
+      style={{ zIndex: 50 }}
     >
       <div className="p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className={`flex items-center justify-between ${compact ? 'mb-3' : 'mb-4'}`}>
           <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Filtros de Búsqueda
+            <Filter className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600 dark:text-blue-400`} />
+            <h3 className={`${compact ? 'text-base' : 'text-lg'} font-semibold text-gray-900 dark:text-white`}>
+              {compact ? 'Filtros' : 'Filtros de Búsqueda'}
             </h3>
             {activeFiltersCount > 0 && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -401,46 +405,46 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
           </div>
           
           <div className="flex items-center space-x-2">
-            {/* Toggle de modo multi-select */}
+            {/* Toggle de modo multi-select - más compacto si es necesario */}
             <button
               onClick={() => setIsMultiMode(!isMultiMode)}
-              className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              className={`inline-flex items-center ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} text-xs font-medium rounded-lg transition-colors ${
                 isMultiMode 
                   ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
                   : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              <Check className="w-4 h-4 mr-1" />
-              Filtros múltiples
+              <Check className={`${compact ? 'w-3 h-3' : 'w-4 h-4'} ${compact ? '' : 'mr-1'}`} />
+              {!compact && 'Filtros múltiples'}
             </button>
             
             {hasActiveFilters && (
               <button
                 onClick={handleClearAllFilters}
                 disabled={isLoading}
-                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+                className={`inline-flex items-center ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50`}
               >
-                <X className="w-4 h-4 mr-1" />
-                Limpiar filtros
+                <X className={`${compact ? 'w-3 h-3' : 'w-4 h-4'} ${compact ? '' : 'mr-1'}`} />
+                {!compact && 'Limpiar filtros'}
               </button>
             )}
           </div>
         </div>
 
         {/* Barra de búsqueda */}
-        <div className="mb-4">
+        <div className={compact ? 'mb-3' : 'mb-4'}>
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Búsqueda General
+            {compact ? 'Búsqueda' : 'Búsqueda General'}
           </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Buscar por nombre, descripción, UPID..."
+              placeholder={compact ? "Buscar..." : "Buscar por nombre, descripción, UPID..."}
               value={filters.searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               disabled={isLoading}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors"
+              className={`w-full pl-10 pr-4 ${compact ? 'py-1.5' : 'py-2'} border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors ${compact ? 'text-sm' : ''}`}
             />
             {isLoading && (
               <RefreshCw className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
@@ -448,8 +452,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
           </div>
         </div>
 
-        {/* Grid de filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {/* Layout vertical de filtros para mejor legibilidad */}
+        <div className={`space-y-4 ${compact ? 'space-y-3' : 'space-y-4'}`}>
           {/* Estado */}
           <EnhancedFilterSelect
             label="Estado"

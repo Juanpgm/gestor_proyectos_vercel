@@ -27,6 +27,7 @@ import { useUnidadesProyecto, useUnidadesProyectoDashboard } from '@/hooks/useUn
 
 // Tipos
 import { type FilterParams } from '@/services/unidades-proyecto.service';
+import { type AttributeData } from '@/hooks/useUnidadesProyecto';
 
 
 // Estados de vista
@@ -68,6 +69,238 @@ const ErrorDisplay: React.FC<{ error: string; onRetry?: () => void }> = ({ error
     </div>
   </motion.div>
 );
+
+// Componente Modal de Detalles del Proyecto
+const ProjectDetailsModal: React.FC<{
+  item: AttributeData | undefined;
+  onClose: () => void;
+}> = ({ item, onClose }) => {
+  if (!item) return null;
+
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const calculateProjectDuration = (fechaInicio: string, fechaFin: string) => {
+    if (!fechaInicio || !fechaFin) {
+      return {
+        duration: 'N/A',
+        status: 'sin-fecha',
+        dateRange: 'Fechas no disponibles'
+      };
+    }
+
+    try {
+      const startDate = new Date(fechaInicio);
+      const endDate = new Date(fechaFin);
+      const today = new Date();
+
+      const diffTime = endDate.getTime() - startDate.getTime();
+      const daysTotal = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const monthsTotal = Math.ceil(daysTotal / 30);
+
+      let status = 'planificado';
+      if (today >= startDate && today <= endDate) {
+        status = 'en-curso';
+      } else if (today > endDate) {
+        status = 'finalizado';
+      }
+
+      const formatDate = (date: Date) => {
+        return date.toLocaleDateString('es-CO', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+      };
+
+      let duration = '';
+      if (monthsTotal > 12) {
+        const years = Math.floor(monthsTotal / 12);
+        const remainingMonths = monthsTotal % 12;
+        duration = `${years} año${years > 1 ? 's' : ''}${remainingMonths > 0 ? ` ${remainingMonths} mes${remainingMonths > 1 ? 'es' : ''}` : ''}`;
+      } else if (monthsTotal >= 1) {
+        duration = `${monthsTotal} mes${monthsTotal > 1 ? 'es' : ''}`;
+      } else {
+        duration = `${daysTotal} día${daysTotal > 1 ? 's' : ''}`;
+      }
+
+      return {
+        duration,
+        status,
+        dateRange: `${formatDate(startDate)} - ${formatDate(endDate)}`
+      };
+    } catch (error) {
+      return {
+        duration: 'Error',
+        status: 'error',
+        dateRange: 'Error al calcular fechas'
+      };
+    }
+  };
+
+  const projectDuration = calculateProjectDuration(item.fecha_inicio, item.fecha_fin);
+  const progress = Math.round(item.avance_obra || 0);
+
+  return (
+    <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-xl overflow-hidden">
+      {/* Header mejorado */}
+      <div className="relative bg-white dark:bg-gray-900 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          <X className="w-4 h-4 text-gray-400" />
+        </button>
+        
+        <div className="pr-8">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2 leading-tight line-clamp-2">
+            {item.nombre_up}
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400 font-mono text-sm">
+              {item.upid}
+            </span>
+            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 rounded text-blue-700 dark:text-blue-300 text-sm font-medium">
+              {item.estado}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content scrolleable */}
+      <div className="flex-1 overflow-y-auto px-4 py-3">
+        <div className="space-y-4">
+          {/* Progreso mejorado */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Progreso</span>
+            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all ${
+                  progress >= 70 ? 'bg-green-500' : 
+                  progress >= 40 ? 'bg-amber-500' : 
+                  'bg-red-500'
+                }`}
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              />
+            </div>
+            <span className={`text-sm font-semibold w-8 text-right ${
+              progress >= 70 ? 'text-green-600' : 
+              progress >= 40 ? 'text-amber-600' : 
+              'text-red-600'
+            }`}>
+              {progress}%
+            </span>
+          </div>
+
+          {/* Información con tipografía balanceada */}
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Centro</span>
+              <span className="text-sm text-gray-900 dark:text-white font-medium leading-relaxed">
+                {item.nombre_centro_gestor || 'No especificado'}
+              </span>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Ubicación</span>
+              <div className="text-sm text-gray-900 dark:text-white leading-relaxed">
+                <div className="font-medium">{item.barrio_vereda || 'N/A'}</div>
+                <div className="text-gray-500 dark:text-gray-400 text-sm">{item.comuna_corregimiento || 'N/A'}</div>
+              </div>
+            </div>
+
+            {item.presupuesto_base && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Presupuesto</span>
+                <span className="text-sm text-green-600 dark:text-green-400 font-semibold">
+                  {formatCurrency(item.presupuesto_base)}
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-start gap-3">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Tipo</span>
+              <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
+                {item.tipo_intervencion}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Año</span>
+              <span className="text-sm text-gray-900 dark:text-white font-medium">
+                {item.ano}
+              </span>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Duración</span>
+              <div className="text-sm text-gray-900 dark:text-white">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium">{projectDuration.duration}</span>
+                  <span className={`px-2 py-0.5 text-xs rounded font-medium ${
+                    projectDuration.status === 'en-curso' 
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                      : projectDuration.status === 'finalizado'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                  }`}>
+                    {projectDuration.status === 'en-curso' ? 'En Curso' : 
+                     projectDuration.status === 'finalizado' ? 'Finalizado' : 'Planificado'}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{projectDuration.dateRange}</div>
+              </div>
+            </div>
+
+            {item.fuente_financiacion && (
+              <div className="flex items-start gap-3">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Fuente</span>
+                <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
+                  {item.fuente_financiacion}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Fuente de financiación - solo si existe */}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ubicación</h3>
+          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Barrio/Vereda</h4>
+                <p className="text-gray-900 dark:text-white font-medium">{item.barrio_vereda || 'N/A'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Comuna/Corregimiento</h4>
+                <p className="text-gray-900 dark:text-white font-medium">{item.comuna_corregimiento || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Descripción */}
+        {item.descripcion_intervencion && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Descripción de la Intervención</h3>
+            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+              <p className="text-gray-900 dark:text-white leading-relaxed">
+                {item.descripcion_intervencion}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // Componente de métricas compactas
 const CompactMetrics: React.FC<{
@@ -122,6 +355,9 @@ const UnidadesProyecto: React.FC = () => {
   // Estados locales
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [showFilters, setShowFilters] = useState(true);
+  const [focusedItem, setFocusedItem] = useState<string | null>(null);
+  const [showOnlyFocused, setShowOnlyFocused] = useState(false);
+  const [selectedItemForModal, setSelectedItemForModal] = useState<string | null>(null);
 
   // Hook principal con configuración mejorada
   const {
@@ -173,14 +409,42 @@ const UnidadesProyecto: React.FC = () => {
     refetchDashboard();
   };
 
+  // Handlers para enfoque
+  const handleItemFocus = (upid: string) => {
+    if (upid === '') {
+      // Limpiar enfoque
+      setFocusedItem(null);
+      setShowOnlyFocused(false);
+    } else {
+      setFocusedItem(upid);
+      // Si no hay item enfocado previamente, no cambiar showOnlyFocused
+      // Si ya había un item enfocado, mantener el estado actual
+    }
+  };
+
+  const handleToggleShowOnlyFocused = () => {
+    setShowOnlyFocused(!showOnlyFocused);
+  };
+
+  const handleShowDetails = (upid: string) => {
+    setSelectedItemForModal(upid);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedItemForModal(null);
+  };
+
   // Memorizar componentes pesados
   const memoizedMap = useMemo(() => (
     <UnidadesProyectoMapSimple
       geometryData={filteredGeometry}
       filteredData={filteredData}
       className="h-full"
+      focusedItem={focusedItem}
+      showOnlyFocused={showOnlyFocused}
+      onItemClick={handleItemFocus}
     />
-  ), [filteredGeometry, filteredData]);
+  ), [filteredGeometry, filteredData, focusedItem, showOnlyFocused]);
 
   const memoizedDashboard = useMemo(() => (
     <UnidadesProyectoDashboard
@@ -286,30 +550,6 @@ const UnidadesProyecto: React.FC = () => {
                 <span>Limpiar ({Object.values(filters).filter(v => v && v !== '').length + (filters.searchTerm ? 1 : 0)})</span>
               </button>
             )}
-
-            {/* Toggle filtros */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                showFilters 
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <FilterIcon className="w-4 h-4" />
-              <span>Filtros</span>
-              {showFilters ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </button>
-
-            {/* Botón refresh */}
-            <button
-              onClick={handleRefresh}
-              disabled={state.loading}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${state.loading ? 'animate-spin' : ''}`} />
-              <span>Actualizar</span>
-            </button>
           </div>
 
           {/* Timestamp */}
@@ -327,9 +567,9 @@ const UnidadesProyecto: React.FC = () => {
         </div>
       </section>
 
-      {/* Filtros */}
+      {/* Filtros para dashboard y vista de mapa */}
       <AnimatePresence>
-        {showFilters && (
+        {showFilters && (viewMode === 'dashboard' || viewMode === 'map') && (
           <motion.section
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -369,8 +609,10 @@ const UnidadesProyecto: React.FC = () => {
             ) : (
               <UnidadesProyectoAttributesTable
                 data={filteredData}
-                className="h-[600px]"
-                maxHeight="550px"
+                className="h-[700px]"
+                maxHeight="500px"
+                pageSize={20}
+                onShowDetails={handleShowDetails}
               />
             )}
           </motion.div>
@@ -391,35 +633,108 @@ const UnidadesProyecto: React.FC = () => {
         )}
 
         {viewMode === 'split' && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Mapa */}
+          <div className="space-y-6">
+            {/* Layout horizontal: Mapa + Filtros */}
             <motion.div
-              key="split-map"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className={`${CSS_UTILS.card} p-4`}
+              key="split-map-filters"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-1 lg:grid-cols-4 gap-6"
             >
-              <div className="h-[500px] rounded-lg overflow-hidden">
-                {memoizedMap}
+              {/* Mapa - 3 columnas */}
+              <div className={`${CSS_UTILS.card} p-4 lg:col-span-3`}>
+                <div className="h-[650px] rounded-lg overflow-hidden">
+                  {memoizedMap}
+                </div>
+              </div>
+
+              {/* Filtros - 1 columna */}
+              <div className="lg:col-span-1 relative z-40">
+                <AnimatePresence>
+                  {showFilters && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.3 }}
+                      className="h-[650px] overflow-y-auto relative z-40"
+                      style={{ zIndex: 40 }}
+                    >
+                      <UnidadesProyectoFilters
+                        filterData={state.filterData}
+                        filters={filters}
+                        onFiltersChange={handleFiltersChange}
+                        onSearchChange={handleSearchChange}
+                        onClearFilters={handleClearFilters}
+                        isLoading={state.loading}
+                        compact={true}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
 
-            {/* Tabla de Atributos */}
+            {/* Tabla de Atributos - Debajo del layout completo */}
             <motion.div
               key="split-attributes"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               className={`${CSS_UTILS.card} p-0`}
             >
               <UnidadesProyectoAttributesTable
                 data={filteredData}
-                className="h-[500px]"
-                maxHeight="450px"
+                className="h-[700px]"
+                maxHeight="550px"
+                pageSize={20}
+                onRowClick={handleItemFocus}
+                focusedItem={focusedItem}
+                onShowDetails={handleShowDetails}
               />
             </motion.div>
           </div>
         )}
       </section>
+
+      {/* Indicador de elemento enfocado - Esquina inferior derecha (más abajo para no tapar controles) */}
+      {focusedItem && (
+        <motion.div
+          initial={{ opacity: 0, x: 20, y: 20 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
+          exit={{ opacity: 0, x: 20, y: 20 }}
+          className="fixed bottom-16 right-4 z-30 bg-blue-600 dark:bg-blue-500 text-white px-3 py-2 rounded-lg shadow-lg text-sm font-medium"
+        >
+          Enfocado: {focusedItem}
+        </motion.div>
+      )}
+
+      {/* Modal de detalles */}
+      <AnimatePresence>
+        {selectedItemForModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9998] p-4"
+            onClick={handleCloseModal}
+            style={{ zIndex: 9998 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ProjectDetailsModal
+                item={filteredData.find(item => item.upid === selectedItemForModal)}
+                onClose={handleCloseModal}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 };

@@ -525,3 +525,43 @@ body.map-fullscreen {
     transform: scale(1) translateY(0);
   }
 }
+
+/* Z-index hierarchy para elementos de UI */
+.leaflet-popup-pane {
+  z-index: 10000 !important;
+}
+
+.leaflet-popup {
+  z-index: 10000 !important;
+}
+
+.custom-popup {
+  z-index: 10000 !important;
+}
+
+/* Dropdowns de filtros siempre por encima de todo */
+.relative > div[style*="z-index"] {
+  z-index: 10001 !important;
+}
+
+/* Dropdowns con z-index específico */
+div[style*="z-index: 10001"] {
+  z-index: 10001 !important;
+}
+
+/* Asegurar que modales estén en la cima pero debajo de dropdowns */
+div[class*="fixed inset-0"] {
+  z-index: 9998 !important;
+}
+
+/* Contenedores de filtros */
+.relative.z-50,
+.relative.z-40 {
+  position: relative;
+}
+
+/* Tabla y otros elementos que deben estar debajo */
+.bg-white.dark\\:bg-gray-800.rounded-lg.shadow-sm {
+  position: relative;
+  z-index: 1;
+}

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import * as L from 'leaflet';
 import { 
   Layers, 
@@ -10,7 +10,10 @@ import {
   Palette, 
   ChevronDown,
   Info,
-  Eye
+  Eye,
+  EyeOff,
+  Target,
+  X
 } from 'lucide-react';
 import { type GeometryData, type AttributeData } from '@/services/unidades-proyecto.service';
 
@@ -29,6 +32,9 @@ interface UnidadesProyectoMapSimpleProps {
   geometryData?: GeometryData | null;
   filteredData?: AttributeData[];
   className?: string;
+  focusedItem?: string | null; // UPID del elemento a enfocar
+  showOnlyFocused?: boolean; // Si mostrar solo el elemento enfocado
+  onItemClick?: (upid: string) => void; // Callback cuando se hace clic en un elemento
 }
 
 // Tipos de coloración disponibles
@@ -47,6 +53,37 @@ const COLOR_SCHEMES = {
   avance: ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981'],
   presupuesto: ['#FEE2E2', '#FECACA', '#FCA5A5', '#F87171', '#EF4444', '#DC2626'],
   categorical: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1']
+};
+
+// Componente helper para manejar el enfoque del mapa
+const MapFocusController: React.FC<{
+  focusedItem: string | null;
+  geometryData: GeometryData | null;
+}> = ({ focusedItem, geometryData }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (focusedItem && geometryData?.features) {
+      // Buscar el feature correspondiente al UPID enfocado
+      const targetFeature = geometryData.features.find(
+        feature => feature.properties?.upid === focusedItem
+      );
+
+      if (targetFeature && targetFeature.geometry.type === 'Point') {
+        const coords = targetFeature.geometry.coordinates as [number, number];
+        // Leaflet usa [lat, lng] pero GeoJSON usa [lng, lat]
+        const latLng: [number, number] = [coords[1], coords[0]];
+        
+        // Enfocar en el punto con zoom y animación
+        map.setView(latLng, 16, {
+          animate: true,
+          duration: 1
+        });
+      }
+    }
+  }, [focusedItem, geometryData, map]);
+
+  return null;
 };
 
 // Configuración de mapas base
@@ -147,7 +184,10 @@ const ColoringControl: React.FC<{
 const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   geometryData = null,
   filteredData = [],
-  className = ''
+  className = '',
+  focusedItem = null,
+  showOnlyFocused = false,
+  onItemClick
 }) => {
   const [mapType, setMapType] = useState<'streets' | 'satellite'>('streets');
   const [isDark, setIsDark] = useState(false);
@@ -171,9 +211,17 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  // Filtrar datos según el item enfocado
+  const displayData = useMemo(() => {
+    if (showOnlyFocused && focusedItem) {
+      return filteredData.filter(item => item.upid === focusedItem);
+    }
+    return filteredData;
+  }, [filteredData, showOnlyFocused, focusedItem]);
+
   // Generar esquema de colores y leyenda basado en el tipo de coloración
   const { colorMap, legend } = useMemo(() => {
-    const data = filteredData;
+    const data = displayData;
     
     switch (coloringType) {
       case 'avance_obra': {
@@ -303,26 +351,30 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   // Función para obtener estilo de feature
   const getFeatureStyle = (feature: any) => {
     const color = getFeatureColor(feature.properties);
+    const isFocused = focusedItem === feature.properties?.upid;
+    const isDimmed = showOnlyFocused && focusedItem && !isFocused;
     
     return {
-      color: color,
-      weight: 3,
-      opacity: 0.8,
-      fillColor: color,
-      fillOpacity: 0.4
+      color: isFocused ? '#FF6B35' : color,
+      weight: isFocused ? 4 : 3,
+      opacity: isDimmed ? 0.2 : (isFocused ? 1 : 0.8),
+      fillColor: isFocused ? '#FF6B35' : color,
+      fillOpacity: isDimmed ? 0.1 : (isFocused ? 0.7 : 0.4)
     };
   };
 
   // Función específica para marcadores circulares
   const getCircleMarkerStyle = (feature: any): L.CircleMarkerOptions => {
     const color = getFeatureColor(feature.properties);
+    const isFocused = focusedItem === feature.properties?.upid;
+    const isDimmed = showOnlyFocused && focusedItem && !isFocused;
     
     return {
-      color: '#ffffff',
-      fillColor: color,
-      fillOpacity: 0.8,
-      weight: 2,
-      radius: 6
+      color: isFocused ? '#FF6B35' : '#ffffff',
+      fillColor: isFocused ? '#FF6B35' : color,
+      fillOpacity: isDimmed ? 0.2 : (isFocused ? 1 : 0.8),
+      weight: isFocused ? 3 : 2,
+      radius: isFocused ? 8 : 6
     };
   };
 
@@ -371,6 +423,31 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         legend={legend}
       />
 
+      {/* Controles de enfoque */}
+      {focusedItem && (
+        <div className="absolute top-4 right-4 z-[1000]">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <Target className="w-4 h-4 text-orange-500" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  Enfocado: {focusedItem}
+                </span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => onItemClick && onItemClick('')}
+                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                  title="Limpiar enfoque"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Indicador de cantidad de elementos */}
       <div className="absolute bottom-4 left-4 z-[1000] bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2">
@@ -391,6 +468,12 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         <TileLayer
           url={getTileUrl()}
           attribution={getTileAttribution()}
+        />
+
+        {/* Controlador de enfoque */}
+        <MapFocusController 
+          focusedItem={focusedItem} 
+          geometryData={geometryData} 
         />
 
         {geometryData && geometryData.features && (
@@ -417,6 +500,73 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
                   return amount.toLocaleString('es-CO');
                 };
 
+                // Función para calcular duración del proyecto
+                const calculateProjectDuration = (fechaInicio: string, fechaFin: string) => {
+                  if (!fechaInicio || !fechaFin) {
+                    return {
+                      duration: 'N/A',
+                      status: 'sin-fecha',
+                      dateRange: 'Fechas no disponibles'
+                    };
+                  }
+
+                  try {
+                    const startDate = new Date(fechaInicio);
+                    const endDate = new Date(fechaFin);
+                    const today = new Date();
+
+                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                      return {
+                        duration: 'Fecha inválida',
+                        status: 'error',
+                        dateRange: 'Formato de fecha incorrecto'
+                      };
+                    }
+
+                    const diffTime = endDate.getTime() - startDate.getTime();
+                    const daysTotal = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const monthsTotal = Math.ceil(daysTotal / 30);
+
+                    let status = 'planificado';
+                    if (today >= startDate && today <= endDate) {
+                      status = 'en-curso';
+                    } else if (today > endDate) {
+                      status = 'finalizado';
+                    }
+
+                    const formatDate = (date: Date) => {
+                      return date.toLocaleDateString('es-CO', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      });
+                    };
+
+                    let duration = '';
+                    if (monthsTotal > 12) {
+                      const years = Math.floor(monthsTotal / 12);
+                      const remainingMonths = monthsTotal % 12;
+                      duration = `${years} año${years > 1 ? 's' : ''}${remainingMonths > 0 ? ` ${remainingMonths} mes${remainingMonths > 1 ? 'es' : ''}` : ''}`;
+                    } else if (monthsTotal >= 1) {
+                      duration = `${monthsTotal} mes${monthsTotal > 1 ? 'es' : ''}`;
+                    } else {
+                      duration = `${daysTotal} día${daysTotal > 1 ? 's' : ''}`;
+                    }
+
+                    return {
+                      duration,
+                      status,
+                      dateRange: `${formatDate(startDate)} - ${formatDate(endDate)}`
+                    };
+                  } catch (error) {
+                    return {
+                      duration: 'Error',
+                      status: 'error',
+                      dateRange: 'Error al calcular fechas'
+                    };
+                  }
+                };
+
                 const popupContent = document.createElement('div');
                 
                 // Estilos basados en el tema
@@ -430,206 +580,171 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
                 const cardBg = isDark ? '#374151' : '#f1f5f9';
                 const cardBorder = isDark ? '#4b5563' : '#e2e8f0';
                 
+                // Calcular duración del proyecto
+                const projectDuration = calculateProjectDuration(attributeItem.fecha_inicio, attributeItem.fecha_fin);
+                
+                // Determinar colores del estado de duración
+                const getDurationStatusColor = (status: string) => {
+                  switch (status) {
+                    case 'en-curso':
+                      return isDark ? { bg: '#065f46', border: '#059669', text: '#6ee7b7' } : { bg: '#dcfce7', border: '#22c55e', text: '#15803d' };
+                    case 'finalizado':
+                      return isDark ? { bg: '#1e40af', border: '#2563eb', text: '#93c5fd' } : { bg: '#dbeafe', border: '#3b82f6', text: '#1d4ed8' };
+                    case 'planificado':
+                      return isDark ? { bg: '#92400e', border: '#d97706', text: '#fcd34d' } : { bg: '#fef3c7', border: '#f59e0b', text: '#d97706' };
+                    default:
+                      return isDark ? { bg: '#374151', border: '#6b7280', text: '#d1d5db' } : { bg: '#f3f4f6', border: '#9ca3af', text: '#6b7280' };
+                  }
+                };
+
+                const durationColors = getDurationStatusColor(projectDuration.status);
+
+                // Popup minimalista y elegante
                 popupContent.innerHTML = `
                   <div style="
-                    min-width: 280px;
-                    background: ${bgGradient};
+                    background: ${isDark ? '#1f2937' : '#ffffff'};
                     border-radius: 12px;
                     padding: 16px;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-                    border: 1px solid ${borderColor};
-                    color: ${textColor};
+                    min-width: 320px;
+                    max-width: 400px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                    border: 1px solid ${isDark ? '#374151' : '#e5e7eb'};
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                   ">
-                    <!-- Header -->
+                    <!-- Header elegante -->
                     <div style="
-                      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-                      color: white;
-                      padding: 12px 16px;
-                      margin: -16px -16px 16px -16px;
-                      border-radius: 12px 12px 0 0;
-                      font-weight: 700;
-                      font-size: 14px;
-                      line-height: 1.4;
-                      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                      border-bottom: 1px solid ${isDark ? '#374151' : '#f3f4f6'};
+                      padding-bottom: 12px;
+                      margin-bottom: 12px;
                     ">
-                      ${attributeItem?.nombre_up || feature.properties.upid}
-                    </div>
-                    
-                    <!-- UPID Badge -->
-                    <div style="margin-bottom: 16px;">
-                      <span style="
-                        background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
-                        color: white;
-                        padding: 4px 12px;
-                        border-radius: 20px;
-                        font-family: 'Courier New', monospace;
-                        font-size: 12px;
-                        font-weight: 600;
-                        display: inline-block;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                      <div style="
+                        font-weight: 700;
+                        font-size: 16px;
+                        color: ${isDark ? '#ffffff' : '#1f2937'};
+                        margin-bottom: 4px;
+                        line-height: 1.3;
                       ">
-                        ${feature.properties.upid}
-                      </span>
+                        ${attributeItem?.nombre_up || feature.properties.upid}
+                      </div>
+                      <div style="
+                        font-size: 12px;
+                        color: ${isDark ? '#9ca3af' : '#6b7280'};
+                        font-weight: 500;
+                      ">
+                        ${attributeItem.nombre_centro_gestor || 'Centro gestor no especificado'}
+                      </div>
                     </div>
                     
-                    <!-- Avance Progress Bar -->
-                    <div style="margin-bottom: 16px;">
+                    <!-- Info badges -->
+                    <div style="
+                      display: flex;
+                      gap: 8px;
+                      margin-bottom: 12px;
+                      flex-wrap: wrap;
+                    ">
+                      <span style="
+                        background: ${isDark ? '#374151' : '#f3f4f6'};
+                        color: ${isDark ? '#d1d5db' : '#374151'};
+                        padding: 4px 10px;
+                        border-radius: 16px;
+                        font-weight: 600;
+                        font-size: 11px;
+                        font-family: 'Courier New', monospace;
+                      ">${feature.properties.upid}</span>
+                      <span style="
+                        background: ${isDark ? '#1e40af' : '#dbeafe'};
+                        color: ${isDark ? '#93c5fd' : '#1e40af'};
+                        padding: 4px 10px;
+                        border-radius: 16px;
+                        font-weight: 600;
+                        font-size: 11px;
+                      ">${attributeItem.estado}</span>
+                    </div>
+                    
+                    <!-- Avance con estilo -->
+                    <div style="margin-bottom: 12px;">
                       <div style="
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
-                        margin-bottom: 8px;
+                        margin-bottom: 6px;
                       ">
                         <span style="
-                          font-weight: 600;
-                          color: ${labelColor};
                           font-size: 12px;
-                          text-transform: uppercase;
-                          letter-spacing: 0.5px;
-                        ">Avance de Obra</span>
+                          color: ${isDark ? '#9ca3af' : '#6b7280'};
+                          font-weight: 600;
+                        ">Progreso del proyecto</span>
                         <span style="
-                          font-weight: 700;
-                          color: ${avance >= 80 ? '#10b981' : avance >= 60 ? '#3b82f6' : avance >= 40 ? '#f59e0b' : avance >= 20 ? '#ef4444' : '#6b7280'};
                           font-size: 14px;
+                          font-weight: 700;
+                          color: ${avance >= 70 ? '#10b981' : avance >= 40 ? '#f59e0b' : '#ef4444'};
                         ">${avance}%</span>
                       </div>
                       <div style="
-                        background: ${isDark ? '#374151' : '#e5e7eb'};
-                        border-radius: 10px;
-                        height: 8px;
+                        background: ${isDark ? '#374151' : '#f3f4f6'};
+                        border-radius: 8px;
+                        height: 6px;
                         overflow: hidden;
-                        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
                       ">
                         <div style="
-                          background: ${avance >= 80 ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 
-                                      avance >= 60 ? 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)' : 
-                                      avance >= 40 ? 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)' : 
-                                      avance >= 20 ? 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(90deg, #9ca3af 0%, #6b7280 100%)'};
+                          background: linear-gradient(90deg, ${avance >= 70 ? '#10b981, #059669' : avance >= 40 ? '#f59e0b, #d97706' : '#ef4444, #dc2626'});
                           height: 100%;
                           width: ${Math.min(avance, 100)}%;
-                          border-radius: 10px;
-                          transition: width 0.3s ease;
-                          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                          border-radius: 8px;
+                          transition: width 0.4s ease;
                         "></div>
                       </div>
                     </div>
                     
-                    <!-- Info Grid -->
+                    <!-- Información contextual -->
                     <div style="
                       display: grid;
-                      grid-template-columns: 1fr 1fr;
-                      gap: 12px;
-                      margin-bottom: 16px;
+                      gap: 8px;
+                      font-size: 12px;
+                      color: ${isDark ? '#9ca3af' : '#6b7280'};
                     ">
                       <div style="
-                        background: ${cardBg};
-                        padding: 8px 12px;
-                        border-radius: 8px;
-                        border-left: 3px solid #3b82f6;
-                        border: 1px solid ${cardBorder};
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
                       ">
-                        <div style="
-                          font-size: 10px;
-                          font-weight: 600;
-                          color: ${labelColor};
-                          text-transform: uppercase;
-                          letter-spacing: 0.5px;
-                          margin-bottom: 2px;
-                        ">Estado</div>
-                        <div style="
-                          font-size: 12px;
-                          font-weight: 600;
-                          color: ${textColor};
-                        ">${attributeItem.estado}</div>
-                      </div>
-                      
-                      <div style="
-                        background: ${cardBg};
-                        padding: 8px 12px;
-                        border-radius: 8px;
-                        border-left: 3px solid #059669;
-                        border: 1px solid ${cardBorder};
-                      ">
-                        <div style="
-                          font-size: 10px;
-                          font-weight: 600;
-                          color: ${labelColor};
-                          text-transform: uppercase;
-                          letter-spacing: 0.5px;
-                          margin-bottom: 2px;
-                        ">Tipo</div>
-                        <div style="
-                          font-size: 12px;
-                          font-weight: 600;
-                          color: ${textColor};
-                          line-height: 1.2;
-                        ">${attributeItem.tipo_intervencion}</div>
-                      </div>
-                    </div>
-                    
-                    <!-- Presupuesto -->
-                    ${attributeItem.presupuesto_base ? `
-                      <div style="
-                        background: ${isDark ? 'linear-gradient(135deg, #065f46 0%, #047857 100%)' : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'};
-                        padding: 12px;
-                        border-radius: 8px;
-                        border: 1px solid ${isDark ? '#059669' : '#a7f3d0'};
-                        margin-bottom: 12px;
-                      ">
-                        <div style="
-                          font-size: 10px;
-                          font-weight: 600;
-                          color: ${isDark ? '#6ee7b7' : '#059669'};
-                          text-transform: uppercase;
-                          letter-spacing: 0.5px;
-                          margin-bottom: 4px;
-                        ">Presupuesto Base</div>
-                        <div style="
-                          font-size: 16px;
-                          font-weight: 700;
-                          color: ${isDark ? '#d1fae5' : '#065f46'};
-                          display: flex;
-                          align-items: baseline;
-                          gap: 4px;
-                        ">
-                          <span style="font-size: 12px;">$</span>
-                          ${formatCurrency(attributeItem.presupuesto_base)}
+                        <span style="opacity: 0.7;">📍</span>
+                        <div>
+                          <div style="font-weight: 500; color: ${isDark ? '#d1d5db' : '#374151'};">
+                            ${attributeItem.barrio_vereda || 'Barrio no especificado'}
+                          </div>
+                          <div style="font-size: 11px; opacity: 0.8;">
+                            ${attributeItem.comuna_corregimiento || 'Comuna no especificada'}
+                          </div>
                         </div>
                       </div>
-                    ` : ''}
-                    
-                    <!-- Ubicación -->
-                    <div style="
-                      background: ${isDark ? 'linear-gradient(135deg, #92400e 0%, #b45309 100%)' : '#fefbea'};
-                      padding: 12px;
-                      border-radius: 8px;
-                      border: 1px solid ${isDark ? '#d97706' : '#fbbf24'};
-                    ">
-                      <div style="
-                        font-size: 10px;
-                        font-weight: 600;
-                        color: ${isDark ? '#fcd34d' : '#d97706'};
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        margin-bottom: 4px;
-                      ">Ubicación</div>
-                      <div style="
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: ${isDark ? '#fef3c7' : '#92400e'};
-                        margin-bottom: 2px;
-                      ">${attributeItem.barrio_vereda || 'N/A'}</div>
-                      <div style="
-                        font-size: 11px;
-                        color: ${isDark ? '#fed7aa' : '#a16207'};
-                      ">${attributeItem.comuna_corregimiento || 'N/A'}</div>
+                      ${attributeItem.presupuesto_base ? `
+                        <div style="
+                          display: flex;
+                          align-items: center;
+                          gap: 6px;
+                        ">
+                          <span style="opacity: 0.7;">💰</span>
+                          <span style="font-weight: 600; color: ${isDark ? '#d1d5db' : '#374151'};">
+                            $${formatCurrency(attributeItem.presupuesto_base)}
+                          </span>
+                        </div>
+                      ` : ''}
                     </div>
                   </div>
                 `;
                 
                 layer.bindPopup(popupContent, {
-                  maxWidth: 320,
-                  className: 'custom-popup'
+                  maxWidth: 400,
+                  className: 'custom-popup',
+                  zIndexOffset: 10000
+                });
+
+                // Añadir click handler para enfocar el elemento
+                layer.on('click', () => {
+                  if (onItemClick && attributeItem) {
+                    onItemClick(attributeItem.upid);
+                  }
                 });
               }
             }}
