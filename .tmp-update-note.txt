@@ -1,1 +1,0 @@
-Temporary note: updating package.json dev script to use npx next dev, upgrading next to latest and rebuilding.

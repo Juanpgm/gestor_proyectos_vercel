@@ -10,7 +10,6 @@ import ProjectsTable from '@/components/ProjectsTable'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 
 import MobileNavigation from '@/components/MobileNavigation'
-import ContratosEmprestitoTable from '@/components/ContratosEmprestitoTable'
 import EmprestitoTabs from '@/components/EmprestitoTabs'
 import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
@@ -414,8 +413,6 @@ function DashboardContent() {
               flujoCajaLoading={flujoCajaState.loading}
               onFilteredBpinsChange={handleFilteredBpinsChange}
             />
-            
-            <ContratosEmprestitoTable />
           </div>
         )
 

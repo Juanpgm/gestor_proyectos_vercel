@@ -8,7 +8,6 @@ export const API_ENDPOINTS = {
            'http://localhost:8000',
   
   // Endpoints específicos
-  CONTRATOS_EMPRESTITO: '/contratos_emprestito_all',
   UNIDADES_PROYECTO: '/unidades-proyecto',
   ATTRIBUTES: '/unidades-proyecto/attributes',
   DASHBOARD: '/unidades-proyecto/dashboard',
@@ -26,10 +25,7 @@ export const getApiUrl = (endpoint: string): string => {
   return `${baseUrl}${cleanEndpoint}`
 }
 
-// Función para obtener la URL del endpoint de contratos de empréstito
-export const getContratosEmprestitoUrl = (): string => {
-  return getApiUrl(API_ENDPOINTS.CONTRATOS_EMPRESTITO)
-}
+
 
 // Función para modo de debug (solo en desarrollo)
 export const logApiConfig = (): void => {

@@ -30,7 +30,6 @@ interface ContratosModalProps {
   referenciaContrato?: string
   contratoData?: any
   proyectoData?: any
-  contratoEmprestito?: any // Nuevo prop para contratos de empréstito
 }
 
 // Componente para secciones colapsables minimalistas
@@ -67,18 +66,17 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
   onClose, 
   referenciaContrato,
   contratoData,
-  proyectoData,
-  contratoEmprestito
+  proyectoData
 }) => {
   const [contrato, setContrato] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isOpen && !contratoData && !contratoEmprestito) {
+    if (isOpen && !contratoData) {
       loadContratoData()
     }
-  }, [isOpen, referenciaContrato, contratoData, contratoEmprestito])
+  }, [isOpen, referenciaContrato, contratoData])
 
   const loadContratoData = async () => {
     if (!referenciaContrato) return
@@ -110,8 +108,8 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
 
   if (!isOpen) return null
 
-  // Usar contratoEmprestito si está disponible, sino contratoData, sino cargar desde API
-  const contractDataToShow = contratoEmprestito || contratoData || contrato
+  // Usar contratoData si está disponible, sino cargar desde API
+  const contractDataToShow = contratoData || contrato
   
   // Obtener colores de estado para el header
   const headerColors = contractDataToShow?.estado_contrato 

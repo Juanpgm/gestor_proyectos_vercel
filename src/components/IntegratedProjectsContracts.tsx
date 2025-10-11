@@ -131,7 +131,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     }
 
     const proyectos = proyectosState.proyectos || []
-    const contratosEmprestito = contratosData
+    const contratos = contratosData
     
     // Crear un mapa de proyectos por BPIN para referencia rápida
     const proyectosPorBpin = proyectos.reduce((acc: Record<number, any>, proyecto: any) => {
@@ -145,7 +145,7 @@ const IntegratedProjectsContracts: React.FC<IntegratedProjectsContractsProps> = 
     const contratosConBpin: any[] = []
     const contratosSinBpin: any[] = []
     
-    contratosEmprestito.forEach((contrato: any) => {
+    contratos.forEach((contrato: any) => {
       // Buscar BPIN en diferentes campos posibles
       const bpinValue = contrato.bpin || contrato.codigo_bpin || contrato.id_bpin
       if (bpinValue) {

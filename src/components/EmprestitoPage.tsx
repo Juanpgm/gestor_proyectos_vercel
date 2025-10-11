@@ -4,7 +4,6 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { useEmprestito, useEmprestitoMetrics } from '@/hooks/useEmprestito'
 import EmprestitoStats from '@/components/EmprestitoStats'
-import ContratosEmprestitoTable from '@/components/ContratosEmprestitoTable'
 import EmprestitoCharts from '@/components/EmprestitoCharts'
 import { Loader2 } from 'lucide-react'
 
@@ -72,13 +71,20 @@ const EmprestitoPage: React.FC = () => {
         />
       </motion.div>
 
-      {/* Contratos de Empréstito Table */}
+      {/* Estadísticas de Empréstito */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        <ContratosEmprestitoTable />
+        <EmprestitoStats 
+          totalProyectos={metrics.totalProyectos}
+          totalContratos={metrics.totalContratos}
+          valorTotalContratos={metrics.valorTotalContratos}
+          totalEntidades={metrics.entidades.length}
+          totalCentrosGestor={metrics.centrosGestor.length}
+          loading={loading}
+        />
       </motion.div>
     </div>
   )
