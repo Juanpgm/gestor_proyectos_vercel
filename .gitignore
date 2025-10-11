@@ -52,5 +52,10 @@ Thumbs.db
 tmp/
 temp/
 
+# Test files with sensitive data
+test-*-private.js
+*-credentials.json
+.env.test.local
+
 # Note: We're keeping the /public/data/ folder for Vercel deployment
 # All JSON data files in public/data/ will be included in the deployment

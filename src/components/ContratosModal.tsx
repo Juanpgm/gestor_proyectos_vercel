@@ -27,9 +27,10 @@ import ContractTimeSeries from './ContractTimeSeries'
 interface ContratosModalProps {
   isOpen: boolean
   onClose: () => void
-  referenciaContrato: string
+  referenciaContrato?: string
   contratoData?: any
   proyectoData?: any
+  contratoEmprestito?: any // Nuevo prop para contratos de empréstito
 }
 
 // Componente para secciones colapsables minimalistas
@@ -66,17 +67,18 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
   onClose, 
   referenciaContrato,
   contratoData,
-  proyectoData
+  proyectoData,
+  contratoEmprestito
 }) => {
   const [contrato, setContrato] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isOpen && !contratoData) {
+    if (isOpen && !contratoData && !contratoEmprestito) {
       loadContratoData()
     }
-  }, [isOpen, referenciaContrato, contratoData])
+  }, [isOpen, referenciaContrato, contratoData, contratoEmprestito])
 
   const loadContratoData = async () => {
     if (!referenciaContrato) return
@@ -108,8 +110,8 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
 
   if (!isOpen) return null
 
-  // Usar contratoData si está disponible, sino cargar desde API
-  const contractDataToShow = contratoData || contrato
+  // Usar contratoEmprestito si está disponible, sino contratoData, sino cargar desde API
+  const contractDataToShow = contratoEmprestito || contratoData || contrato
   
   // Obtener colores de estado para el header
   const headerColors = contractDataToShow?.estado_contrato 
@@ -141,12 +143,12 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5 leading-tight">
-                    {contractDataToShow?.objeto_del_contrato || contractDataToShow?.objeto_contrato || 'Detalle del Contrato'}
+                    {contractDataToShow?.descripcion_proceso || contractDataToShow?.objeto_del_contrato || contractDataToShow?.objeto_contrato || 'Detalle del Contrato'}
                   </h2>
                   <div className="text-xs text-gray-600 dark:text-gray-400 opacity-90">
-                    {referenciaContrato}
-                    {contractDataToShow?._registro_origen?.referencia_proceso && (
-                      <span className="ml-2">• {contractDataToShow._registro_origen.referencia_proceso}</span>
+                    {contractDataToShow?.referencia_contrato || referenciaContrato}
+                    {contractDataToShow?.proceso_compra && (
+                      <span className="ml-2">• Proceso: {contractDataToShow.proceso_compra}</span>
                     )}
                   </div>
                 </div>
@@ -214,7 +216,7 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                         <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
                           <div className="text-gray-500 dark:text-gray-400">Valor Contrato</div>
                           <div className={`font-semibold ${getMetricColors('valor').text} truncate`}>
-                            {formatearMoneda(contractDataToShow.valor_del_contrato)}
+                            {formatearMoneda(contractDataToShow.valor_contrato || contractDataToShow.valor_del_contrato)}
                           </div>
                         </div>
                         <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
@@ -224,9 +226,9 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                           </div>
                         </div>
                         <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
-                          <div className="text-gray-500 dark:text-gray-400">Facturado</div>
+                          <div className="text-gray-500 dark:text-gray-400">Pendiente Pago</div>
                           <div className={`font-semibold ${getMetricColors('facturado').text} truncate`}>
-                            {formatearMoneda(contractDataToShow.valor_facturado)}
+                            {formatearMoneda(contractDataToShow.valor_pendiente_pago || contractDataToShow.valor_facturado)}
                           </div>
                         </div>
                         <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
@@ -324,9 +326,9 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="space-y-1">
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">Número:</span>
+                            <span className="text-gray-500 dark:text-gray-400">ID Contrato:</span>
                             <div className="font-mono text-gray-900 dark:text-white truncate">
-                              {contractDataToShow.numero_del_contrato || 'N/A'}
+                              {contractDataToShow.id_contrato || contractDataToShow.numero_del_contrato || 'N/A'}
                             </div>
                           </div>
                           <div>
@@ -344,15 +346,15 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                         </div>
                         <div className="space-y-1">
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">Duración:</span>
+                            <span className="text-gray-500 dark:text-gray-400">Sector:</span>
                             <div className="font-medium text-gray-900 dark:text-white">
-                              {contractDataToShow.duración_contrato || contractDataToShow.duraci_n_del_contrato || 'N/A'}
+                              {contractDataToShow.sector || contractDataToShow.duración_contrato || contractDataToShow.duraci_n_del_contrato || 'N/A'}
                             </div>
                           </div>
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">Código SECOP:</span>
+                            <span className="text-gray-500 dark:text-gray-400">Código Categoría:</span>
                             <div className="font-mono text-blue-600 dark:text-blue-400 truncate">
-                              {contractDataToShow.codigo_secop || 'N/A'}
+                              {contractDataToShow.codigo_categoria_principal || contractDataToShow.codigo_secop || 'N/A'}
                             </div>
                           </div>
                           <div>
@@ -430,9 +432,9 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                             </div>
                           </div>
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">Rubro:</span>
+                            <span className="text-gray-500 dark:text-gray-400">Ubicación:</span>
                             <div className="font-medium text-gray-900 dark:text-white truncate">
-                              {contractDataToShow.rubro || contractDataToShow.destino_gasto || 'N/A'}
+                              {contractDataToShow.localizaci_n || contractDataToShow.ciudad || contractDataToShow.departamento || 'N/A'}
                             </div>
                           </div>
                         </div>
@@ -461,7 +463,7 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                       Objeto del Contrato
                     </h3>
                     <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {contractDataToShow.objeto_contrato || contractDataToShow.objeto_del_contrato || 'No se ha proporcionado una descripción del objeto del contrato.'}
+                      {contractDataToShow.descripcion_proceso || contractDataToShow.objeto_contrato || contractDataToShow.objeto_del_contrato || 'No se ha proporcionado una descripción del objeto del contrato.'}
                     </p>
                   </div>
 

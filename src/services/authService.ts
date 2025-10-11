@@ -20,9 +20,12 @@ class AuthService {
 
   // Determinar la URL correcta basada en el entorno
   private getApiUrl(): string {
+    // Usar variable de entorno para la URL del API
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+    
     // Si estamos en desarrollo local, usar la API directamente
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      return 'https://gestorproyectoapi-production.up.railway.app'
+      return apiUrl || 'http://localhost:8000'
     }
     
     // En producción, usar el proxy para evitar CORS

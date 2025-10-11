@@ -10,7 +10,7 @@ import ProjectsTable from '@/components/ProjectsTable'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 
 import MobileNavigation from '@/components/MobileNavigation'
-import IntegratedProjectsContracts from '@/components/IntegratedProjectsContracts'
+import ContratosEmprestitoTable from '@/components/ContratosEmprestitoTable'
 import EmprestitoTabs from '@/components/EmprestitoTabs'
 import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
@@ -415,9 +415,7 @@ function DashboardContent() {
               onFilteredBpinsChange={handleFilteredBpinsChange}
             />
             
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <IntegratedProjectsContracts onFilteredBpinsChange={handleFilteredBpinsChange} />
-            </div>
+            <ContratosEmprestitoTable />
           </div>
         )
 

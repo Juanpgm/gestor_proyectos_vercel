@@ -4,7 +4,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { useEmprestito, useEmprestitoMetrics } from '@/hooks/useEmprestito'
 import EmprestitoStats from '@/components/EmprestitoStats'
-import IntegratedProjectsContracts from '@/components/IntegratedProjectsContracts'
+import ContratosEmprestitoTable from '@/components/ContratosEmprestitoTable'
 import EmprestitoCharts from '@/components/EmprestitoCharts'
 import { Loader2 } from 'lucide-react'
 
@@ -72,13 +72,13 @@ const EmprestitoPage: React.FC = () => {
         />
       </motion.div>
 
-      {/* Integrated Table */}
+      {/* Contratos de Empréstito Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        <IntegratedProjectsContracts />
+        <ContratosEmprestitoTable />
       </motion.div>
     </div>
   )
