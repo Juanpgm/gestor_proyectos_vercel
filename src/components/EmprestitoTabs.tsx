@@ -1,9 +1,13 @@
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingUp } from 'lucide-react'
+import { 
+  TrendingUp, 
+  BarChart3
+} from 'lucide-react'
 import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
+import EmprestitoAdvancedDashboard from '@/components/EmprestitoAdvancedDashboard'
 
 // Tipos para las props
 interface EmprestitoTabsProps {
@@ -15,6 +19,13 @@ interface EmprestitoTabsProps {
 
 // Configuración de tabs con programación funcional
 const TAB_CONFIG = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: BarChart3,
+    description: 'Dashboard avanzado con análisis por Banco y Centro Gestor usando datos reales de la API',
+    component: 'EmprestitoAdvancedDashboard'
+  },
   {
     id: 'flujo-caja',
     label: 'Flujo de caja - Empréstito',
@@ -39,6 +50,8 @@ const TabContent: React.FC<{ activeTab: string; props: EmprestitoTabsProps }> = 
   props 
 }) => {  
   switch (activeTab) {
+    case 'dashboard':
+      return <EmprestitoAdvancedDashboard />
     case 'flujo-caja':
       return <EmprestitoTimeSeries 
         data={props.flujoCajaData}
@@ -55,97 +68,58 @@ const TabButton: React.FC<{
   isActive: boolean
   onClick: () => void
 }> = React.memo(({ tab, isActive, onClick }) => {
-  const Icon = tab.icon
+  const IconComponent = tab.icon
   
   return (
     <button
       onClick={onClick}
       className={getTabButtonClasses(isActive)}
-      aria-selected={isActive}
-      role="tab"
+      title={tab.description}
     >
-      <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4" />
-        <span className="hidden sm:inline">{tab.label}</span>
-        <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+      <div className="flex items-center gap-3">
+        <IconComponent className="w-4 h-4" />
+        <span>{tab.label}</span>
       </div>
-      
-      {/* Indicador de tab activo */}
-      {isActive && (
-        <motion.div
-          layoutId="activeTab"
-          className="absolute inset-0 bg-teal-600 rounded-lg -z-10"
-          initial={false}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        />
-      )}
     </button>
   )
 })
 
-// Componente principal de tabs con programación funcional
-const EmprestitoTabs: React.FC<EmprestitoTabsProps> = ({
-  flujoCajaData = [],
-  flujoCajaLoading = false,
+// Componente principal optimizado con programación funcional
+const EmprestitoTabs: React.FC<EmprestitoTabsProps> = React.memo(({ 
+  flujoCajaData, 
+  flujoCajaLoading,
   onFilteredBpinsChange,
   className = ''
 }) => {
-  // Estado del tab activo - solo flujo-caja disponible
-  const [activeTab, setActiveTab] = useState<string>('flujo-caja')
-  
-  // Función pura para cambio de tab
-  const handleTabChange = useCallback((tabId: string) => {
-    setActiveTab(tabId)
-  }, [])
-  
-  // Memorizar tab activo para evitar re-renders innecesarios
-  const activeTabConfig = useMemo(() => 
-    TAB_CONFIG.find(tab => tab.id === activeTab) || TAB_CONFIG[0], 
-    [activeTab]
-  )
-  
+  const [activeTab, setActiveTab] = useState('dashboard')
+
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header de tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col gap-4">
-          {/* Título y descripción */}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Análisis de Empréstito
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {activeTabConfig.description}
-            </p>
-          </div>
-          
-          {/* Navegación de tabs */}
-          <div 
-            className="flex flex-wrap gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg"
-            role="tablist"
-            aria-label="Secciones de análisis de empréstito"
-          >
-            {TAB_CONFIG.map((tab) => (
-              <TabButton
-                key={tab.id}
-                tab={tab}
-                isActive={activeTab === tab.id}
-                onClick={() => handleTabChange(tab.id)}
-              />
-            ))}
-          </div>
-        </div>
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex space-x-2 overflow-x-auto scrollbar-hide pb-2">
+          {TAB_CONFIG.map((tab) => (
+            <TabButton
+              key={tab.id}
+              tab={tab}
+              isActive={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+            />
+          ))}
+        </nav>
       </div>
-      
-      {/* Contenido del tab activo */}
+
+      {/* Tab Content */}
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className="w-full"
+          transition={{ 
+            duration: 0.3,
+            ease: "easeInOut"
+          }} 
         >
           <TabContent 
             activeTab={activeTab} 
@@ -160,7 +134,7 @@ const EmprestitoTabs: React.FC<EmprestitoTabsProps> = ({
       </AnimatePresence>
     </div>
   )
-}
+})
 
 // Optimización de memoria: nombres de display
 TabContent.displayName = 'TabContent'
