@@ -738,7 +738,7 @@ interface BancoEmprestito {
 interface AnalysisByBank {
   banco: string
   totalContratos: number
-  valorAsignadoBanco: number // Del endpoint bancos_emprestito_all
+  valorAsignadoBanco: number // Suma de valores adjudicados de contratos por banco
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all (valor_contrato)
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
   valorPagado: number        // Inicialmente 0 (no hay información)
@@ -749,7 +749,7 @@ interface AnalysisByBank {
 interface AnalysisByCentroGestor {
   centroGestor: string
   totalContratos: number
-  valorAsignadoBanco: number // Del endpoint bancos_emprestito_all
+  valorAsignadoBanco: number // Suma de valores adjudicados de contratos por centro gestor
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all (valor_contrato)
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
   valorPagado: number        // Inicialmente 0 (no hay información)
@@ -757,7 +757,7 @@ interface AnalysisByCentroGestor {
   estadosContratos: Record<string, number>
   bancos: Array<{            // Detalle de bancos para este centro gestor
     nombre: string
-    valorAsignado: number
+    valorAsignado: number      // Suma de valores adjudicados de contratos por banco
     valorAdjudicado: number
     valorEjecutado: number
     contratos: number
@@ -801,6 +801,7 @@ const useEmprestitoRealData = () => {
   const [contratos, setContratos] = useState<ContratoEmprestito[]>([])
   const [reportes, setReportes] = useState<ReporteEmprestito[]>([])
   const [bancosEmprestito, setBancosEmprestito] = useState<BancoEmprestito[]>([])
+  const [emprestitoBancos, setEmprestitoBancos] = useState<any[]>([]) // Para /emprestito_bancos_all
   const [filteredData, setFilteredData] = useState<ContratoEmprestito[]>([])
   
   // Estados para el modal de contratos
@@ -850,23 +851,37 @@ const useEmprestitoRealData = () => {
         setContratos(contratosArray)
         setReportes(reportesArray)
         setBancosEmprestito(bancosArray)
+        setEmprestitoBancos(bancosArray) // Usar los mismos datos de bancosEmprestito que tienen valor_asignado_banco
         setFilteredData(contratosArray)
         
         console.log('✅ Datos cargados:', {
           contratos: contratosArray.length,
           reportes: reportesArray.length,
-          bancos: bancosArray.length
+          bancos: bancosArray.length,
+          bancosConValores: bancosArray.filter((b: any) => b.valor_asignado_banco).length
         })
         
         // Debug: Mostrar algunos datos de bancos para verificar estructura
-        console.log('📊 Muestra de datos de bancos:', bancosArray.slice(0, 3))
-        console.log('💰 Bancos con valor_asignado_banco:', 
+        console.log('📊 Muestra de datos de bancos (bancos_emprestito_all):', bancosArray.slice(0, 3))
+        console.log('� Muestra de datos de empréstito bancos (emprestito_bancos_all):', bancosArray.slice(0, 3))
+        console.log('�💰 Bancos con valor_asignado_banco:', 
           bancosArray.filter((b: any) => b.valor_asignado_banco).map((b: any) => ({
             nombre: b.nombre_banco,
             valor: b.valor_asignado_banco,
             centro: b.nombre_centro_gestor
           }))
         )
+        console.log('💰 Empréstito bancos con valor_asignado_banco:', 
+          bancosArray.filter((b: any) => b.valor_asignado_banco).map((b: any) => ({
+            nombre: b.nombre_banco || b.banco,
+            valorAsignadoBanco: b.valor_asignado_banco,
+            campos: Object.keys(b)
+          }))
+        )
+        
+        // Debug: Calcular suma total de valor_asignado_banco para la card
+        const totalValorAsignadoBanco = bancosArray.reduce((sum: number, banco: any) => sum + (banco.valor_asignado_banco || 0), 0)
+        console.log('💵 Total Valor Asignado Banco calculado para card:', totalValorAsignadoBanco.toLocaleString())
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -946,24 +961,11 @@ const useEmprestitoRealData = () => {
       const avanceFinanciero = reporteContrato?.avance_financiero || 0
       const valorEjecutado = (valorContrato * avanceFinanciero) / 100
       
-      // Buscar valor asignado por banco desde el endpoint bancos_emprestito_all
-      const datosBanco = bancosEmprestito.find(b => b.nombre_banco === banco)
-      const valorAsignadoBanco = datosBanco?.valor_asignado_banco || 0
-      
-      // Debug para el primer contrato
-      if (bankMap.size === 0 && valorAsignadoBanco > 0) {
-        console.log('🏦 Primer banco encontrado con valor:', {
-          banco,
-          valorAsignadoBanco,
-          datosBanco
-        })
-      }
-
       if (!bankMap.has(banco)) {
         bankMap.set(banco, {
           banco,
           totalContratos: 0,
-          valorAsignadoBanco: valorAsignadoBanco, // Del endpoint bancos_emprestito_all
+          valorAsignadoBanco: 0,                  // Será la suma de valorAdjudicado por banco
           valorAdjudicado: 0,                     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,                      // Calculado desde reportes
           valorPagado: 0,                         // Inicialmente 0
@@ -975,6 +977,7 @@ const useEmprestitoRealData = () => {
       const analysis = bankMap.get(banco)!
       analysis.totalContratos += 1
       analysis.valorAdjudicado += valorContrato
+      analysis.valorAsignadoBanco += valorContrato // Asignado Banco = suma de contratos adjudicados
       analysis.valorEjecutado += valorEjecutado
       // valorPagado se mantiene en 0 como solicitado
       analysis.promedioAvance += avanceFinanciero
@@ -991,7 +994,7 @@ const useEmprestitoRealData = () => {
     })
 
     return Array.from(bankMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
-  }, [filteredData, reportes, bancosEmprestito])
+  }, [filteredData, reportes])
 
   // Análisis por centro gestor
   const analysisByCentroGestor = useMemo((): AnalysisByCentroGestor[] => {
@@ -1010,26 +1013,11 @@ const useEmprestitoRealData = () => {
       const avanceFinanciero = reporteContrato?.avance_financiero || 0
       const valorEjecutado = (valorContrato * avanceFinanciero) / 100
       
-      // Buscar valor asignado por banco desde el endpoint bancos_emprestito_all
-      // Nota: Los datos no incluyen centro_gestor, así que buscamos solo por banco
-      const datosBanco = bancosEmprestito.find(b => b.nombre_banco === banco)
-      const valorAsignadoBanco = datosBanco?.valor_asignado_banco || 0
-      
-      // Debug para el primer centro gestor
-      if (centroMap.size === 0 && valorAsignadoBanco > 0) {
-        console.log('🏢 Primer centro gestor encontrado con valor:', {
-          centro,
-          banco,
-          valorAsignadoBanco,
-          datosBanco
-        })
-      }
-
       if (!centroMap.has(centro)) {
         centroMap.set(centro, {
           centroGestor: centro,
           totalContratos: 0,
-          valorAsignadoBanco: 0, // Se calculará después sumando todos los bancos
+          valorAsignadoBanco: 0, // Será la suma de valorAdjudicado por centro gestor
           valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,      // Calculado desde reportes
           valorPagado: 0,         // Inicialmente 0
@@ -1042,6 +1030,7 @@ const useEmprestitoRealData = () => {
       const analysis = centroMap.get(centro)!
       analysis.totalContratos += 1
       analysis.valorAdjudicado += valorContrato
+      analysis.valorAsignadoBanco += valorContrato // Asignado Banco = suma de contratos adjudicados
       analysis.valorEjecutado += valorEjecutado
       
       // Agregar sector
@@ -1080,11 +1069,9 @@ const useEmprestitoRealData = () => {
           const valorEjecutado = (valorContrato * avanceFinanciero) / 100
 
           if (!bancosMap.has(banco)) {
-            // Buscar valor asignado desde bancosEmprestito
-            const datosBanco = bancosEmprestito.find(b => b.nombre_banco === banco)
             bancosMap.set(banco, {
               nombre: banco,
-              valorAsignado: datosBanco?.valor_asignado_banco || 0,
+              valorAsignado: 0, // Se calculará como suma de valorAdjudicado
               valorAdjudicado: 0,
               valorEjecutado: 0,
               contratos: 0
@@ -1093,21 +1080,83 @@ const useEmprestitoRealData = () => {
 
           const bancoInfo = bancosMap.get(banco)!
           bancoInfo.valorAdjudicado += valorContrato
+          bancoInfo.valorAsignado += valorContrato // Asignado = suma de adjudicados
           bancoInfo.valorEjecutado += valorEjecutado
           bancoInfo.contratos += 1
         })
 
-      // Actualizar el array de bancos y sumar el valor asignado total
+      // Actualizar el array de bancos 
       analysis.bancos = Array.from(bancosMap.values()).filter(banco => 
-        banco.valorAsignado > 0 || banco.valorAdjudicado > 0
+        banco.valorAdjudicado > 0
       )
-      
-      // Calcular el valor total asignado por banco para este centro gestor
-      analysis.valorAsignadoBanco = analysis.bancos.reduce((sum, banco) => sum + banco.valorAsignado, 0)
     })
 
     return Array.from(centroMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
-  }, [filteredData, reportes, bancosEmprestito])
+  }, [filteredData, reportes])
+
+  // Análisis por banco para el gráfico (mostrando TODOS los bancos con valor_asignado_banco válido)
+  const analysisByBankForChart = useMemo((): AnalysisByBank[] => {
+    const bankMap = new Map<string, AnalysisByBank>()
+
+    // PASO 1: Inicializar TODOS los bancos que tienen valor_asignado_banco válido del endpoint
+    emprestitoBancos.forEach((datosBanco: any) => {
+      if (datosBanco.valor_asignado_banco && datosBanco.valor_asignado_banco > 0) {
+        const nombreBanco = datosBanco.nombre_banco
+        bankMap.set(nombreBanco, {
+          banco: nombreBanco,
+          totalContratos: 0,
+          valorAsignadoBanco: datosBanco.valor_asignado_banco, // Del endpoint bancos_emprestito_all
+          valorAdjudicado: 0,                                  // Se calculará desde contratos
+          valorEjecutado: 0,                                   // Se calculará desde reportes
+          valorPagado: 0,                                      // Inicialmente 0
+          porcentajeEjecucion: 0,
+          promedioAvance: 0
+        })
+      }
+    })
+
+    // Debug: Log de bancos inicializados
+    console.log('🏦 Bancos inicializados en analysisByBankForChart:', {
+      totalBancosConValor: bankMap.size,
+      bancos: Array.from(bankMap.keys())
+    })
+
+    // PASO 2: Agregar datos de contratos a los bancos que los tienen
+    filteredData.forEach(contrato => {
+      const banco = contrato.banco || 'Sin definir'
+      const valorContrato = Number(contrato.valor_contrato) || 0
+      
+      // Buscar el reporte más reciente para este contrato
+      const reporteContrato = reportes
+        .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+        .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+      
+      const avanceFinanciero = reporteContrato?.avance_financiero || 0
+      const valorEjecutado = (valorContrato * avanceFinanciero) / 100
+
+      // Solo agregar datos si el banco ya existe en el mapa (tiene valor_asignado_banco)
+      if (bankMap.has(banco)) {
+        const analysis = bankMap.get(banco)!
+        analysis.totalContratos += 1
+        analysis.valorAdjudicado += valorContrato
+        analysis.valorEjecutado += valorEjecutado
+        analysis.promedioAvance += avanceFinanciero
+      }
+    })
+
+    // Calcular porcentajes y promedios
+    bankMap.forEach(analysis => {
+      analysis.porcentajeEjecucion = analysis.valorAdjudicado > 0 
+        ? (analysis.valorEjecutado / analysis.valorAdjudicado) * 100 
+        : 0
+      analysis.promedioAvance = analysis.totalContratos > 0 
+        ? analysis.promedioAvance / analysis.totalContratos 
+        : 0
+    })
+
+    // Ordenar por valorAsignadoBanco (del endpoint) para mostrar los bancos más importantes primero
+    return Array.from(bankMap.values()).sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco)
+  }, [filteredData, reportes, emprestitoBancos])
 
   // Cálculo correcto del avance físico total basado en los contratos
   const valorTotalFisico = useMemo(() => {
@@ -1130,10 +1179,53 @@ const useEmprestitoRealData = () => {
     return totalAvanceFisico
   }, [filteredData, reportes])
 
-  // Cálculo del porcentaje físico promedio (no basado en valores monetarios)
+  // Cálculo correcto del valor ejecutado total basado en los contratos (igual lógica que físico)
+  const valorTotalEjecutado = useMemo(() => {
+    let totalEjecutado = 0
+    
+    filteredData.forEach(contrato => {
+      // Buscar el reporte más reciente para este contrato
+      const reporteContrato = reportes
+        .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+        .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+      
+      if (reporteContrato) {
+        const valorContrato = Number(contrato.valor_contrato) || 0
+        const avanceFinanciero = (reporteContrato as any).avance_financiero || 0
+        // Calcular el valor financiero ejecutado (avance_financiero ya viene como porcentaje 0-100)
+        totalEjecutado += (valorContrato * avanceFinanciero) / 100
+      }
+    })
+    
+    return totalEjecutado
+  }, [filteredData, reportes])
+
+  // Cálculo correcto del valor pagado total basado en los contratos (igual lógica que físico)
+  const valorTotalPagado = useMemo(() => {
+    let totalPagado = 0
+    
+    filteredData.forEach(contrato => {
+      // Buscar el reporte más reciente para este contrato
+      const reporteContrato = reportes
+        .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+        .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+      
+      if (reporteContrato) {
+        const valorContrato = Number(contrato.valor_contrato) || 0
+        const porcentajePagado = (reporteContrato as any).porcentaje_pagado || 0
+        // Calcular el valor pagado (porcentaje_pagado ya viene como porcentaje 0-100)
+        // Nota: actualmente este campo no tiene datos en el endpoint
+        totalPagado += (valorContrato * porcentajePagado) / 100
+      }
+    })
+    
+    return totalPagado
+  }, [filteredData, reportes])
+
+  // Cálculo del porcentaje físico promedio ponderado por valor_contrato
   const porcentajeFisicoPromedio = useMemo(() => {
-    let totalPorcentaje = 0
-    let contratosConReporte = 0
+    let totalPonderado = 0
+    let totalPeso = 0
     
     filteredData.forEach(contrato => {
       // Buscar el reporte más reciente para este contrato
@@ -1143,18 +1235,20 @@ const useEmprestitoRealData = () => {
       
       if (reporteContrato) {
         const avanceFisico = reporteContrato.avance_fisico || 0
-        totalPorcentaje += avanceFisico
-        contratosConReporte++
+        const valorContrato = Number(contrato.valor_contrato) || 0
+        
+        totalPonderado += avanceFisico * valorContrato
+        totalPeso += valorContrato
       }
     })
     
-    return contratosConReporte > 0 ? totalPorcentaje / contratosConReporte : 0
+    return totalPeso > 0 ? totalPonderado / totalPeso : 0
   }, [filteredData, reportes])
 
-  // Cálculo del porcentaje financiero promedio (no basado en valores monetarios)
+  // Cálculo del porcentaje financiero promedio ponderado por valor_contrato
   const porcentajeFinancieroPromedio = useMemo(() => {
-    let totalPorcentaje = 0
-    let contratosConReporte = 0
+    let totalPonderado = 0
+    let totalPeso = 0
     
     filteredData.forEach(contrato => {
       // Buscar el reporte más reciente para este contrato
@@ -1163,13 +1257,15 @@ const useEmprestitoRealData = () => {
         .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
       
       if (reporteContrato) {
-        const avanceFinanciero = reporteContrato.avance_financiero || 0
-        totalPorcentaje += avanceFinanciero
-        contratosConReporte++
+        const avanceFinanciero = (reporteContrato as any).avance_financiero || 0
+        const valorContrato = Number(contrato.valor_contrato) || 0
+        
+        totalPonderado += avanceFinanciero * valorContrato
+        totalPeso += valorContrato
       }
     })
     
-    return contratosConReporte > 0 ? totalPorcentaje / contratosConReporte : 0
+    return totalPeso > 0 ? totalPonderado / totalPeso : 0
   }, [filteredData, reportes])
 
   return {
@@ -1178,15 +1274,17 @@ const useEmprestitoRealData = () => {
     contratos: filteredData,
     reportes,
     bancosEmprestito,
+    emprestitoBancos,
     filters,
     setFilters,
     analysisByBank,
+    analysisByBankForChart,
     analysisByCentroGestor,
     totalContratos: filteredData.length,
     valorTotalAsignado: filteredData.reduce((sum, c) => sum + (Number(c.valor_contrato) || 0), 0),
-    valorTotalAsignadoBanco: bancosEmprestito.reduce((sum, banco) => sum + (banco.valor_asignado_banco || 0), 0),
-    valorTotalEjecutado: analysisByBank.reduce((sum, bank) => sum + bank.valorEjecutado, 0),
-    valorTotalPagado: analysisByBank.reduce((sum, bank) => sum + bank.valorPagado, 0),
+    valorTotalAsignadoBanco: bancosEmprestito.reduce((sum, banco) => sum + ((banco as any).valor_asignado_banco || 0), 0), // Suma directa de valor_asignado_banco del endpoint
+    valorTotalEjecutado, // Ahora usa el cálculo correcto basado en contratos filtrados
+    valorTotalPagado, // Ahora usa el cálculo correcto basado en contratos filtrados
     valorTotalFisico,
     porcentajeFisicoPromedio,
     porcentajeFinancieroPromedio
@@ -1635,6 +1733,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     filters,
     setFilters,
     analysisByBank,
+    analysisByBankForChart,
     analysisByCentroGestor,
     totalContratos,
     valorTotalAsignado,
@@ -1827,6 +1926,19 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         </div>
       </motion.div>
 
+      {/* Análisis Financiero por Banco - Ancho Completo */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full"
+      >
+        <BankBarChart 
+          data={analysisByBankForChart}
+          title="Análisis Financiero por Banco"
+          maxItems={8}
+        />
+      </motion.div>
+
       {/* Análisis Financiero por Centro Gestor - Ancho Completo */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -1837,19 +1949,6 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
           data={analysisByCentroGestor}
           title="Análisis Financiero por Centro Gestor"
           maxItems={6}
-        />
-      </motion.div>
-
-      {/* Análisis Financiero por Banco - Ancho Completo */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full"
-      >
-        <BankBarChart 
-          data={analysisByBank}
-          title="Análisis Financiero por Banco"
-          maxItems={8}
         />
       </motion.div>
 
