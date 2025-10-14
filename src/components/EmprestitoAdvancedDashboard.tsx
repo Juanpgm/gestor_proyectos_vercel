@@ -1094,7 +1094,7 @@ const useEmprestitoRealData = () => {
     return Array.from(centroMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
   }, [filteredData, reportes])
 
-  // Análisis por banco para el gráfico (mostrando TODOS los bancos con valor_asignado_banco válido)
+  // Análisis por banco para el gráfico (solo bancos con contratos asignados)
   const analysisByBankForChart = useMemo((): AnalysisByBank[] => {
     const bankMap = new Map<string, AnalysisByBank>()
 
@@ -1154,8 +1154,10 @@ const useEmprestitoRealData = () => {
         : 0
     })
 
-    // Ordenar por valorAsignadoBanco (del endpoint) para mostrar los bancos más importantes primero
-    return Array.from(bankMap.values()).sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco)
+    // Filtrar para mostrar solo bancos que tienen contratos asignados, luego ordenar por valorAsignadoBanco
+    return Array.from(bankMap.values())
+      .filter(banco => banco.totalContratos > 0) // Solo mostrar bancos con contratos
+      .sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco)
   }, [filteredData, reportes, emprestitoBancos])
 
   // Cálculo correcto del avance físico total basado en los contratos
