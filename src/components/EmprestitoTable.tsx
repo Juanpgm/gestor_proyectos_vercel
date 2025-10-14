@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Download, 
@@ -16,6 +16,7 @@ import {
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
 import { EmprestitoContrato, EmprestitoProyecto } from '@/hooks/useEmprestito'
 import { openSecopLink } from '@/utils/url-helpers'
+import ContratosModal from './ContratosModal'
 
 // Función helper para obtener los colores del estado del contrato
 const getContractStateColors = (estado: string) => {
@@ -83,7 +84,54 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeTab, setActiveTab] = useState<'proyectos' | 'contratos'>('proyectos')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedContrato, setSelectedContrato] = useState<EmprestitoContrato | null>(null)
+  const [reportesData, setReportesData] = useState<any[]>([])
+  const [loadingReportes, setLoadingReportes] = useState(false)
   const itemsPerPage = 10
+
+  // Cargar datos de reportes para los detalles del modal
+  useEffect(() => {
+    const fetchReportesData = async () => {
+      try {
+        setLoadingReportes(true)
+        const reportesRes = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes-contratos/')
+        if (reportesRes.ok) {
+          const reportes = await reportesRes.json()
+          setReportesData(reportes.data || [])
+        }
+      } catch (error) {
+        console.error('Error cargando reportes:', error)
+      } finally {
+        setLoadingReportes(false)
+      }
+    }
+
+    fetchReportesData()
+  }, [])
+
+  // Función para abrir el modal con los datos del contrato
+  const handleOpenModal = (contrato: EmprestitoContrato) => {
+    // Buscar datos adicionales del reporte para este contrato
+    const reporteContrato = reportesData.find(r => 
+      r.referencia_contrato === contrato.referencia_del_contrato ||
+      r.id_contrato === contrato.id_contrato ||
+      r.bpin === contrato.bpin
+    )
+
+    // Combinar datos del contrato con datos del reporte
+    const contratoCompleto = {
+      ...contrato,
+      ...reporteContrato,
+      // Asegurar que los campos de ejecución estén disponibles
+      ejecucion_fisica: reporteContrato?.ejecucion_fisica || null,
+      ejecucion_financiera: reporteContrato?.ejecucion_financiera || null,
+      pagos: reporteContrato?.pagos || null
+    }
+
+    setSelectedContrato(contratoCompleto)
+    setModalOpen(true)
+  }
 
   // Paginación
   const getCurrentItems = (): (EmprestitoProyecto | EmprestitoContrato)[] => {
@@ -208,12 +256,13 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">BPIN</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Proceso</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Entidad</th>
+                  <th className="text-left py-3 px-2 font-medium text-gray-900 dark:text-white w-48">Referencia / Centro Gestor</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Proveedor</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Valor Contrato</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Avance</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Estado</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Acciones</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">Observaciones / Alertas</th>
+                  <th className="text-center py-3 px-2 font-medium text-gray-900 dark:text-white w-16">Detalle</th>
                 </tr>
               </thead>
               <tbody>
@@ -226,23 +275,18 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                     className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   >
                     <td className="py-3 px-4 font-mono text-sm">{contrato.bpin}</td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {contrato.referencia_del_contrato || 'Sin referencia'}
-                      </div>
-                      {contrato.objeto_del_contrato && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                          {contrato.objeto_del_contrato.length > 60
-                            ? `${contrato.objeto_del_contrato.substring(0, 60)}...`
-                            : contrato.objeto_del_contrato}
+                    <td className="py-3 px-2 w-48">
+                      <div className="space-y-1">
+                        <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight">
+                          {contrato.descripcion_del_proceso || contrato.referencia_del_contrato || 'Sin proceso'}
                         </div>
-                      )}
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {contrato.tipo_de_contrato || 'Sin tipo'}
+                        <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
+                          {contrato.nombre_entidad || 'Sin centro gestor'}
+                        </div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                          {contrato.referencia_del_contrato || 'Sin referencia'}
+                        </div>
                       </div>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                      {contrato.nombre_entidad || 'Sin entidad'}
                     </td>
                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                       {(contrato.proveedor_adjudicado || '').length > 30
@@ -253,27 +297,123 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                       {formatNumber(contrato.valor_del_contrato, 'currency')}
                     </td>
                     <td className="py-3 px-4">
+                      <div className="space-y-2">
+                        {/* Progress bar para Avance Financiero */}
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-gray-600 dark:text-gray-400">Financiero</span>
+                            <span className="font-medium">
+                              {Math.round(((contrato.valor_pagado || 0) / (contrato.valor_del_contrato || 1)) * 100)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${Math.min(((contrato.valor_pagado || 0) / (contrato.valor_del_contrato || 1)) * 100, 100)}%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                        {/* Progress bar para Avance Físico (calculado basado en fechas) */}
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-gray-600 dark:text-gray-400">Físico</span>
+                            <span className="font-medium">
+                              {(() => {
+                                const fechaInicio = contrato.fecha_de_firma ? new Date(contrato.fecha_de_firma) : null
+                                const fechaFin = contrato.fecha_de_fin_del_contrato ? new Date(contrato.fecha_de_fin_del_contrato) : null
+                                const fechaActual = new Date()
+                                
+                                if (!fechaInicio || !fechaFin) return '0%'
+                                
+                                const tiempoTotal = fechaFin.getTime() - fechaInicio.getTime()
+                                const tiempoTranscurrido = fechaActual.getTime() - fechaInicio.getTime()
+                                const porcentaje = Math.min(Math.max((tiempoTranscurrido / tiempoTotal) * 100, 0), 100)
+                                
+                                return Math.round(porcentaje) + '%'
+                              })()}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${(() => {
+                                  const fechaInicio = contrato.fecha_de_firma ? new Date(contrato.fecha_de_firma) : null
+                                  const fechaFin = contrato.fecha_de_fin_del_contrato ? new Date(contrato.fecha_de_fin_del_contrato) : null
+                                  const fechaActual = new Date()
+                                  
+                                  if (!fechaInicio || !fechaFin) return 0
+                                  
+                                  const tiempoTotal = fechaFin.getTime() - fechaInicio.getTime()
+                                  const tiempoTranscurrido = fechaActual.getTime() - fechaInicio.getTime()
+                                  const porcentaje = Math.min(Math.max((tiempoTranscurrido / tiempoTotal) * 100, 0), 100)
+                                  
+                                  return porcentaje
+                                })()}%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                         getContractStateColors(contrato.estado_contrato)
                       }`}>
                         {contrato.estado_contrato || 'Sin estado'}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
-                      {contrato.urlproceso && (
-                        <button
-                          onClick={() => {
-                            const url = (contrato.urlproceso as any)?.url || contrato.urlproceso
-                            if (typeof url === 'string' && url.trim()) {
-                              openSecopLink(url.trim())
-                            }
-                          }}
-                          className="text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300"
-                          title="Ver en SECOP"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </button>
-                      )}
+                    <td className="py-3 px-4 text-xs text-gray-600 dark:text-gray-400">
+                      {(() => {
+                        const observaciones = []
+                        
+                        // Revisar si hay retrasos
+                        const fechaFin = contrato.fecha_de_fin_del_contrato ? new Date(contrato.fecha_de_fin_del_contrato) : null
+                        if (fechaFin && fechaFin < new Date() && contrato.estado_contrato?.toLowerCase() !== 'liquidado') {
+                          observaciones.push('⚠️ Vencido')
+                        }
+                        
+                        // Revisar avance financiero vs físico
+                        const avanceFinanciero = ((contrato.valor_pagado || 0) / (contrato.valor_del_contrato || 1)) * 100
+                        const fechaInicio = contrato.fecha_de_firma ? new Date(contrato.fecha_de_firma) : null
+                        const fechaFinContrato = contrato.fecha_de_fin_del_contrato ? new Date(contrato.fecha_de_fin_del_contrato) : null
+                        const fechaActual = new Date()
+                        
+                        let avanceFisico = 0
+                        if (fechaInicio && fechaFinContrato) {
+                          const tiempoTotal = fechaFinContrato.getTime() - fechaInicio.getTime()
+                          const tiempoTranscurrido = fechaActual.getTime() - fechaInicio.getTime()
+                          avanceFisico = Math.min(Math.max((tiempoTranscurrido / tiempoTotal) * 100, 0), 100)
+                        }
+                        
+                        if (avanceFinanciero > avanceFisico + 20) {
+                          observaciones.push('📈 Avance financiero alto')
+                        } else if (avanceFisico > avanceFinanciero + 20) {
+                          observaciones.push('📉 Avance financiero bajo')
+                        }
+                        
+                        // Revisar si está próximo a vencer
+                        if (fechaFin) {
+                          const diasRestantes = Math.ceil((fechaFin.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                          if (diasRestantes <= 30 && diasRestantes > 0) {
+                            observaciones.push('🔔 Próximo a vencer')
+                          }
+                        }
+                        
+                        return observaciones.length > 0 ? observaciones.join(', ') : 'Sin observaciones'
+                      })()}
+                    </td>
+                    <td className="py-3 px-2 text-center">
+                      <button
+                        onClick={() => handleOpenModal(contrato)}
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg"
+                        title="Ver detalles del contrato"
+                        disabled={loadingReportes}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
                     </td>
                   </motion.tr>
                 ))}
@@ -311,6 +451,17 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal de detalles del contrato */}
+      <ContratosModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false)
+          setSelectedContrato(null)
+        }}
+        contratoData={selectedContrato}
+        referenciaContrato={selectedContrato?.referencia_del_contrato}
+      />
     </div>
   )
 }

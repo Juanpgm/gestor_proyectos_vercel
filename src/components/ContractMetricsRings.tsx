@@ -90,21 +90,26 @@ const getColorByPercentage = (percentage: number): string => {
 }
 
 const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato }) => {
-  // Calcular métricas
-  const valorContrato = contrato.valor_del_contrato || 0
+  // Usar datos del endpoint reportes-contratos cuando estén disponibles
+  // Si vienen del endpoint contratos_emprestito_all, usar esos
+  const valorContrato = contrato.valor_contrato || contrato.valor_del_contrato || 0
   const valorFacturado = contrato.valor_facturado || 0
   const valorPagado = contrato.valor_pagado || 0
   const valorPendienteEjecucion = contrato.valor_pendiente_de_ejecucion || 0
 
-  // Ejecución Física = (valor_del_contrato - valor_pendiente_de_ejecucion) / valor_del_contrato
-  const ejecucionFisica = valorContrato > 0 
-    ? ((valorContrato - valorPendienteEjecucion) / valorContrato) * 100 
-    : 0
+  // Usar avances directamente del endpoint reportes-contratos si están disponibles
+  const avanceFisicoReporte = contrato.avance_fisico || contrato.ejecucion_fisica || 0
+  const avanceFinancieroReporte = contrato.avance_financiero || contrato.ejecucion_financiera || 0
 
-  // Ejecución Presupuestal = valor_facturado / valor_del_contrato
-  const ejecucionPresupuestal = valorContrato > 0 
-    ? (valorFacturado / valorContrato) * 100 
-    : 0
+  // Ejecución Física - priorizar datos del reporte, sino calcular
+  const ejecucionFisica = avanceFisicoReporte > 0 
+    ? avanceFisicoReporte 
+    : (valorContrato > 0 ? ((valorContrato - valorPendienteEjecucion) / valorContrato) * 100 : 0)
+
+  // Ejecución Financiera/Presupuestal - priorizar datos del reporte, sino calcular
+  const ejecucionPresupuestal = avanceFinancieroReporte > 0 
+    ? avanceFinancieroReporte 
+    : (valorContrato > 0 ? (valorFacturado / valorContrato) * 100 : 0)
 
   // Pagos = valor_pagado / valor_del_contrato
   const pagos = valorContrato > 0 
@@ -116,21 +121,21 @@ const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato })
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
         <RingChart
           percentage={Math.max(0, Math.min(100, ejecucionFisica))}
-          label="Ejecución Física"
-          value={`$${(valorContrato - valorPendienteEjecucion).toLocaleString('es-CO')}`}
+          label="Avance Físico"
+          value={avanceFisicoReporte > 0 ? `${ejecucionFisica.toFixed(1)}%` : `$${(valorContrato - valorPendienteEjecucion).toLocaleString('es-CO')}`}
           color={getColorByPercentage(ejecucionFisica)}
         />
         
         <RingChart
           percentage={Math.max(0, Math.min(100, ejecucionPresupuestal))}
-          label="Ejecución Presupuestal"
-          value={`$${valorFacturado.toLocaleString('es-CO')}`}
+          label="Avance Financiero"
+          value={avanceFinancieroReporte > 0 ? `${ejecucionPresupuestal.toFixed(1)}%` : `$${valorFacturado.toLocaleString('es-CO')}`}
           color={getColorByPercentage(ejecucionPresupuestal)}
         />
         
         <RingChart
           percentage={Math.max(0, Math.min(100, pagos))}
-          label="Pagos"
+          label="Pagos Realizados"
           value={`$${valorPagado.toLocaleString('es-CO')}`}
           color={getColorByPercentage(pagos)}
         />

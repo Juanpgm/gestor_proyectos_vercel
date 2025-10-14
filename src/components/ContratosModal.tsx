@@ -465,21 +465,28 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                     </p>
                   </div>
 
-                  {/* Enlaces y acciones - Ancho Completo */}
+                  {/* Enlaces y acciones - Ancho Completo y Mejorada Visibilidad */}
                   {(contractDataToShow.urlproceso?.url || contractDataToShow.urlproceso) && (
-                    <div className="col-span-1 lg:col-span-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                      <button
-                        onClick={() => {
-                          const url = contractDataToShow.urlproceso?.url || contractDataToShow.urlproceso
-                          if (typeof url === 'string' && url.trim()) {
-                            window.open(url.trim(), '_blank')
-                          }
-                        }}
-                        className="inline-flex items-center gap-2 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors text-xs font-medium"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        Ver en SECOP
-                      </button>
+                    <div className="col-span-1 lg:col-span-2 pt-4 mt-4 border-t-2 border-gray-300 dark:border-gray-600">
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => {
+                            const url = contractDataToShow.urlproceso?.url || contractDataToShow.urlproceso
+                            console.log('🔗 URL SECOP:', url, 'Tipo:', typeof url)
+                            if (typeof url === 'string' && url.trim()) {
+                              console.log('✅ Navegando a URL:', url.trim())
+                              // Navegar directamente al enlace
+                              window.location.href = url.trim()
+                            } else {
+                              console.log('❌ URL inválida o vacía')
+                            }
+                          }}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 duration-200"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Ver en SECOP
+                        </button>
+                      </div>
                     </div>
                   )}
 
