@@ -26,6 +26,7 @@ import {
   X
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 interface UnidadesProyectoAttributesTableProps {
   data: AttributeData[];
@@ -65,14 +66,6 @@ const ProgressBar: React.FC<{ value: number; max: number; className?: string }> 
       </span>
     </div>
   );
-};
-
-// Función para formatear moneda
-const formatCurrency = (amount: number): string => {
-  if (amount >= 1000000000) return `$${(amount / 1000000000).toFixed(1)}B`;
-  if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
-  if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
-  return `$${amount.toLocaleString('es-CO')}`;
 };
 
 // Función para truncar texto

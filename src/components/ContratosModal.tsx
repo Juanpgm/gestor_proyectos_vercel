@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  X, 
-  FileText, 
-  AlertCircle, 
+import {
+  X,
+  FileText,
+  AlertCircle,
   Calendar,
   DollarSign,
   BarChart3,
@@ -61,9 +61,9 @@ const formatearFecha = (fecha: any) => {
   }
 }
 
-const ContratosModal: React.FC<ContratosModalProps> = ({ 
-  isOpen, 
-  onClose, 
+const ContratosModal: React.FC<ContratosModalProps> = ({
+  isOpen,
+  onClose,
   referenciaContrato,
   contratoData,
   proyectoData
@@ -80,23 +80,23 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
 
   const loadContratoData = async () => {
     if (!referenciaContrato) return
-    
+
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await fetch('/api/contratos')
       if (!response.ok) {
         throw new Error('Error al cargar datos de contratos')
       }
-      
+
       const contratos: any[] = await response.json()
       const contratoEncontrado = contratos.find(c => c.referencia_contrato === referenciaContrato)
-      
+
       if (!contratoEncontrado) {
         throw new Error(`No se encontró el contrato con referencia: ${referenciaContrato}`)
       }
-      
+
       setContrato(contratoEncontrado)
     } catch (err) {
       console.error('Error cargando contrato:', err)
@@ -110,9 +110,9 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
 
   // Usar contratoData si está disponible, sino cargar desde API
   const contractDataToShow = contratoData || contrato
-  
+
   // Obtener colores de estado para el header
-  const headerColors = contractDataToShow?.estado_contrato 
+  const headerColors = contractDataToShow?.estado_contrato
     ? getContractStateColors(contractDataToShow.estado_contrato)
     : getContractStateColors('Vigente')
 
@@ -182,10 +182,10 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
 
               {contractDataToShow && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 space-y-0 items-stretch min-h-0">
-                  
+
                   {/* Columna Izquierda */}
                   <div className="space-y-4 flex flex-col min-h-0 flex-1">
-                    
+
                     {/* Métricas visuales compactas */}
                     <div className={`${getInfoColors('temporal').bg} ${getInfoColors('temporal').border} border rounded-lg p-3`}>
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">

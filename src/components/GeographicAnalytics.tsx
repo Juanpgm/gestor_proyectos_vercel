@@ -31,6 +31,7 @@ import {
   PieChart as PieChartIcon,
   Activity
 } from 'lucide-react'
+import { formatCurrencyCompact } from '@/utils/formatCurrency'
 
 interface GeographicAnalyticsProps {
   unidades: any[] // Replaced UnidadProyectoGeo with any[] since the type was removed
@@ -42,14 +43,6 @@ const COLORS = [
   '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
   '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
 ]
-
-// Función para formatear valores monetarios
-const formatCurrency = (value: number): string => {
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`
-  if (value >= 1e3) return `$${(value / 1e3).toFixed(1)}K`
-  return `$${value.toFixed(0)}`
-}
 
 export const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = ({
   unidades,
@@ -225,7 +218,7 @@ export const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm">Presupuesto Total</p>
-              <p className="text-2xl font-bold">{formatCurrency(metrics.totalPresupuesto)}</p>
+              <p className="text-2xl font-bold">{formatCurrencyCompact(metrics.totalPresupuesto)}</p>
             </div>
             <DollarSign className="w-8 h-8 text-blue-200" />
           </div>
@@ -285,10 +278,10 @@ export const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = ({
                 height={80}
                 fontSize={12}
               />
-              <YAxis tickFormatter={formatCurrency} fontSize={12} />
+              <YAxis tickFormatter={formatCurrencyCompact} fontSize={12} />
               <Tooltip 
                 formatter={(value, name) => [
-                  name === 'presupuesto_total' ? formatCurrency(value as number) : value,
+                  name === 'presupuesto_total' ? formatCurrencyCompact(value as number) : value,
                   name === 'presupuesto_total' ? 'Presupuesto' : 
                   name === 'count' ? 'Proyectos' : 'Avance Promedio'
                 ]}
@@ -348,7 +341,7 @@ export const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = ({
               <YAxis fontSize={12} />
               <Tooltip 
                 formatter={(value, name) => [
-                  name === 'presupuesto_total' ? formatCurrency(value as number) : 
+                  name === 'presupuesto_total' ? formatCurrencyCompact(value as number) : 
                   name === 'tasa_completado' ? `${(value as number).toFixed(1)}%` : value,
                   name === 'count' ? 'Proyectos' : 
                   name === 'presupuesto_total' ? 'Presupuesto' : 'Tasa Completado'
