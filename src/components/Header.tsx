@@ -7,7 +7,11 @@ import { useTheme } from '@/context/ThemeContext'
 import { UserProfile } from '@/components/AuthWrapper'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
 
-const Header = () => {
+interface HeaderProps {
+  onToggleSidebar?: () => void
+}
+
+const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { theme, setTheme } = useTheme()
 
   const toggleTheme = () => {
@@ -25,6 +29,19 @@ const Header = () => {
         <div className="flex items-center justify-between">
           {/* Logo and Title - Responsivo */}
           <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
+            {/* Sidebar Toggle Button */}
+            {onToggleSidebar && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onToggleSidebar}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Abrir menú"
+              >
+                <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </motion.button>
+            )}
+
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="flex items-center space-x-2 md:space-x-3 min-w-0"

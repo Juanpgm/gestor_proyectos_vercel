@@ -4,7 +4,7 @@ import UnidadesProyecto from '@/components/UnidadesProyecto'
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import Header from '@/components/Header'
+import MainLayout from '@/components/MainLayout'
 import StatsCards from '@/components/StatsCards'
 import ProjectsTable from '@/components/ProjectsTable'
 import { DataProvider, useDataContext } from '@/context/DataContext'
@@ -456,8 +456,6 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <Header />
-      
       <main className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
         <MobileNavigation 
           activeTab={activeTab}
@@ -480,7 +478,9 @@ function DashboardContent() {
 export default function Dashboard() {
   return (
     <DataProvider>
-      <DashboardContent />
+      <MainLayout>
+        <DashboardContent />
+      </MainLayout>
     </DataProvider>
   )
 }
