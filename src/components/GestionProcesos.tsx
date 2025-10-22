@@ -18,8 +18,10 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  X
+  X,
+  Plus
 } from 'lucide-react'
+import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
@@ -73,6 +75,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const [columnFilters, setColumnFilters] = useState<ColumnFilter>({})
   const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
+  const [showAgregarModal, setShowAgregarModal] = useState(false)
   
   // Refs para manejar clics fuera del dropdown
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
@@ -143,7 +146,48 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     fetchProcesos()
   }, [])
 
-  // Función para manejar el ordenamiento
+  // Función para manejar el éxito al agregar proceso
+  const handleAgregarProcesoSuccess = () => {
+    // Recargar los datos
+    const fetchProcesos = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+        if (!apiUrl) {
+          throw new Error('URL de API no configurada')
+        }
+
+        const response = await fetch(`${apiUrl}/procesos_emprestito_all`)
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        }
+        
+        const data = await response.json()
+        
+        // Manejar diferentes formatos de respuesta
+        if (Array.isArray(data)) {
+          setProcesos(data)
+        } else if (data && Array.isArray(data.data)) {
+          setProcesos(data.data)
+        } else if (data && Array.isArray(data.procesos)) {
+          setProcesos(data.procesos)
+        } else {
+          console.warn('Formato de respuesta inesperado:', data)
+          setProcesos([])
+        }
+      } catch (error) {
+        console.error('Error fetching procesos:', error)
+        setError(error instanceof Error ? error.message : 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProcesos()
+  }
   const handleSort = (key: string) => {
     setSortConfig(prevConfig => ({
       key,
@@ -353,7 +397,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                     <span className="text-xs text-blue-600 dark:text-blue-400">Filtros activos:</span>
                     {searchTerm && (
                       <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs flex items-center space-x-1">
-                        <span>Búsqueda: "{searchTerm}"</span>
+                        <span>Búsqueda: &quot;{searchTerm}&quot;</span>
                         <button
                           onClick={() => setSearchTerm('')}
                           className="ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
@@ -434,6 +478,15 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Actualizar</span>
+              </button>
+
+              {/* Agregar Proceso */}
+              <button
+                onClick={() => setShowAgregarModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar Proceso</span>
               </button>
             </div>
           </div>
@@ -729,6 +782,13 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           )}
         </motion.div>
       </div>
+
+      {/* Modal para agregar proceso */}
+      <AgregarProcesoModalAlt
+        isOpen={showAgregarModal}
+        onClose={() => setShowAgregarModal(false)}
+        onSuccess={handleAgregarProcesoSuccess}
+      />
     </div>
   )
 }
