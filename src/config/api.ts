@@ -10,7 +10,6 @@ export const API_ENDPOINTS = {
   // Endpoints específicos
   UNIDADES_PROYECTO: '/unidades-proyecto',
   ATTRIBUTES: '/unidades-proyecto/attributes',
-  DASHBOARD: '/unidades-proyecto/dashboard',
   FILTERS: '/unidades-proyecto/filters',
   GEOMETRY: '/unidades-proyecto/geometry',
 }

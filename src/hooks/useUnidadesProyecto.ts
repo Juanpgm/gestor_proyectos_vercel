@@ -50,29 +50,11 @@ export interface FilterData {
   anos: number[];
 }
 
-export interface DashboardData {
-  resumen_general: {
-    total_proyectos: number;
-    con_geometria: number;
-    con_atributos: number;
-    porcentaje_geo: number;
-  };
-  distribuciones: {
-    por_estado: { conteos: Record<string, number>; porcentajes: Record<string, number> };
-    por_tipo_intervencion: { conteos: Record<string, number>; porcentajes: Record<string, number> };
-    por_centro_gestor: { conteos: Record<string, number>; porcentajes: Record<string, number> };
-    por_comuna_corregimiento: { conteos: Record<string, number>; porcentajes: Record<string, number> };
-  };
-  kpis_negocio: Record<string, any>;
-  analisis_calidad: Record<string, any>;
-}
-
 export interface UseUnidadesProyectoResult {
   // Datos
   geometryData: GeometryData | null;
   attributeData: AttributeData[];
   filterData: FilterData | null;
-  dashboardData: DashboardData | null;
   
   // Estados
   loading: boolean;
@@ -93,7 +75,6 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
   const [geometryData, setGeometryData] = useState<GeometryData | null>(null);
   const [attributeData, setAttributeData] = useState<AttributeData[]>([]);
   const [filterData, setFilterData] = useState<FilterData | null>(null);
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -104,11 +85,10 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
     setError(null);
     
     try {
-      const [geometryResponse, attributesResponse, filtersResponse, dashboardResponse] = await Promise.all([
+      const [geometryResponse, attributesResponse, filtersResponse] = await Promise.all([
         fetch('/api/proxy/unidades-proyecto/geometry'),
         fetch('/api/proxy/unidades-proyecto/attributes'),
-        fetch('/api/proxy/unidades-proyecto/filters'),
-        fetch('/api/proxy/unidades-proyecto/dashboard')
+        fetch('/api/proxy/unidades-proyecto/filters')
       ]);
 
       // Procesar geometría
@@ -168,13 +148,6 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
         }
       }
 
-      // Procesar dashboard
-      if (dashboardResponse.ok) {
-        const apiResponse = await dashboardResponse.json();
-        const dashboard = apiResponse?.success && apiResponse?.dashboard ? apiResponse.dashboard : apiResponse;
-        setDashboardData(dashboard);
-      }
-
       setLastUpdate(new Date());
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error desconocido');
@@ -218,7 +191,6 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
     geometryData,
     attributeData,
     filterData,
-    dashboardData,
     
     // Estados
     loading,

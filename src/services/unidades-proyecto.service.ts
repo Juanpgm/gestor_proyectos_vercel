@@ -7,14 +7,20 @@ import { z } from 'zod';
 
 // Schemas de validación usando Zod para garantizar tipo de datos
 const GeometrySchema = z.object({
-  type: z.string(),
+  type: z.literal('FeatureCollection'),
   features: z.array(z.object({
-    type: z.string(),
+    type: z.literal('Feature'),
     geometry: z.object({
-      type: z.string(),
+      type: z.enum(['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon']),
       coordinates: z.union([
+        // Point: [lon, lat]
         z.tuple([z.number(), z.number()]),
-        z.array(z.array(z.tuple([z.number(), z.number()])))
+        // LineString: [[lon, lat], [lon, lat], ...]
+        z.array(z.tuple([z.number(), z.number()])),
+        // Polygon: [[[lon, lat], [lon, lat], ...]]
+        z.array(z.array(z.tuple([z.number(), z.number()]))),
+        // Casos más complejos
+        z.array(z.any())
       ])
     }),
     properties: z.record(z.any())
@@ -50,76 +56,10 @@ const FilterSchema = z.object({
   anos: z.array(z.number())
 });
 
-const DashboardSchema = z.object({
-  resumen_general: z.object({
-    total_proyectos: z.number(),
-    con_geometria: z.number(),
-    con_atributos: z.number(),
-    porcentaje_geo: z.number(),
-    cobertura_datos: z.object({
-      completos: z.number(),
-      solo_atributos: z.number(),
-      solo_geometria: z.number()
-    })
-  }),
-  distribuciones: z.object({
-    por_estado: z.object({
-      conteos: z.record(z.number()),
-      total_categorias: z.number(),
-      porcentajes: z.record(z.number()),
-      top_3: z.array(z.tuple([z.string(), z.number()]))
-    }),
-    por_tipo_intervencion: z.object({
-      conteos: z.record(z.number()),
-      total_categorias: z.number(),
-      porcentajes: z.record(z.number()),
-      top_3: z.array(z.tuple([z.string(), z.number()]))
-    }),
-    por_centro_gestor: z.object({
-      conteos: z.record(z.number()),
-      total_categorias: z.number(),
-      porcentajes: z.record(z.number()),
-      top_3: z.array(z.tuple([z.string(), z.number()]))
-    }),
-    por_comuna_corregimiento: z.object({
-      conteos: z.record(z.number()),
-      total_categorias: z.number(),
-      porcentajes: z.record(z.number()),
-      top_3: z.array(z.tuple([z.string(), z.number()]))
-    }),
-    por_barrio_vereda: z.object({
-      conteos: z.record(z.number()),
-      total_categorias: z.number(),
-      porcentajes: z.record(z.number()),
-      top_3: z.array(z.tuple([z.string(), z.number()]))
-    })
-  }),
-  metricas_geograficas: z.record(z.any()),
-  analisis_calidad: z.record(z.object({
-    valores_validos: z.number(),
-    valores_faltantes: z.number(),
-    completitud_porcentaje: z.number(),
-    calidad: z.string()
-  })),
-  kpis_negocio: z.object({
-    proyectos_activos: z.number(),
-    proyectos_finalizados: z.number(),
-    tasa_completitud: z.number(),
-    diversidad_tipos: z.number(),
-    centros_gestores_activos: z.number(),
-    cobertura_territorial: z.object({
-      comunas_corregimientos: z.number(),
-      barrios_veredas: z.number()
-    })
-  }),
-  filtros_aplicados: z.record(z.any())
-});
-
 // Tipos derivados de los schemas
 export type GeometryData = z.infer<typeof GeometrySchema>;
 export type AttributeData = z.infer<typeof AttributeSchema>;
 export type FilterData = z.infer<typeof FilterSchema>;
-export type DashboardData = z.infer<typeof DashboardSchema>;
 
 // Tipo para parámetros de filtrado
 export interface FilterParams {
@@ -205,11 +145,19 @@ const buildFilterQuery = (filters: FilterParams): string => {
   
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
-      params.append(key, String(value));
+      // Manejar arrays (si llega a ser necesario en el futuro)
+      if (Array.isArray(value)) {
+        value.forEach(item => params.append(key, String(item)));
+      } else {
+        params.append(key, String(value));
+      }
     }
   });
   
-  return params.toString();
+  const queryString = params.toString();
+  console.log(`🔍 BuildFilterQuery: Built query string: ${queryString}`);
+  
+  return queryString;
 };
 
 // Funciones del servicio usando programación funcional
@@ -222,12 +170,75 @@ export const fetchGeometryData = async (filters: FilterParams = {}): Promise<Geo
     const queryString = buildFilterQuery(filters);
     const url = `${API_CONFIG.BASE_PATH}/geometry${queryString ? `?${queryString}` : ''}`;
     
-    const response = await fetchWithRetry(url);
-    const data = await response.json();
+    console.log(`🌐 fetchGeometryData: Requesting ${url}`);
     
-    // Validar estructura de datos
-    return GeometrySchema.parse(data);
+    const response = await fetchWithRetry(url);
+    const apiResponse = await response.json();
+    
+    console.log(`📦 fetchGeometryData: Response structure:`, {
+      isGeoJSON: apiResponse.type === 'FeatureCollection',
+      hasFeatures: Array.isArray(apiResponse.features),
+      featureCount: apiResponse.features?.length || 0,
+      hasProperties: !!apiResponse.properties,
+      topLevelKeys: Object.keys(apiResponse)
+    });
+    
+    // La API devuelve un GeoJSON FeatureCollection completo con metadatos en properties
+    // El proxy no desenvuelve este endpoint, así que viene completo
+    let geoJsonData;
+    
+    if (apiResponse.type === 'FeatureCollection' && Array.isArray(apiResponse.features)) {
+      // Respuesta directa como GeoJSON FeatureCollection
+      // Extraer solo type y features para el schema, ignorar los metadatos
+      geoJsonData = {
+        type: apiResponse.type,
+        features: apiResponse.features
+      };
+      
+      console.log(`📊 fetchGeometryData: Processing GeoJSON with ${apiResponse.features.length} features`);
+      
+      // Log información de metadatos si está disponible
+      if (apiResponse.properties) {
+        console.log(`📋 fetchGeometryData: Metadata:`, {
+          success: apiResponse.properties.success,
+          count: apiResponse.properties.count,
+          message: apiResponse.properties.message,
+          filters_applied: apiResponse.properties.filters_applied
+        });
+      }
+      
+      // Log de muestra de la primera feature para debugging
+      if (apiResponse.features.length > 0) {
+        const firstFeature = apiResponse.features[0];
+        console.log(`📍 fetchGeometryData: Sample feature:`, {
+          upid: firstFeature.properties?.upid,
+          geometry_type: firstFeature.geometry?.type,
+          has_coordinates: !!firstFeature.geometry?.coordinates,
+          has_valid_geometry: firstFeature.properties?.has_valid_geometry,
+          coordinates_sample: firstFeature.geometry?.coordinates?.slice(0, 2) // Solo primeras 2 coordenadas para no saturar log
+        });
+      }
+    } else if (apiResponse.data && apiResponse.data.type === 'FeatureCollection') {
+      // Respuesta envuelta en un objeto data (caso alternativo)
+      geoJsonData = {
+        type: apiResponse.data.type,
+        features: apiResponse.data.features
+      };
+      console.log(`📊 fetchGeometryData: Processing wrapped GeoJSON with ${apiResponse.data.features?.length || 0} features`);
+    } else {
+      // Formato inesperado
+      console.warn('⚠️ fetchGeometryData: Unexpected response format:', apiResponse);
+      throw new Error('Formato de respuesta de geometría inesperado');
+    }
+    
+    // Validar estructura de datos con el schema
+    const validatedData = GeometrySchema.parse(geoJsonData);
+    
+    console.log(`✅ fetchGeometryData: Successfully validated ${validatedData.features.length} features`);
+    
+    return validatedData;
   } catch (error) {
+    console.error('❌ fetchGeometryData error:', error);
     return handleApiError(error);
   }
 };
@@ -240,11 +251,32 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
     const queryString = buildFilterQuery(filters);
     const url = `${API_CONFIG.BASE_PATH}/attributes${queryString ? `?${queryString}` : ''}`;
     
+    console.log(`🌐 fetchAttributeData: Requesting ${url}`);
+    
     const response = await fetchWithRetry(url);
-    const apiResponse: ApiResponse<any> = await response.json();
+    const apiResponse = await response.json();
+    
+    console.log(`📦 fetchAttributeData: Response type:`, typeof apiResponse, Array.isArray(apiResponse) ? 'array' : 'object');
     
     // Los datos ahora vienen unwrapped desde el proxy
-    const dataArray = Array.isArray(apiResponse) ? apiResponse : [];
+    let dataArray;
+    
+    if (Array.isArray(apiResponse)) {
+      // Respuesta directa como array
+      dataArray = apiResponse;
+    } else if (apiResponse && apiResponse.success && Array.isArray(apiResponse.data)) {
+      // Respuesta envuelta con success: true
+      dataArray = apiResponse.data;
+    } else if (apiResponse && apiResponse.data && Array.isArray(apiResponse.data)) {
+      // Respuesta con data pero sin success
+      dataArray = apiResponse.data;
+    } else {
+      // Última opción: tratar la respuesta como array vacío
+      console.warn('⚠️ fetchAttributeData: Unexpected response format, defaulting to empty array');
+      dataArray = [];
+    }
+    
+    console.log(`📊 fetchAttributeData: Processing ${dataArray.length} raw items`);
     
     // Procesar y validar cada elemento con manejo de errores individuales
     const validatedData: AttributeData[] = [];
@@ -287,6 +319,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
     
     return validatedData;
   } catch (error) {
+    console.error('❌ fetchAttributeData error:', error);
     return handleApiError(error);
   }
 };
@@ -296,12 +329,35 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
  */
 export const fetchFilterData = async (): Promise<FilterData> => {
   try {
+    console.log(`🌐 fetchFilterData: Requesting ${API_CONFIG.BASE_PATH}/filters`);
+    
     const response = await fetchWithRetry(`${API_CONFIG.BASE_PATH}/filters`);
-    const apiResponse: ApiResponse<any> = await response.json();
+    const apiResponse = await response.json();
     
-    const rawFilters = apiResponse.success && apiResponse.filters ? apiResponse.filters : apiResponse;
+    console.log(`📦 fetchFilterData: Response structure:`, {
+      hasSuccess: 'success' in apiResponse,
+      hasFilters: 'filters' in apiResponse,
+      isArray: Array.isArray(apiResponse),
+      keys: Object.keys(apiResponse)
+    });
     
-    return FilterSchema.parse({
+    // Determinar dónde están los filtros basado en la respuesta de la API
+    let rawFilters;
+    
+    if (apiResponse.success && apiResponse.filters) {
+      // Respuesta estándar de la API con success: true
+      rawFilters = apiResponse.filters;
+    } else if (apiResponse.filters) {
+      // Respuesta con filtros directos
+      rawFilters = apiResponse.filters;
+    } else {
+      // Respuesta directa (posiblemente unwrapped por el proxy)
+      rawFilters = apiResponse;
+    }
+    
+    console.log(`📊 fetchFilterData: Raw filters keys:`, Object.keys(rawFilters));
+    
+    const processedFilters = FilterSchema.parse({
       estados: rawFilters.estados || [],
       tipos_intervencion: rawFilters.tipos_intervencion || [],
       centros_gestores: rawFilters.centros_gestores || [],
@@ -310,27 +366,20 @@ export const fetchFilterData = async (): Promise<FilterData> => {
       fuentes_financiacion: rawFilters.fuentes_financiacion || [],
       anos: rawFilters.anos ? rawFilters.anos.map((ano: string) => parseInt(ano)).filter((ano: number) => !isNaN(ano)) : []
     });
+    
+    console.log(`✅ fetchFilterData: Processed filters:`, {
+      estados: processedFilters.estados.length,
+      tipos_intervencion: processedFilters.tipos_intervencion.length,
+      centros_gestores: processedFilters.centros_gestores.length,
+      comunas_corregimientos: processedFilters.comunas_corregimientos.length,
+      barrios_veredas: processedFilters.barrios_veredas.length,
+      fuentes_financiacion: processedFilters.fuentes_financiacion.length,
+      anos: processedFilters.anos.length
+    });
+    
+    return processedFilters;
   } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-/**
- * Obtiene datos del dashboard
- */
-export const fetchDashboardData = async (filters: FilterParams = {}): Promise<DashboardData> => {
-  try {
-    const queryString = buildFilterQuery(filters);
-    const url = `${API_CONFIG.BASE_PATH}/dashboard${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await fetchWithRetry(url);
-    const apiResponse: ApiResponse<any> = await response.json();
-    
-    // La API devuelve la estructura en .dashboard
-    const rawDashboard = apiResponse.success && apiResponse.dashboard ? apiResponse.dashboard : apiResponse;
-    
-    return DashboardSchema.parse(rawDashboard);
-  } catch (error) {
+    console.error('❌ fetchFilterData error:', error);
     return handleApiError(error);
   }
 };
@@ -363,43 +412,63 @@ export const filterAttributeData = (
   data: AttributeData[], 
   filters: FilterParams & { searchTerm?: string }
 ): AttributeData[] => {
+  if (!data || data.length === 0) {
+    console.log('📊 filterAttributeData: No data to filter');
+    return [];
+  }
+
+  console.log('📊 filterAttributeData: Starting with', data.length, 'items');
+  console.log('📊 filterAttributeData: Applied filters:', filters);
+
   return data.filter(item => {
-    // Filtro de búsqueda por texto
-    if (filters.searchTerm) {
-      const searchTermLower = filters.searchTerm.toLowerCase();
-      const matchesSearch = 
-        item.nombre_up.toLowerCase().includes(searchTermLower) ||
-        item.descripcion_intervencion.toLowerCase().includes(searchTermLower) ||
-        item.upid.toLowerCase().includes(searchTermLower);
-      
-      if (!matchesSearch) return false;
-    }
-    
-    // Filtros específicos
-    const matchesFilters = Object.entries(filters).every(([key, value]) => {
-      if (!value || value === '' || key === 'searchTerm') return true;
-      
-      switch (key) {
-        case 'estado':
-          return item.estado === value;
-        case 'tipo_intervencion':
-          return item.tipo_intervencion === value;
-        case 'centro_gestor':
-          return item.nombre_centro_gestor === value;
-        case 'comuna_corregimiento':
-          return item.comuna_corregimiento === value;
-        case 'barrio_vereda':
-          return item.barrio_vereda === value;
-        case 'fuente_financiacion':
-          return item.fuente_financiacion === value;
-        case 'ano':
-          return item.ano === Number(value);
-        default:
-          return true;
+    try {
+      // Filtro de búsqueda por texto
+      if (filters.searchTerm && filters.searchTerm.trim() !== '') {
+        const searchTermLower = filters.searchTerm.toLowerCase();
+        const matchesSearch = 
+          (item.nombre_up && item.nombre_up.toLowerCase().includes(searchTermLower)) ||
+          (item.descripcion_intervencion && item.descripcion_intervencion.toLowerCase().includes(searchTermLower)) ||
+          (item.upid && item.upid.toLowerCase().includes(searchTermLower));
+        
+        if (!matchesSearch) {
+          return false;
+        }
       }
-    });
-    
-    return matchesFilters;
+      
+      // Filtros específicos
+      const matchesFilters = Object.entries(filters).every(([key, value]) => {
+        if (!value || value === '' || key === 'searchTerm') return true;
+        
+        try {
+          switch (key) {
+            case 'estado':
+              return item.estado === value;
+            case 'tipo_intervencion':
+              return item.tipo_intervencion === value;
+            case 'centro_gestor':
+              return item.nombre_centro_gestor === value;
+            case 'comuna_corregimiento':
+              return item.comuna_corregimiento === value;
+            case 'barrio_vereda':
+              return item.barrio_vereda === value;
+            case 'fuente_financiacion':
+              return item.fuente_financiacion === value;
+            case 'ano':
+              return item.ano === Number(value);
+            default:
+              return true;
+          }
+        } catch (filterError) {
+          console.warn(`⚠️ Filter error for ${key}:`, filterError);
+          return true; // En caso de error, no filtrar este item
+        }
+      });
+      
+      return matchesFilters;
+    } catch (itemError) {
+      console.warn('⚠️ Error filtering item:', itemError, item);
+      return true; // En caso de error, incluir el item
+    }
   });
 };
 

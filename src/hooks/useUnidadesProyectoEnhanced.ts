@@ -7,14 +7,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   fetchGeometryData, 
   fetchAttributeData, 
-  fetchFilterData, 
-  fetchDashboardData,
+  fetchFilterData,
   generateFiltersFromData,
   filterAttributeData,
   type GeometryData,
   type AttributeData,
   type FilterData,
-  type DashboardData,
   type FilterParams 
 } from '@/services/unidades-proyecto.service';
 import { useDebounce } from './useDebounce';
@@ -24,7 +22,6 @@ interface UnidadesProyectoState {
   geometryData: GeometryData | null;
   attributeData: AttributeData[];
   filterData: FilterData | null;
-  dashboardData: DashboardData | null;
   loading: boolean;
   error: string | null;
   lastUpdate: Date | null;
@@ -73,7 +70,6 @@ const createInitialState = (): UnidadesProyectoState => ({
   geometryData: null,
   attributeData: [],
   filterData: null,
-  dashboardData: null,
   loading: true,
   error: null,
   lastUpdate: null
@@ -105,28 +101,46 @@ export const useUnidadesProyecto = (
     updateState({ loading: true, error: null });
 
     try {
+      console.log('🔄 fetchAllData: Starting with filters:', currentFilters);
+      
       // Determinar si usar filtros en el servidor o localmente
       const serverFilters = enableLocalFiltering ? {} : currentFilters;
+      
+      console.log('🔄 fetchAllData: Server filters:', serverFilters);
 
-      const [geometry, attributes, filterOptions, dashboard] = await Promise.all([
-        fetchGeometryData(serverFilters).catch(() => null),
-        fetchAttributeData(serverFilters).catch(() => []),
-        fetchFilterData().catch(() => null),
-        fetchDashboardData(serverFilters).catch(() => null)
+      const [geometry, attributes, filterOptions] = await Promise.all([
+        fetchGeometryData(serverFilters).catch((error) => {
+          console.warn('⚠️ fetchGeometryData failed:', error);
+          return null;
+        }),
+        fetchAttributeData(serverFilters).catch((error) => {
+          console.warn('⚠️ fetchAttributeData failed:', error);
+          return [];
+        }),
+        fetchFilterData().catch((error) => {
+          console.warn('⚠️ fetchFilterData failed:', error);
+          return null;
+        })
       ]);
 
       // Generar filtros desde datos si no se obtuvieron del servidor
       const finalFilterData = filterOptions || (attributes.length > 0 ? generateFiltersFromData(attributes) : null);
 
+      console.log('✅ fetchAllData: Data loaded successfully', {
+        geometry: geometry ? 'loaded' : 'failed',
+        attributes: `${attributes.length} items`,
+        filters: finalFilterData ? 'loaded' : 'failed'
+      });
+
       updateState({
         geometryData: geometry,
         attributeData: attributes,
         filterData: finalFilterData,
-        dashboardData: dashboard,
         loading: false,
         lastUpdate: new Date()
       });
     } catch (error) {
+      console.error('❌ fetchAllData: Fatal error:', error);
       updateState({
         loading: false,
         error: error instanceof Error ? error.message : 'Error desconocido al cargar datos'
@@ -294,45 +308,6 @@ export const useUnidadesProyecto = (
       setSearchTerm
     },
     filters: { ...filters, searchTerm }
-  };
-};
-
-// Hook adicional para métricas específicas del dashboard
-export const useUnidadesProyectoDashboard = (filters: FilterParams = {}) => {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Debounce filters para evitar llamadas excesivas
-  const debouncedFilters = useDebounce(filters, 1000); // 1 segundo de delay
-
-  const fetchDashboard = useCallback(async (currentFilters: FilterParams) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await fetchDashboardData(currentFilters);
-      setDashboardData(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setLoading(false);
-    }
-  }, []); // Sin dependencias para evitar re-creación
-
-  useEffect(() => {
-    fetchDashboard(debouncedFilters);
-  }, [debouncedFilters, fetchDashboard]);
-
-  const refetch = useCallback(() => {
-    fetchDashboard(debouncedFilters);
-  }, [debouncedFilters, fetchDashboard]);
-
-  return {
-    data: dashboardData,
-    loading,
-    error,
-    refetch
   };
 };
 
