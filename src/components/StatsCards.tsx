@@ -55,31 +55,31 @@ const StatCard: React.FC<StatCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       whileHover={{ scale: 1.02 }}
-      className={`${CSS_UTILS.card} ${CSS_UTILS.cardHover} p-4 md:p-5 min-h-[120px] md:min-h-[140px]`}
+      className={`${CSS_UTILS.card} ${CSS_UTILS.cardHover} card-tablet p-4 tablet:p-6 md:p-5 min-h-[120px] tablet:min-h-[160px] md:min-h-[140px] tablet-interactive`}
     >
       <section className="flex flex-col h-full">
-        {/* Header con ícono */}
-        <header className="flex justify-center mb-3">
-          <span className={`p-2 md:p-2.5 rounded-lg ${categoryConfig.className.accent} shadow-md`}>
-            <IconComponent className={`w-5 h-5 md:w-6 md:h-6 ${categoryConfig.className.text}`} />
+        {/* Header con ícono - Más grande en tablets */}
+        <header className="flex justify-center mb-3 tablet:mb-4">
+          <span className={`p-2 tablet:p-4 md:p-2.5 rounded-lg tablet:rounded-xl ${categoryConfig.className.accent} shadow-md tablet:shadow-lg`}>
+            <IconComponent className={`w-5 h-5 tablet:w-8 tablet:h-8 md:w-6 md:h-6 ${categoryConfig.className.text}`} />
           </span>
         </header>
 
-        {/* Título */}
-        <h3 className={`${TYPOGRAPHY.h6} text-center text-gray-600 dark:text-gray-400 mb-2 line-clamp-2`}>
+        {/* Título - Mejor tipografía para tablets */}
+        <h3 className={`${TYPOGRAPHY.h6} tablet:text-tablet-base text-center text-gray-600 dark:text-gray-400 mb-2 tablet:mb-3 line-clamp-2 font-medium tablet:font-semibold`}>
           {title}
         </h3>
 
-        {/* Valor principal */}
+        {/* Valor principal - Más grande en tablets */}
         <main className="flex-1 flex items-center justify-center">
-          <p className={`${TYPOGRAPHY.h4} font-bold ${categoryConfig.className.text} text-center`}>
+          <p className={`${TYPOGRAPHY.h4} tablet:text-3xl font-bold ${categoryConfig.className.text} text-center`}>
             {formatValue(value)}
           </p>
         </main>
 
-        {/* Subtítulo opcional */}
+        {/* Subtítulo opcional - Mejor espaciado en tablets */}
         {subtitle && (
-          <p className={`${TYPOGRAPHY.bodySmall} text-gray-500 dark:text-gray-500 text-center mt-2 line-clamp-1`}>
+          <p className={`${TYPOGRAPHY.bodySmall} tablet:text-tablet-sm text-gray-500 dark:text-gray-500 text-center mt-2 tablet:mt-3 line-clamp-1`}>
             {subtitle}
           </p>
         )}
@@ -139,7 +139,7 @@ const StatsCards: React.FC = () => {
 
   return (
     <motion.section 
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 lg:gap-6"
+      className="grid grid-cols-2 tablet:grid-cols-3 tablet-lg:grid-cols-5 md:grid-cols-3 lg:grid-cols-6 gap-3 tablet:gap-6 md:gap-4 lg:gap-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}

@@ -456,19 +456,33 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <main className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
-        <MobileNavigation 
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+      <main className="px-4 tablet:px-tablet-padding md:px-6 py-6 tablet:py-8 md:py-8 container mx-auto">
+        {/* Navegación optimizada para todos los dispositivos */}
+        <div className="tablet-container">
+          <MobileNavigation 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
 
+        {/* Contenido principal con animaciones mejoradas */}
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="tablet-spacing"
         >
-          {renderContent()}
+          {/* Grid responsivo que se adapta a orientación de tablet */}
+          <div className="space-y-6 tablet:space-y-8">
+            {/* Contenido adaptado por orientación */}
+            <div className="ipad-landscape:grid ipad-landscape:grid-cols-12 ipad-landscape:gap-8">
+              {/* En landscape, usar todo el ancho disponible */}
+              <div className="ipad-landscape:col-span-12">
+                {renderContent()}
+              </div>
+            </div>
+          </div>
         </motion.div>
       </main>
     </div>

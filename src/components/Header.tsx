@@ -25,95 +25,107 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       transition={{ duration: 0.5 }}
       className={`${CSS_UTILS.card} shadow-lg border-b border-gray-200 dark:border-gray-700 rounded-none transition-colors duration-300`}
     >
-      <div className="container mx-auto px-4 md:px-6 py-3 md:py-4">
+      <div className="container mx-auto px-4 tablet:px-6 md:px-6 py-3 tablet:py-4 md:py-4">
         <div className="flex items-center justify-between">
-          {/* Logo and Title - Responsivo */}
-          <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
-            {/* Sidebar Toggle Button */}
+          {/* Logo and Title - Optimizado para tablets */}
+          <div className="flex items-center space-x-2 tablet:space-x-4 md:space-x-4 min-w-0 flex-1">
+            {/* Sidebar Toggle Button - Más grande en tablets */}
             {onToggleSidebar && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onToggleSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 tablet:p-3 rounded-lg tablet:rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-target tablet-interactive"
                 title="Abrir menú"
               >
-                <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <Menu className="w-5 h-5 tablet:w-6 tablet:h-6 text-gray-600 dark:text-gray-300" />
               </motion.button>
             )}
 
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="flex items-center space-x-2 md:space-x-3 min-w-0"
+              className="flex items-center space-x-2 tablet:space-x-3 md:space-x-3 min-w-0"
             >
-              <div className={`w-8 h-8 md:w-12 md:h-12 bg-gradient-to-br ${CATEGORIES.projects.gradient} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                <span className="text-white font-bold text-sm md:text-xl">AC</span>
+              <div className={`w-8 h-8 tablet:w-14 tablet:h-14 md:w-12 md:h-12 bg-gradient-to-br ${CATEGORIES.projects.gradient} rounded-lg tablet:rounded-xl flex items-center justify-center flex-shrink-0`}>
+                <span className="text-white font-bold text-sm tablet:text-2xl md:text-xl">AC</span>
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className={`${TYPOGRAPHY.h5} md:${TYPOGRAPHY.h3} font-bold text-gray-800 dark:text-white transition-colors duration-300 truncate`}>
-                  <span className="hidden sm:inline">Unidad de Cumplimiento</span>
-                  <span className="sm:hidden">Dashboard AC</span>
+                <h1 className={`${TYPOGRAPHY.h5} tablet:text-2xl md:${TYPOGRAPHY.h3} font-bold text-gray-800 dark:text-white transition-colors duration-300 truncate`}>
+                  <span className="hidden sm:inline tablet:inline">Unidad de Cumplimiento</span>
+                  <span className="sm:hidden tablet:hidden">Dashboard AC</span>
                 </h1>
-                <p className={`${TYPOGRAPHY.bodySmall} text-gray-600 dark:text-gray-400 transition-colors duration-300 hidden md:block`}>
+                <p className={`${TYPOGRAPHY.bodySmall} tablet:text-base text-gray-600 dark:text-gray-400 transition-colors duration-300 hidden tablet:block md:block`}>
                   Sistema de Gestión de Proyectos
                 </p>
               </div>
             </motion.div>
           </div>
 
-          {/* User Actions - Compacto y responsivo */}
-          <div className="flex items-center space-x-1 md:space-x-3 flex-shrink-0">
-            {/* Theme Toggle */}
+          {/* User Actions - Optimizado para tablets con elementos más grandes */}
+          <div className="flex items-center space-x-2 tablet:space-x-4 md:space-x-3 flex-shrink-0">
+            {/* Theme Toggle - Más grande en tablets */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleTheme}
-              className={`${CSS_UTILS.iconButton} ${CATEGORIES.projects.className.text}`}
+              className={`${CSS_UTILS.iconButton} tablet-interactive p-2 tablet:p-3 rounded-lg tablet:rounded-xl ${CATEGORIES.projects.className.text}`}
               title="Cambiar tema"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 md:w-5 md:h-5" /> : <Moon className="w-4 h-4 md:w-5 md:h-5" />}
+              {theme === 'dark' ? 
+                <Sun className="w-4 h-4 tablet:w-6 tablet:h-6 md:w-5 md:h-5" /> : 
+                <Moon className="w-4 h-4 tablet:w-6 tablet:h-6 md:w-5 md:h-5" />
+              }
             </motion.button>
 
-            {/* Notifications */}
+            {/* Notifications - Más grande en tablets */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className={`${CSS_UTILS.iconButton} ${CATEGORIES.activities.className.text} relative`}
+              className={`${CSS_UTILS.iconButton} tablet-interactive p-2 tablet:p-3 rounded-lg tablet:rounded-xl ${CATEGORIES.activities.className.text} relative`}
               title="Notificaciones"
             >
-              <Bell className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full animate-pulse"></span>
+              <Bell className="w-4 h-4 tablet:w-6 tablet:h-6 md:w-5 md:h-5" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 tablet:w-4 tablet:h-4 md:w-3 md:h-3 bg-red-500 rounded-full animate-pulse"></span>
             </motion.button>
 
-            {/* Settings - Hidden on mobile */}
+            {/* Settings - Visible en tablets */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className={`${CSS_UTILS.iconButton} ${CATEGORIES.contracts.className.text} hidden md:flex`}
+              className={`${CSS_UTILS.iconButton} tablet-interactive p-2 tablet:p-3 rounded-lg tablet:rounded-xl ${CATEGORIES.contracts.className.text} hidden tablet:flex md:flex`}
               title="Configuración"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5 tablet:w-6 tablet:h-6" />
             </motion.button>
 
-            {/* User Profile - Componente de autenticación */}
+            {/* User Profile - Componente de autenticación con mejor espaciado */}
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="flex items-center"
+              className="flex items-center tablet:ml-2"
             >
               <UserProfile />
             </motion.div>
 
-            {/* Mobile menu button - Solo visible en móvil */}
+            {/* Mobile menu button - Oculto en tablets */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className={`${CSS_UTILS.iconButton} ${CATEGORIES.products.className.text} md:hidden`}
+              className={`${CSS_UTILS.iconButton} ${CATEGORIES.products.className.text} tablet:hidden md:hidden`}
               title="Menú"
             >
               <Menu className="w-4 h-4" />
             </motion.button>
           </div>
         </div>
+        
+        {/* Indicador de orientación en tablets (solo para debugging - se puede remover) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="tablet:block hidden absolute top-0 right-0 p-1 text-xs bg-blue-500 text-white">
+            <span className="ipad-portrait:inline hidden">iPad Portrait</span>
+            <span className="ipad-landscape:inline hidden">iPad Landscape</span>
+            <span className="tablet:inline ipad-portrait:hidden ipad-landscape:hidden hidden">Tablet</span>
+          </div>
+        )}
       </div>
     </motion.header>
   )

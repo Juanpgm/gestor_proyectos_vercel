@@ -88,15 +88,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
   return (
     <>
-      {/* Desktop Navigation - Hidden on mobile */}
-      <div className="hidden md:block">
+      {/* Desktop Navigation - Hidden on mobile, visible on tablet+ */}
+      <div className="hidden tablet:block">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className={`mb-6 ${className}`}
         >
-          <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-gray-800 rounded-xl p-1 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div className="flex flex-wrap items-center gap-1 tablet:gap-2 bg-white dark:bg-gray-800 rounded-xl tablet:rounded-2xl p-1 tablet:p-2 shadow-lg border border-gray-100 dark:border-gray-700">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isDisabled = tab.disabled || false
@@ -107,19 +107,19 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   key={tab.id}
                   onClick={() => !isDisabled && onTabChange(tab.id)}
                   disabled={isDisabled}
-                  className={`flex items-center space-x-2 px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-all duration-200 text-sm md:text-base min-w-0 ${
+                  className={`flex items-center space-x-2 tablet:space-x-3 px-3 tablet:px-6 py-2 tablet:py-4 rounded-lg tablet:rounded-xl font-medium transition-all duration-200 text-sm tablet:text-base min-w-0 tablet-interactive ${
                     isDisabled
                       ? 'text-gray-400 dark:text-gray-600 opacity-50 cursor-not-allowed'
                       : activeTab === tab.id
-                      ? `${tabCategoryConfig.className.button} shadow-md`
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ? `${tabCategoryConfig.className.button} shadow-md tablet:shadow-lg`
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 touch-hover:bg-gray-100'
                   }`}
                   title={isDisabled ? 'Disponible próximamente' : ''}
                 >
-                  <Icon className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                  <span className="truncate">{tab.label}</span>
+                  <Icon className="w-4 h-4 tablet:w-6 tablet:h-6 flex-shrink-0" />
+                  <span className="truncate tablet:text-tablet-base">{tab.label}</span>
                   {isDisabled && (
-                    <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full ml-1 hidden lg:inline">
+                    <span className="text-xs tablet:text-sm bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 tablet:px-3 tablet:py-1 rounded-full ml-1 hidden lg:inline">
                       Próximamente
                     </span>
                   )}
@@ -130,8 +130,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         </motion.div>
       </div>
 
-      {/* Mobile Navigation */}
-      <div className="md:hidden">
+      {/* Mobile Navigation - Hidden on tablet+ */}
+      <div className="tablet:hidden">
         {/* Mobile Header Bar */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -162,7 +162,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsOpen(!isOpen)}
-              className={`${CSS_UTILS.iconButton} ${categoryConfig.className.text}`}
+              className={`${CSS_UTILS.iconButton} ${categoryConfig.className.text} touch-target`}
             >
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </motion.button>
@@ -199,7 +199,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     </h3>
                     <button
                       onClick={() => setIsOpen(false)}
-                      className={`${CSS_UTILS.iconButton} text-gray-500`}
+                      className={`${CSS_UTILS.iconButton} text-gray-500 touch-target`}
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -225,12 +225,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                           }
                         }}
                         disabled={isDisabled}
-                        className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all duration-200 ${
+                        className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all duration-200 touch-target ${
                           isDisabled
                             ? 'text-gray-400 dark:text-gray-600 opacity-50 cursor-not-allowed'
                             : activeTab === tab.id
                             ? `${tabCategoryConfig.className.bg} ${tabCategoryConfig.className.text} shadow-md`
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 touch-hover:bg-gray-100'
                         }`}
                       >
                         <div className={`p-2 rounded-lg ${
@@ -267,6 +267,47 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+      
+      {/* Tablet-specific orientation helper */}
+      <div className="hidden tablet:block">
+        {/* Mejor experiencia en tablets con navegación persistente */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="ipad-portrait:mb-4 ipad-landscape:mb-6"
+        >
+          {/* Información contextual para tablets */}
+          <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 tablet:p-6 border border-blue-100 dark:border-gray-600">
+            <div className="flex items-center gap-4">
+              {activeTabConfig && (
+                <div className={`p-3 ${categoryConfig.className.accent} rounded-xl`}>
+                  <activeTabConfig.icon className={`w-6 h-6 tablet:w-8 tablet:h-8 ${categoryConfig.className.text}`} />
+                </div>
+              )}
+              <div>
+                <h2 className={`${TYPOGRAPHY.h4} tablet:text-2xl font-bold text-gray-900 dark:text-white`}>
+                  {activeTabConfig?.label || 'Dashboard'}
+                </h2>
+                <p className={`${TYPOGRAPHY.body} tablet:text-lg text-gray-600 dark:text-gray-400 mt-1`}>
+                  Gestión integral de proyectos municipales
+                </p>
+              </div>
+            </div>
+            
+            {/* Indicador de orientación y dispositivo */}
+            <div className="hidden tablet:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="ipad-portrait:flex hidden items-center gap-1">
+                <div className="w-2 h-3 bg-blue-500 rounded-sm"></div>
+                <span>Portrait</span>
+              </div>
+              <div className="ipad-landscape:flex hidden items-center gap-1">
+                <div className="w-3 h-2 bg-green-500 rounded-sm"></div>
+                <span>Landscape</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </>
   )
