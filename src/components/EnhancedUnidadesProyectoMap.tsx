@@ -121,19 +121,19 @@ const ColoringControl: React.FC<{
       </div>
 
       {/* Leyenda */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 max-w-xs">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 max-w-sm">
         <div className="flex items-center space-x-2 mb-2">
           <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span className="text-sm font-medium text-gray-900 dark:text-white">Leyenda</span>
         </div>
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {legend.map((item, index) => (
-            <div key={index} className="flex items-center space-x-2">
+            <div key={index} className="flex items-start space-x-2">
               <div 
-                className="w-3 h-3 rounded-full flex-shrink-0" 
+                className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" 
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+              <span className="text-xs text-gray-600 dark:text-gray-400 leading-tight break-words">
                 {item.label}
                 {item.count !== undefined && ` (${item.count})`}
               </span>
@@ -288,7 +288,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
         
         const legend = uniqueValues.slice(0, 20).map((value, index) => ({
           color: COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
-          label: value.length > 25 ? `${value.substring(0, 25)}...` : value,
+          label: value, // Mostrar texto completo sin truncar
           count: valueCounts.get(value)
         }));
         
@@ -418,7 +418,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
                       <div><strong>Estado:</strong> ${attributeItem.estado}</div>
                       <div><strong>Tipo:</strong> ${attributeItem.tipo_intervencion}</div>
                       <div><strong>Avance:</strong> ${Math.round(attributeItem.avance_obra || 0)}%</div>
-                      <div style="grid-column: span 2;"><strong>Centro Gestor:</strong> ${attributeItem.nombre_centro_gestor}</div>
+                      <div style="grid-column: span 2; word-wrap: break-word; overflow-wrap: break-word;"><strong>Centro Gestor:</strong> ${attributeItem.nombre_centro_gestor}</div>
                       <div style="grid-column: span 2;"><strong>Ubicación:</strong> ${attributeItem.barrio_vereda}, ${attributeItem.comuna_corregimiento}</div>
                     </div>
                   </div>

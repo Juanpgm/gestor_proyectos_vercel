@@ -187,7 +187,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     tipo_intervencion: false,
     avance_obra: true,
     presupuesto_base: true,
-    nombre_centro_gestor: false,
+    nombre_centro_gestor: true, // Mostrar por defecto ya que el usuario lo necesita completo
     ubicacion: true, // Nueva columna unificada de barrio y comuna
     fuente_financiacion: false,
     duracion_proyecto: false, // Nueva columna combinada de fechas
@@ -334,7 +334,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         presupuesto_base: true,
         ubicacion: true,
         tipo_intervencion: false,
-        nombre_centro_gestor: false,
+        nombre_centro_gestor: true, // Mantener visible incluso en vista compacta
         fuente_financiacion: false,
         duracion_proyecto: false,
         ano: false,
@@ -356,7 +356,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         fuente_financiacion: true,
         duracion_proyecto: true,
         ano: true,
-        descripcion_intervencion: false,
+        descripcion_intervencion: true, // Incluir descripción en vista completa
         acciones: true
       });
     }
@@ -599,6 +599,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500' 
                       : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
+                  style={{ height: 'auto' }}
                 >
                   {visibleColumns.upid && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
@@ -608,12 +609,12 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   {visibleColumns.nombre_up && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="space-y-1">
-                        <div title={item.nombre_up}>
-                          {truncateText(item.nombre_up, 40)}
+                        <div className="font-medium leading-tight break-words whitespace-normal">
+                          {item.nombre_up}
                         </div>
                         {item.nombre_up_detalle && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400" title={item.nombre_up_detalle}>
-                            {truncateText(item.nombre_up_detalle, 50)}
+                          <div className="text-xs text-gray-500 dark:text-gray-400 leading-tight break-words whitespace-normal">
+                            {item.nombre_up_detalle}
                           </div>
                         )}
                       </div>
@@ -647,50 +648,49 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   {visibleColumns.ubicacion && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="space-y-1">
-                        <div className="font-medium text-gray-900 dark:text-white" title={item.barrio_vereda}>
-                          {truncateText(item.barrio_vereda || 'N/A', 25)}
+                        <div className="font-medium text-gray-900 dark:text-white leading-tight break-words whitespace-normal">
+                          {item.barrio_vereda || 'N/A'}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400" title={item.comuna_corregimiento}>
-                          {truncateText(item.comuna_corregimiento || 'N/A', 25)}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 leading-tight break-words whitespace-normal">
+                          {item.comuna_corregimiento || 'N/A'}
                         </div>
                       </div>
                     </td>
                   )}
                   {visibleColumns.estado && (
-                    <td className="px-3 py-4 whitespace-nowrap text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <td className="px-3 py-4 text-sm">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium whitespace-normal leading-tight break-words max-w-full ${
                         item.estado.toLowerCase().includes('activ') 
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                           : item.estado.toLowerCase().includes('finaliz')
                           ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                       }`}>
-                        {truncateText(item.estado, 15)}
+                        {item.estado}
                       </span>
                     </td>
                   )}
                   {visibleColumns.tipo_intervencion && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div title={item.tipo_intervencion}>
-                        {truncateText(item.tipo_intervencion, 20)}
+                      <div className="leading-tight break-words whitespace-normal">
+                        {item.tipo_intervencion}
                       </div>
                     </td>
                   )}
                   {visibleColumns.nombre_centro_gestor && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div 
-                        title={item.nombre_centro_gestor}
-                        className="flex items-center space-x-2"
-                      >
-                        <User className="w-3 h-3 text-purple-500 flex-shrink-0" />
-                        <span>{truncateText(item.nombre_centro_gestor, 25)}</span>
+                      <div className="flex items-start space-x-2">
+                        <User className="w-3 h-3 text-purple-500 flex-shrink-0 mt-0.5" />
+                        <span className="leading-tight break-words whitespace-normal">
+                          {item.nombre_centro_gestor}
+                        </span>
                       </div>
                     </td>
                   )}
                   {visibleColumns.fuente_financiacion && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div title={item.fuente_financiacion}>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      <div>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium whitespace-normal leading-tight break-words max-w-full ${
                           item.fuente_financiacion.toLowerCase().includes('nacional') 
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                             : item.fuente_financiacion.toLowerCase().includes('departamental')
@@ -699,7 +699,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                             ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                         }`}>
-                          {truncateText(item.fuente_financiacion, 15)}
+                          {item.fuente_financiacion}
                         </span>
                       </div>
                     </td>
@@ -747,22 +747,11 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     </td>
                   )}
                   {visibleColumns.descripcion_intervencion && (
-                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white max-w-xs">
-                      <div 
-                        title={item.descripcion_intervencion}
-                        className="flex items-start space-x-2"
-                      >
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white max-w-md">
+                      <div className="flex items-start space-x-2">
                         <FileText className="w-3 h-3 text-gray-500 flex-shrink-0 mt-0.5" />
-                        <span 
-                          className="leading-relaxed"
-                          style={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          {truncateText(item.descripcion_intervencion, 120)}
+                        <span className="leading-relaxed break-words whitespace-normal">
+                          {item.descripcion_intervencion}
                         </span>
                       </div>
                     </td>

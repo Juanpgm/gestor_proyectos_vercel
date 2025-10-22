@@ -156,19 +156,19 @@ const ColoringControl: React.FC<{
       </div>
 
       {/* Leyenda */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 max-w-xs">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 max-w-sm">
         <div className="flex items-center space-x-2 mb-2">
           <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span className="text-sm font-medium text-gray-900 dark:text-white">Leyenda</span>
         </div>
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {legend.map((item, index) => (
-            <div key={index} className="flex items-center space-x-2">
+            <div key={index} className="flex items-start space-x-2">
               <div 
-                className="w-3 h-3 rounded-full flex-shrink-0" 
+                className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" 
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+              <span className="text-xs text-gray-600 dark:text-gray-400 leading-tight break-words">
                 {item.label}
                 {item.count !== undefined && ` (${item.count})`}
               </span>
@@ -334,7 +334,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         
         const legend = uniqueValues.slice(0, 20).map((value, index) => ({
           color: COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
-          label: value.length > 25 ? `${value.substring(0, 25)}...` : value,
+          label: value, // Mostrar texto completo sin truncar
           count: valueCounts.get(value)
         }));
         
@@ -630,6 +630,9 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
                         font-size: 12px;
                         color: ${isDark ? '#9ca3af' : '#6b7280'};
                         font-weight: 500;
+                        word-wrap: break-word;
+                        overflow-wrap: break-word;
+                        line-height: 1.3;
                       ">
                         ${attributeItem.nombre_centro_gestor || 'Centro gestor no especificado'}
                       </div>
