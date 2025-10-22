@@ -73,8 +73,9 @@ async function handleRequest(request: NextRequest, method: string) {
         responseData = await response.json()
         
         // Unwrap API responses with { success: true, data: [...] } structure
-        // This is specifically for unidades-proyecto endpoints
+        // This is specifically for unidades-proyecto endpoints, EXCEPT geometry
         if (apiPath.includes('unidades-proyecto') && 
+            !apiPath.includes('geometry') && // Geometry returns GeoJSON directly
             responseData && 
             typeof responseData === 'object' && 
             responseData.success === true && 

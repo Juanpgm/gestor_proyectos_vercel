@@ -6,7 +6,6 @@ import {
   RefreshCw, 
   Calendar,
   AlertCircle,
-  BarChart3,
   Map,
   Filter as FilterIcon,
   ChevronLeft,
@@ -18,13 +17,11 @@ import dynamic from 'next/dynamic';
 
 // Componentes dinámicos para evitar problemas de SSR
 const UnidadesProyectoMapSimple = dynamic(() => import('./UnidadesProyectoMapSimple'), { ssr: false });
-const UnidadesProyectoDashboard = dynamic(() => import('./UnidadesProyectoDashboard'), { ssr: false });
-const CompactDashboardTab = dynamic(() => import('./CompactDashboardTab'), { ssr: false });
 const UnidadesProyectoFilters = dynamic(() => import('./UnidadesProyectoFilters'), { ssr: false });
 const UnidadesProyectoAttributesTable = dynamic(() => import('./UnidadesProyectoAttributesTable'), { ssr: false });
 
 // Hooks mejorados
-import { useUnidadesProyecto, useUnidadesProyectoDashboard } from '@/hooks/useUnidadesProyectoEnhanced';
+import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
 
 // Tipos
 import { type FilterParams } from '@/services/unidades-proyecto.service';
@@ -32,7 +29,7 @@ import { type AttributeData } from '@/hooks/useUnidadesProyecto';
 
 
 // Estados de vista
-type ViewMode = 'dashboard' | 'map' | 'split';
+type ViewMode = 'map' | 'split';
 
 // Componente de Loading
 const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
@@ -403,7 +400,7 @@ const UnidadesProyecto: React.FC = () => {
   //   loading: dashboardLoading,
   //   error: dashboardError,
   //   refetch: refetchDashboard
-  // } = useUnidadesProyectoDashboard(filters);
+
 
   // Handlers de eventos
   const handleFiltersChange = (newFilters: FilterParams) => {
@@ -465,14 +462,6 @@ const UnidadesProyecto: React.FC = () => {
     />
   ), [filteredGeometry, filteredData, focusedItem, showOnlyFocused]);
 
-  const memoizedDashboard = useMemo(() => (
-    <UnidadesProyectoDashboard
-      data={dashboardData}
-      isLoading={dashboardLoading}
-      className="h-full overflow-y-auto"
-    />
-  ), [dashboardData, dashboardLoading]);
-
   // Renderizar loading principal
   if (state.loading) {
     return (
@@ -519,17 +508,6 @@ const UnidadesProyecto: React.FC = () => {
           <div className="flex items-center space-x-3">
             {/* Selector de vista */}
             <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('dashboard')}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'dashboard' 
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                <span>Dashboard</span>
-              </button>
               <button
                 onClick={() => setViewMode('split')}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
@@ -609,21 +587,6 @@ const UnidadesProyecto: React.FC = () => {
 
       {/* Contenido principal basado en vista */}
       <section className="space-y-6">
-        {viewMode === 'dashboard' && (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className={`${CSS_UTILS.card} p-6`}
-          >
-            <CompactDashboardTab 
-              filters={filters}
-              className="w-full"
-            />
-          </motion.div>
-        )}
-
         {viewMode === 'map' && (
           <motion.div
             key="map"

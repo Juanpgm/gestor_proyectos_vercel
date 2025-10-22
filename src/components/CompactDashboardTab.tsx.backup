@@ -269,6 +269,31 @@ const safePercentage = (numerator: number, denominator: number): string => {
 
 // Componente principal
 const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, className = '' }) => {
+  // DASHBOARD ENDPOINT NO DISPONIBLE
+  // Este componente depende del endpoint /unidades-proyecto/dashboard que no existe en producción
+  return (
+    <div className={`space-y-6 ${className}`}>
+      <div className="text-center py-12 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-800">
+        <div className="space-y-4">
+          <div className="text-6xl">⚠️</div>
+          <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
+            Dashboard No Disponible
+          </h3>
+          <p className="text-yellow-700 dark:text-yellow-300 max-w-md mx-auto">
+            El endpoint de dashboard para unidades de proyecto no está disponible en la API de producción.
+            Esta funcionalidad ha sido temporalmente deshabilitada.
+          </p>
+          <p className="text-sm text-yellow-600 dark:text-yellow-400">
+            Endpoint requerido: <code>/unidades-proyecto/dashboard</code>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* CÓDIGO ORIGINAL COMENTADO - El endpoint /unidades-proyecto/dashboard no existe
+const CompactDashboardTabOriginal: React.FC<CompactDashboardTabProps> = ({ filters, className = '' }) => {
   const { data, loading, error } = useDashboardFetch(filters);
 
   // Procesamiento de datos mejorado para gráficos
@@ -1305,5 +1330,6 @@ const CompactDashboardTab: React.FC<CompactDashboardTabProps> = ({ filters, clas
     </div>
   );
 };
+*/
 
 export default CompactDashboardTab;

@@ -15,26 +15,17 @@ class AuthService {
   private auth: any = null
   private googleProvider: GoogleAuthProvider | null = null
   private config: AuthConfig | null = null
-  private apiBaseUrl = API_CONFIG.BASE_URL
   private isInitialized = false
 
   // Determinar la URL correcta basada en el entorno
   private getApiUrl(): string {
-    // Usar variable de entorno para la URL del API
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-    
-    // Si estamos en desarrollo local, usar la API directamente
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      return apiUrl || 'http://localhost:8000'
-    }
-    
-    // En producción, usar el proxy para evitar CORS
+    // SIEMPRE usar el proxy para consistencia entre entornos
     if (typeof window !== 'undefined') {
       return `${window.location.origin}/api/proxy`
     }
     
-    // Fallback a la configuración
-    return this.apiBaseUrl || '/api/proxy'
+    // En el servidor (SSR), usar el proxy relativo
+    return '/api/proxy'
   }
 
   private constructor() {}
@@ -116,7 +107,6 @@ class AuthService {
   async signInWithEmail({ email, password, remember = true }: LoginCredentials): Promise<User> {
     try {
       console.log('🔐 Attempting login with email:', email)
-      console.log('🌐 Original API Base URL:', this.apiBaseUrl)
       console.log('🌐 Window hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server-side')
       console.log('🌐 NODE_ENV:', process.env.NODE_ENV)
       console.log('🌐 APP_ENV:', process.env.NEXT_PUBLIC_APP_ENV)
@@ -227,7 +217,7 @@ class AuthService {
   // Registro con email y contraseña usando API
   async registerWithEmail({ name, email, password, confirmPassword, cellphone, nombre_centro_gestor }: RegisterCredentials): Promise<User> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/auth/register`, {
+      const response = await fetch(`${this.getApiUrl()}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -372,7 +362,7 @@ class AuthService {
       const token = idToken || this.getStoredToken()
       if (!token) return null
 
-      const response = await fetch(`${this.apiBaseUrl}/auth/validate-session`, {
+      const response = await fetch(`${this.getApiUrl()}/auth/validate-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -484,7 +474,7 @@ class AuthService {
   // Solicitar restablecimiento de contraseña
   async requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/auth/request-password-reset`, {
+      const response = await fetch(`${this.getApiUrl()}/auth/request-password-reset`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -525,7 +515,7 @@ class AuthService {
   // Cambiar contraseña
   async changePassword(email: string, newPassword: string, confirmPassword: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/auth/change-password`, {
+      const response = await fetch(`${this.getApiUrl()}/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
