@@ -12,10 +12,11 @@ import {
   Calendar,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
   Eye,
   EyeOff,
   ChevronLeft,
-  ChevronRight,
+  ChevronRight as ChevronRightPagination,
   ChevronsLeft,
   ChevronsRight,
   User,
@@ -27,6 +28,25 @@ import {
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
 import { formatCurrency } from '@/utils/formatCurrency';
+
+// Tipo para el grupo de monumentos
+interface MonumentosGroupData {
+  id: string;
+  nombre: string;
+  count: number;
+  items: AttributeData[];
+  presupuesto_total: number;
+  avance_promedio: number;
+  isGroup: true;
+}
+
+// Tipo union para manejar tanto datos individuales como grupos
+type TableRowData = AttributeData | MonumentosGroupData;
+
+// Helper para verificar si es un grupo
+function isGroupRow(item: TableRowData): item is MonumentosGroupData {
+  return 'isGroup' in item && item.isGroup === true;
+}
 
 interface UnidadesProyectoAttributesTableProps {
   data: AttributeData[];
@@ -179,6 +199,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     direction: 'asc' | 'desc';
   } | null>(null);
   const [viewMode, setViewMode] = useState<'compact' | 'complete'>('complete');
+  
+  // Estado para controlar la expansión del grupo de monumentos
+  const [isMonumentosExpanded, setIsMonumentosExpanded] = useState(false);
+  
   const [visibleColumns, setVisibleColumns] = useState({
     upid: true,
     nombre_up: true,
@@ -196,8 +220,8 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     acciones: true // Nueva columna de acciones
   });
 
-  // Datos filtrados, ordenados y paginados
-  const { filteredData, paginatedData, totalPages, totalItems } = useMemo(() => {
+  // Datos filtrados, ordenados y paginados con agrupación de monumentos
+  const { filteredData, paginatedData, totalPages, totalItems, monumentosGroup } = useMemo(() => {
     let filtered = data;
 
     // Filtrar por término de búsqueda
@@ -219,9 +243,29 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       );
     }
 
-    // Ordenar
+    // Separar monumentos del resto de datos
+    const monumentos = filtered.filter(item => 
+      item.nombre_up.toLowerCase().includes('monumentos')
+    );
+    const noMonumentos = filtered.filter(item => 
+      !item.nombre_up.toLowerCase().includes('monumentos')
+    );
+
+    // Crear grupo de monumentos si hay elementos
+    const monumentosGroup: MonumentosGroupData | null = monumentos.length > 0 ? {
+      id: 'monumentos-culturales',
+      nombre: 'Monumentos Culturales de la Ciudad',
+      count: monumentos.length,
+      items: monumentos,
+      presupuesto_total: monumentos.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0),
+      avance_promedio: monumentos.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / monumentos.length,
+      isGroup: true as const
+    } : null;
+
+    // Ordenar datos no agrupados
+    let sortedNoMonumentos = noMonumentos;
     if (sortConfig) {
-      filtered = [...filtered].sort((a, b) => {
+      sortedNoMonumentos = [...noMonumentos].sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
         
@@ -240,19 +284,63 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       });
     }
 
+    // Crear la lista final para mostrar
+    let finalData: TableRowData[] = [...sortedNoMonumentos];
+    
+    // Agregar el grupo de monumentos AL FINAL si existe
+    if (monumentosGroup) {
+      // Si está expandido, agregar los monumentos individuales al final
+      if (isMonumentosExpanded) {
+        let sortedMonumentos = monumentos;
+        if (sortConfig) {
+          sortedMonumentos = [...monumentos].sort((a, b) => {
+            const aValue = a[sortConfig.key];
+            const bValue = b[sortConfig.key];
+            
+            if (typeof aValue === 'number' && typeof bValue === 'number') {
+              return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+            }
+            
+            const aStr = String(aValue).toLowerCase();
+            const bStr = String(bValue).toLowerCase();
+            
+            if (sortConfig.direction === 'asc') {
+              return aStr < bStr ? -1 : aStr > bStr ? 1 : 0;
+            } else {
+              return aStr > bStr ? -1 : aStr < bStr ? 1 : 0;
+            }
+          });
+        }
+        // Grupo + monumentos individuales al final
+        finalData = [...sortedNoMonumentos, monumentosGroup, ...sortedMonumentos];
+      } else {
+        // Solo mostrar el grupo colapsado al final
+        finalData = [...sortedNoMonumentos, monumentosGroup];
+      }
+    }
+
     // Calcular paginación
-    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const totalPages = Math.ceil(finalData.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const paginatedData = filtered.slice(startIndex, endIndex);
+    const paginatedData = finalData.slice(startIndex, endIndex);
 
     return {
-      filteredData: filtered,
+      filteredData: finalData,
       paginatedData,
       totalPages,
-      totalItems: filtered.length
+      totalItems: finalData.length,
+      monumentosGroup
     };
-  }, [data, searchTerm, sortConfig, currentPage, itemsPerPage]);
+  }, [data, searchTerm, sortConfig, currentPage, itemsPerPage, isMonumentosExpanded]);
+
+  // Función para manejar la expansión del grupo de monumentos
+  const handleToggleMonumentos = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setIsMonumentosExpanded(!isMonumentosExpanded);
+  };
 
   // Manejar ordenamiento
   const handleSort = (key: keyof AttributeData) => {
@@ -601,7 +689,158 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {paginatedData.map((item: AttributeData, index: number) => {
+              {paginatedData.map((row: TableRowData, index: number) => {
+                // Si es un grupo de monumentos, renderizar fila especial
+                if (isGroupRow(row)) {
+                  return (
+                    <motion.tr
+                      key={row.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.01 }}
+                      onClick={() => handleToggleMonumentos()}
+                      className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all duration-200 cursor-pointer border-l-4 border-purple-500"
+                      style={{ height: 'auto' }}
+                    >
+                      {visibleColumns.upid && (
+                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-purple-600 dark:text-purple-400">
+                          <div className="flex items-center space-x-2">
+                            <Building2 className="w-4 h-4" />
+                            <span>GRUPO</span>
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.nombre_up && (
+                        <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              {isMonumentosExpanded ? (
+                                <ChevronDown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <div className="font-bold text-purple-900 dark:text-purple-200 leading-tight break-words whitespace-normal">
+                                {row.nombre}
+                              </div>
+                              <div className="text-xs text-purple-600 dark:text-purple-400 leading-tight break-words whitespace-normal">
+                                {row.count} monumentos agrupados • Click para {isMonumentosExpanded ? 'colapsar' : 'expandir'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.identificador && (
+                        <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center space-x-1">
+                            <Hash className="w-3 h-3" />
+                            <span className="text-xs">Agrupación</span>
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.avance_obra && (
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                          <div className="space-y-1">
+                            <ProgressBar value={row.avance_promedio || 0} max={100} />
+                            <div className={`text-xs font-medium ${getProgressStatus(row.avance_promedio || 0).color}`}>
+                              <div className="flex items-center space-x-1">
+                                <Target className="w-3 h-3" />
+                                <span>Promedio del grupo</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.presupuesto_base && (
+                        <td className="px-3 py-4 whitespace-nowrap text-sm font-bold text-purple-600 dark:text-purple-400">
+                          <div className="flex items-center space-x-1">
+                            <DollarSign className="w-3 h-3" />
+                            <span>{formatCurrency(row.presupuesto_total || 0)}</span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Total del grupo
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.ubicacion && (
+                        <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-3 h-3" />
+                            <span className="text-xs">Múltiples ubicaciones</span>
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.estado && (
+                        <td className="px-3 py-4 text-sm">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                            <Building2 className="w-3 h-3 mr-1" />
+                            Grupo ({row.count})
+                          </span>
+                        </td>
+                      )}
+                      {visibleColumns.tipo_intervencion && (
+                        <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <div className="text-xs">Monumentos culturales</div>
+                        </td>
+                      )}
+                      {visibleColumns.nombre_centro_gestor && (
+                        <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center space-x-1">
+                            <User className="w-3 h-3" />
+                            <span className="text-xs">Múltiples centros</span>
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.fuente_financiacion && (
+                        <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="text-xs">Múltiples fuentes</span>
+                        </td>
+                      )}
+                      {visibleColumns.duracion_proyecto && (
+                        <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="text-xs">Ver individual</span>
+                        </td>
+                      )}
+                      {visibleColumns.ano && (
+                        <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="text-xs">Múltiples años</span>
+                        </td>
+                      )}
+                      {visibleColumns.descripcion_intervencion && (
+                        <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="text-xs">Ver individual</span>
+                        </td>
+                      )}
+                      {visibleColumns.acciones && (
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => handleToggleMonumentos(e)}
+                              className="inline-flex items-center px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
+                              title={isMonumentosExpanded ? 'Colapsar grupo' : 'Expandir grupo'}
+                            >
+                              {isMonumentosExpanded ? (
+                                <>
+                                  <ChevronUp className="w-3 h-3 mr-1" />
+                                  Colapsar
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="w-3 h-3 mr-1" />
+                                  Expandir
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </motion.tr>
+                  );
+                }
+
+                // Si es un elemento individual, renderizar normalmente
+                const item = row as AttributeData;
                 const isFocused = focusedItem === item.upid;
                 return (
                 <motion.tr
@@ -901,7 +1140,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   title="Página siguiente"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRightPagination className="w-4 h-4" />
                 </button>
 
                 {/* Última página */}
