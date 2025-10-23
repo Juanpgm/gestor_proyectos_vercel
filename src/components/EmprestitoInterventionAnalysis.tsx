@@ -47,7 +47,8 @@ export default function EmprestitoInterventionAnalysis({ data, loading }: Empres
       const modalidad = contrato.modalidad_de_contratacion || 'Sin especificar'
       const departamento = contrato.departamento || 'Sin especificar'
       const tipoContrato = contrato.tipo_de_contrato || 'Sin especificar'
-      const valor = contrato.valor_del_contrato || 0
+      // Usar valor_contrato con respaldo a valor_del_contrato para consistencia
+      const valor = (contrato as any).valor_contrato || contrato.valor_del_contrato || 0
       const valorPagado = contrato.valor_pagado || 0
       const valorPendiente = contrato.valor_pendiente_de_pago || 0
 

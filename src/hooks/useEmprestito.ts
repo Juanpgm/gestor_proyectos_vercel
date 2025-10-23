@@ -283,13 +283,19 @@ export const useEmprestitoMetrics = (data: EmprestitoData) => {
     totalContratos: data.contratos.length,
     centrosGestor: Array.from(new Set(data.proyectos.map(p => p.nombre_centro_gestor))),
     entidades: Array.from(new Set(data.contratos.map(c => c.nombre_entidad))),
-    valorTotalContratos: data.contratos.reduce((sum, c) => sum + (c.valor_del_contrato || 0), 0),
+    // Usar valor_contrato para "Valor Adjudicado" con respaldo a valor_del_contrato
+    valorTotalContratos: data.contratos.reduce((sum, c) => {
+      const valorContrato = (c as any).valor_contrato || c.valor_del_contrato || 0
+      return sum + valorContrato
+    }, 0),
     contratosPorEntidad: data.contratos.reduce((acc, contrato) => {
       acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + 1
       return acc
     }, {} as Record<string, number>),
+    // Usar valor_contrato para "Valor Adjudicado" con respaldo a valor_del_contrato
     valorPorEntidad: data.contratos.reduce((acc, contrato) => {
-      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + (contrato.valor_del_contrato || 0)
+      const valorContrato = (contrato as any).valor_contrato || contrato.valor_del_contrato || 0
+      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + valorContrato
       return acc
     }, {} as Record<string, number>),
     proyectosPorCentroGestor: data.proyectos.reduce((acc, proyecto) => {
