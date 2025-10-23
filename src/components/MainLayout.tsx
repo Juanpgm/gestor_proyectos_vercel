@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import GestionProcesos from '@/components/GestionProcesos'
+import ProyeccionesEmprestito from '@/components/ProyeccionesEmprestito'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -29,6 +30,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     switch (activeSection) {
       case 'gestionar-procesos':
         return <GestionProcesos onNavigateHome={handleNavigateHome} />
+      case 'proyecciones-emprestito':
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+            <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
+              <ProyeccionesEmprestito onNavigateHome={handleNavigateHome} />
+            </div>
+          </div>
+        )
       case 'dashboard':
       default:
         return children

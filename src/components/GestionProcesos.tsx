@@ -77,6 +77,11 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
   const [showAgregarModal, setShowAgregarModal] = useState(false)
   
+  // Estados para redimensionamiento de columnas
+  const [columnWidths, setColumnWidths] = useState<{[key: string]: number}>({})
+  const [isResizing, setIsResizing] = useState(false)
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null)
+  
   // Refs para manejar clics fuera del dropdown
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
   
@@ -102,47 +107,48 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showFilters])
 
-  // Cargar datos del endpoint
-  useEffect(() => {
-    const fetchProcesos = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-        if (!apiUrl) {
-          throw new Error('URL de API no configurada')
-        }
-
-        const response = await fetch(`${apiUrl}/procesos_emprestito_all`)
-        
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-        
-        const data = await response.json()
-        console.log('API Response:', data)
-        console.log('Is Array:', Array.isArray(data))
-        
-        // Manejar diferentes formatos de respuesta
-        if (Array.isArray(data)) {
-          setProcesos(data)
-        } else if (data && Array.isArray(data.data)) {
-          setProcesos(data.data)
-        } else if (data && Array.isArray(data.procesos)) {
-          setProcesos(data.procesos)
-        } else {
-          console.warn('Formato de respuesta inesperado:', data)
-          setProcesos([])
-        }
-      } catch (error) {
-        console.error('Error fetching procesos:', error)
-        setError(error instanceof Error ? error.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
+  // Función para cargar datos del endpoint
+  const fetchProcesos = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!apiUrl) {
+        throw new Error('URL de API no configurada')
       }
-    }
 
+      const response = await fetch(`${apiUrl}/procesos_emprestito_all`)
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('API Response:', data)
+      console.log('Is Array:', Array.isArray(data))
+      
+      // Manejar diferentes formatos de respuesta
+      if (Array.isArray(data)) {
+        setProcesos(data)
+      } else if (data && Array.isArray(data.data)) {
+        setProcesos(data.data)
+      } else if (data && Array.isArray(data.procesos)) {
+        setProcesos(data.procesos)
+      } else {
+        console.warn('Formato de respuesta inesperado:', data)
+        setProcesos([])
+      }
+    } catch (error) {
+      console.error('Error fetching procesos:', error)
+      setError(error instanceof Error ? error.message : 'Error desconocido')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
     fetchProcesos()
   }, [])
 
@@ -339,6 +345,36 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       : <ArrowDown className="w-4 h-4 text-blue-500" />
   }
 
+  // Funciones para redimensionamiento de columnas
+  const handleMouseDown = (e: React.MouseEvent, columnKey: string) => {
+    e.preventDefault()
+    setIsResizing(true)
+    setResizingColumn(columnKey)
+    
+    const startX = e.clientX
+    const startWidth = columnWidths[columnKey] || 150
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX
+      const newWidth = Math.max(80, startWidth + diff) // Mínimo 80px
+      setColumnWidths(prev => ({ ...prev, [columnKey]: newWidth }))
+    }
+    
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      setResizingColumn(null)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+
+  const getColumnWidth = (columnKey: string) => {
+    return columnWidths[columnKey] || 150
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
@@ -360,7 +396,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <p className="text-red-600 dark:text-red-400 mb-4">Error cargando datos: {error}</p>
             <button 
-              onClick={() => window.location.reload()}
+              onClick={fetchProcesos}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
               Reintentar
@@ -473,11 +509,12 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
               
               {/* Refresh */}
               <button
-                onClick={() => window.location.reload()}
-                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={fetchProcesos}
+                disabled={loading}
+                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw className="w-4 h-4" />
-                <span>Actualizar</span>
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>{loading ? 'Actualizando...' : 'Actualizar'}</span>
               </button>
 
               {/* Agregar Proceso */}
@@ -588,7 +625,11 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
               <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
                 <tr>
                   {columns.map((column) => (
-                    <th key={column.key} className={`px-3 py-2 text-left ${column.width}`}>
+                    <th 
+                      key={column.key} 
+                      className="px-3 py-2 text-left relative border-r border-gray-200 dark:border-gray-600 last:border-r-0 group"
+                      style={{ width: `${getColumnWidth(column.key)}px`, minWidth: '80px' }}
+                    >
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => handleSort(column.key)}
@@ -704,6 +745,12 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                           )}
                         </div>
                       </div>
+                      
+                      {/* Column Resizer */}
+                      <div
+                        className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-blue-300 dark:hover:bg-blue-600 transition-colors opacity-0 hover:opacity-100 group-hover:opacity-100"
+                        onMouseDown={(e) => handleMouseDown(e, column.key)}
+                      />
                     </th>
                   ))}
                 </tr>
@@ -719,7 +766,11 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     {columns.map((column) => (
-                      <td key={column.key} className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700">
+                      <td 
+                        key={column.key} 
+                        className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700"
+                        style={{ width: `${getColumnWidth(column.key)}px`, maxWidth: `${getColumnWidth(column.key)}px` }}
+                      >
                         <div className="max-w-full overflow-hidden">
                           <span className="block truncate" title={String(proceso[column.key] || '')}>
                             {formatValue(proceso[column.key], column.key)}
