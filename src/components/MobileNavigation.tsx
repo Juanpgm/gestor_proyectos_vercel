@@ -268,47 +268,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           )}
         </AnimatePresence>
       </div>
-      
-      {/* Tablet-specific orientation helper */}
-      <div className="hidden tablet:block">
-        {/* Mejor experiencia en tablets con navegación persistente */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="ipad-portrait:mb-4 ipad-landscape:mb-6"
-        >
-          {/* Información contextual para tablets */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 tablet:p-6 border border-blue-100 dark:border-gray-600">
-            <div className="flex items-center gap-4">
-              {activeTabConfig && (
-                <div className={`p-3 ${categoryConfig.className.accent} rounded-xl`}>
-                  <activeTabConfig.icon className={`w-6 h-6 tablet:w-8 tablet:h-8 ${categoryConfig.className.text}`} />
-                </div>
-              )}
-              <div>
-                <h2 className={`${TYPOGRAPHY.h4} tablet:text-2xl font-bold text-gray-900 dark:text-white`}>
-                  {activeTabConfig?.label || 'Dashboard'}
-                </h2>
-                <p className={`${TYPOGRAPHY.body} tablet:text-lg text-gray-600 dark:text-gray-400 mt-1`}>
-                  Gestión integral de proyectos municipales
-                </p>
-              </div>
-            </div>
-            
-            {/* Indicador de orientación y dispositivo */}
-            <div className="hidden tablet:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <div className="ipad-portrait:flex hidden items-center gap-1">
-                <div className="w-2 h-3 bg-blue-500 rounded-sm"></div>
-                <span>Portrait</span>
-              </div>
-              <div className="ipad-landscape:flex hidden items-center gap-1">
-                <div className="w-3 h-2 bg-green-500 rounded-sm"></div>
-                <span>Landscape</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+
     </>
   )
 }

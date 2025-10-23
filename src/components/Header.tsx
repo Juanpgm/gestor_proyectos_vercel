@@ -85,7 +85,6 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               title="Notificaciones"
             >
               <Bell className="w-4 h-4 tablet:w-6 tablet:h-6 md:w-5 md:h-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 tablet:w-4 tablet:h-4 md:w-3 md:h-3 bg-red-500 rounded-full animate-pulse"></span>
             </motion.button>
 
             {/* Settings - Visible en tablets */}
@@ -117,15 +116,6 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             </motion.button>
           </div>
         </div>
-        
-        {/* Indicador de orientación en tablets (solo para debugging - se puede remover) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="tablet:block hidden absolute top-0 right-0 p-1 text-xs bg-blue-500 text-white">
-            <span className="ipad-portrait:inline hidden">iPad Portrait</span>
-            <span className="ipad-landscape:inline hidden">iPad Landscape</span>
-            <span className="tablet:inline ipad-portrait:hidden ipad-landscape:hidden hidden">Tablet</span>
-          </div>
-        )}
       </div>
     </motion.header>
   )
