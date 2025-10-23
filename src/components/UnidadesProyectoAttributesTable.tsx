@@ -406,12 +406,12 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       onKeyDown={handleKeyNavigation}
       tabIndex={0}
     >
-      {/* Header con controles */}
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
+      {/* Header con controles - Mejorado para tablets */}
+      <div className="px-4 tablet:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col space-y-3 tablet:space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <div className="flex items-center space-x-2">
             <Table className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-base tablet:text-lg font-semibold text-gray-900 dark:text-white">
               Atributos de Unidades de Proyecto
             </h3>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -419,70 +419,86 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
             </span>
           </div>
 
-          {/* Buscador */}
-          <div className="flex items-center space-x-3">
-            <div className="relative">
+          {/* Controles adaptados para tablets */}
+          <div className="flex flex-col tablet:flex-row items-stretch tablet:items-center space-y-2 tablet:space-y-0 tablet:space-x-3">
+            {/* Buscador - Ancho completo en móvil, normal en tablet+ */}
+            <div className="relative order-1 w-full tablet:w-auto">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por UPID, nombre, centro gestor, ubicación, año..."
+                placeholder="Buscar por UPID, nombre, centro gestor..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full tablet:w-64 lg:w-80"
               />
             </div>
 
-            {/* Botón vista compacta/completa */}
-            <button
-              onClick={toggleViewMode}
-              className={`flex items-center space-x-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                viewMode === 'complete'
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-              title={viewMode === 'complete' ? 'Cambiar a vista compacta' : 'Cambiar a vista completa'}
-            >
-              <Table className="w-4 h-4" />
-              <span>{viewMode === 'complete' ? 'Completa' : 'Compacta'}</span>
-            </button>
-
-            {/* Control de columnas visibles */}
-            <div className="relative group">
-              <button className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                <Eye className="w-4 h-4" />
-                <span>Columnas</span>
+            {/* Controles de vista - Flexibles en tablets */}
+            <div className="flex items-center space-x-2 order-2">
+              {/* Botón vista compacta/completa */}
+              <button
+                onClick={toggleViewMode}
+                className={`flex items-center space-x-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  viewMode === 'complete'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+                title={viewMode === 'complete' ? 'Cambiar a vista compacta' : 'Cambiar a vista completa'}
+              >
+                <Table className="w-4 h-4" />
+                <span className="hidden tablet:inline">{viewMode === 'complete' ? 'Completa' : 'Compacta'}</span>
               </button>
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                <div className="p-2 space-y-1">
-                  {Object.entries(visibleColumns).map(([key, visible]) => (
-                    <label key={key} className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={visible}
-                        onChange={() => toggleColumn(key as keyof typeof visibleColumns)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
-                        {key.replace(/_/g, ' ')}
-                      </span>
-                    </label>
-                  ))}
+
+              {/* Control de columnas visibles - Solo icono en móvil */}
+              <div className="relative group">
+                <button className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  <Eye className="w-4 h-4" />
+                  <span className="hidden tablet:inline">Columnas</span>
+                </button>
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                  <div className="p-2 space-y-1 max-h-64 overflow-y-auto">
+                    {Object.entries(visibleColumns).map(([key, visible]) => (
+                      <label key={key} className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={visible}
+                          onChange={() => toggleColumn(key as keyof typeof visibleColumns)}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
+                          {key.replace(/_/g, ' ')}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Indicador de scroll horizontal en tablets */}
+        <div className="mt-3 tablet:block lg:hidden">
+          <div className="flex items-center space-x-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg border border-amber-200 dark:border-amber-800">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+            </svg>
+            <span>Desliza horizontalmente para ver más columnas</span>
+          </div>
+        </div>
       </div>
 
-      {/* Tabla */}
+      {/* Tabla con scroll horizontal para tablets */}
       <div className="overflow-hidden">
-        <div 
-          className="overflow-y-auto"
-          style={{ maxHeight }}
-        >
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0 z-10">
-              <tr>
+        {/* Wrapper para scroll horizontal en tablets y móviles */}
+        <div className="overflow-x-auto tablet:overflow-x-auto md:overflow-x-auto lg:overflow-x-visible">
+          <div 
+            className="overflow-y-auto min-w-full"
+            style={{ maxHeight }}
+          >
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 tablet:min-w-[1200px] md:min-w-[1200px] lg:min-w-full">
+              <thead className="bg-gray-50 dark:bg-gray-900/50 sticky top-0 z-10">
+                <tr>
                 {visibleColumns.upid && (
                   <ColumnHeader 
                     label="UPID" 
@@ -761,6 +777,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
               })}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -881,7 +898,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   title="Página siguiente"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -891,7 +908,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                 <button
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   title="Última página"
                 >
                   <ChevronsRight className="w-4 h-4" />
@@ -902,11 +919,11 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         </div>
       )}
 
-      {/* Footer con información */}
+      {/* Footer con información - Responsivo para tablets */}
       {paginatedData.length > 0 && (
-        <div className="px-6 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-            <div>
+        <div className="px-4 tablet:px-6 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col tablet:flex-row tablet:items-center tablet:justify-between space-y-2 tablet:space-y-0 text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-center tablet:text-left">
               Mostrando{' '}
               <span className="font-medium">
                 {((currentPage - 1) * itemsPerPage) + 1}
@@ -918,12 +935,18 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
               {' '}de{' '}
               <span className="font-medium">{totalItems}</span> unidades de proyecto
               {totalItems !== data.length && (
-                <span className="text-gray-400"> (filtradas de {data.length} totales)</span>
+                <span className="block tablet:inline text-gray-400 text-xs tablet:text-sm mt-1 tablet:mt-0">
+                  <span className="hidden tablet:inline"> (</span>
+                  filtradas de {data.length} totales
+                  <span className="hidden tablet:inline">)</span>
+                </span>
               )}
             </div>
             {searchTerm && (
-              <div>
-                Filtrados por: <span className="font-medium">"{searchTerm}"</span>
+              <div className="text-center tablet:text-right">
+                <span className="text-xs tablet:text-sm">
+                  Filtrados por: <span className="font-medium text-blue-600 dark:text-blue-400">"{searchTerm}"</span>
+                </span>
               </div>
             )}
           </div>
