@@ -71,6 +71,14 @@ export interface FilterParams {
   fuente_financiacion?: string;
   ano?: number;
   search?: string;
+  // Campos para filtros múltiples
+  estado_multiple?: string[];
+  tipo_intervencion_multiple?: string[];
+  centro_gestor_multiple?: string[];
+  comuna_corregimiento_multiple?: string[];
+  barrio_vereda_multiple?: string[];
+  fuente_financiacion_multiple?: string[];
+  ano_multiple?: string[];
 }
 
 // Tipo para respuestas de la API
@@ -440,23 +448,50 @@ export const filterAttributeData = (
         if (!value || value === '' || key === 'searchTerm') return true;
         
         try {
-          switch (key) {
-            case 'estado':
-              return item.estado === value;
-            case 'tipo_intervencion':
-              return item.tipo_intervencion === value;
-            case 'centro_gestor':
-              return item.nombre_centro_gestor === value;
-            case 'comuna_corregimiento':
-              return item.comuna_corregimiento === value;
-            case 'barrio_vereda':
-              return item.barrio_vereda === value;
-            case 'fuente_financiacion':
-              return item.fuente_financiacion === value;
-            case 'ano':
-              return item.ano === Number(value);
-            default:
-              return true;
+          // Verificar si existe un filtro múltiple para esta clave
+          const multipleKey = `${key}_multiple`;
+          const multipleValues = (filters as any)[multipleKey];
+          
+          if (multipleValues && Array.isArray(multipleValues) && multipleValues.length > 0) {
+            // Si hay filtros múltiples, usar esos en lugar del filtro singular
+            switch (key) {
+              case 'estado':
+                return multipleValues.includes(item.estado);
+              case 'tipo_intervencion':
+                return multipleValues.includes(item.tipo_intervencion);
+              case 'centro_gestor':
+                return multipleValues.includes(item.nombre_centro_gestor);
+              case 'comuna_corregimiento':
+                return multipleValues.includes(item.comuna_corregimiento);
+              case 'barrio_vereda':
+                return multipleValues.includes(item.barrio_vereda);
+              case 'fuente_financiacion':
+                return multipleValues.includes(item.fuente_financiacion);
+              case 'ano':
+                return multipleValues.map(String).includes(String(item.ano));
+              default:
+                return true;
+            }
+          } else {
+            // Usar filtro singular como antes
+            switch (key) {
+              case 'estado':
+                return item.estado === value;
+              case 'tipo_intervencion':
+                return item.tipo_intervencion === value;
+              case 'centro_gestor':
+                return item.nombre_centro_gestor === value;
+              case 'comuna_corregimiento':
+                return item.comuna_corregimiento === value;
+              case 'barrio_vereda':
+                return item.barrio_vereda === value;
+              case 'fuente_financiacion':
+                return item.fuente_financiacion === value;
+              case 'ano':
+                return item.ano === Number(value);
+              default:
+                return true;
+            }
           }
         } catch (filterError) {
           console.warn(`⚠️ Filter error for ${key}:`, filterError);
