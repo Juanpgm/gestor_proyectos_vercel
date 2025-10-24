@@ -8,6 +8,8 @@ interface AgregarProcesoModalAltProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  editingData?: any | null
+  onEdit?: (referenciaProceso: string, data: FormData) => Promise<void>
 }
 
 interface FormData {
@@ -45,7 +47,9 @@ interface Banco {
 const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  editingData = null,
+  onEdit
 }) => {
   const [formData, setFormData] = useState<FormData>({
     referencia_proceso: '',
@@ -88,6 +92,23 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
       loadInitialData()
     }
   }, [isOpen])
+
+  // Cargar datos cuando se está editando
+  useEffect(() => {
+    if (editingData && isOpen) {
+      setFormData({
+        referencia_proceso: editingData.referencia_proceso || '',
+        nombre_centro_gestor: editingData.nombre_centro_gestor || '',
+        nombre_banco: editingData.nombre_banco || '',
+        bp: editingData.bp || '',
+        plataforma: editingData.plataforma || '',
+        nombre_resumido_proceso: editingData.nombre_resumido_proceso || '',
+        id_paa: editingData.id_paa || '',
+        valor_proyectado: editingData.valor_proyectado?.toString() || ''
+      })
+      setTipoOperacion('proceso')
+    }
+  }, [editingData, isOpen])
 
   const loadInitialData = async () => {
     setLoadingData(true)
@@ -208,6 +229,29 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
       if (!apiUrl) {
         throw new Error('URL de API no configurada')
+      }
+
+      // Si estamos editando, usar función especial
+      if (editingData && onEdit && tipo === 'proceso') {
+        try {
+          await onEdit(editingData.referencia_proceso, formData)
+          setSuccess('Proceso actualizado exitosamente')
+          setTimeout(() => {
+            onClose()
+          }, 1500)
+          return
+        } catch (editError) {
+          let errorMessage = 'Error desconocido al actualizar'
+          if (editError instanceof Error) {
+            errorMessage = editError.message
+          } else if (typeof editError === 'string') {
+            errorMessage = editError
+          } else {
+            errorMessage = JSON.stringify(editError)
+          }
+          console.error('Error en onEdit:', errorMessage)
+          throw new Error(errorMessage)
+        }
       }
 
       const formDataToSend = new URLSearchParams()
@@ -835,10 +879,18 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4" />
-                      <span>
-                        {tipoOperacion === 'proceso' ? 'Agregar Proceso' : 'Agregar Orden'}
-                      </span>
+                      {editingData ? (
+                        <>
+                          <span>Modificar {tipoOperacion === 'proceso' ? 'Proceso' : 'Orden'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          <span>
+                            {tipoOperacion === 'proceso' ? 'Agregar Proceso' : 'Agregar Orden'}
+                          </span>
+                        </>
+                      )}
                     </>
                   )}
                 </button>

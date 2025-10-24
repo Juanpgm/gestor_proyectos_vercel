@@ -92,10 +92,6 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
   // Refs para manejar clics fuera del dropdown
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
   
-  // Estados para paginación
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(25)
-
   // Effect para manejar clics fuera de los filtros
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -152,31 +148,70 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
       // Combinar los datos de ambas APIs
       let todasLasProyecciones: ProyeccionEmprestito[] = []
+      let idCounter = 0 // Contador local para asegurar IDs únicos
 
       // Agregar las proyecciones principales
       if (proyeccionesData.success && proyeccionesData.data) {
-        todasLasProyecciones = [...proyeccionesData.data]
-        console.log(`Proyecciones principales cargadas: ${proyeccionesData.data.length}`)
+        todasLasProyecciones = proyeccionesData.data.map((p: ProyeccionEmprestito) => {
+          const uniqueId = p.id || `main-${p.referencia_proceso || 'no-ref'}-${idCounter++}`
+          return {
+            ...p,
+            id: uniqueId,
+            sin_proceso: false // Marcar explícitamente como con proceso
+          }
+        })
+        console.log(`Proyecciones principales cargadas: ${todasLasProyecciones.length}`)
       }
 
       // Agregar las proyecciones sin proceso, marcándolas para distinguirlas
       if (proyeccionesSinProcesoData && proyeccionesSinProcesoData.success && proyeccionesSinProcesoData.data && Array.isArray(proyeccionesSinProcesoData.data)) {
-        const proyeccionesSinProceso = proyeccionesSinProcesoData.data.map((proyeccion: any) => ({
-          ...proyeccion,
-          sin_proceso: true, // Marcador para identificar proyecciones sin proceso
-          estado_proceso: 'Sin Proceso' // Campo adicional para filtrado
-        }))
+        const proyeccionesSinProceso = proyeccionesSinProcesoData.data.map((p: ProyeccionEmprestito) => {
+          const uniqueId = p.id || `sinproc-${p.referencia_proceso || 'no-ref'}-${idCounter++}`
+          return {
+            ...p,
+            id: uniqueId,
+            sin_proceso: true, // Marcador para identificar proyecciones sin proceso
+            estado_proceso: 'Sin Proceso' // Campo adicional para filtrado
+          }
+        })
         todasLasProyecciones = [...todasLasProyecciones, ...proyeccionesSinProceso]
-        console.log(`Proyecciones sin proceso agregadas: ${proyeccionesSinProcesoData.data.length}`)
+        console.log(`Proyecciones sin proceso agregadas: ${proyeccionesSinProceso.length}`)
       } else {
         console.log('No se pudieron cargar proyecciones sin proceso:', proyeccionesSinProcesoData)
       }
 
-      console.log(`Total proyecciones cargadas: ${todasLasProyecciones.length}`)
-      console.log(`- Con proceso: ${todasLasProyecciones.filter(p => !p.sin_proceso).length}`)
-      console.log(`- Sin proceso: ${todasLasProyecciones.filter(p => p.sin_proceso).length}`)
+      // DEDUPLICAR: Mantener la versión más actualizada de cada proyección
+      // Si un ID existe en ambas APIs, dar prioridad a la versión de "sin proceso"
+      const proyeccionesMap = new Map<string, ProyeccionEmprestito>()
+      
+      todasLasProyecciones.forEach(proyeccion => {
+        const id = proyeccion.id || 'undefined'
+        const existing = proyeccionesMap.get(id)
+        
+        if (!existing) {
+          // No existe, agregar
+          proyeccionesMap.set(id, proyeccion)
+        } else {
+          // Ya existe, decidir cuál mantener
+          // Si la nueva es "sin proceso" y la existente no, reemplazar
+          if (proyeccion.sin_proceso && !existing.sin_proceso) {
+            console.warn(`Reemplazando proyección con ID ${id} - Priorizando versión "Sin Proceso"`)
+            proyeccionesMap.set(id, proyeccion)
+          } else {
+            console.warn(`Duplicado ignorado: ID ${id}`)
+          }
+        }
+      })
 
-      setProyecciones(todasLasProyecciones)
+      // Convertir el Map de vuelta a array
+      const proyeccionesDeduplicated = Array.from(proyeccionesMap.values())
+
+      console.log(`Total proyecciones antes de deduplicar: ${todasLasProyecciones.length}`)
+      console.log(`Total proyecciones después de deduplicar: ${proyeccionesDeduplicated.length}`)
+      console.log(`- Con proceso: ${proyeccionesDeduplicated.filter(p => !p.sin_proceso).length}`)
+      console.log(`- Sin proceso: ${proyeccionesDeduplicated.filter(p => p.sin_proceso).length}`)
+
+      setProyecciones(proyeccionesDeduplicated)
 
     } catch (err) {
       console.error('Error al cargar proyecciones:', err)
@@ -198,7 +233,10 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
   // Aplicar filtros y búsqueda
   const filteredProyecciones = useMemo(() => {
-    return proyecciones.filter(proyeccion => {
+    console.log('=== FILTERING DEBUG ===')
+    console.log('Total proyecciones in state:', proyecciones.length)
+    
+    const filtered = proyecciones.filter(proyeccion => {
       // Filtro de búsqueda global
       if (searchTerm) {
         const searchValue = searchTerm.toLowerCase()
@@ -231,13 +269,35 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
       return true
     })
+    
+    console.log('Filtered count:', filtered.length)
+    
+    // Verificar duplicados
+    const ids = proyecciones.map(p => p.id)
+    const uniqueIds = new Set(ids)
+    if (ids.length !== uniqueIds.size) {
+      console.error('⚠️ DUPLICATE IDs IN BASE PROYECCIONES!')
+      console.error('Total items:', ids.length)
+      console.error('Unique IDs:', uniqueIds.size)
+      const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
+      console.error('Duplicate IDs:', Array.from(new Set(duplicates)))
+    }
+    
+    return filtered
   }, [proyecciones, searchTerm, columnFilters])
 
   // Aplicar ordenamiento
   const sortedProyecciones = useMemo(() => {
-    if (!sortConfig.key) return filteredProyecciones
+    console.log('=== SORTING DEBUG ===')
+    console.log('Filtered count:', filteredProyecciones.length)
+    console.log('Sort config:', sortConfig)
+    
+    if (!sortConfig.key) {
+      console.log('No sort config, returning filtered as-is')
+      return filteredProyecciones
+    }
 
-    return [...filteredProyecciones].sort((a, b) => {
+    const sorted = [...filteredProyecciones].sort((a, b) => {
       const aValue = a[sortConfig.key]
       const bValue = b[sortConfig.key]
 
@@ -257,14 +317,30 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       }
       return 0
     })
+    
+    console.log('Sorted count:', sorted.length)
+    console.log('First 3 IDs after sort:', sorted.slice(0, 3).map(p => p.id))
+    
+    // Verificar duplicados
+    const ids = sorted.map(p => p.id)
+    const uniqueIds = new Set(ids)
+    if (ids.length !== uniqueIds.size) {
+      console.error('⚠️ DUPLICATE IDs DETECTED!')
+      console.error('Total items:', ids.length)
+      console.error('Unique IDs:', uniqueIds.size)
+      
+      // Encontrar y loguear los IDs duplicados
+      const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
+      console.error('Duplicate IDs:', duplicates)
+    }
+    
+    return sorted
   }, [filteredProyecciones, sortConfig])
 
   // Calcular paginación
   const totalItems = sortedProyecciones.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentProyecciones = sortedProyecciones.slice(startIndex, endIndex)
+  // Todos los datos sin paginación
+  const allProyecciones = sortedProyecciones
 
   // Funciones para manejar filtros
   const handleSort = (key: string) => {
@@ -295,7 +371,6 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
   const clearFilters = () => {
     setColumnFilters({})
     setSearchTerm('')
-    setCurrentPage(1)
   }
 
   const clearColumnFilter = (column: string) => {
@@ -335,6 +410,14 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
   const getColumnWidth = (columnKey: string) => {
     return columnWidths[columnKey] || 150
   }
+
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0,
+        v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
 
   // Función para obtener el ícono de ordenamiento
   const getSortIcon = (key: string) => {
@@ -682,7 +765,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
       >
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
               <tr>
@@ -722,7 +805,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                                       className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                     />
                                     <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                                      {value || '(vacío)'}
+                                      {formatValue(value, column.type as any) || '(vacío)'}
                                     </span>
                                   </label>
                                 ))}
@@ -743,11 +826,11 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {currentProyecciones.map((proyeccion, index) => (
-                <tr key={proyeccion.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              {allProyecciones.map((proyeccion) => (
+                <tr key={proyeccion.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   {columns.map((column) => (
                     <td 
-                      key={column.key} 
+                      key={`${proyeccion.id}-${column.key}`} 
                       className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700"
                       style={{ width: `${getColumnWidth(column.key)}px`, maxWidth: `${getColumnWidth(column.key)}px` }}
                     >
@@ -792,54 +875,6 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                Mostrando {((currentPage - 1) * itemsPerPage) + 1} a{' '}
-                {Math.min(currentPage * itemsPerPage, totalItems)} de{' '}
-                {totalItems} resultados
-              </p>
-              
-              <div className="flex space-x-1">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const page = i + 1
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
-                        currentPage === page
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                })}
-                
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </motion.div>
     </div>
   )

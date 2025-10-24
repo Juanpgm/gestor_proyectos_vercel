@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
   Filter,
@@ -19,7 +19,11 @@ import {
   Plus,
   TrendingUp,
   Landmark,
-  Layers
+  Layers,
+  Edit2,
+  Trash2,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
 
@@ -76,6 +80,24 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
   const [showAgregarModal, setShowAgregarModal] = useState(false)
+  const [editingData, setEditingData] = useState<ProcesoEmprestito | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<ProcesoEmprestito | null>(null)
+  const [showColumnSelector, setShowColumnSelector] = useState(false)
+  const [columnSearchTerm, setColumnSearchTerm] = useState('')
+  const [columnOrder, setColumnOrder] = useState<string[]>([])
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
+    'referencia_proceso', // Siempre visible
+    'nombre_proceso',
+    'nombre_centro_gestor',
+    'estado_proceso',
+    'valor_proyectado',
+    'valor_secop',
+    'fecha_publicacion',
+    'modalidad_contratacion',
+    'tipo_contrato',
+  ]))
   
   // Estados para redimensionamiento de columnas
   const [columnWidths, setColumnWidths] = useState<{[key: string]: number}>({})
@@ -84,10 +106,40 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   
   // Refs para manejar clics fuera del dropdown
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
-  
-  // Estados para paginación
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(25)
+
+  const columns = useMemo(() => [
+    { key: 'referencia_proceso', label: 'Referencia', isSortable: true },
+    { key: 'nombre_proceso', label: 'Nombre del Proceso', isSortable: true },
+    { key: 'nombre_centro_gestor', label: 'Centro Gestor', isSortable: true },
+    { key: 'nombre_banco', label: 'Banco', isSortable: true },
+    { key: 'plataforma', label: 'Plataforma', isSortable: true },
+    { key: 'estado_proceso', label: 'Estado', isSortable: true },
+    { key: 'valor_proyectado', label: 'Valor Proyectado', isSortable: true },
+    { 
+      key: 'valor_secop', 
+      label: 'Valor SECOP', 
+      isSortable: true, 
+      accessor: (proceso: ProcesoEmprestito) => proceso.valor_proceso ?? proceso.valor_publicacion 
+    },
+    { key: 'fecha_publicacion', label: 'Fecha Publicación', isSortable: true },
+    { key: 'modalidad_contratacion', label: 'Modalidad', isSortable: true },
+    { key: 'tipo_contrato', label: 'Tipo de Contrato', isSortable: true },
+    { key: 'bp', label: 'BP', isSortable: true },
+    { key: 'id_paa', label: 'ID PAA', isSortable: true },
+    { key: 'descripcion_proceso', label: 'Descripción', isSortable: true },
+    { key: 'fase', label: 'Fase', isSortable: true },
+    { key: 'estado_resumen', label: 'Estado Resumen', isSortable: true },
+    { key: 'duracion', label: 'Duración', isSortable: true },
+    { key: 'unidad_duracion', label: 'Unidad Duracion', isSortable: true },
+    { key: 'adjudicado', label: 'Adjudicado', isSortable: true },
+    { key: 'proceso_contractual', label: 'Proceso Contractual', isSortable: true },
+  ], []);
+
+  useEffect(() => {
+    if (columnOrder.length === 0 && columns.length > 0) {
+      setColumnOrder(columns.map(col => col.key));
+    }
+  }, [columns, columnOrder]);
 
   // Effect para manejar clics fuera de los filtros
   useEffect(() => {
@@ -101,11 +153,19 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           }
         }
       })
+      
+      // Verificar si el clic fue fuera del selector de columnas
+      if (showColumnSelector) {
+        const columnSelector = document.querySelector('[data-column-selector]')
+        if (columnSelector && !columnSelector.contains(event.target as Node)) {
+          setShowColumnSelector(false)
+        }
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showFilters])
+  }, [showFilters, showColumnSelector])
 
   // Función para cargar datos del endpoint
   const fetchProcesos = async () => {
@@ -194,11 +254,157 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
     fetchProcesos()
   }
-  const handleSort = (key: string) => {
-    setSortConfig(prevConfig => ({
-      key,
-      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
-    }))
+  // Función para manejar la edición
+  const handleEditProceso = (proceso: ProcesoEmprestito) => {
+    setEditingData(proceso)
+    setShowAgregarModal(true)
+  }
+
+  // Función para actualizar proceso vía API
+  const handleUpdateProceso = async (referenciaProceso: string, formData: any) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!apiUrl) {
+        throw new Error('URL de API no configurada')
+      }
+
+      const updateData = new URLSearchParams()
+      
+      // Solo enviar campos que fueron modificados/no vacíos
+      if (formData.bp && formData.bp.trim()) updateData.append('bp', formData.bp.trim())
+      if (formData.nombre_resumido_proceso && formData.nombre_resumido_proceso.trim()) updateData.append('nombre_resumido_proceso', formData.nombre_resumido_proceso.trim())
+      if (formData.id_paa && formData.id_paa.trim()) updateData.append('id_paa', formData.id_paa.trim())
+      if (formData.valor_proyectado) {
+        const numValue = Number(formData.valor_proyectado)
+        if (!isNaN(numValue)) {
+          updateData.append('valor_proyectado', numValue.toString())
+        }
+      }
+
+      console.log('📤 Actualizando proceso:', referenciaProceso)
+      console.log('📤 Datos enviados:', {
+        bp: formData.bp,
+        nombre_resumido_proceso: formData.nombre_resumido_proceso,
+        id_paa: formData.id_paa,
+        valor_proyectado: formData.valor_proyectado
+      })
+
+      const response = await fetch(`${apiUrl}/emprestito/proceso/${referenciaProceso}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: updateData
+      })
+
+      console.log('📡 Status de respuesta:', response.status)
+
+      if (!response.ok) {
+        let errorMsg = `Error ${response.status}: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          console.error('❌ Respuesta de error completa:', JSON.stringify(errorData, null, 2))
+          
+          if (errorData?.detail) {
+            if (typeof errorData.detail === 'string') {
+              errorMsg = errorData.detail
+            } else if (Array.isArray(errorData.detail)) {
+              // Si es un array de errores de validación
+              errorMsg = errorData.detail.map((err: any) => {
+                if (typeof err === 'string') return err
+                if (err?.msg) return `${err.msg}`
+                return JSON.stringify(err)
+              }).join('; ')
+            } else if (typeof errorData.detail === 'object') {
+              // Si es un objeto, convertirlo a string
+              errorMsg = JSON.stringify(errorData.detail)
+            }
+          } else if (errorData?.error) {
+            errorMsg = errorData.error
+            // Si es error de función no implementada, agregar mensaje explicativo
+            if (errorMsg.includes('no implementada')) {
+              errorMsg += '. El endpoint de actualización no está disponible en el servidor. Contacte al administrador del sistema.'
+            }
+          } else if (errorData?.message) {
+            errorMsg = errorData.message
+          }
+        } catch (e) {
+          console.error('No se pudo parsear la respuesta de error:', e)
+        }
+        throw new Error(errorMsg)
+      }
+
+      const result = await response.json()
+      console.log('✅ Proceso actualizado:', result)
+      
+      // Recargar datos
+      await fetchProcesos()
+      setEditingData(null)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      console.error('❌ Error al actualizar proceso:', errorMessage)
+      throw error
+    }
+  }
+
+  // Función para eliminar proceso
+  const handleDeleteProceso = async (referenciaProceso: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!apiUrl) {
+        throw new Error('URL de API no configurada')
+      }
+
+      console.log('🗑️ Eliminando proceso:', referenciaProceso)
+
+      const response = await fetch(`${apiUrl}/emprestito/proceso/${referenciaProceso}`, {
+        method: 'DELETE'
+      })
+
+      console.log('📡 Status de respuesta:', response.status)
+
+      if (!response.ok) {
+        let errorMsg = `Error ${response.status}: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          console.error('❌ Respuesta de error completa:', JSON.stringify(errorData, null, 2))
+          
+          if (errorData?.detail) {
+            if (typeof errorData.detail === 'string') {
+              errorMsg = errorData.detail
+            } else if (Array.isArray(errorData.detail)) {
+              // Si es un array de errores de validación
+              errorMsg = errorData.detail.map((err: any) => {
+                if (typeof err === 'string') return err
+                if (err?.msg) return `${err.msg}`
+                return JSON.stringify(err)
+              }).join('; ')
+            } else if (typeof errorData.detail === 'object') {
+              // Si es un objeto, convertirlo a string
+              errorMsg = JSON.stringify(errorData.detail)
+            }
+          } else if (errorData?.error) {
+            errorMsg = errorData.error
+          } else if (errorData?.message) {
+            errorMsg = errorData.message
+          }
+        } catch (e) {
+          console.error('No se pudo parsear la respuesta de error:', e)
+        }
+        throw new Error(errorMsg)
+      }
+
+      const result = await response.json()
+      console.log('✅ Proceso eliminado:', result)
+      
+      // Recargar datos
+      await fetchProcesos()
+      setDeleteConfirm(null)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      console.error('❌ Error al eliminar proceso:', errorMessage)
+      alert(`Error al eliminar: ${errorMessage}`)
+    }
   }
 
   // Función para obtener valores únicos de una columna para filtros
@@ -222,8 +428,8 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     }))
   }
 
-  // Procesos filtrados y ordenados
-  const filteredAndSortedProcesos = useMemo(() => {
+  // Todos los procesos filtrados y ordenados (sin paginación)
+  const allProcesos = useMemo(() => {
     // Verificar que procesos sea un array válido
     if (!Array.isArray(procesos) || procesos.length === 0) {
       return []
@@ -255,9 +461,12 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
     // Ordenamiento
     if (sortConfig.key) {
+      const sortColumn = columns.find(col => col.key === sortConfig.key);
+      if (!sortColumn) return filtered;
+
       filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key]
-        const bValue = b[sortConfig.key]
+        const aValue = sortColumn.accessor ? sortColumn.accessor(a) : a[sortConfig.key];
+        const bValue = sortColumn.accessor ? sortColumn.accessor(b) : b[sortConfig.key];
         
         if (aValue === null || aValue === undefined) return 1
         if (bValue === null || bValue === undefined) return -1
@@ -278,14 +487,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     return filtered
   }, [procesos, searchTerm, columnFilters, sortConfig])
 
-  // Paginación
-  const paginatedProcesos = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return filteredAndSortedProcesos.slice(startIndex, startIndex + itemsPerPage)
-  }, [filteredAndSortedProcesos, currentPage, itemsPerPage])
-
-  const totalPages = Math.ceil(filteredAndSortedProcesos.length / itemsPerPage)
-
   const stats = useMemo(() => {
     const parseNumeric = (value: any) => {
       if (typeof value === 'number') return value
@@ -294,43 +495,43 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     }
 
     const totalProcesos = procesos.length
-    const filteredCount = filteredAndSortedProcesos.length
+    const filteredCount = allProcesos.length
 
-    const totalValorProyectado = filteredAndSortedProcesos.reduce((sum, proceso) => {
+    const totalValorProyectado = allProcesos.reduce((sum, proceso) => {
       return sum + parseNumeric(proceso.valor_proyectado)
     }, 0)
 
-    const totalValorSecop = filteredAndSortedProcesos.reduce((sum, proceso) => {
+    const totalValorSecop = allProcesos.reduce((sum, proceso) => {
       const valor = proceso.valor_proceso ?? proceso.valor_publicacion
       return sum + parseNumeric(valor)
     }, 0)
 
     const centrosGestores = new Set(
-      filteredAndSortedProcesos
+      allProcesos
         .map(proceso => proceso.nombre_centro_gestor)
         .filter(Boolean)
     ).size
 
     const bancos = new Set(
-      filteredAndSortedProcesos
+      allProcesos
         .map(proceso => proceso.nombre_banco)
         .filter(Boolean)
     ).size
 
     const modalidades = new Set(
-      filteredAndSortedProcesos
+      allProcesos
         .map(proceso => proceso.modalidad_contratacion)
         .filter(Boolean)
     ).size
 
     const estados = new Set(
-      filteredAndSortedProcesos
+      allProcesos
         .map(proceso => proceso.estado_proceso)
         .filter(Boolean)
     ).size
 
     // Contar procesos por estado específico
-    const estadoCounts = filteredAndSortedProcesos.reduce((acc, proceso) => {
+    const estadoCounts = allProcesos.reduce((acc, proceso) => {
       const estado = proceso.estado_proceso || 'Sin Estado'
       acc[estado] = (acc[estado] || 0) + 1
       return acc
@@ -353,21 +554,64 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       seleccionado,
       publicado
     }
-  }, [procesos, filteredAndSortedProcesos])
+  }, [procesos, allProcesos])
 
-  // Columnas de la tabla
-  const columns = [
-    { key: 'referencia_proceso', label: 'Referencia', width: 'w-40' },
-    { key: 'nombre_proceso', label: 'Nombre del Proceso', width: 'w-64' },
-    { key: 'nombre_centro_gestor', label: 'Centro Gestor', width: 'w-48' },
-    { key: 'estado_proceso', label: 'Estado', width: 'w-32' },
-    { key: 'modalidad_contratacion', label: 'Modalidad', width: 'w-36' },
-    { key: 'tipo_contrato', label: 'Tipo de Contrato', width: 'w-36' },
-    { key: 'valor_proyectado', label: 'Valor Proyectado', width: 'w-40' },
-    { key: 'fecha_publicacion', label: 'Fecha Publicación', width: 'w-36' },
-    { key: 'fecha_publicacion_fase', label: 'Fecha Fase', width: 'w-36' },
-    { key: 'nombre_banco', label: 'Banco', width: 'w-32' }
-  ]
+  // Función para manejar la visibilidad de columnas
+  const toggleColumnVisibility = (columnKey: string) => {
+    if (columnKey === 'referencia_proceso') return // Siempre visible
+    
+    setVisibleColumns(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(columnKey)) {
+        newSet.delete(columnKey)
+      } else {
+        newSet.add(columnKey)
+      }
+      return newSet
+    })
+  }
+
+  // Funciones para arrastrar y soltar columnas
+  const handleDragStart = (e: React.DragEvent<HTMLTableCellElement>, key: string) => {
+    setDraggedColumn(key)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', key)
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableCellElement>, key: string) => {
+    e.preventDefault()
+    if (draggedColumn === key || key === 'referencia_proceso') return // No arrastrar sobre sí mismo o referencia
+    setDragOverColumn(key)
+
+    const draggedIndex = columnOrder.indexOf(draggedColumn!)
+    const targetIndex = columnOrder.indexOf(key)
+
+    if (draggedIndex === -1 || targetIndex === -1) return
+
+    const newColumnOrder = [...columnOrder]
+    const [removed] = newColumnOrder.splice(draggedIndex, 1)
+    newColumnOrder.splice(targetIndex, 0, removed)
+
+    setColumnOrder(newColumnOrder)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLTableCellElement>) => {
+    e.preventDefault()
+    setDraggedColumn(null)
+    setDragOverColumn(null)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null)
+  }
+
+  // Columnas visibles (excluyendo las que siempre deben estar)
+  const optionalColumns = columns.filter(col => col.key !== 'referencia_proceso')
+  
+  // Columnas que se mostrarán en la tabla
+  const displayedColumns = columns.filter(col => 
+    col.key === 'referencia_proceso' || visibleColumns.has(col.key)
+  )
 
   // Función para formatear valores
   const formatValue = (value: any, key: string): string => {
@@ -376,7 +620,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     }
 
     // Formatear valores monetarios
-    if ((key === 'valor_proyectado' || key === 'valor_publicacion') && typeof value === 'number') {
+    if ((key === 'valor_proyectado' || key === 'valor_publicacion' || key === 'valor_secop') && typeof value === 'number') {
       return new Intl.NumberFormat('es-CO', {
         style: 'currency',
         currency: 'COP',
@@ -457,6 +701,14 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     }).format(Math.abs(compactValue))
     
     return (value < 0 ? '-' : '') + formatted + suffix
+  }
+
+  // Función para cambiar ordenamiento
+  const handleSort = (key: string) => {
+    setSortConfig(prevConfig => ({
+      key,
+      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    }))
   }
 
   // Función para obtener el ícono de ordenamiento
@@ -715,6 +967,90 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
             {/* Controles */}
             <div className="flex items-center gap-2">
+              {/* Selector de Columnas */}
+              <div className="relative" data-column-selector>
+                <button
+                  onClick={() => setShowColumnSelector(!showColumnSelector)}
+                  className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors relative z-40"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>Columnas</span>
+                </button>
+                
+                {showColumnSelector && (
+                  <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 min-w-64 max-w-80">
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Mostrar Columnas
+                        </span>
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => setVisibleColumns(new Set(columns.map(c => c.key)))}
+                            className="text-xs px-2 py-1 text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                          >
+                            Todas
+                          </button>
+                          <button
+                            onClick={() => setVisibleColumns(new Set(['referencia_proceso']))}
+                            className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                          >
+                            Ninguna
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Search input for columns */}
+                      <div className="mb-3">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Buscar columna..."
+                            value={columnSearchTerm}
+                            onChange={(e) => setColumnSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {optionalColumns.filter(col => col.label.toLowerCase().includes(columnSearchTerm.toLowerCase())).map((column) => {
+                          const isVisible = visibleColumns.has(column.key)
+                          return (
+                            <label
+                              key={column.key}
+                              className="flex items-center space-x-3 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isVisible}
+                                onChange={() => toggleColumnVisibility(column.key)}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                              />
+                              <span className="text-sm text-gray-900 dark:text-gray-100 flex-1">
+                                {column.label}
+                              </span>
+                              {isVisible ? (
+                                <Eye className="w-4 h-4 text-blue-500" />
+                              ) : (
+                                <EyeOff className="w-4 h-4 text-gray-400" />
+                              )}
+                            </label>
+                          )
+                        })}
+                      </div>
+                      
+                      <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                        <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span>Referencia y Acciones siempre visibles</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               {/* Botón limpiar filtros */}
               {(Object.values(columnFilters).some(filters => filters.length > 0) || searchTerm) && (
                 <button
@@ -755,146 +1091,166 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
         >
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                 <tr>
-                  {columns.map((column) => (
-                    <th 
-                      key={column.key} 
-                      className="px-3 py-2 text-left relative border-r border-gray-200 dark:border-gray-600 last:border-r-0 group"
-                      style={{ width: `${getColumnWidth(column.key)}px`, minWidth: '80px' }}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleSort(column.key)}
-                          className="flex items-center space-x-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        >
-                          <span className="truncate">{column.label}</span>
-                          {getSortIcon(column.key)}
-                        </button>
-                        
-                        <div 
-                          className="relative"
-                          ref={el => { filtersRef.current[column.key] = el }}
-                        >
+                  {columnOrder.map((columnKey) => {
+                    const column = columns.find(col => col.key === columnKey);
+                    if (!column || !visibleColumns.has(column.key)) return null;
+
+                    const isReferenceColumn = column.key === 'referencia_proceso';
+
+                    return (
+                      <th 
+                        key={column.key} 
+                        className={`px-3 py-2 text-left relative border-r border-gray-200 dark:border-gray-600 last:border-r-0 group bg-gray-50 dark:bg-gray-700 
+                          ${draggedColumn === column.key ? 'opacity-50' : ''}
+                          ${dragOverColumn === column.key ? 'bg-blue-100 dark:bg-blue-900' : ''}
+                        `}
+                        style={{ width: `${getColumnWidth(column.key)}px`, minWidth: '80px' }}
+                        draggable={!isReferenceColumn} // Make draggable unless it's the reference column
+                        onDragStart={(e) => handleDragStart(e, column.key)}
+                        onDragOver={(e) => handleDragOver(e, column.key)}
+                        onDrop={handleDrop}
+                        onDragLeave={handleDragLeave}
+                      >
+                        <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => setShowFilters(prev => ({
-                              ...prev,
-                              [column.key]: !prev[column.key]
-                            }))}
-                            className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors relative ${
-                              columnFilters[column.key]?.length > 0 ? 'text-blue-500' : 'text-gray-400'
-                            }`}
+                            onClick={() => handleSort(column.key)}
+                            className="flex items-center space-x-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
                           >
-                            <Filter className="w-3 h-3" />
-                            {columnFilters[column.key]?.length > 0 && (
-                              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                {columnFilters[column.key].length}
-                              </span>
-                            )}
+                            <span className="truncate">{column.label}</span>
+                            {getSortIcon(column.key)}
                           </button>
                           
-                          {showFilters[column.key] && (
-                            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 min-w-48 max-w-64">
-                              <div className="p-2">
-                                {/* Header con controles */}
-                                <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
-                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                    Filtro múltiple
-                                  </span>
-                                  <div className="flex space-x-1">
-                                    <button
-                                      onClick={() => {
-                                        setColumnFilters(prev => ({
-                                          ...prev,
-                                          [column.key]: []
-                                        }))
-                                      }}
-                                      className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                                    >
-                                      Limpiar
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setColumnFilters(prev => ({
-                                          ...prev,
-                                          [column.key]: getUniqueValues(column.key)
-                                        }))
-                                      }}
-                                      className="text-xs px-2 py-1 text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                                    >
-                                      Todos
-                                    </button>
-                                  </div>
-                                </div>
-                                
-                                {/* Lista de valores con checkboxes */}
-                                <div className="max-h-48 overflow-y-auto space-y-1">
-                                  {getUniqueValues(column.key).map((value) => {
-                                    const isSelected = columnFilters[column.key]?.includes(value) || false
-                                    return (
-                                      <label
-                                        key={value}
-                                        className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={isSelected}
-                                          onChange={(e) => {
-                                            const currentFilters = columnFilters[column.key] || []
-                                            if (e.target.checked) {
-                                              // Añadir valor
-                                              setColumnFilters(prev => ({
-                                                ...prev,
-                                                [column.key]: [...currentFilters, value]
-                                              }))
-                                            } else {
-                                              // Remover valor
-                                              setColumnFilters(prev => ({
-                                                ...prev,
-                                                [column.key]: currentFilters.filter(v => v !== value)
-                                              }))
-                                            }
-                                          }}
-                                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
-                                        />
-                                        <span className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate" title={formatValue(value, column.key)}>
-                                          {formatValue(value, column.key)}
-                                        </span>
-                                      </label>
-                                    )
-                                  })}
-                                </div>
-                                
-                                {/* Contador de seleccionados */}
-                                {columnFilters[column.key]?.length > 0 && (
-                                  <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      {columnFilters[column.key].length} de {getUniqueValues(column.key).length} seleccionados
+                          <div 
+                            className="relative"
+                            ref={el => { filtersRef.current[column.key] = el }}
+                          >
+                            <button
+                              onClick={() => setShowFilters(prev => ({
+                                ...prev,
+                                [column.key]: !prev[column.key]
+                              }))}
+                              className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors relative ${
+                                columnFilters[column.key]?.length > 0 ? 'text-blue-500' : 'text-gray-400'
+                              }`}
+                            >
+                              <Filter className="w-3 h-3" />
+                              {columnFilters[column.key]?.length > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                                  {columnFilters[column.key].length}
+                                </span>
+                              )}
+                            </button>
+                            
+                            {showFilters[column.key] && (
+                              <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 min-w-48 max-w-64">
+                                <div className="p-2">
+                                  {/* Header con controles */}
+                                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
+                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                      Filtro múltiple
                                     </span>
+                                    <div className="flex space-x-1">
+                                      <button
+                                        onClick={() => {
+                                          setColumnFilters(prev => ({
+                                            ...prev,
+                                            [column.key]: []
+                                          }))
+                                        }}
+                                        className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                                      >
+                                        Limpiar
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setColumnFilters(prev => ({
+                                            ...prev,
+                                            [column.key]: getUniqueValues(column.key)
+                                          }))
+                                        }}
+                                        className="text-xs px-2 py-1 text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                      >
+                                        Todos
+                                      </button>
+                                    </div>
                                   </div>
-                                )}
+                                  
+                                  {/* Lista de valores con checkboxes */}
+                                  <div className="max-h-48 overflow-y-auto space-y-1">
+                                    {getUniqueValues(column.key).map((value) => {
+                                      const isSelected = columnFilters[column.key]?.includes(value) || false
+                                      return (
+                                        <label
+                                          key={value}
+                                          className="flex items-center space-x-2 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={(e) => {
+                                              const currentFilters = columnFilters[column.key] || []
+                                              if (e.target.checked) {
+                                                // Añadir valor
+                                                setColumnFilters(prev => ({
+                                                  ...prev,
+                                                  [column.key]: [...currentFilters, value]
+                                                }))
+                                              } else {
+                                                // Remover valor
+                                                setColumnFilters(prev => ({
+                                                  ...prev,
+                                                  [column.key]: currentFilters.filter(v => v !== value)
+                                                }))
+                                              }
+                                            }}
+                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                                          />
+                                          <span className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate" title={String(value)}>
+                                            {formatValue(value, column.key)}
+                                          </span>
+                                        </label>
+                                      )
+                                    })}
+                                  </div>
+                                  
+                                  {/* Contador de seleccionados */}
+                                  {columnFilters[column.key]?.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {columnFilters[column.key].length} de {getUniqueValues(column.key).length} seleccionados
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Column Resizer */}
-                      <div
-                        className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-blue-300 dark:hover:bg-blue-600 transition-colors opacity-0 hover:opacity-100 group-hover:opacity-100"
-                        onMouseDown={(e) => handleMouseDown(e, column.key)}
-                      />
-                    </th>
-                  ))}
+                        
+                        {/* Column Resizer */}
+                        <div
+                          className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-blue-300 dark:hover:bg-blue-600 transition-colors opacity-0 hover:opacity-100 group-hover:opacity-100"
+                          onMouseDown={(e) => handleMouseDown(e, column.key)}
+                        />
+                      </th>
+                    )
+                  })}
+                  
+                  {/* Acciones Header */}
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 sticky right-0 top-0 bg-gray-50 dark:bg-gray-700 w-24 z-20 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)]">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {paginatedProcesos.map((proceso, index) => (
+                {allProcesos.map((proceso, index) => (
                   <motion.tr
                     key={proceso.id || index}
                     initial={{ opacity: 0, x: -20 }}
@@ -902,80 +1258,109 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                     transition={{ delay: index * 0.05 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                    {columns.map((column) => (
-                      <td 
-                        key={column.key} 
-                        className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700"
-                        style={{ width: `${getColumnWidth(column.key)}px`, maxWidth: `${getColumnWidth(column.key)}px` }}
-                      >
-                        <div className="max-w-full overflow-hidden">
-                          <span className="block truncate" title={String(proceso[column.key] || '')}>
-                            {formatValue(proceso[column.key], column.key)}
-                          </span>
-                        </div>
-                      </td>
-                    ))}
+                    {columnOrder.map((columnKey) => {
+                      const column = columns.find(col => col.key === columnKey);
+                      if (!column || !visibleColumns.has(column.key)) return null;
+
+                      return (
+                        <td 
+                          key={column.key} 
+                          className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700"
+                          style={{ width: `${getColumnWidth(column.key)}px`, maxWidth: `${getColumnWidth(column.key)}px` }}
+                        >
+                          <div className="max-w-full overflow-hidden">
+                            <span className="block truncate" title={String(column.accessor ? column.accessor(proceso) : proceso[column.key] || '')}>
+                              {formatValue(column.accessor ? column.accessor(proceso) : proceso[column.key], column.key)}
+                            </span>
+                          </div>
+                        </td>
+                      );
+                    })}
+                    
+                    {/* Columna de acciones */}
+                    <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700 sticky right-0 bg-white dark:bg-gray-800 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] dark:shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.3)]">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEditProceso(proceso)}
+                          className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(proceso)}
+                          className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  Mostrando {((currentPage - 1) * itemsPerPage) + 1} a{' '}
-                  {Math.min(currentPage * itemsPerPage, filteredAndSortedProcesos.length)} de{' '}
-                  {filteredAndSortedProcesos.length} resultados
-                </p>
-                
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page = i + 1
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
-                          currentPage === page
-                            ? 'bg-blue-500 text-white border-blue-500'
-                            : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    )
-                  })}
-                  
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </motion.div>
 
-      {/* Modal para agregar proceso */}
+      {/* Modal para agregar/editar proceso */}
       <AgregarProcesoModalAlt
         isOpen={showAgregarModal}
-        onClose={() => setShowAgregarModal(false)}
+        onClose={() => {
+          setShowAgregarModal(false)
+          setEditingData(null)
+        }}
         onSuccess={handleAgregarProcesoSuccess}
+        editingData={editingData}
+        onEdit={handleUpdateProceso}
       />
+      
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={() => setDeleteConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Eliminar Proceso
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                ¿Está seguro que desea eliminar el proceso <strong>{deleteConfirm.referencia_proceso}</strong>? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={async () => {
+                    if (deleteConfirm?.referencia_proceso) {
+                      await handleDeleteProceso(deleteConfirm.referencia_proceso)
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Eliminar</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </div>
   )
 }
