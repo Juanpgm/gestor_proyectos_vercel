@@ -29,7 +29,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const renderContent = () => {
     switch (activeSection) {
       case 'gestionar-procesos':
-        return <GestionProcesos onNavigateHome={handleNavigateHome} />
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+            <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
+              <GestionProcesos onNavigateHome={handleNavigateHome} />
+            </div>
+          </div>
+        )
       case 'proyecciones-emprestito':
         return (
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">

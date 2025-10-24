@@ -375,6 +375,45 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     }
   }
 
+  const formatCompactCurrency = (value: number) => {
+    const absValue = Math.abs(value || 0)
+    let compactValue: number
+    let suffix: string
+    
+    if (absValue >= 1_000_000_000_000) {
+      // Billones
+      compactValue = value / 1_000_000_000_000
+      suffix = 'B'
+    } else if (absValue >= 1_000_000_000) {
+      // Mil millones (MM)
+      compactValue = value / 1_000_000_000
+      suffix = 'MM'
+    } else if (absValue >= 1_000_000) {
+      // Millones (M)
+      compactValue = value / 1_000_000
+      suffix = 'M'
+    } else if (absValue >= 1_000) {
+      compactValue = value / 1_000
+      suffix = 'K'
+    } else {
+      return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3
+      }).format(value || 0)
+    }
+    
+    const formatted = new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3
+    }).format(Math.abs(compactValue))
+    
+    return (value < 0 ? '-' : '') + formatted + suffix
+  }
+
   // Función para obtener estadísticas de resumen
   const getStats = () => {
     const totalProyecciones = proyecciones.length
@@ -463,6 +502,13 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
               </p>
             </div>
           </div>
+          <button
+            onClick={onNavigateHome}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Volver al Dashboard</span>
+          </button>
         </div>
       </motion.div>
 
@@ -492,8 +538,8 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Total</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatValue(stats.totalValorProyectado, 'currency')}
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                {formatCompactCurrency(stats.totalValorProyectado)}
               </p>
             </div>
             <DollarSign className="w-8 h-8 text-green-500" />

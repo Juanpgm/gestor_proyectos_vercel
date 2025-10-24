@@ -2,24 +2,24 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Search, 
-  Filter, 
-  ChevronDown, 
-  RefreshCw, 
+import {
+  Search,
+  Filter,
+  RefreshCw,
   FileText,
-  Calendar,
   Building,
   DollarSign,
   AlertCircle,
-  Eye,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   X,
-  Plus
+  Plus,
+  TrendingUp,
+  Landmark,
+  Layers
 } from 'lucide-react'
 import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
 
@@ -215,6 +215,13 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     return Array.from(new Set(values)).sort()
   }
 
+  const clearColumnFilter = (columnKey: string) => {
+    setColumnFilters(prev => ({
+      ...prev,
+      [columnKey]: []
+    }))
+  }
+
   // Procesos filtrados y ordenados
   const filteredAndSortedProcesos = useMemo(() => {
     // Verificar que procesos sea un array válido
@@ -279,6 +286,75 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
   const totalPages = Math.ceil(filteredAndSortedProcesos.length / itemsPerPage)
 
+  const stats = useMemo(() => {
+    const parseNumeric = (value: any) => {
+      if (typeof value === 'number') return value
+      const numeric = Number(value)
+      return Number.isFinite(numeric) ? numeric : 0
+    }
+
+    const totalProcesos = procesos.length
+    const filteredCount = filteredAndSortedProcesos.length
+
+    const totalValorProyectado = filteredAndSortedProcesos.reduce((sum, proceso) => {
+      return sum + parseNumeric(proceso.valor_proyectado)
+    }, 0)
+
+    const totalValorSecop = filteredAndSortedProcesos.reduce((sum, proceso) => {
+      const valor = proceso.valor_proceso ?? proceso.valor_publicacion
+      return sum + parseNumeric(valor)
+    }, 0)
+
+    const centrosGestores = new Set(
+      filteredAndSortedProcesos
+        .map(proceso => proceso.nombre_centro_gestor)
+        .filter(Boolean)
+    ).size
+
+    const bancos = new Set(
+      filteredAndSortedProcesos
+        .map(proceso => proceso.nombre_banco)
+        .filter(Boolean)
+    ).size
+
+    const modalidades = new Set(
+      filteredAndSortedProcesos
+        .map(proceso => proceso.modalidad_contratacion)
+        .filter(Boolean)
+    ).size
+
+    const estados = new Set(
+      filteredAndSortedProcesos
+        .map(proceso => proceso.estado_proceso)
+        .filter(Boolean)
+    ).size
+
+    // Contar procesos por estado específico
+    const estadoCounts = filteredAndSortedProcesos.reduce((acc, proceso) => {
+      const estado = proceso.estado_proceso || 'Sin Estado'
+      acc[estado] = (acc[estado] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const evaluacion = estadoCounts['Evaluación'] || 0
+    const seleccionado = estadoCounts['Seleccionado'] || 0
+    const publicado = estadoCounts['Publicado'] || 0
+
+    return {
+      totalProcesos,
+      filteredCount,
+      totalValorProyectado,
+      totalValorSecop,
+      centrosGestores,
+      bancos,
+      modalidades,
+      estados,
+      evaluacion,
+      seleccionado,
+      publicado
+    }
+  }, [procesos, filteredAndSortedProcesos])
+
   // Columnas de la tabla
   const columns = [
     { key: 'referencia_proceso', label: 'Referencia', width: 'w-40' },
@@ -333,6 +409,54 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     }
 
     return String(value)
+  }
+
+  const formatCurrencyValue = (value: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value || 0)
+  }
+
+  const formatCompactCurrency = (value: number) => {
+    const absValue = Math.abs(value || 0)
+    let compactValue: number
+    let suffix: string
+    
+    if (absValue >= 1_000_000_000_000) {
+      // Billones
+      compactValue = value / 1_000_000_000_000
+      suffix = 'B'
+    } else if (absValue >= 1_000_000_000) {
+      // Mil millones (MM)
+      compactValue = value / 1_000_000_000
+      suffix = 'MM'
+    } else if (absValue >= 1_000_000) {
+      // Millones (M)
+      compactValue = value / 1_000_000
+      suffix = 'M'
+    } else if (absValue >= 1_000) {
+      compactValue = value / 1_000
+      suffix = 'K'
+    } else {
+      return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3
+      }).format(value || 0)
+    }
+    
+    const formatted = new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3
+    }).format(Math.abs(compactValue))
+    
+    return (value < 0 ? '-' : '') + formatted + suffix
   }
 
   // Función para obtener el ícono de ordenamiento
@@ -408,67 +532,165 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="p-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white shadow-lg"
+      >
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center space-x-4">
+            <div className="bg-white/20 p-3 rounded-lg">
+              <TrendingUp className="w-8 h-8" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Gestión de Procesos Contractuales del Empréstito
-              </h1>
-              <div className="flex items-center space-x-4">
-                <p className="text-gray-600 dark:text-gray-400">
-                  {filteredAndSortedProcesos.length} proceso{filteredAndSortedProcesos.length !== 1 ? 's' : ''} encontrado{filteredAndSortedProcesos.length !== 1 ? 's' : ''}
-                  {procesos.length !== filteredAndSortedProcesos.length && (
-                    <span className="text-gray-500"> de {procesos.length} total</span>
-                  )}
-                </p>
-                {(searchTerm || Object.values(columnFilters).some(f => f?.length > 0)) && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-blue-600 dark:text-blue-400">Filtros activos:</span>
-                    {searchTerm && (
-                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs flex items-center space-x-1">
-                        <span>Búsqueda: &quot;{searchTerm}&quot;</span>
-                        <button
-                          onClick={() => setSearchTerm('')}
-                          className="ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
+              <h1 className="text-2xl font-bold">Gestión de Procesos Contractuales del Empréstito</h1>
+              <p className="text-indigo-100">
+                Monitoreo integral de los procesos contractuales asociados al empréstito con visibilidad total de valores y estados.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onNavigateHome}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Volver al Dashboard</span>
+          </button>
+        </div>
+      </motion.div>
+
+        {/* Active Filters */}
+        {(searchTerm || Object.values(columnFilters).some(f => f?.length > 0)) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-wrap items-center gap-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 mb-6"
+          >
+            {searchTerm && (
+              <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm">
+                <span>Búsqueda: &quot;{searchTerm}&quot;</span>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="ml-2 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+
+            {Object.entries(columnFilters).map(([column, values]) => (
+              values.length > 0 && (
+                <div
+                  key={column}
+                  className="flex items-center bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm"
+                >
+                  <span>{columns.find(c => c.key === column)?.label}: {values.length} filtro(s)</span>
+                  <button
+                    onClick={() => clearColumnFilter(column)}
+                    className="ml-2 hover:bg-green-200 dark:hover:bg-green-800 rounded-full p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )
+            ))}
+          </motion.div>
+        )}
+
+        {/* Summary Cards */}
+        {procesos.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center h-full w-full">
+                <div className="flex flex-col justify-center h-full text-left flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Total Procesos</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.filteredCount}
+                    {stats.filteredCount !== stats.totalProcesos && (
+                      <span className="text-sm text-gray-500 ml-1">/ {stats.totalProcesos}</span>
                     )}
-                    {Object.entries(columnFilters).filter(([_, values]) => values?.length > 0).map(([key, values]) => (
-                      <span key={key} className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-xs flex items-center space-x-1">
-                        <span>
-                          {columns.find(c => c.key === key)?.label}: {values.length} elemento{values.length !== 1 ? 's' : ''}
-                        </span>
-                        <button
-                          onClick={() => setColumnFilters(prev => ({ ...prev, [key]: [] }))}
-                          className="ml-1 hover:bg-green-200 dark:hover:bg-green-800 rounded-full p-0.5"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                  </p>
+                </div>
+                <FileText className="w-8 h-8 text-indigo-500 ml-4" />
               </div>
             </div>
-            
-            <button
-              onClick={onNavigateHome}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Volver al Dashboard</span>
-            </button>
-          </div>
-        </motion.div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center h-full w-full">
+                <div className="flex flex-col justify-center h-full text-left flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Total Proyectado</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {formatCompactCurrency(stats.totalValorProyectado)}
+                  </p>
+                </div>
+                <DollarSign className="w-8 h-8 text-green-500 ml-4" />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center h-full w-full">
+                <div className="flex flex-col justify-center h-full text-left flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Total SECOP</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {formatCompactCurrency(stats.totalValorSecop)}
+                  </p>
+                </div>
+                <TrendingUp className="w-8 h-8 text-blue-500 ml-4" />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center h-full w-full">
+                <div className="flex flex-col justify-center h-full text-left flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Centros Gestores</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.centrosGestores}</p>
+                </div>
+                <Building className="w-8 h-8 text-purple-500 ml-4" />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center h-full w-full">
+                <div className="flex flex-col justify-center h-full text-left flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Bancos</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.bancos}</p>
+                </div>
+                <Landmark className="w-8 h-8 text-teal-500 ml-4" />
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center h-full w-full">
+                <div className="flex flex-col justify-center h-full text-left flex-1">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Estados de Procesos</p>
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Evaluación:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{stats.evaluacion}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Seleccionado:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{stats.seleccionado}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Publicado:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{stats.publicado}</span>
+                    </div>
+                  </div>
+                </div>
+                <Building className="w-8 h-8 text-orange-500 ml-4" />
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Controls */}
         <motion.div
@@ -528,91 +750,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
             </div>
           </div>
         </motion.div>
-
-        {/* Resumen de Totalizaciones */}
-        {filteredAndSortedProcesos.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
-          >
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-              Resumen de Totalizaciones
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Total Valor Proyectado */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-600">
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="w-5 h-5 text-green-500" />
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Valor Total Proyectado</p>
-                    <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {new Intl.NumberFormat('es-CO', {
-                        style: 'currency',
-                        currency: 'COP',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                      }).format(
-                        filteredAndSortedProcesos.reduce((sum, proceso) => {
-                          const valor = proceso.valor_proyectado || 0
-                          return sum + (typeof valor === 'number' ? valor : 0)
-                        }, 0)
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Total Valor Proceso (SECOP) */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-600">
-                <div className="flex items-center space-x-2">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Valor Total SECOP</p>
-                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                      {new Intl.NumberFormat('es-CO', {
-                        style: 'currency',
-                        currency: 'COP',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                      }).format(
-                        filteredAndSortedProcesos.reduce((sum, proceso) => {
-                          const valor = proceso.valor_proceso || 0
-                          return sum + (typeof valor === 'number' ? valor : 0)
-                        }, 0)
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Total de Procesos por Estado */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-600">
-                <div className="flex items-center space-x-2">
-                  <Building className="w-5 h-5 text-orange-500" />
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Estados de Procesos</p>
-                    <div className="text-sm space-y-1">
-                      {Object.entries(
-                        filteredAndSortedProcesos.reduce((acc, proceso) => {
-                          const estado = proceso.estado_proceso || 'Sin Estado'
-                          acc[estado] = (acc[estado] || 0) + 1
-                          return acc
-                        }, {} as Record<string, number>)
-                      ).slice(0, 3).map(([estado, count]) => (
-                        <div key={estado} className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400 truncate text-xs">{estado}:</span>
-                          <span className="font-medium text-gray-900 dark:text-white text-xs">{count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Table */}
         <motion.div
@@ -832,7 +969,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
             </div>
           )}
         </motion.div>
-      </div>
 
       {/* Modal para agregar proceso */}
       <AgregarProcesoModalAlt
@@ -840,7 +976,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         onClose={() => setShowAgregarModal(false)}
         onSuccess={handleAgregarProcesoSuccess}
       />
-    </div>
+      </div>
   )
 }
 
