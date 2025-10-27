@@ -2057,27 +2057,27 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
             <IPadOptimizedTable className={`contracts-table ${deviceInfo.isIpad10 ? 'ipad-10-table' : ''}`}>
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[300px]">
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '25%' }}>
                   <div>Proceso / Centro Gestor</div>
                   <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[120px]">
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '12%' }}>
                   Banco
                 </th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[100px]">
+                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '10%' }}>
                   Estado
                 </th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[140px]">
+                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '13%' }}>
                   Valor Contrato
                 </th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[180px]">
+                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '18%' }}>
                   <div>Avance Ejecución</div>
                   <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Financiero / Físico</div>
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[200px]">
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '17%' }}>
                   Observaciones / Alertas
                 </th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[80px]">
+                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '5%' }}>
                   Detalle
                 </th>
               </tr>
@@ -2097,13 +2097,29 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     transition={{ delay: index * 0.05 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
-                    <td className="py-3 px-4 min-w-[300px]">
+                    <td className="py-3 px-4" style={{ width: '25%' }}>
                       <div className="space-y-1">
-                        <div className="font-medium text-gray-900 dark:text-white text-sm truncate" 
+                        <div className="font-medium text-gray-900 dark:text-white text-sm leading-tight" 
+                             style={{ 
+                               display: '-webkit-box',
+                               WebkitLineClamp: 2,
+                               WebkitBoxOrient: 'vertical',
+                               overflow: 'hidden',
+                               wordBreak: 'break-word',
+                               hyphens: 'auto'
+                             }}
                              title={contrato.nombre_resumido_proceso || 'Sin proceso'}>
                           {contrato.nombre_resumido_proceso || 'Sin proceso'}
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 truncate"
+                        <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                             style={{ 
+                               display: '-webkit-box',
+                               WebkitLineClamp: 2,
+                               WebkitBoxOrient: 'vertical',
+                               overflow: 'hidden',
+                               wordBreak: 'break-word',
+                               hyphens: 'auto'
+                             }}
                              title={contrato.nombre_centro_gestor || 'Sin centro gestor'}>
                           {contrato.nombre_centro_gestor || 'Sin centro gestor'}
                         </div>
@@ -2113,12 +2129,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-700 dark:text-gray-300 min-w-[120px]">
+                    <td className="py-3 px-4 text-sm text-gray-700 dark:text-gray-300" style={{ width: '12%' }}>
                       <div className="truncate" title={contrato.banco || 'No especificado'}>
                         {contrato.banco || 'N/A'}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-center min-w-[100px]">
+                    <td className="py-3 px-4 text-center" style={{ width: '10%' }}>
                       <span className={`px-2 py-1 text-xs rounded-full inline-block truncate ${
                         contrato.estado_contrato === 'En ejecución' 
                           ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
@@ -2129,12 +2145,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         {contrato.estado_contrato || 'N/A'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-700 dark:text-gray-300 min-w-[140px]">
+                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-700 dark:text-gray-300" style={{ width: '13%' }}>
                       <div className="truncate" title={formatNumber(contrato.valor_contrato, 'currency')}>
                         {formatNumber(contrato.valor_contrato, 'currency')}
                       </div>
                     </td>
-                    <td className="py-3 px-4 min-w-[180px]">
+                    <td className="py-3 px-4" style={{ width: '18%' }}>
                       <div className="space-y-2">
                         {/* Progress bar para Avance Financiero */}
                         <div>
@@ -2180,7 +2196,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[200px]">
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400" style={{ width: '17%' }}>
                       <div className="text-xs break-words" style={{maxHeight: '4rem', overflow: 'hidden'}}>
                         {(() => {
                           const observaciones = []
@@ -2227,7 +2243,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center min-w-[80px]">
+                    <td className="py-3 px-4 text-center" style={{ width: '5%' }}>
                       <IPadOptimizedButton
                         onClick={() => handleOpenModal(contrato)}
                         variant="outline"
