@@ -425,7 +425,7 @@ const TimeSeriesChart: React.FC<{ reportes: ReporteEmprestito[], contratos: Cont
       </div>
       
       {/* Resumen de datos */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
+      <IPadOptimizedContainer type="grid" cols={4} className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600 gap-4">
         <div className="text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">Puntos de Datos</p>
           <p className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -450,7 +450,7 @@ const TimeSeriesChart: React.FC<{ reportes: ReporteEmprestito[], contratos: Cont
             {filteredTimeSeriesData.reduce((sum, d) => sum + d.contratos_count, 0)}
           </p>
         </div>
-      </div>
+      </IPadOptimizedContainer>
     </motion.div>
   )
 }
@@ -567,13 +567,13 @@ const ResumenEjecutivo: React.FC<{
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 adaptive-width dashboard-card"
       >
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <BarChart3 className="w-6 h-6 text-blue-600" />
           Resumen Ejecutivo
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <IPadOptimizedContainer type="grid" cols={4} className="gap-4">
           <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <p className="text-sm text-blue-600 dark:text-blue-400">Contratos Totales</p>
             <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{formatNumber(totalContratos)}</p>
@@ -590,7 +590,7 @@ const ResumenEjecutivo: React.FC<{
             <p className="text-sm text-teal-600 dark:text-teal-400">Centros Gestores</p>
             <p className="text-2xl font-bold text-teal-700 dark:text-teal-300">{analysisByCentroGestor.length}</p>
           </div>
-        </div>
+        </IPadOptimizedContainer>
       </motion.div>
 
       {/* Distribución por Bancos y Centros Gestores */}
@@ -2037,203 +2037,196 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Tabla Responsiva Mejorada */}
-        <div className="overflow-x-auto -mx-2 sm:-mx-4 ipad-10:-mx-6 lg:-mx-6 px-2 sm:px-4 ipad-10:px-6 lg:px-6">
-          <div className="min-w-full inline-block align-middle">
-            <IPadOptimizedTable className={`${getTableClasses()} table-fixed`}>
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[200px] sm:w-[250px] ipad-10:w-[280px] md:w-[300px]">
-                    <div>Proceso / Centro Gestor</div>
-                    <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
-                  </th>
-                  <th className="text-left py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[80px] sm:w-[100px] ipad-10:w-[110px] md:w-[120px]">
-                    Banco
-                  </th>
-                  <th className="text-center py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[70px] sm:w-[90px] ipad-10:w-[95px] md:w-[100px]">
-                    Estado
-                  </th>
-                  <th className="text-right py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[90px] sm:w-[110px] ipad-10:w-[120px] md:w-[130px]">
-                    Valor Contrato
-                  </th>
-                  <th className="text-center py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[120px] sm:w-[140px] ipad-10:w-[150px] md:w-[160px]">
-                    <div>Avance Ejecución</div>
-                    <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Financiero / Físico</div>
-                  </th>
-                  <th className="text-left py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[120px] sm:w-[160px] ipad-10:w-[180px] md:w-[200px]">
-                    Observaciones / Alertas
-                  </th>
-                  <th className="text-center py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[60px] sm:w-[70px] ipad-10:w-[75px] md:w-[80px]">
-                    Detalle
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentItems.map((contrato, index) => {
-                  // Buscar datos de reporte más reciente para este contrato
-                  const reporteContrato = reportes
-                    .filter(r => r.referencia_contrato === contrato.referencia_contrato)
-                    .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
-                  
-                  return (
-                    <motion.tr
-                      key={contrato.referencia_contrato}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-sm w-[200px] sm:w-[250px] ipad-10:w-[280px] md:w-[300px]">
-                        <div className="space-y-1 overflow-hidden">
-                          <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight truncate" 
-                               title={contrato.nombre_resumido_proceso || 'Sin proceso'}>
-                            {contrato.nombre_resumido_proceso || 'Sin proceso'}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight truncate"
-                               title={contrato.nombre_centro_gestor || 'Sin centro gestor'}>
-                            {contrato.nombre_centro_gestor || 'Sin centro gestor'}
-                          </div>
-                          <div className="text-xs text-blue-600 dark:text-blue-400 font-mono truncate"
-                               title={contrato.referencia_contrato || 'Sin referencia'}>
-                            {contrato.referencia_contrato || 'Sin referencia'}
-                          </div>
+        {/* Tabla Responsiva Mejorada - Scrolleable Horizontalmente */}
+        <div className="contracts-table-container">
+          <IPadOptimizedTable className="contracts-table">
+            <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[300px]">
+                  <div>Proceso / Centro Gestor</div>
+                  <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
+                </th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[120px]">
+                  Banco
+                </th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[100px]">
+                  Estado
+                </th>
+                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[140px]">
+                  Valor Contrato
+                </th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[180px]">
+                  <div>Avance Ejecución</div>
+                  <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Financiero / Físico</div>
+                </th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[200px]">
+                  Observaciones / Alertas
+                </th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[80px]">
+                  Detalle
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {currentItems.map((contrato, index) => {
+                // Buscar datos de reporte más reciente para este contrato
+                const reporteContrato = reportes
+                  .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+                  .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+                
+                return (
+                  <motion.tr
+                    key={contrato.referencia_contrato}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <td className="py-3 px-4 min-w-[300px]">
+                      <div className="space-y-1">
+                        <div className="font-medium text-gray-900 dark:text-white text-sm truncate" 
+                             title={contrato.nombre_resumido_proceso || 'Sin proceso'}>
+                          {contrato.nombre_resumido_proceso || 'Sin proceso'}
                         </div>
-                      </td>
-                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-sm text-gray-700 dark:text-gray-300 w-[80px] sm:w-[100px] ipad-10:w-[110px] md:w-[120px]">
-                        <div className="truncate text-xs" title={contrato.banco || 'No especificado'}>
-                          {contrato.banco || 'N/A'}
+                        <div className="text-xs text-gray-600 dark:text-gray-400 truncate"
+                             title={contrato.nombre_centro_gestor || 'Sin centro gestor'}>
+                          {contrato.nombre_centro_gestor || 'Sin centro gestor'}
                         </div>
-                      </td>
-                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-center w-[70px] sm:w-[90px] ipad-10:w-[95px] md:w-[100px]">
-                        <span className={`px-1 sm:px-2 ipad-10:px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${
-                          contrato.estado_contrato === 'En ejecución' 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                            : contrato.estado_contrato === 'Aprobado'
-                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                            : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                        }`} title={contrato.estado_contrato}>
-                          {contrato.estado_contrato?.substring(0, 10) || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[90px] sm:w-[110px] ipad-10:w-[120px] md:w-[130px]">
-                        <div className="truncate text-xs" title={formatNumber(contrato.valor_contrato, 'currency')}>
-                          {formatNumber(contrato.valor_contrato, 'currency')}
+                        <div className="text-xs text-blue-600 dark:text-blue-400 font-mono truncate"
+                             title={contrato.referencia_contrato || 'Sin referencia'}>
+                          {contrato.referencia_contrato || 'Sin referencia'}
                         </div>
-                      </td>
-                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 w-[120px] sm:w-[140px] ipad-10:w-[150px] md:w-[160px]">
-                        <div className="space-y-2">
-                          {/* Progress bar para Avance Financiero - más compacto */}
-                          <div>
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="text-gray-600 dark:text-gray-400 text-xs">Fin.</span>
-                              <span className="font-medium text-xs">
-                                {reporteContrato?.avance_financiero?.toFixed(1) || '0'}%
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                              <div
-                                className="bg-green-600 h-1.5 rounded-full transition-all duration-300"
-                                style={{
-                                  width: `${Math.min(reporteContrato?.avance_financiero || 0, 100)}%`
-                                }}
-                              />
-                            </div>
-                          </div>
-                          {/* Progress bar para Avance Físico - más compacto */}
-                          <div>
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="text-gray-600 dark:text-gray-400 text-xs">Fís.</span>
-                              <span className="font-medium text-xs">
-                                {reporteContrato?.avance_fisico?.toFixed(1) || '0'}%
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                              <div
-                                className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                                style={{
-                                  width: `${Math.min(reporteContrato?.avance_fisico || 0, 100)}%`
-                                }}
-                              />
-                            </div>
-                          </div>
-                          {reporteContrato?.fecha_reporte && (
-                            <div className="text-xs text-gray-400 text-center truncate">
-                              {new Date(reporteContrato.fecha_reporte).toLocaleDateString('es-CO', { 
-                                month: 'short', 
-                                day: 'numeric' 
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-sm text-gray-600 dark:text-gray-400 w-[120px] sm:w-[160px] ipad-10:w-[180px] md:w-[200px]">
-                        <div className="text-xs break-words overflow-hidden" style={{maxHeight: '3.5rem'}}>
-                          {(() => {
-                            const observaciones = []
-                            
-                            // Revisar si hay retrasos basados en fechas del contrato
-                            const fechaFin = contrato.fecha_fin_contrato ? new Date(contrato.fecha_fin_contrato) : null
-                            if (fechaFin && fechaFin < new Date() && !['Liquidado', 'Terminado', 'Finalizado'].includes(contrato.estado_contrato)) {
-                              observaciones.push('⚠️ Vencido')
-                            }
-                            
-                            // Revisar avance financiero vs físico si hay reportes
-                            if (reporteContrato) {
-                              const avanceFinanciero = reporteContrato.avance_financiero || 0
-                              const avanceFisico = reporteContrato.avance_fisico || 0
-                              
-                              if (avanceFinanciero > avanceFisico + 15) {
-                                observaciones.push('📈 Fin. elevado')
-                              } else if (avanceFisico > avanceFinanciero + 15) {
-                                observaciones.push('📉 Fin. rezagado')
-                              }
-                            }
-                            
-                            // Revisar si está próximo a vencer
-                            if (fechaFin) {
-                              const diasRestantes = Math.ceil((fechaFin.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-                              if (diasRestantes <= 30 && diasRestantes > 0) {
-                                observaciones.push('🔔 Próx. vencer')
-                              }
-                            }
-                            
-                            // Revisar contratos sin supervisión
-                            if (!contrato.supervisor || contrato.supervisor === 'No definido') {
-                              observaciones.push('👤 Sin supervisor')
-                            }
-                            
-                            // Mostrar observaciones del reporte si las hay
-                            if (reporteContrato?.observaciones) {
-                              observaciones.push(`💬 ${reporteContrato.observaciones.substring(0, 30)}...`)
-                            }
-                            
-                            return observaciones.length > 0 ? observaciones.join(' • ') : 'Sin observaciones'
-                          })()}
-                        </div>
-                        {reporteContrato?.alertas?.es_alerta && (
-                          <div className="mt-1">
-                            <span className="inline-flex items-center px-1 sm:px-2 ipad-10:px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
-                              ⚠ Alerta
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-700 dark:text-gray-300 min-w-[120px]">
+                      <div className="truncate" title={contrato.banco || 'No especificado'}>
+                        {contrato.banco || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center min-w-[100px]">
+                      <span className={`px-2 py-1 text-xs rounded-full inline-block truncate ${
+                        contrato.estado_contrato === 'En ejecución' 
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                          : contrato.estado_contrato === 'Aprobado'
+                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                      }`} title={contrato.estado_contrato}>
+                        {contrato.estado_contrato || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-700 dark:text-gray-300 min-w-[140px]">
+                      <div className="truncate" title={formatNumber(contrato.valor_contrato, 'currency')}>
+                        {formatNumber(contrato.valor_contrato, 'currency')}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 min-w-[180px]">
+                      <div className="space-y-2">
+                        {/* Progress bar para Avance Financiero */}
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-gray-600 dark:text-gray-400">Financiero</span>
+                            <span className="font-medium">
+                              {reporteContrato?.avance_financiero?.toFixed(1) || '0'}%
                             </span>
                           </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${Math.min(reporteContrato?.avance_financiero || 0, 100)}%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                        {/* Progress bar para Avance Físico */}
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-gray-600 dark:text-gray-400">Físico</span>
+                            <span className="font-medium">
+                              {reporteContrato?.avance_fisico?.toFixed(1) || '0'}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${Math.min(reporteContrato?.avance_fisico || 0, 100)}%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                        {reporteContrato?.fecha_reporte && (
+                          <div className="text-xs text-gray-400 text-center">
+                            {new Date(reporteContrato.fecha_reporte).toLocaleDateString('es-CO', { 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </div>
                         )}
-                      </td>
-                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-center w-[60px] sm:w-[70px] ipad-10:w-[75px] md:w-[80px]">
-                        <IPadOptimizedButton
-                          onClick={() => handleOpenModal(contrato)}
-                          variant="outline"
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 w-8 h-8 ipad-10:w-10 ipad-10:h-10 border-none bg-transparent hover:border-none focus:ring-blue-500/20"
-                        >
-                          <Eye className="h-4 w-4 ipad-10:h-5 ipad-10:w-5" />
-                        </IPadOptimizedButton>
-                      </td>
-                    </motion.tr>
-                  )
-                })}
-              </tbody>
-            </IPadOptimizedTable>
-          </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 min-w-[200px]">
+                      <div className="text-xs break-words" style={{maxHeight: '4rem', overflow: 'hidden'}}>
+                        {(() => {
+                          const observaciones = []
+                          
+                          // Revisar si hay retrasos basados en fechas del contrato
+                          const fechaFin = contrato.fecha_fin_contrato ? new Date(contrato.fecha_fin_contrato) : null
+                          if (fechaFin && fechaFin < new Date() && !['Liquidado', 'Terminado', 'Finalizado'].includes(contrato.estado_contrato)) {
+                            observaciones.push('⚠️ Vencido')
+                          }
+                          
+                          // Revisar avance financiero vs físico si hay reportes
+                          if (reporteContrato) {
+                            const avanceFinanciero = reporteContrato.avance_financiero || 0
+                            const avanceFisico = reporteContrato.avance_fisico || 0
+                            
+                            if (avanceFinanciero > avanceFisico + 15) {
+                              observaciones.push('📈 Fin. elevado')
+                            } else if (avanceFisico > avanceFinanciero + 15) {
+                              observaciones.push('📉 Fin. rezagado')
+                            }
+                          }
+                          
+                          // Revisar si está próximo a vencer
+                          if (fechaFin) {
+                            const diasRestantes = Math.ceil((fechaFin.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                            if (diasRestantes <= 30 && diasRestantes > 0) {
+                              observaciones.push('🔔 Próx. vencer')
+                            }
+                          }
+                          
+                          // Mostrar observaciones del reporte si las hay
+                          if (reporteContrato?.observaciones) {
+                            observaciones.push(`💬 ${reporteContrato.observaciones.substring(0, 30)}...`)
+                          }
+                          
+                          return observaciones.length > 0 ? observaciones.join(' • ') : 'Sin observaciones'
+                        })()}
+                      </div>
+                      {reporteContrato?.alertas?.es_alerta && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                            ⚠ Alerta
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center min-w-[80px]">
+                      <IPadOptimizedButton
+                        onClick={() => handleOpenModal(contrato)}
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </IPadOptimizedButton>
+                    </td>
+                  </motion.tr>
+                )
+              })}
+            </tbody>
+          </IPadOptimizedTable>
         </div>
 
         {/* Controles de Paginación */}

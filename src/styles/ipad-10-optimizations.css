@@ -207,3 +207,136 @@
     font-size: 16px !important;
   }
 }
+
+/* === OPTIMIZACIONES ADICIONALES PARA GRÁFICOS Y TABLA === */
+
+/* Gráficos y dashboards se adaptan al ancho completo */
+@media (max-width: 834px) {
+  /* Contenedores de gráficos responsive */
+  .chart-container,
+  .dashboard-chart,
+  .graph-wrapper {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: 100% !important;
+    overflow-x: visible !important;
+  }
+  
+  /* Cards y elementos del dashboard adaptativos */
+  .dashboard-card,
+  .metric-card,
+  .summary-card {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: 100% !important;
+  }
+  
+  /* Grid containers responsive */
+  .grid-responsive,
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (min-width: 835px) and (max-width: 1194px) {
+  /* iPad landscape - gráficos adaptativos */
+  .chart-container,
+  .dashboard-chart {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+  
+  .grid-responsive {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    gap: 1.5rem !important;
+  }
+}
+
+/* Tabla con scroll horizontal INDEPENDIENTE del responsive de gráficos */
+.contracts-table-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.contracts-table {
+  min-width: 1200px !important;
+  width: max-content !important;
+  table-layout: auto !important;
+  border-collapse: collapse;
+  background: white;
+}
+
+/* La tabla mantiene su ancho fijo en TODAS las resoluciones */
+@media (max-width: 1400px) {
+  .contracts-table-container {
+    overflow-x: auto;
+  }
+  
+  .contracts-table {
+    min-width: 1200px !important;
+    width: max-content !important;
+  }
+}
+
+/* Indicador visual de scroll horizontal */
+.contracts-table-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.contracts-table-container:hover::after {
+  opacity: 1;
+}
+
+/* Mejoras de UX para scroll horizontal */
+.contracts-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.contracts-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.contracts-table-container::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 4px;
+}
+
+.contracts-table-container::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 4px;
+  border: 2px solid #f7fafc;
+}
+
+.contracts-table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #a0aec0;
+}
+
+/* Clases de utilidad para aplicar responsive */
+.adaptive-width {
+  width: 100% !important;
+  min-width: unset !important;
+  max-width: 100% !important;
+}
+
+.fixed-table-width {
+  min-width: 1200px !important;
+  width: max-content !important;
+  table-layout: auto !important;
+}
