@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import '@/styles/ipad-10-optimizations.css';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { DashboardProvider } from '@/context/DashboardContext';
 import { AuthProvider } from '@/context/AuthContext';

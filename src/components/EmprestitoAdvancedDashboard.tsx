@@ -22,6 +22,8 @@ import {
 } from 'lucide-react'
 import { CATEGORIES, formatNumber, CHART_COLORS } from '@/lib/design-system'
 import ContratosModal from './ContratosModal'
+import { IPadOptimizedContainer, IPadOptimizedTable, IPadOptimizedButton } from './IPadOptimizedContainer'
+import { useIPadClasses } from '@/hooks/useIPadDetection'
 
 // Tipos para los reportes de contratos (usar la estructura existente)
 interface ReporteContratoTS extends ReporteEmprestito {
@@ -243,7 +245,7 @@ const TimeSeriesChart: React.FC<{ reportes: ReporteEmprestito[], contratos: Cont
       </div>
       
       {/* Controles de filtrado */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <IPadOptimizedContainer type="grid" cols={3} className="gap-4 mb-6">
         {/* Selector de tipo de vista */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -299,7 +301,7 @@ const TimeSeriesChart: React.FC<{ reportes: ReporteEmprestito[], contratos: Cont
             ))}
           </select>
         </div>
-      </div>
+      </IPadOptimizedContainer>
       
       {/* Gráfico de líneas */}
       <div className="h-80 relative">
@@ -1719,6 +1721,9 @@ const AdvancedFilters: React.FC<{
 const EmprestitoAdvancedDashboard: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false)
   
+  // Hook para optimizaciones de iPad
+  const { deviceInfo, getResponsiveClasses, getGridClasses, getTableClasses, getTouchTargetClasses } = useIPadClasses()
+  
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(15)
@@ -1883,7 +1888,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   return (
     <div className="flex relative max-w-full overflow-hidden">
       {/* Contenido principal */}
-      <div className="flex-1 space-y-3 sm:space-y-4 p-2 sm:p-4 lg:p-6" style={{ marginRight: showFilters ? '280px' : '0' }}>
+      <div className="flex-1 space-y-3 sm:space-y-4 ipad-10:space-y-4 p-2 sm:p-4 ipad-10:p-4 lg:p-6" style={{ marginRight: showFilters ? '280px' : '0' }}>
         {/* Título del Dashboard */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -1898,32 +1903,32 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 lg:p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 ipad-10:p-5 lg:p-6"
       >
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+        <h3 className="text-lg sm:text-xl ipad-10:text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 ipad-10:mb-4 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 ipad-10:w-6 ipad-10:h-6 text-blue-600" />
           Resumen Ejecutivo
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
-          <div className="text-center p-2 sm:p-3 lg:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400">Contratos Totales</p>
-            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-700 dark:text-blue-300">{formatNumber(totalContratos)}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 ipad-10:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 ipad-10:gap-4 lg:gap-4">
+          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <p className="text-xs sm:text-sm ipad-10:text-sm text-blue-600 dark:text-blue-400">Contratos Totales</p>
+            <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-blue-700 dark:text-blue-300">{formatNumber(totalContratos)}</p>
           </div>
-          <div className="text-center p-2 sm:p-3 lg:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">Valor Total Contratos</p>
-            <p className="text-sm sm:text-base lg:text-lg font-bold text-green-700 dark:text-green-300">{formatNumber(valorTotalAsignado, 'currency')}</p>
+          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <p className="text-xs sm:text-sm ipad-10:text-sm text-green-600 dark:text-green-400">Valor Total Contratos</p>
+            <p className="text-sm sm:text-base ipad-10:text-lg lg:text-lg font-bold text-green-700 dark:text-green-300">{formatNumber(valorTotalAsignado, 'currency')}</p>
           </div>
-          <div className="text-center p-2 sm:p-3 lg:p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400">Valor Asignado Bancos</p>
-            <p className="text-sm sm:text-base lg:text-lg font-bold text-orange-700 dark:text-orange-300">{formatNumber(valorTotalAsignadoBanco, 'currency')}</p>
+          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+            <p className="text-xs sm:text-sm ipad-10:text-sm text-orange-600 dark:text-orange-400">Valor Asignado Bancos</p>
+            <p className="text-sm sm:text-base ipad-10:text-lg lg:text-lg font-bold text-orange-700 dark:text-orange-300">{formatNumber(valorTotalAsignadoBanco, 'currency')}</p>
           </div>
-          <div className="text-center p-2 sm:p-3 lg:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400">Bancos Activos</p>
-            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-700 dark:text-purple-300">{analysisByBank.length}</p>
+          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+            <p className="text-xs sm:text-sm ipad-10:text-sm text-purple-600 dark:text-purple-400">Bancos Activos</p>
+            <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-purple-700 dark:text-purple-300">{analysisByBank.length}</p>
           </div>
-          <div className="text-center p-2 sm:p-3 lg:p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm text-teal-600 dark:text-teal-400">Centros Gestores</p>
-            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-teal-700 dark:text-teal-300">{analysisByCentroGestor.length}</p>
+          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg">
+            <p className="text-xs sm:text-sm ipad-10:text-sm text-teal-600 dark:text-teal-400">Centros Gestores</p>
+            <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-teal-700 dark:text-teal-300">{analysisByCentroGestor.length}</p>
           </div>
         </div>
       </motion.div>
@@ -1955,7 +1960,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       </motion.div>
 
       {/* Métricas de Ejecución - Tres componentes en fila */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-[450px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 ipad-10:grid-cols-3 lg:grid-cols-3 gap-4 ipad-10:gap-6 h-[450px]">
         {/* Ejecución Física */}
         <div className="min-w-0 h-full">
           <GaugeChart
@@ -2022,40 +2027,43 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 Actualizando...
               </div>
             )}
-            <button className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors">
+            <IPadOptimizedButton 
+              variant="primary" 
+              className="bg-teal-600 hover:bg-teal-700 focus:ring-teal-500"
+            >
               <Download className="w-4 h-4" />
               Exportar
-            </button>
+            </IPadOptimizedButton>
           </div>
         </div>
 
         {/* Tabla Responsiva Mejorada */}
-        <div className="overflow-x-auto -mx-2 sm:-mx-4 lg:-mx-6 px-2 sm:px-4 lg:px-6">
+        <div className="overflow-x-auto -mx-2 sm:-mx-4 ipad-10:-mx-6 lg:-mx-6 px-2 sm:px-4 ipad-10:px-6 lg:px-6">
           <div className="min-w-full inline-block align-middle">
-            <table className="w-full min-w-[700px] sm:min-w-[900px] md:min-w-[1000px] lg:min-w-[1200px] table-fixed">
+            <IPadOptimizedTable className={`${getTableClasses()} table-fixed`}>
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm w-[200px] sm:w-[250px] md:w-[300px]">
+                  <th className="text-left py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[200px] sm:w-[250px] ipad-10:w-[280px] md:w-[300px]">
                     <div>Proceso / Centro Gestor</div>
                     <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
                   </th>
-                  <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm w-[80px] sm:w-[100px] md:w-[120px]">
+                  <th className="text-left py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[80px] sm:w-[100px] ipad-10:w-[110px] md:w-[120px]">
                     Banco
                   </th>
-                  <th className="text-center py-2 sm:py-3 px-1 sm:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm w-[70px] sm:w-[90px] md:w-[100px]">
+                  <th className="text-center py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[70px] sm:w-[90px] ipad-10:w-[95px] md:w-[100px]">
                     Estado
                   </th>
-                  <th className="text-right py-2 sm:py-3 px-1 sm:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm w-[90px] sm:w-[110px] md:w-[130px]">
+                  <th className="text-right py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[90px] sm:w-[110px] ipad-10:w-[120px] md:w-[130px]">
                     Valor Contrato
                   </th>
-                  <th className="text-center py-2 sm:py-3 px-1 sm:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm w-[120px] sm:w-[140px] md:w-[160px]">
+                  <th className="text-center py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[120px] sm:w-[140px] ipad-10:w-[150px] md:w-[160px]">
                     <div>Avance Ejecución</div>
                     <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Financiero / Físico</div>
                   </th>
-                  <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm w-[120px] sm:w-[160px] md:w-[200px]">
+                  <th className="text-left py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[120px] sm:w-[160px] ipad-10:w-[180px] md:w-[200px]">
                     Observaciones / Alertas
                   </th>
-                  <th className="text-center py-2 sm:py-3 px-1 sm:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm w-[60px] sm:w-[70px] md:w-[80px]">
+                  <th className="text-center py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm ipad-10:text-sm w-[60px] sm:w-[70px] ipad-10:w-[75px] md:w-[80px]">
                     Detalle
                   </th>
                 </tr>
@@ -2075,7 +2083,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       transition={{ delay: index * 0.05 }}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <td className="py-2 sm:py-3 px-1 sm:px-2 text-sm w-[200px] sm:w-[250px] md:w-[300px]">
+                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-sm w-[200px] sm:w-[250px] ipad-10:w-[280px] md:w-[300px]">
                         <div className="space-y-1 overflow-hidden">
                           <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight truncate" 
                                title={contrato.nombre_resumido_proceso || 'Sin proceso'}>
@@ -2091,13 +2099,13 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="py-2 sm:py-3 px-1 sm:px-2 text-sm text-gray-700 dark:text-gray-300 w-[80px] sm:w-[100px] md:w-[120px]">
+                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-sm text-gray-700 dark:text-gray-300 w-[80px] sm:w-[100px] ipad-10:w-[110px] md:w-[120px]">
                         <div className="truncate text-xs" title={contrato.banco || 'No especificado'}>
                           {contrato.banco || 'N/A'}
                         </div>
                       </td>
-                      <td className="py-2 sm:py-3 px-1 sm:px-2 text-center w-[70px] sm:w-[90px] md:w-[100px]">
-                        <span className={`px-1 sm:px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${
+                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-center w-[70px] sm:w-[90px] ipad-10:w-[95px] md:w-[100px]">
+                        <span className={`px-1 sm:px-2 ipad-10:px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${
                           contrato.estado_contrato === 'En ejecución' 
                             ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                             : contrato.estado_contrato === 'Aprobado'
@@ -2107,12 +2115,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           {contrato.estado_contrato?.substring(0, 10) || 'N/A'}
                         </span>
                       </td>
-                      <td className="py-2 sm:py-3 px-1 sm:px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[90px] sm:w-[110px] md:w-[130px]">
+                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[90px] sm:w-[110px] ipad-10:w-[120px] md:w-[130px]">
                         <div className="truncate text-xs" title={formatNumber(contrato.valor_contrato, 'currency')}>
                           {formatNumber(contrato.valor_contrato, 'currency')}
                         </div>
                       </td>
-                      <td className="py-2 sm:py-3 px-1 sm:px-2 w-[120px] sm:w-[140px] md:w-[160px]">
+                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 w-[120px] sm:w-[140px] ipad-10:w-[150px] md:w-[160px]">
                         <div className="space-y-2">
                           {/* Progress bar para Avance Financiero - más compacto */}
                           <div>
@@ -2158,7 +2166,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="py-2 sm:py-3 px-1 sm:px-2 text-sm text-gray-600 dark:text-gray-400 w-[120px] sm:w-[160px] md:w-[200px]">
+                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-sm text-gray-600 dark:text-gray-400 w-[120px] sm:w-[160px] ipad-10:w-[180px] md:w-[200px]">
                         <div className="text-xs break-words overflow-hidden" style={{maxHeight: '3.5rem'}}>
                           {(() => {
                             const observaciones = []
@@ -2204,26 +2212,27 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         </div>
                         {reporteContrato?.alertas?.es_alerta && (
                           <div className="mt-1">
-                            <span className="inline-flex items-center px-1 sm:px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                            <span className="inline-flex items-center px-1 sm:px-2 ipad-10:px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
                               ⚠ Alerta
                             </span>
                           </div>
                         )}
                       </td>
-                      <td className="py-2 sm:py-3 px-1 sm:px-2 text-center w-[60px] sm:w-[70px] md:w-[80px]">
-                        <button
+                      <td className="py-2 sm:py-3 ipad-10:py-3 px-1 sm:px-2 ipad-10:px-2 text-center w-[60px] sm:w-[70px] ipad-10:w-[75px] md:w-[80px]">
+                        <IPadOptimizedButton
                           onClick={() => handleOpenModal(contrato)}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"
-                          title="Ver detalles del contrato"
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 w-8 h-8 ipad-10:w-10 ipad-10:h-10 border-none bg-transparent hover:border-none focus:ring-blue-500/20"
                         >
-                          <Eye className="h-4 w-4" />
-                        </button>
+                          <Eye className="h-4 w-4 ipad-10:h-5 ipad-10:w-5" />
+                        </IPadOptimizedButton>
                       </td>
                     </motion.tr>
                   )
                 })}
               </tbody>
-            </table>
+            </IPadOptimizedTable>
           </div>
         </div>
 
@@ -2345,15 +2354,15 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       {/* Botón flotante fijo para filtros - siempre visible */}
       <motion.button
         onClick={() => setShowFilters(!showFilters)}
-        className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-all duration-200 shadow-2xl transform hover:scale-110 active:scale-95"
+        className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 ipad-10:px-5 ipad-10:py-4 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-all duration-200 shadow-2xl transform hover:scale-110 active:scale-95 touch-target"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 1 }}
       >
-        <Filter className="w-5 h-5" />
-        <span className="hidden md:inline font-medium">
+        <Filter className="w-5 h-5 ipad-10:w-6 ipad-10:h-6" />
+        <span className="hidden md:inline ipad-10:inline font-medium text-sm ipad-10:text-base">
           {showFilters ? 'Cerrar' : 'Filtros'}
         </span>
       </motion.button>
@@ -2368,7 +2377,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
             transition={{ duration: 0.3 }}
             className="fixed right-0 top-0 h-full w-72 bg-white dark:bg-gray-800 shadow-2xl z-[60] overflow-y-auto"
           >
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-6 ipad-10:p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <Filter className="w-5 h-5 text-teal-600" />

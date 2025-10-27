@@ -18,6 +18,13 @@ module.exports = {
       // Breakpoints específicos para tablets
       tablet: "768px",
       "tablet-lg": "1024px",
+      // iPad 10ª generación específico (834x1194 en CSS pixels)
+      "ipad-10-portrait": {
+        raw: "(min-width: 810px) and (max-width: 860px) and (orientation: portrait)",
+      },
+      "ipad-10-landscape": {
+        raw: "(min-width: 1170px) and (max-width: 1220px) and (orientation: landscape)",
+      },
       // iPad específico (768x1024 y 1024x768)
       "ipad-portrait": {
         raw: "(min-width: 768px) and (max-width: 1024px) and (orientation: portrait)",
@@ -32,6 +39,9 @@ module.exports = {
       "ipad-pro-landscape": {
         raw: "(min-width: 1024px) and (max-width: 1500px) and (orientation: landscape)",
       },
+      // Rango específico para iPad 10ª gen en CSS pixels
+      "ipad-10": "834px",
+      "ipad-10-max": "1194px",
       // Touch device detection
       touch: { raw: "(hover: none) and (pointer: coarse)" },
       "no-touch": { raw: "(hover: hover) and (pointer: fine)" },

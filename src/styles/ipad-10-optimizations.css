@@ -1,0 +1,209 @@
+/* Optimizaciones específicas para iPad de 10ª generación */
+/* Resolución: 2360x1640 pixels, CSS: ~834x1194px */
+
+/* Media query específica para iPad 10ª generación */
+@media only screen 
+  and (min-device-width: 820px) 
+  and (max-device-width: 850px) 
+  and (-webkit-min-device-pixel-ratio: 2.5) {
+  
+  /* Contenedor principal optimizado */
+  .ipad-10-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: 100%;
+  }
+  
+  /* Ajustes para tablas */
+  .ipad-10-table {
+    width: 100%;
+    min-width: 800px;
+    font-size: 0.875rem;
+  }
+  
+  .ipad-10-table th,
+  .ipad-10-table td {
+    padding: 0.75rem 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Optimizaciones de grid para iPad 10 */
+  .ipad-10-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  .ipad-10-grid-5 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  /* Elementos táctiles optimizados */
+  .ipad-10-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+  }
+  
+  /* Texto optimizado para PPI */
+  .ipad-10-text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  
+  .ipad-10-text-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  
+  .ipad-10-text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  
+  /* Botones específicos para iPad 10 */
+  .ipad-10-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    border-radius: 0.5rem;
+    min-height: 44px;
+    transition: all 0.2s ease;
+  }
+  
+  .ipad-10-btn:hover {
+    transform: scale(1.02);
+  }
+  
+  .ipad-10-btn:active {
+    transform: scale(0.98);
+  }
+  
+  /* Cards optimizadas */
+  .ipad-10-card {
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .ipad-10-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Espaciado específico */
+  .ipad-10-spacing {
+    padding: 1rem;
+    margin: 0.75rem 0;
+  }
+  
+  /* Panel lateral optimizado */
+  .ipad-10-sidebar {
+    width: 280px;
+    padding: 1.5rem;
+  }
+  
+  /* Scrolling optimizado */
+  .ipad-10-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Progress bars optimizadas */
+  .ipad-10-progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #e5e7eb;
+  }
+  
+  .ipad-10-progress-bar {
+    height: 100%;
+    border-radius: 0.25rem;
+    transition: width 0.3s ease;
+  }
+}
+
+/* Media query para iPad 10 en landscape */
+@media only screen 
+  and (min-device-width: 1170px) 
+  and (max-device-width: 1220px) 
+  and (-webkit-min-device-pixel-ratio: 2.5) 
+  and (orientation: landscape) {
+  
+  /* Aprovechar mejor el ancho en landscape */
+  .ipad-10-landscape-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  .ipad-10-landscape-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .ipad-10-landscape-table {
+    min-width: 1100px;
+  }
+  
+  /* Sidebar más ancha en landscape */
+  .ipad-10-landscape-sidebar {
+    width: 320px;
+  }
+}
+
+/* Utilidades para detección de iPad 10 */
+@supports (-webkit-appearance: none) {
+  @media (min-width: 834px) and (max-width: 834px) {
+    .ipad-10-specific {
+      /* Estilos específicos solo para iPad 10 portrait */
+      font-size: 1rem;
+    }
+  }
+  
+  @media (min-width: 1194px) and (max-width: 1194px) {
+    .ipad-10-landscape-specific {
+      /* Estilos específicos solo para iPad 10 landscape */
+      font-size: 1.125rem;
+    }
+  }
+}
+
+/* Mejoras de accesibilidad táctil */
+.touch-friendly {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+/* Animaciones optimizadas para tablets */
+@media (hover: none) and (pointer: coarse) {
+  .hover-optimized:hover {
+    transform: none;
+  }
+  
+  .hover-optimized:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Corrección de zoom en inputs */
+@media screen and (max-device-width: 1024px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
