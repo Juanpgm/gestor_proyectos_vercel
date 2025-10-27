@@ -1937,7 +1937,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         <BankBarChart 
           data={analysisByBankForChart}
           title="Análisis Financiero por Banco"
-          maxItems={8}
+          maxItems={6}
         />
       </motion.div>
 
@@ -1955,7 +1955,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       </motion.div>
 
       {/* Métricas de Ejecución - Tres componentes en fila */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[450px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-[450px]">
         {/* Ejecución Física */}
         <div className="min-w-0 h-full">
           <GaugeChart
@@ -2032,30 +2032,30 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         {/* Tabla Responsiva Mejorada */}
         <div className="overflow-x-auto -mx-6 px-6">
           <div className="min-w-full inline-block align-middle">
-            <table className="w-full min-w-[1200px] table-fixed">
+            <table className="w-full min-w-[900px] md:min-w-[1100px] lg:min-w-[1200px] table-fixed">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[300px]">
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[250px] md:w-[300px]">
                     <div>Proceso / Centro Gestor</div>
                     <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
                   </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px] md:w-[120px]">
                     Banco
                   </th>
-                  <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
+                  <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[90px] md:w-[100px]">
                     Estado
                   </th>
-                  <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[130px]">
+                  <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[110px] md:w-[130px]">
                     Valor Contrato
                   </th>
-                  <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[160px]">
+                  <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[140px] md:w-[160px]">
                     <div>Avance Ejecución</div>
                     <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Financiero / Físico</div>
                   </th>
-                  <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[200px]">
+                  <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[160px] md:w-[200px]">
                     Observaciones / Alertas
                   </th>
-                  <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[80px]">
+                  <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[70px] md:w-[80px]">
                     Detalle
                   </th>
                 </tr>
@@ -2075,7 +2075,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       transition={{ delay: index * 0.05 }}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <td className="py-3 px-2 text-sm w-[300px]">
+                      <td className="py-3 px-2 text-sm w-[250px] md:w-[300px]">
                         <div className="space-y-1 overflow-hidden">
                           <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight truncate" 
                                title={contrato.nombre_resumido_proceso || 'Sin proceso'}>
@@ -2091,12 +2091,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-2 text-sm text-gray-700 dark:text-gray-300 w-[120px]">
+                      <td className="py-3 px-2 text-sm text-gray-700 dark:text-gray-300 w-[100px] md:w-[120px]">
                         <div className="truncate text-xs" title={contrato.banco || 'No especificado'}>
                           {contrato.banco || 'N/A'}
                         </div>
                       </td>
-                      <td className="py-3 px-2 text-center w-[100px]">
+                      <td className="py-3 px-2 text-center w-[90px] md:w-[100px]">
                         <span className={`px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${
                           contrato.estado_contrato === 'En ejecución' 
                             ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
@@ -2107,12 +2107,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           {contrato.estado_contrato?.substring(0, 12) || 'N/A'}
                         </span>
                       </td>
-                      <td className="py-3 px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[130px]">
+                      <td className="py-3 px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[110px] md:w-[130px]">
                         <div className="truncate text-xs" title={formatNumber(contrato.valor_contrato, 'currency')}>
                           {formatNumber(contrato.valor_contrato, 'currency')}
                         </div>
                       </td>
-                      <td className="py-3 px-2 w-[160px]">
+                      <td className="py-3 px-2 w-[140px] md:w-[160px]">
                         <div className="space-y-2">
                           {/* Progress bar para Avance Financiero - más compacto */}
                           <div>
@@ -2158,7 +2158,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-2 text-sm text-gray-600 dark:text-gray-400 w-[200px]">
+                      <td className="py-3 px-2 text-sm text-gray-600 dark:text-gray-400 w-[160px] md:w-[200px]">
                         <div className="text-xs break-words overflow-hidden" style={{maxHeight: '4rem'}}>
                           {(() => {
                             const observaciones = []
@@ -2215,7 +2215,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-2 text-center w-[80px]">
+                      <td className="py-3 px-2 text-center w-[70px] md:w-[80px]">
                         <button
                           onClick={() => handleOpenModal(contrato)}
                           className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"

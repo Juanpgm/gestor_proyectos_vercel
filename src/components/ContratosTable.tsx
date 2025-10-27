@@ -387,7 +387,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
 
       {/* Tabla */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[800px] md:min-w-[1000px] lg:min-w-[1200px]">
           <thead className="bg-gray-50 dark:bg-gray-900/50">
             <tr>
               <th className="px-4 py-3 text-left">
@@ -401,7 +401,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-left min-w-[200px] md:min-w-[250px]">
                 <button
                   onClick={() => handleSort('proveedor_adjudicado')}
                   className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
@@ -412,7 +412,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-left min-w-[120px] md:min-w-[140px]">
                 <button
                   onClick={() => handleSort('valor_contrato')}
                   className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
@@ -423,7 +423,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-left min-w-[100px] md:min-w-[120px]">
                 <button
                   onClick={() => handleSort('estado_contrato')}
                   className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
@@ -434,7 +434,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-left min-w-[120px] md:min-w-[140px]">
                 <button
                   onClick={() => handleSort('fecha_firma')}
                   className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
