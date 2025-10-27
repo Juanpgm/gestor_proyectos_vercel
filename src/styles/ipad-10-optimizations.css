@@ -260,9 +260,7 @@
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .contracts-table {
@@ -271,6 +269,8 @@
   table-layout: auto !important;
   border-collapse: collapse;
   background: white;
+  margin: 0;
+  border-spacing: 0;
 }
 
 /* La tabla mantiene su ancho fijo en TODAS las resoluciones */
@@ -417,10 +417,162 @@
   width: 100% !important;
   min-width: unset !important;
   max-width: 100% !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
 }
 
 .fixed-table-width {
   min-width: 1200px !important;
   width: max-content !important;
   table-layout: auto !important;
+}
+
+/* Prevenir cortes de contenido en todos los contenedores */
+.dashboard-container {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* Asegurar que los gráficos se adapten correctamente */
+.chart-responsive,
+.dashboard-chart,
+.metric-container {
+  width: 100% !important;
+  min-width: unset !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* Contenedor principal del empréstito */
+.emprestito-dashboard {
+  width: 100%;
+  min-width: 0;
+  overflow-x: visible;
+  overflow-y: visible;
+  box-sizing: border-box;
+}
+
+/* Grid responsivo mejorado */
+.grid-container-responsive {
+  display: grid;
+  width: 100%;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .grid-container-responsive {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .grid-container-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .grid-container-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* === CORRECCIÓN GLOBAL PARA PREVENIR CORTES === */
+
+/* Asegurar que todos los contenedores principales respeten el viewport */
+.emprestito-dashboard-main {
+  width: 100vw;
+  max-width: calc(100vw - 2rem);
+  box-sizing: border-box;
+  overflow-x: visible;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Corregir padding y márgenes que pueden causar overflow */
+@media (max-width: 1200px) {
+  .dashboard-container,
+  .main-content,
+  .emprestito-section {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  
+  /* Cards y contenedores */
+  .bg-white,
+  .dark\:bg-gray-800,
+  .rounded-xl {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+  
+  /* Grids responsivos */
+  .grid {
+    width: 100% !important;
+    box-sizing: border-box;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Tabla: mantener scroll horizontal pero sin cortar otros elementos */
+.table-section {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible; /* Solo la tabla interna tiene scroll */
+}
+
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 0.5rem;
+  background: white;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* Contiene el scroll interno */
+}
+
+/* Corrección específica para tablets */
+@media (max-width: 1024px) {
+  /* Reducir padding en dispositivos medianos */
+  .space-y-3 > * + *,
+  .space-y-4 > * + * {
+    margin-top: 0.75rem !important;
+  }
+  
+  /* Asegurar que las métricas se vean completas */
+  .metric-cards,
+  .execution-metrics {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  
+  /* Grid de métricas responsive */
+  .execution-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+  
+  @media (min-width: 640px) {
+    .execution-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .execution-grid {
+      grid-template-columns: repeat(3, 1fr) !important;
+    }
+  }
 }

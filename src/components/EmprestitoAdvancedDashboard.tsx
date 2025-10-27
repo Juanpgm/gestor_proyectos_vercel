@@ -1882,9 +1882,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex relative max-w-full overflow-hidden">
+    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Contenido principal */}
-      <div className="flex-1 space-y-3 sm:space-y-4 ipad-10:space-y-4 p-2 sm:p-4 ipad-10:p-4 lg:p-6" style={{ marginRight: showFilters ? '280px' : '0' }}>
+      <div className="w-full space-y-3 sm:space-y-4 ipad-10:space-y-4 p-2 sm:p-4 ipad-10:p-4 lg:p-6" style={{ 
+        marginRight: showFilters ? (deviceInfo.isIpad10 ? '320px' : '280px') : '0',
+        transition: 'margin-right 0.3s ease'
+      }}>
         {/* Título del Dashboard */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -1896,103 +1899,111 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
 
 
       {/* Resumen Ejecutivo */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 ipad-10:p-5 lg:p-6"
-      >
-        <h3 className="text-lg sm:text-xl ipad-10:text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 ipad-10:mb-4 flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 ipad-10:w-6 ipad-10:h-6 text-blue-600" />
-          Resumen Ejecutivo
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 ipad-10:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 ipad-10:gap-4 lg:gap-4">
-          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm ipad-10:text-sm text-blue-600 dark:text-blue-400">Contratos Totales</p>
-            <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-blue-700 dark:text-blue-300">{formatNumber(totalContratos)}</p>
+      <div className="w-full overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 sm:p-4 ipad-10:p-5 lg:p-6 adaptive-width"
+        >
+          <h3 className="text-lg sm:text-xl ipad-10:text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4 ipad-10:mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 ipad-10:w-6 ipad-10:h-6 text-blue-600" />
+            Resumen Ejecutivo
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 ipad-10:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 ipad-10:gap-4 lg:gap-4 w-full">
+            <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg min-w-0">
+              <p className="text-xs sm:text-sm ipad-10:text-sm text-blue-600 dark:text-blue-400 truncate">Contratos Totales</p>
+              <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-blue-700 dark:text-blue-300">{formatNumber(totalContratos)}</p>
+            </div>
+            <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg min-w-0">
+              <p className="text-xs sm:text-sm ipad-10:text-sm text-green-600 dark:text-green-400 truncate">Valor Total Contratos</p>
+              <p className="text-sm sm:text-base ipad-10:text-lg lg:text-lg font-bold text-green-700 dark:text-green-300 truncate">{formatNumber(valorTotalAsignado, 'currency')}</p>
+            </div>
+            <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg min-w-0">
+              <p className="text-xs sm:text-sm ipad-10:text-sm text-orange-600 dark:text-orange-400 truncate">Valor Asignado Bancos</p>
+              <p className="text-sm sm:text-base ipad-10:text-lg lg:text-lg font-bold text-orange-700 dark:text-orange-300 truncate">{formatNumber(valorTotalAsignadoBanco, 'currency')}</p>
+            </div>
+            <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg min-w-0">
+              <p className="text-xs sm:text-sm ipad-10:text-sm text-purple-600 dark:text-purple-400 truncate">Bancos Activos</p>
+              <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-purple-700 dark:text-purple-300">{analysisByBank.length}</p>
+            </div>
+            <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg min-w-0">
+              <p className="text-xs sm:text-sm ipad-10:text-sm text-teal-600 dark:text-teal-400 truncate">Centros Gestores</p>
+              <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-teal-700 dark:text-teal-300">{analysisByCentroGestor.length}</p>
+            </div>
           </div>
-          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm ipad-10:text-sm text-green-600 dark:text-green-400">Valor Total Contratos</p>
-            <p className="text-sm sm:text-base ipad-10:text-lg lg:text-lg font-bold text-green-700 dark:text-green-300">{formatNumber(valorTotalAsignado, 'currency')}</p>
-          </div>
-          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm ipad-10:text-sm text-orange-600 dark:text-orange-400">Valor Asignado Bancos</p>
-            <p className="text-sm sm:text-base ipad-10:text-lg lg:text-lg font-bold text-orange-700 dark:text-orange-300">{formatNumber(valorTotalAsignadoBanco, 'currency')}</p>
-          </div>
-          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm ipad-10:text-sm text-purple-600 dark:text-purple-400">Bancos Activos</p>
-            <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-purple-700 dark:text-purple-300">{analysisByBank.length}</p>
-          </div>
-          <div className="text-center p-2 sm:p-3 ipad-10:p-4 lg:p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg">
-            <p className="text-xs sm:text-sm ipad-10:text-sm text-teal-600 dark:text-teal-400">Centros Gestores</p>
-            <p className="text-lg sm:text-xl ipad-10:text-2xl lg:text-2xl font-bold text-teal-700 dark:text-teal-300">{analysisByCentroGestor.length}</p>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Análisis Financiero por Banco - Ancho Completo */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full"
-      >
-        <BankBarChart 
-          data={analysisByBankForChart}
-          title="Análisis Financiero por Banco"
-          maxItems={6}
-        />
-      </motion.div>
+      <div className="w-full overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full adaptive-width"
+        >
+          <BankBarChart 
+            data={analysisByBankForChart}
+            title="Análisis Financiero por Banco"
+            maxItems={6}
+          />
+        </motion.div>
+      </div>
 
       {/* Análisis Financiero por Centro Gestor - Ancho Completo */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full"
-      >
-        <CentroGestorBarChart 
-          data={analysisByCentroGestor}
-          title="Análisis Financiero por Centro Gestor"
-          maxItems={6}
-        />
-      </motion.div>
+      <div className="w-full overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full adaptive-width"
+        >
+          <CentroGestorBarChart 
+            data={analysisByCentroGestor}
+            title="Análisis Financiero por Centro Gestor"
+            maxItems={6}
+          />
+        </motion.div>
+      </div>
 
       {/* Métricas de Ejecución - Tres componentes en fila */}
-      <div className="grid grid-cols-1 md:grid-cols-2 ipad-10:grid-cols-3 lg:grid-cols-3 gap-4 ipad-10:gap-6 h-[450px]">
-        {/* Ejecución Física */}
-        <div className="min-w-0 h-full">
-          <GaugeChart
-            title="Ejecución Física"
-            description="Progreso físico de los contratos a la fecha"
-            percentage={porcentajeFisicoPromedio}
-            value={valorTotalFisico}
-            total={valorTotalAsignado}
-            color="text-blue-500"
-            icon={<Activity className="w-6 h-6 text-blue-600" />}
-            showMonetaryValues={false}
-          />
-        </div>
+      <div className="w-full overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 ipad-10:grid-cols-3 lg:grid-cols-3 gap-4 ipad-10:gap-6 h-[450px] adaptive-width">
+          {/* Ejecución Física */}
+          <div className="min-w-0 h-full">
+            <GaugeChart
+              title="Ejecución Física"
+              description="Progreso físico de los contratos a la fecha"
+              percentage={porcentajeFisicoPromedio}
+              value={valorTotalFisico}
+              total={valorTotalAsignado}
+              color="text-blue-500"
+              icon={<Activity className="w-6 h-6 text-blue-600" />}
+              showMonetaryValues={false}
+            />
+          </div>
 
-        {/* Ejecución Financiera */}
-        <div className="min-w-0 h-full">
-          <GaugeChart
-            title="Ejecución Financiera"
-            percentage={porcentajeFinancieroPromedio}
-            value={valorTotalEjecutado}
-            total={valorTotalAsignado}
-            color="text-green-500"
-            icon={<TrendingUp className="w-6 h-6 text-green-600" />}
-          />
-        </div>
+          {/* Ejecución Financiera */}
+          <div className="min-w-0 h-full">
+            <GaugeChart
+              title="Ejecución Financiera"
+              percentage={porcentajeFinancieroPromedio}
+              value={valorTotalEjecutado}
+              total={valorTotalAsignado}
+              color="text-green-500"
+              icon={<TrendingUp className="w-6 h-6 text-green-600" />}
+            />
+          </div>
 
-        {/* Pagos Realizados */}
-        <div className="min-w-0 h-full">
-          <GaugeChart
-            title="Pagos Realizados"
-            percentage={porcentajeFinancieroPromedio}
-            value={valorTotalPagado}
-            total={valorTotalAsignado}
-            color="text-purple-500"
-            icon={<DollarSign className="w-6 h-6 text-purple-600" />}
-          />
+          {/* Pagos Realizados */}
+          <div className="min-w-0 h-full">
+            <GaugeChart
+              title="Pagos Realizados"
+              percentage={porcentajeFinancieroPromedio}
+              value={valorTotalPagado}
+              total={valorTotalAsignado}
+              color="text-purple-500"
+              icon={<DollarSign className="w-6 h-6 text-purple-600" />}
+            />
+          </div>
         </div>
       </div>
 
@@ -2034,8 +2045,9 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         </div>
 
         {/* Tabla Responsiva Mejorada - Scrolleable Horizontalmente */}
-        <div className={`contracts-table-container ${deviceInfo.isIpad10 ? 'ipad-10-scroll' : ''}`}>
-          <IPadOptimizedTable className={`contracts-table ${deviceInfo.isIpad10 ? 'ipad-10-table' : ''}`}>
+        <div className="w-full overflow-x-auto overflow-y-visible bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className={`contracts-table-container ${deviceInfo.isIpad10 ? 'ipad-10-scroll' : ''}`}>
+            <IPadOptimizedTable className={`contracts-table ${deviceInfo.isIpad10 ? 'ipad-10-table' : ''}`}>
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[300px]">
@@ -2223,6 +2235,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               })}
             </tbody>
           </IPadOptimizedTable>
+        </div>
         </div>
 
         {/* Controles de Paginación */}
