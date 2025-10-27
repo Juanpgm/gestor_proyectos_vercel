@@ -481,6 +481,109 @@
   }
 }
 
+/* === SIDEBAR DE FILTROS NO MODAL === */
+
+/* Botón flotante que se mueve con el sidebar */
+.filter-button-floating {
+  z-index: 52 !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease-in-out !important;
+}
+
+.filter-button-floating:hover {
+  transform: scale(1.05) !important;
+}
+
+.filter-button-floating:active {
+  transform: scale(0.95) !important;
+}
+
+/* Sidebar de filtros */
+.filters-sidebar {
+  z-index: 50 !important;
+  pointer-events: auto !important;
+  transition: all 0.3s ease-in-out !important;
+  backdrop-filter: blur(10px);
+}
+
+.filters-sidebar.open {
+  box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Contenido principal que se ajusta */
+.main-content-with-sidebar {
+  transition: margin-right 0.3s ease-in-out !important;
+}
+
+/* Mejoras para el contenido del sidebar */
+.filter-controls {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.filter-controls::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-controls::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 3px;
+}
+
+.filter-controls::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 3px;
+}
+
+.filter-controls::-webkit-scrollbar-thumb:hover {
+  background-color: #a0aec0;
+}
+
+/* Animación del icono de filtros */
+.filter-icon-rotate {
+  transition: transform 0.3s ease-in-out !important;
+}
+
+/* Estados del botón según el sidebar */
+.filter-button-active {
+  background-color: #ea580c !important;
+}
+
+.filter-button-active:hover {
+  background-color: #dc2626 !important;
+}
+
+.filter-button-inactive {
+  background-color: #0d9488 !important;
+}
+
+.filter-button-inactive:hover {
+  background-color: #0f766e !important;
+}
+
+/* Responsive para el sidebar */
+@media (max-width: 768px) {
+  .filters-sidebar {
+    width: 280px !important;
+  }
+  
+  .filter-button-floating {
+    right: 1rem !important;
+  }
+  
+  .filter-button-floating.open {
+    right: 290px !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .filters-sidebar {
+    width: 320px !important;
+  }
+}
+
 /* === CORRECCIÓN GLOBAL PARA PREVENIR CORTES === */
 
 /* Asegurar que todos los contenedores principales respeten el viewport */

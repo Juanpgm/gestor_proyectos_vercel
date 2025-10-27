@@ -1716,6 +1716,11 @@ const AdvancedFilters: React.FC<{
 // Componente principal del dashboard avanzado
 const EmprestitoAdvancedDashboard: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false)
+
+  // Función para manejar el toggle de filtros
+  const handleToggleFilters = useCallback(() => {
+    setShowFilters(prev => !prev)
+  }, [])
   
   // Hook para optimizaciones de iPad
   const { deviceInfo, getResponsiveClasses, getGridClasses, getTableClasses, getTouchTargetClasses } = useIPadClasses()
@@ -1884,10 +1889,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Contenido principal */}
-      <div className="w-full space-y-3 sm:space-y-4 ipad-10:space-y-4 p-2 sm:p-4 ipad-10:p-4 lg:p-6" style={{ 
-        marginRight: showFilters ? (deviceInfo.isIpad10 ? '320px' : '280px') : '0',
-        transition: 'margin-right 0.3s ease'
-      }}>
+      <div 
+        className="w-full space-y-3 sm:space-y-4 ipad-10:space-y-4 p-2 sm:p-4 ipad-10:p-4 lg:p-6 transition-all duration-300 ease-in-out" 
+        style={{ 
+          marginRight: showFilters ? (deviceInfo.isIpad10 ? '320px' : '280px') : '0'
+        }}
+      >
         {/* Título del Dashboard */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -2353,57 +2360,91 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       </motion.div>
       </div>
 
-      {/* Botón flotante fijo para filtros - Optimizado para iPads */}
-      <IPadOptimizedButton
-        onClick={() => setShowFilters(!showFilters)}
-        className="fixed top-20 right-4 sm:right-6 z-[100] bg-teal-600 hover:bg-teal-700 focus:ring-teal-500 shadow-2xl rounded-full"
-        size={deviceInfo.isIpad10 ? "lg" : "md"}
+      {/* Botón flotante fijo para filtros - Sidebar toggle */}
+      <button
+        onClick={handleToggleFilters}
+        className={`
+          filter-button-floating
+          fixed top-20 z-[51]
+          ${showFilters 
+            ? (deviceInfo.isIpad10 ? 'right-[21rem]' : 'right-80') 
+            : 'right-4 sm:right-6'
+          }
+          text-white font-medium
+          shadow-2xl rounded-full
+          transition-all duration-300 ease-in-out
+          focus:outline-none focus:ring-4 focus:ring-teal-300
+          cursor-pointer select-none
+          ${deviceInfo.isIpad10 
+            ? 'px-6 py-4 text-lg min-h-[56px] min-w-[56px]' 
+            : 'px-4 py-3 text-base min-h-[48px] min-w-[48px]'
+          }
+          ${showFilters 
+            ? 'bg-orange-600 hover:bg-orange-700 focus:bg-orange-800' 
+            : 'bg-teal-600 hover:bg-teal-700 focus:bg-teal-800'
+          }
+        `}
+        type="button"
+        aria-label={showFilters ? 'Cerrar filtros' : 'Abrir filtros'}
+        title={showFilters ? 'Cerrar panel de filtros' : 'Abrir panel de filtros'}
       >
-        <Filter className={`${deviceInfo.isIpad10 ? 'w-6 h-6' : 'w-5 h-5'}`} />
-        <span className={`hidden md:inline font-medium ${deviceInfo.isIpad10 ? 'text-base ml-2' : 'text-sm ml-1'}`}>
-          {showFilters ? 'Cerrar' : 'Filtros'}
-        </span>
-      </IPadOptimizedButton>
+        <div className="flex items-center justify-center gap-2">
+          <Filter className={`${deviceInfo.isIpad10 ? 'w-6 h-6' : 'w-5 h-5'} ${showFilters ? 'rotate-180' : ''} transition-transform duration-300`} />
+          <span className={`hidden lg:inline font-medium ${deviceInfo.isIpad10 ? 'text-base' : 'text-sm'}`}>
+            {showFilters ? 'Cerrar' : 'Filtros'}
+          </span>
+        </div>
+      </button>
 
-      {/* Panel lateral de filtros - Optimizado para iPads */}
-      <AnimatePresence>
-        {showFilters && (
-          <>
-            {/* Overlay para cerrar al hacer clic fuera */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowFilters(false)}
-              className="fixed inset-0 bg-black bg-opacity-50 z-[80]"
-            />
-            <motion.div
-              initial={{ x: 300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 300, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className={`fixed right-0 top-0 h-full bg-white dark:bg-gray-800 shadow-2xl z-[90] overflow-y-auto ${
-                deviceInfo.isIpad10 
-                  ? 'w-80 ipad-10-landscape:w-96' 
-                  : 'w-72 sm:w-80'
-              }`}
-            >
-            <div className={`p-4 sm:p-6 ${deviceInfo.isIpad10 ? 'ipad-10:p-8' : ''}`}>
-              <div className="flex items-center justify-between mb-6">
+      {/* Panel lateral de filtros - Sidebar no modal */}
+      <motion.div
+        initial={{ x: 300, opacity: 0 }}
+        animate={{ 
+          x: showFilters ? 0 : 300,
+          opacity: showFilters ? 1 : 0
+        }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className={`
+          filters-sidebar ${showFilters ? 'open' : ''}
+          fixed right-0 top-0 h-full 
+          bg-white/95 dark:bg-gray-800/95
+          backdrop-blur-sm
+          border-l border-gray-200 dark:border-gray-700 
+          z-50
+          ${deviceInfo.isIpad10 
+            ? 'w-80 ipad-10-landscape:w-96' 
+            : 'w-72 sm:w-80'
+          } 
+          ${showFilters ? 'pointer-events-auto' : 'pointer-events-none'}
+        `}
+      >
+        <div className="h-full overflow-y-auto filter-controls">
+          <div className={`p-4 sm:p-6 ${deviceInfo.isIpad10 ? 'ipad-10:p-8' : ''}`}>
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 className={`font-semibold text-gray-900 dark:text-white flex items-center gap-2 ${
                   deviceInfo.isIpad10 ? 'text-xl' : 'text-lg'
                 }`}>
                   <Filter className={`text-teal-600 ${deviceInfo.isIpad10 ? 'w-6 h-6' : 'w-5 h-5'}`} />
                   Filtros de Análisis
                 </h3>
-                <IPadOptimizedButton
+                <button
                   onClick={() => setShowFilters(false)}
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className={`
+                    text-gray-500 hover:text-white hover:bg-red-500
+                    border-2 border-gray-300 hover:border-red-500
+                    rounded-full transition-all duration-200
+                    cursor-pointer select-none flex items-center justify-center
+                    ${deviceInfo.isIpad10 
+                      ? 'w-10 h-10 text-lg' 
+                      : 'w-8 h-8 text-base'
+                    }
+                  `}
+                  type="button"
+                  aria-label="Cerrar panel de filtros"
+                  title="Cerrar filtros"
                 >
                   ✕
-                </IPadOptimizedButton>
+                </button>
               </div>
 
               <div className="space-y-4">
@@ -2490,10 +2531,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-          </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </div>
+        </motion.div>
 
       {/* Modal de detalles del contrato */}
       <ContratosModal
