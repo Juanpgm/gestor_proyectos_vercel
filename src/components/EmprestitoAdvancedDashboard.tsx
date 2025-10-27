@@ -806,10 +806,6 @@ const useEmprestitoRealData = () => {
   const [emprestitoBancos, setEmprestitoBancos] = useState<any[]>([]) // Para /emprestito_bancos_all
   const [filteredData, setFilteredData] = useState<ContratoEmprestito[]>([])
   
-  // Estados para el modal de contratos
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selectedContrato, setSelectedContrato] = useState<any>(null)
-  
   // Estado para filtros
   const [filters, setFilters] = useState({
     banco: '',
@@ -943,8 +939,8 @@ const useEmprestitoRealData = () => {
       estado_reporte: reporteContrato?.estado_reporte || null
     }
 
-    setSelectedContrato(contratoCompleto)
-    setModalOpen(true)
+    // Modal logic will be handled by main component
+    console.log('Contrato selected:', contratoCompleto.referencia_contrato)
   }
 
   // Análisis por banco
@@ -2038,8 +2034,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         </div>
 
         {/* Tabla Responsiva Mejorada - Scrolleable Horizontalmente */}
-        <div className="contracts-table-container">
-          <IPadOptimizedTable className="contracts-table">
+        <div className={`contracts-table-container ${deviceInfo.isIpad10 ? 'ipad-10-scroll' : ''}`}>
+          <IPadOptimizedTable className={`contracts-table ${deviceInfo.isIpad10 ? 'ipad-10-table' : ''}`}>
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm min-w-[300px]">
@@ -2344,44 +2340,57 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       </motion.div>
       </div>
 
-      {/* Botón flotante fijo para filtros - siempre visible */}
-      <motion.button
+      {/* Botón flotante fijo para filtros - Optimizado para iPads */}
+      <IPadOptimizedButton
         onClick={() => setShowFilters(!showFilters)}
-        className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 ipad-10:px-5 ipad-10:py-4 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-all duration-200 shadow-2xl transform hover:scale-110 active:scale-95 touch-target"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1 }}
+        className="fixed top-20 right-4 sm:right-6 z-[100] bg-teal-600 hover:bg-teal-700 focus:ring-teal-500 shadow-2xl rounded-full"
+        size={deviceInfo.isIpad10 ? "lg" : "md"}
       >
-        <Filter className="w-5 h-5 ipad-10:w-6 ipad-10:h-6" />
-        <span className="hidden md:inline ipad-10:inline font-medium text-sm ipad-10:text-base">
+        <Filter className={`${deviceInfo.isIpad10 ? 'w-6 h-6' : 'w-5 h-5'}`} />
+        <span className={`hidden md:inline font-medium ${deviceInfo.isIpad10 ? 'text-base ml-2' : 'text-sm ml-1'}`}>
           {showFilters ? 'Cerrar' : 'Filtros'}
         </span>
-      </motion.button>
+      </IPadOptimizedButton>
 
-      {/* Panel lateral de filtros */}
+      {/* Panel lateral de filtros - Optimizado para iPads */}
       <AnimatePresence>
         {showFilters && (
-          <motion.div
-            initial={{ x: 300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 300, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed right-0 top-0 h-full w-72 bg-white dark:bg-gray-800 shadow-2xl z-[60] overflow-y-auto"
-          >
-            <div className="p-4 sm:p-6 ipad-10:p-6">
+          <>
+            {/* Overlay para cerrar al hacer clic fuera */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowFilters(false)}
+              className="fixed inset-0 bg-black bg-opacity-50 z-[80]"
+            />
+            <motion.div
+              initial={{ x: 300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 300, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`fixed right-0 top-0 h-full bg-white dark:bg-gray-800 shadow-2xl z-[90] overflow-y-auto ${
+                deviceInfo.isIpad10 
+                  ? 'w-80 ipad-10-landscape:w-96' 
+                  : 'w-72 sm:w-80'
+              }`}
+            >
+            <div className={`p-4 sm:p-6 ${deviceInfo.isIpad10 ? 'ipad-10:p-8' : ''}`}>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-teal-600" />
+                <h3 className={`font-semibold text-gray-900 dark:text-white flex items-center gap-2 ${
+                  deviceInfo.isIpad10 ? 'text-xl' : 'text-lg'
+                }`}>
+                  <Filter className={`text-teal-600 ${deviceInfo.isIpad10 ? 'w-6 h-6' : 'w-5 h-5'}`} />
                   Filtros de Análisis
                 </h3>
-                <button
+                <IPadOptimizedButton
                   onClick={() => setShowFilters(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   ✕
-                </button>
+                </IPadOptimizedButton>
               </div>
 
               <div className="space-y-4">
@@ -2469,6 +2478,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               </div>
             </div>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
 

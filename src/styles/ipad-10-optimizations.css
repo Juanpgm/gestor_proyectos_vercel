@@ -328,6 +328,90 @@
   background-color: #a0aec0;
 }
 
+/* Optimizaciones específicas para iPad scroll horizontal */
+@media only screen 
+  and (min-device-width: 820px) 
+  and (max-device-width: 850px) 
+  and (-webkit-min-device-pixel-ratio: 2.5) {
+  
+  /* Scroll horizontal optimizado para iPad 10 */
+  .ipad-10-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+  }
+  
+  /* Tabla específica para iPad 10 */
+  .ipad-10-table {
+    min-width: 1100px !important;
+    width: max-content !important;
+    table-layout: auto;
+  }
+  
+  /* Headers más espaciosos en iPad */
+  .ipad-10-table th {
+    padding: 1rem 0.75rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  
+  /* Celdas optimizadas para iPad */
+  .ipad-10-table td {
+    padding: 0.875rem 0.75rem;
+    font-size: 0.875rem;
+    vertical-align: top;
+  }
+  
+  /* Scrollbar más prominente en iPad */
+  .ipad-10-scroll::-webkit-scrollbar {
+    height: 12px;
+  }
+  
+  .ipad-10-scroll::-webkit-scrollbar-thumb {
+    background-color: #14b8a6;
+    border-radius: 6px;
+    border: 3px solid #f7fafc;
+  }
+  
+  .ipad-10-scroll::-webkit-scrollbar-thumb:active {
+    background-color: #0f766e;
+  }
+}
+
+/* iPad en landscape - aprovechar mejor el ancho */
+@media only screen 
+  and (min-device-width: 1170px) 
+  and (max-device-width: 1220px) 
+  and (-webkit-min-device-pixel-ratio: 2.5) 
+  and (orientation: landscape) {
+  
+  .ipad-10-landscape-table {
+    min-width: 1200px !important;
+  }
+  
+  .ipad-10-landscape-table th,
+  .ipad-10-landscape-table td {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+}
+
+/* Indicador visual mejorado para scroll */
+.contracts-table-container::before {
+  content: '';
+  position: sticky;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, #14b8a6, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
 /* Clases de utilidad para aplicar responsive */
 .adaptive-width {
   width: 100% !important;
