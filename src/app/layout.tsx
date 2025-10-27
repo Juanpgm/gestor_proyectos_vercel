@@ -35,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={inter.className}>
-      <body className="min-h-screen bg-gray-50 antialiased">
+      <body className="min-h-screen bg-gray-50 antialiased overflow-x-hidden">
         <AuthProvider>
           <ThemeProvider>
             <DashboardProvider>
