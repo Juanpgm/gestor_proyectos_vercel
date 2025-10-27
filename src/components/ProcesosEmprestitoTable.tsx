@@ -468,7 +468,6 @@ const ProcesosEmprestitoTable: React.FC = () => {
   }
 
 
-
   return (
     <div className="space-y-6">
       {/* INDICADOR VISUAL */}

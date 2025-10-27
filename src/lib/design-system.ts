@@ -6,7 +6,8 @@ import {
   FileText,          // Contratos
   CreditCard,        // Empréstito
   Settings,          // Procesos
-  Building2          // Unidades de Proyecto
+  Building2,         // Unidades de Proyecto
+  TrendingUp         // Proyecciones de Empréstito
 } from 'lucide-react'
 
 // Configuración de categorías principales con colores e iconos
@@ -109,6 +110,26 @@ export const CATEGORIES = {
       accent: 'bg-teal-100 dark:bg-teal-900/30',
       button: 'bg-teal-500 hover:bg-teal-600 text-white',
       badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300'
+    }
+  },
+  proyecciones: {
+    name: 'Proyecciones de Empréstito',
+    color: {
+      primary: '#4338ca',     // indigo-700
+      light: '#5b21b6',       // violet-800
+      lighter: '#7c3aed',     // violet-600
+      background: '#e0e7ff',  // indigo-100
+      darkBackground: '#312e8120', // indigo-800 con opacidad
+    },
+    icon: TrendingUp,
+    gradient: 'from-indigo-500 to-violet-600',
+    className: {
+      text: 'text-indigo-600 dark:text-indigo-400',
+      bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+      border: 'border-indigo-200 dark:border-indigo-800',
+      accent: 'bg-indigo-100 dark:bg-indigo-900/30',
+      button: 'bg-indigo-500 hover:bg-indigo-600 text-white',
+      badge: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300'
     }
   },
   procesos: {
