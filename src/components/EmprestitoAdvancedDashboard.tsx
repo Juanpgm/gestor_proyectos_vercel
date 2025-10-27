@@ -18,7 +18,10 @@ import {
   Search,
   Calendar,
   LineChart,
-  Eye
+  Eye,
+  ChevronUp,
+  ChevronDown,
+  ArrowUpDown
 } from 'lucide-react'
 import { CATEGORIES, formatNumber, CHART_COLORS } from '@/lib/design-system'
 import ContratosModal from './ContratosModal'
@@ -28,6 +31,15 @@ import { useIPadClasses } from '@/hooks/useIPadDetection'
 // Tipos para los reportes de contratos (usar la estructura existente)
 interface ReporteContratoTS extends ReporteEmprestito {
   // Extendemos ReporteEmprestito con campos adicionales que necesitamos
+}
+
+// Tipos para la ordenación de tabla
+type SortField = 'proceso' | 'banco' | 'estado' | 'valor_contrato' | 'avance_financiero' | 'avance_fisico' | 'observaciones'
+type SortDirection = 'asc' | 'desc'
+
+interface SortState {
+  field: SortField | null
+  direction: SortDirection
 }
 
 // Tipo para los datos de series de tiempo
@@ -1732,6 +1744,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   // Estados para el modal de contratos
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedContrato, setSelectedContrato] = useState<any>(null)
+  
+  // Estado para la ordenación de tabla
+  const [sortState, setSortState] = useState<SortState>({
+    field: null,
+    direction: 'asc'
+  })
 
   const {
     loading,
@@ -1782,12 +1800,82 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     return uniqueCentros.sort()
   }, [contratos])
 
+  // Función para manejar la ordenación
+  const handleSort = (field: SortField) => {
+    setSortState(prevState => ({
+      field,
+      direction: prevState.field === field && prevState.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
+
+  // Componente para el icono de ordenación
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortState.field !== field) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />
+    }
+    
+    return sortState.direction === 'asc' 
+      ? <ChevronUp className="w-4 h-4 text-blue-600" />
+      : <ChevronDown className="w-4 h-4 text-blue-600" />
+  }
+
+  // Función para obtener el valor de ordenación
+  const getSortValue = (contrato: ContratoEmprestito, field: SortField) => {
+    const reporteContrato = reportes
+      .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+      .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+
+    switch (field) {
+      case 'proceso':
+        return (contrato.nombre_resumido_proceso || '').toLowerCase()
+      case 'banco':
+        return (contrato.banco || '').toLowerCase()
+      case 'estado':
+        return (contrato.estado_contrato || '').toLowerCase()
+      case 'valor_contrato':
+        return Number(contrato.valor_contrato) || 0
+      case 'avance_financiero':
+        return reporteContrato?.avance_financiero || 0
+      case 'avance_fisico':
+        return reporteContrato?.avance_fisico || 0
+      case 'observaciones':
+        return (reporteContrato?.observaciones || '').toLowerCase()
+      default:
+        return ''
+    }
+  }
+
+  // Ordenar los contratos según el estado actual de ordenación
+  const sortedContratos = useMemo(() => {
+    if (!sortState.field) return contratos
+
+    const sorted = [...contratos].sort((a, b) => {
+      const valueA = getSortValue(a, sortState.field!)
+      const valueB = getSortValue(b, sortState.field!)
+
+      // Manejar diferentes tipos de datos
+      if (typeof valueA === 'number' && typeof valueB === 'number') {
+        return sortState.direction === 'asc' ? valueA - valueB : valueB - valueA
+      }
+
+      if (typeof valueA === 'string' && typeof valueB === 'string') {
+        return sortState.direction === 'asc' 
+          ? valueA.localeCompare(valueB)
+          : valueB.localeCompare(valueA)
+      }
+
+      return 0
+    })
+
+    return sorted
+  }, [contratos, sortState, reportes])
+
   // Cálculos de paginación
-  const totalItems = contratos.length
+  const totalItems = sortedContratos.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentItems = contratos.slice(startIndex, endIndex)
+  const currentItems = sortedContratos.slice(startIndex, endIndex)
 
   // Función para cambiar página
   const handlePageChange = (page: number) => {
@@ -2057,25 +2145,80 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
             <IPadOptimizedTable className={`contracts-table ${deviceInfo.isIpad10 ? 'ipad-10-table' : ''}`}>
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '25%' }}>
-                  <div>Proceso / Centro Gestor</div>
-                  <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
+                <th 
+                  className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  style={{ width: '25%' }}
+                  onClick={() => handleSort('proceso')}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div>Proceso / Centro Gestor</div>
+                      <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
+                    </div>
+                    <SortIcon field="proceso" />
+                  </div>
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '12%' }}>
-                  Banco
+                <th 
+                  className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  style={{ width: '12%' }}
+                  onClick={() => handleSort('banco')}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Banco</span>
+                    <SortIcon field="banco" />
+                  </div>
                 </th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '10%' }}>
-                  Estado
+                <th 
+                  className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  style={{ width: '10%' }}
+                  onClick={() => handleSort('estado')}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <span>Estado</span>
+                    <SortIcon field="estado" />
+                  </div>
                 </th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '13%' }}>
-                  Valor Contrato
+                <th 
+                  className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  style={{ width: '13%' }}
+                  onClick={() => handleSort('valor_contrato')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    <span>Valor Contrato</span>
+                    <SortIcon field="valor_contrato" />
+                  </div>
                 </th>
                 <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '18%' }}>
-                  <div>Avance Ejecución</div>
-                  <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Financiero / Físico</div>
+                  <div className="flex items-center justify-center gap-2">
+                    <div>
+                      <div>Avance Ejecución</div>
+                      <div className="text-xs font-normal text-gray-500 dark:text-gray-400">
+                        <button 
+                          onClick={() => handleSort('avance_financiero')}
+                          className="hover:text-blue-600 cursor-pointer inline-flex items-center gap-1 mr-2"
+                        >
+                          Financiero <SortIcon field="avance_financiero" />
+                        </button>
+                        /
+                        <button 
+                          onClick={() => handleSort('avance_fisico')}
+                          className="hover:text-blue-600 cursor-pointer inline-flex items-center gap-1 ml-2"
+                        >
+                          Físico <SortIcon field="avance_fisico" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '17%' }}>
-                  Observaciones / Alertas
+                <th 
+                  className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  style={{ width: '17%' }}
+                  onClick={() => handleSort('observaciones')}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Observaciones / Alertas</span>
+                    <SortIcon field="observaciones" />
+                  </div>
                 </th>
                 <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '5%' }}>
                   Detalle
