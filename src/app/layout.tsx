@@ -13,10 +13,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Dashboard Alcaldía Cali - Unidad de Cumplimiento',
+  title: 'Sistema de Gestión de Proyectos - Unidad de Cumplimiento',
   description: 'Sistema de Gestión de Proyectos - Alcaldía de Santiago de Cali',
   generator: 'Next.js',
-  applicationName: 'Dashboard Alcaldía Cali',
+  applicationName: 'Sistema de Gestión de Proyectos',
   referrer: 'origin-when-cross-origin',
   keywords: ['gestión', 'proyectos', 'alcaldía', 'cali', 'dashboard'],
   authors: [{ name: 'Alcaldía de Santiago de Cali' }],

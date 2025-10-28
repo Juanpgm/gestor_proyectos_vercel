@@ -51,11 +51,11 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className={`${TYPOGRAPHY.h5} tablet:text-2xl md:${TYPOGRAPHY.h3} font-bold text-gray-800 dark:text-white transition-colors duration-300 truncate`}>
-                  <span className="hidden sm:inline tablet:inline">Unidad de Cumplimiento</span>
+                  <span className="hidden sm:inline tablet:inline">Sistema de Gestión de Proyectos</span>
                   <span className="sm:hidden tablet:hidden">Dashboard AC</span>
                 </h1>
                 <p className={`${TYPOGRAPHY.bodySmall} tablet:text-base text-gray-600 dark:text-gray-400 transition-colors duration-300 hidden tablet:block md:block`}>
-                  Sistema de Gestión de Proyectos
+                  Alcaldía Distrital de Santiago de Cali
                 </p>
               </div>
             </motion.div>

@@ -1,4 +1,4 @@
-# Script de deploy para Vercel - Dashboard Alcaldía Cali
+# Script de deploy para Vercel - Sistema de Gestión de Proyectos
 # PowerShell version para Windows
 
 Write-Host "🚀 Iniciando proceso de deploy a Vercel..." -ForegroundColor Green
