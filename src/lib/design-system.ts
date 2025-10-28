@@ -268,38 +268,28 @@ export function formatNumber(value: number, type: 'currency' | 'number' | 'perce
     } else if (value >= 1e9) {
       return `$${(value / 1e9).toFixed(2)} mil millones` // Mil millones
     } else if (value >= 1e6) {
-      // Solo reducir a millones si es mayor a 100 millones para mantener precisión
-      if (value >= 100e6) {
-        return `$${(value / 1e6).toFixed(1)} millones`
-      } else {
-        return value.toLocaleString('es-CO', { 
-          style: 'currency', 
-          currency: 'COP', 
-          minimumFractionDigits: 0 
-        })
-      }
+      // Compactar desde 1 millón en adelante para mejor legibilidad
+      return `$${(value / 1e6).toFixed(1)} millones`
     } else {
-      return value.toLocaleString('es-CO', { 
-        style: 'currency', 
-        currency: 'COP', 
-        minimumFractionDigits: 0 
+      return value.toLocaleString('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0
       })
     }
   } else if (type === 'percent') {
     return `${value.toFixed(1)}%`
   } else {
-    // Para números simples, solo reducir si son muy grandes
+    // Para números simples, compactar desde 1 millón
     if (value >= 1e9) {
       return `${(value / 1e9).toFixed(2)} mil millones`
-    } else if (value >= 100e6) {
+    } else if (value >= 1e6) {
       return `${(value / 1e6).toFixed(1)} millones`
     } else {
       return value.toLocaleString('es-CO')
     }
   }
-}
-
-// Utilidad para obtener color de estado
+}// Utilidad para obtener color de estado
 export function getStatusColor(status: string) {
   return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || STATUS_COLORS['No Iniciado']
 }

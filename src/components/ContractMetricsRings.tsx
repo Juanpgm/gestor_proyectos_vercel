@@ -9,7 +9,6 @@ interface ContractMetricsRingsProps {
 interface RingChartProps {
   percentage: number
   label: string
-  value: string
   color: string
   size?: number
 }
@@ -17,7 +16,6 @@ interface RingChartProps {
 const RingChart: React.FC<RingChartProps> = ({ 
   percentage, 
   label, 
-  value, 
   color, 
   size = 120 
 }) => {
@@ -66,27 +64,28 @@ const RingChart: React.FC<RingChartProps> = ({
         </div>
       </div>
       
-      {/* Label and value */}
+      {/* Label only */}
       <div className="text-center">
-        <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+        <div className="text-sm font-medium text-gray-900 dark:text-white">
           {label}
-        </div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">
-          {value}
         </div>
       </div>
     </div>
   )
 }
 
-// Función para determinar el color basado en el porcentaje
-const getColorByPercentage = (percentage: number): string => {
-  if (percentage >= 100) return '#10b981' // Verde (green-500) solo al 100%
-  if (percentage >= 80) return '#84cc16'  // Verde claro (lime-500)
-  if (percentage >= 60) return '#eab308'  // Amarillo (yellow-500)
-  if (percentage >= 40) return '#f97316'  // Naranja (orange-500)
-  if (percentage >= 20) return '#ef4444'  // Rojo claro (red-500)
-  return '#dc2626'                        // Rojo oscuro (red-600)
+// Función para determinar el color basado en el tipo de métrica (igual que la gráfica de evolución temporal)
+const getColorByMetricType = (metricType: 'fisico' | 'financiero' | 'pagos'): string => {
+  switch (metricType) {
+    case 'fisico':
+      return '#10b981' // Verde (igual que la gráfica de evolución temporal)
+    case 'financiero':
+      return '#3b82f6' // Azul (igual que la gráfica de evolución temporal)
+    case 'pagos':
+      return '#f97316' // Naranja (igual que la gráfica de evolución temporal)
+    default:
+      return '#6b7280' // Gris por defecto
+  }
 }
 
 const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato }) => {
@@ -95,7 +94,7 @@ const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato })
   const valorContrato = contrato.valor_contrato || contrato.valor_del_contrato || 0
   const valorFacturado = contrato.valor_facturado || 0
   const valorPagado = contrato.valor_pagado || 0
-  const valorPendienteEjecucion = contrato.valor_pendiente_de_ejecucion || 0
+  const valorPendienteEjecucion = contrato.valor_pendiente_de_ejecucion
 
   // Usar avances directamente del endpoint reportes-contratos si están disponibles
   const avanceFisicoReporte = contrato.avance_fisico || contrato.ejecucion_fisica || 0
@@ -104,17 +103,15 @@ const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato })
   // Ejecución Física - priorizar datos del reporte, sino calcular
   const ejecucionFisica = avanceFisicoReporte > 0 
     ? avanceFisicoReporte 
-    : (valorContrato > 0 ? ((valorContrato - valorPendienteEjecucion) / valorContrato) * 100 : 0)
+    : (valorPendienteEjecucion !== undefined && valorContrato > 0 ? ((valorContrato - valorPendienteEjecucion) / valorContrato) * 100 : 0)
 
   // Ejecución Financiera/Presupuestal - priorizar datos del reporte, sino calcular
   const ejecucionPresupuestal = avanceFinancieroReporte > 0 
     ? avanceFinancieroReporte 
     : (valorContrato > 0 ? (valorFacturado / valorContrato) * 100 : 0)
 
-  // Pagos = valor_pagado / valor_del_contrato
-  const pagos = valorContrato > 0 
-    ? (valorPagado / valorContrato) * 100 
-    : 0
+  // Pagos = por ahora siempre 0 (datos no mapeados aún)
+  const pagos = 0
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-6">
@@ -122,22 +119,19 @@ const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato })
         <RingChart
           percentage={Math.max(0, Math.min(100, ejecucionFisica))}
           label="Avance Físico"
-          value={avanceFisicoReporte > 0 ? `${ejecucionFisica.toFixed(1)}%` : `$${(valorContrato - valorPendienteEjecucion).toLocaleString('es-CO')}`}
-          color={getColorByPercentage(ejecucionFisica)}
+          color={getColorByMetricType('fisico')}
         />
         
         <RingChart
           percentage={Math.max(0, Math.min(100, ejecucionPresupuestal))}
           label="Avance Financiero"
-          value={avanceFinancieroReporte > 0 ? `${ejecucionPresupuestal.toFixed(1)}%` : `$${valorFacturado.toLocaleString('es-CO')}`}
-          color={getColorByPercentage(ejecucionPresupuestal)}
+          color={getColorByMetricType('financiero')}
         />
         
         <RingChart
           percentage={Math.max(0, Math.min(100, pagos))}
           label="Pagos Realizados"
-          value={`$${valorPagado.toLocaleString('es-CO')}`}
-          color={getColorByPercentage(pagos)}
+          color={getColorByMetricType('pagos')}
         />
       </div>
     </div>

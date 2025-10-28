@@ -500,16 +500,16 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                     <td className="px-4 py-4">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-gray-900 dark:text-white">
-                          {formatNumber(contrato.valor_contrato || 0, 'currency')}
+                          {formatNumber(Number(contrato.valor_contrato || 0), 'currency')}
                         </span>
                         {contrato.valor_pagado > 0 && (
                           <span className="text-xs text-yellow-600 dark:text-yellow-400">
-                            Pagado: {formatNumber(contrato.valor_pagado, 'currency')}
+                            Pagado: {formatNumber(Number(contrato.valor_pagado), 'currency')}
                           </span>
                         )}
                         {contrato.valor_pendiente_pago > 0 && (
                           <span className="text-xs text-red-600 dark:text-red-400">
-                            Pendiente: {formatNumber(contrato.valor_pendiente_pago, 'currency')}
+                            Pendiente: {formatNumber(Number(contrato.valor_pendiente_pago), 'currency')}
                           </span>
                         )}
                       </div>
@@ -660,20 +660,20 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                                   <div>
                                     <span className="text-gray-500 dark:text-gray-400">Facturado:</span>
                                     <p className="font-semibold text-green-600 dark:text-green-400">
-                                      {formatNumber(contrato.valor_facturado || 0, 'currency')}
+                                      {formatNumber(Number(contrato.valor_facturado || 0), 'currency')}
                                     </p>
                                   </div>
                                   <div>
                                     <span className="text-gray-500 dark:text-gray-400">Pendiente Ejecución:</span>
                                     <p className="font-semibold text-orange-600 dark:text-orange-400">
-                                      {formatNumber(contrato.valor_pendiente_ejecucion || 0, 'currency')}
+                                      {formatNumber(Number(contrato.valor_pendiente_ejecucion || 0), 'currency')}
                                     </p>
                                   </div>
                                   {contrato.habilita_pago_adelantado > 0 && (
                                     <div>
                                       <span className="text-gray-500 dark:text-gray-400">Pago Adelantado:</span>
                                       <p className="font-semibold text-blue-600 dark:text-blue-400">
-                                        {formatNumber(contrato.valor_pago_adelantado || 0, 'currency')}
+                                        {formatNumber(Number(contrato.valor_pago_adelantado || 0), 'currency')}
                                       </p>
                                     </div>
                                   )}

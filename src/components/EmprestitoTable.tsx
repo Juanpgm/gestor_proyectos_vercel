@@ -112,17 +112,22 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
 
   // Función para abrir el modal con los datos del contrato
   const handleOpenModal = (contrato: EmprestitoContrato) => {
-    // Buscar datos adicionales del reporte para este contrato
-    const reporteContrato = reportesData.find(r => 
+    // Buscar todos los reportes para este contrato (para la gráfica de evolución)
+    const reportesContrato = reportesData.filter(r => 
       r.referencia_contrato === contrato.referencia_del_contrato ||
       r.id_contrato === contrato.id_contrato ||
       r.bpin === contrato.bpin
-    )
+    ).sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())
+
+    // Tomar el reporte más reciente para los datos principales
+    const reporteContrato = reportesContrato[0]
 
     // Combinar datos del contrato con datos del reporte
     const contratoCompleto = {
       ...contrato,
       ...reporteContrato,
+      // Incluir todos los reportes para la gráfica de evolución
+      reportes: reportesContrato,
       // Asegurar que los campos de ejecución estén disponibles
       ejecucion_fisica: reporteContrato?.ejecucion_fisica || null,
       ejecucion_financiera: reporteContrato?.ejecucion_financiera || null,
@@ -294,7 +299,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                         : contrato.proveedor_adjudicado || 'Sin proveedor'}
                     </td>
                     <td className="py-3 px-4 font-medium text-teal-600 dark:text-teal-400">
-                      {formatNumber(contrato.valor_del_contrato, 'currency')}
+                      {formatNumber(Number(contrato.valor_del_contrato), 'currency')}
                     </td>
                     <td className="py-3 px-4">
                       <div className="space-y-2">
@@ -303,14 +308,14 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                           <div className="flex justify-between text-xs mb-1">
                             <span className="text-gray-600 dark:text-gray-400">Financiero</span>
                             <span className="font-medium">
-                              {Math.round(((contrato.valor_pagado || 0) / (contrato.valor_del_contrato || 1)) * 100)}%
+                              {Math.round(((contrato.valor_pagado || 0) / (Number(contrato.valor_del_contrato) || 1)) * 100)}%
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div
                               className="bg-green-600 h-2 rounded-full transition-all duration-300"
                               style={{
-                                width: `${Math.min(((contrato.valor_pagado || 0) / (contrato.valor_del_contrato || 1)) * 100, 100)}%`
+                                width: `${Math.min(((contrato.valor_pagado || 0) / (Number(contrato.valor_del_contrato) || 1)) * 100, 100)}%`
                               }}
                             />
                           </div>
@@ -376,7 +381,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                         }
                         
                         // Revisar avance financiero vs físico
-                        const avanceFinanciero = ((contrato.valor_pagado || 0) / (contrato.valor_del_contrato || 1)) * 100
+                        const avanceFinanciero = ((contrato.valor_pagado || 0) / (Number(contrato.valor_del_contrato) || 1)) * 100
                         const fechaInicio = contrato.fecha_de_firma ? new Date(contrato.fecha_de_firma) : null
                         const fechaFinContrato = contrato.fecha_de_fin_del_contrato ? new Date(contrato.fecha_de_fin_del_contrato) : null
                         const fechaActual = new Date()
