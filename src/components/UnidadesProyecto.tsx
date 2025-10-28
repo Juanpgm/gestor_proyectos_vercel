@@ -693,7 +693,7 @@ const UnidadesProyecto: React.FC = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               <ProjectDetailsModal
