@@ -13,6 +13,10 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'X-Timestamp': Date.now().toString(),
       }
     });
 
@@ -28,7 +32,12 @@ export async function GET(request: NextRequest) {
       actualData = data.filters;
     }
     
-    return NextResponse.json(actualData);
+    const filtersResponse = NextResponse.json(actualData);
+    filtersResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    filtersResponse.headers.set('Pragma', 'no-cache');
+    filtersResponse.headers.set('Expires', '0');
+    filtersResponse.headers.set('X-Timestamp', Date.now().toString());
+    return filtersResponse;
   } catch (error) {
     return NextResponse.json(
       { 

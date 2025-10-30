@@ -127,6 +127,9 @@ const fetchWithRetry = async (
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'X-Cache-Bust': Date.now().toString(),
         ...options.headers
       }
     });
@@ -150,6 +153,9 @@ const fetchWithRetry = async (
 // Función para construir query string de filtros
 const buildFilterQuery = (filters: FilterParams): string => {
   const params = new URLSearchParams();
+  
+  // Agregar cache buster timestamp
+  params.append('_t', Date.now().toString());
   
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
