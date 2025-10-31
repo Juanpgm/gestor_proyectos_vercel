@@ -2117,9 +2117,9 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4"
       >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
             <FileText className="w-6 h-6 text-purple-600" />
             <div>
@@ -2157,7 +2157,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th 
-                  className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  className="text-left py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
                   style={{ width: '25%' }}
                   onClick={() => handleSort('proceso')}
                 >
@@ -2170,7 +2170,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   </div>
                 </th>
                 <th 
-                  className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  className="text-left py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
                   style={{ width: '12%' }}
                   onClick={() => handleSort('banco')}
                 >
@@ -2180,7 +2180,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   </div>
                 </th>
                 <th 
-                  className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  className="text-center py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
                   style={{ width: '10%' }}
                   onClick={() => handleSort('estado')}
                 >
@@ -2190,7 +2190,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   </div>
                 </th>
                 <th 
-                  className="text-right py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  className="text-right py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
                   style={{ width: '13%' }}
                   onClick={() => handleSort('valor_contrato')}
                 >
@@ -2199,7 +2199,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     <SortIcon field="valor_contrato" />
                   </div>
                 </th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '18%' }}>
+                <th className="text-center py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs" style={{ width: '18%' }}>
                   <div className="flex items-center justify-center gap-2">
                     <div>
                       <div>Avance Ejecución</div>
@@ -2222,7 +2222,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   </div>
                 </th>
                 <th 
-                  className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
+                  className="text-left py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" 
                   style={{ width: '17%' }}
                   onClick={() => handleSort('observaciones')}
                 >
@@ -2231,7 +2231,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     <SortIcon field="observaciones" />
                   </div>
                 </th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ width: '5%' }}>
+                <th className="text-center py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 text-xs" style={{ width: '5%' }}>
                   Detalle
                 </th>
               </tr>
@@ -2251,12 +2251,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     transition={{ delay: index * 0.05 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
-                    <td className="py-3 px-4" style={{ width: '25%' }}>
+                    <td className="py-1 px-2" style={{ width: '25%' }}>
                       <div className="space-y-1">
                         <div className="font-medium text-gray-900 dark:text-white text-sm leading-tight" 
                              style={{ 
                                display: '-webkit-box',
-                               WebkitLineClamp: 2,
+                               WebkitLineClamp: 3,
                                WebkitBoxOrient: 'vertical',
                                overflow: 'hidden',
                                wordBreak: 'break-word',
@@ -2279,28 +2279,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                      <td className="py-3 px-2 text-center w-[100px]">
-                        <span className={`px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${
-                          contrato.estado_contrato === 'En ejecución' 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                            : contrato.estado_contrato === 'Aprobado'
-                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                            : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                        }`} title={contrato.estado_contrato}>
-                          {contrato.estado_contrato?.substring(0, 12) || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[130px]">
-                        <div className="truncate text-xs" title={formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}>
-                          {formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}
-                        </div>
-                      </td>
-                    <td className="py-3 px-4 text-sm text-gray-700 dark:text-gray-300" style={{ width: '12%' }}>
+                    <td className="py-1 px-2 text-xs text-gray-700 dark:text-gray-300" style={{ width: '12%' }}>
                       <div className="truncate" title={contrato.banco || 'No especificado'}>
                         {contrato.banco || 'N/A'}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-center" style={{ width: '10%' }}>
+                    <td className="py-1 px-2 text-center" style={{ width: '10%' }}>
                       <span className={`px-2 py-1 text-xs rounded-full inline-block truncate ${
                         contrato.estado_contrato === 'En ejecución' 
                           ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
@@ -2311,41 +2295,41 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         {contrato.estado_contrato || 'N/A'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-700 dark:text-gray-300" style={{ width: '13%' }}>
+                    <td className="py-1 px-2 text-xs text-right font-medium text-gray-700 dark:text-gray-300" style={{ width: '13%' }}>
                       <div className="truncate" title={formatNumber(contrato.valor_contrato, 'currency')}>
                         {formatNumber(contrato.valor_contrato, 'currency')}
                       </div>
                     </td>
-                    <td className="py-3 px-4" style={{ width: '18%' }}>
-                      <div className="space-y-2">
-                        {/* Progress bar para Avance Financiero */}
+                    <td className="py-1 px-2" style={{ width: '18%' }}>
+                      <div className="space-y-1">
+                        {/* Progress bar para Avance Financiero - Compacto */}
                         <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-gray-600 dark:text-gray-400">Financiero</span>
-                            <span className="font-medium">
+                          <div className="flex justify-between text-xs mb-0.5">
+                            <span className="text-gray-600 dark:text-gray-400 text-xs">Financiero</span>
+                            <span className="font-medium text-xs">
                               {reporteContrato?.avance_financiero?.toFixed(1) || '0'}%
                             </span>
                           </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                             <div
-                              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                              className="bg-green-600 h-1.5 rounded-full transition-all duration-300"
                               style={{
                                 width: `${Math.min(reporteContrato?.avance_financiero || 0, 100)}%`
                               }}
                             />
                           </div>
                         </div>
-                        {/* Progress bar para Avance Físico */}
+                        {/* Progress bar para Avance Físico - Compacto */}
                         <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-gray-600 dark:text-gray-400">Físico</span>
-                            <span className="font-medium">
+                          <div className="flex justify-between text-xs mb-0.5">
+                            <span className="text-gray-600 dark:text-gray-400 text-xs">Físico</span>
+                            <span className="font-medium text-xs">
                               {reporteContrato?.avance_fisico?.toFixed(1) || '0'}%
                             </span>
                           </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                             <div
-                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
                               style={{
                                 width: `${Math.min(reporteContrato?.avance_fisico || 0, 100)}%`
                               }}
@@ -2362,8 +2346,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400" style={{ width: '17%' }}>
-                      <div className="text-xs break-words" style={{maxHeight: '4rem', overflow: 'hidden'}}>
+                    <td className="py-1 px-2 text-sm text-gray-600 dark:text-gray-400" style={{ width: '17%' }}>
+                      <div className="text-xs break-words leading-tight" style={{maxHeight: '4.5rem', overflow: 'hidden'}}>
                         {(() => {
                           const observaciones = []
                           
@@ -2379,9 +2363,9 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             const avanceFisico = reporteContrato.avance_fisico || 0
                             
                             if (avanceFinanciero > avanceFisico + 15) {
-                              observaciones.push('📈 Fin. elevado')
+                              observaciones.push('📈 Financiero elevado')
                             } else if (avanceFisico > avanceFinanciero + 15) {
-                              observaciones.push('📉 Fin. rezagado')
+                              observaciones.push('📉 Financiero rezagado')
                             }
                           }
                           
@@ -2389,34 +2373,34 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           if (fechaFin) {
                             const diasRestantes = Math.ceil((fechaFin.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
                             if (diasRestantes <= 30 && diasRestantes > 0) {
-                              observaciones.push('🔔 Próx. vencer')
+                              observaciones.push('🔔 Próximo a vencer')
                             }
                           }
                           
                           // Mostrar observaciones del reporte si las hay
                           if (reporteContrato?.observaciones) {
-                            observaciones.push(`💬 ${reporteContrato.observaciones.substring(0, 30)}...`)
+                            observaciones.push(`💬 ${reporteContrato.observaciones.substring(0, 40)}${reporteContrato.observaciones.length > 40 ? '...' : ''}`)
                           }
                           
                           return observaciones.length > 0 ? observaciones.join(' • ') : 'Sin observaciones'
                         })()}
                       </div>
                       {reporteContrato?.alertas?.es_alerta && (
-                        <div className="mt-2">
+                        <div className="mt-1">
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
                             ⚠ Alerta
                           </span>
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-center" style={{ width: '5%' }}>
+                    <td className="py-1 px-2 text-center" style={{ width: '5%' }}>
                       <IPadOptimizedButton
                         onClick={() => handleOpenModal(contrato)}
                         variant="outline"
                         size="sm"
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2"
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3 w-3" />
                       </IPadOptimizedButton>
                     </td>
                   </motion.tr>
