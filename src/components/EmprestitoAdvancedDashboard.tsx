@@ -2277,7 +2277,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                              title={contrato.nombre_centro_gestor || 'Sin centro gestor'}>
                           {contrato.nombre_centro_gestor || 'Sin centro gestor'}
                         </div>
-                      </td>
+                      </div>
+                    </td>
                       <td className="py-3 px-2 text-center w-[100px]">
                         <span className={`px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${
                           contrato.estado_contrato === 'En ejecución' 
@@ -2293,8 +2294,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         <div className="truncate text-xs" title={formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}>
                           {formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}
                         </div>
-                      </div>
-                    </td>
+                      </td>
                     <td className="py-3 px-4 text-sm text-gray-700 dark:text-gray-300" style={{ width: '12%' }}>
                       <div className="truncate" title={contrato.banco || 'No especificado'}>
                         {contrato.banco || 'N/A'}
