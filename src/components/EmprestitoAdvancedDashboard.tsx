@@ -693,6 +693,7 @@ interface ContratoEmprestito {
   banco: string
   estado_contrato: string
   valor_contrato: number
+  valor_del_contrato?: number
   valor_pagado: string
   fecha_inicio_contrato?: string
   fecha_fin_contrato?: string
@@ -926,15 +927,20 @@ const useEmprestitoRealData = () => {
 
   // Función para abrir el modal con los datos del contrato
   const handleOpenModal = (contrato: ContratoEmprestito) => {
-    // Buscar datos adicionales del reporte para este contrato
-    const reporteContrato = reportes
+    // Buscar todos los reportes para este contrato (para la gráfica de evolución)
+    const reportesContrato = reportes
       .filter(r => r.referencia_contrato === contrato.referencia_contrato)
-      .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+      .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())
+
+    // Tomar el reporte más reciente para los datos principales
+    const reporteContrato = reportesContrato[0]
 
     // Combinar datos del contrato con datos del reporte
     const contratoCompleto = {
       ...contrato,
       ...reporteContrato,
+      // Incluir todos los reportes para la gráfica de evolución
+      reportes: reportesContrato,
       // Asegurar que el título sea nombre_resumido_proceso
       descripcion_proceso: contrato.nombre_resumido_proceso || contrato.descripcion_proceso,
       // Asegurar que los campos de ejecución estén disponibles desde reportes-contratos
@@ -1890,10 +1896,13 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
 
   // Función para abrir el modal con los datos del contrato
   const handleOpenModal = (contrato: ContratoEmprestito) => {
-    // Buscar datos adicionales del reporte para este contrato
-    const reporteContrato = reportes
+    // Buscar TODOS los reportes históricos para este contrato (para la gráfica de evolución)
+    const reportesContrato = reportes
       .filter(r => r.referencia_contrato === contrato.referencia_contrato)
-      .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+      .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())
+
+    // Tomar el reporte más reciente para los datos principales
+    const reporteContrato = reportesContrato[0]
 
     // Combinar datos del contrato con datos del reporte para el modal
     const contratoCompleto = {
@@ -1919,6 +1928,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         fecha_ultimo_reporte: reporteContrato.fecha_reporte,
         alertas_reporte: reporteContrato.alertas
       }),
+      // Incluir TODOS los reportes históricos para la gráfica de evolución
+      reportes: reportesContrato,
       // Campos calculados
       pagos: parseInt(contrato.valor_pagado) || 0,
       avance_financiero_calculado: reporteContrato?.avance_financiero || 0,
@@ -2266,9 +2277,21 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                              title={contrato.nombre_centro_gestor || 'Sin centro gestor'}>
                           {contrato.nombre_centro_gestor || 'Sin centro gestor'}
                         </div>
-                        <div className="text-xs text-blue-600 dark:text-blue-400 font-mono truncate"
-                             title={contrato.referencia_contrato || 'Sin referencia'}>
-                          {contrato.referencia_contrato || 'Sin referencia'}
+                      </td>
+                      <td className="py-3 px-2 text-center w-[100px]">
+                        <span className={`px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${
+                          contrato.estado_contrato === 'En ejecución' 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                            : contrato.estado_contrato === 'Aprobado'
+                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                        }`} title={contrato.estado_contrato}>
+                          {contrato.estado_contrato?.substring(0, 12) || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[130px]">
+                        <div className="truncate text-xs" title={formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}>
+                          {formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}
                         </div>
                       </div>
                     </td>

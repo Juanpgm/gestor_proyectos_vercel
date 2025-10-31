@@ -11,73 +11,140 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts'
-import { TrendingUp } from 'lucide-react'
+import { Info } from 'lucide-react'
 
 interface ContractTimeSeriesProps {
   contrato: any
 }
 
+// Helper para obtener el número de semana ISO
+const getISOWeek = (date: Date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+}
+
 const ContractTimeSeries: React.FC<ContractTimeSeriesProps> = ({ contrato }) => {
-  // Procesar datos del contrato específico para crear serie temporal
   const timeSeriesData = React.useMemo(() => {
-    if (!contrato) return []
-
-    const fechaInicio = contrato.fecha_de_inicio ? new Date(contrato.fecha_de_inicio) : null
-    const fechaFinalizacion = contrato.fecha_de_finalizacion ? new Date(contrato.fecha_de_finalizacion) : null
-    
-    if (!fechaInicio || !fechaFinalizacion) return []
-
-    const data = []
-    const valorContrato = contrato.valor_del_contrato || 0
-    const valorFacturado = contrato.valor_facturado || 0
-    const valorPagado = contrato.valor_pagado || 0
-    
-    // Crear puntos de datos desde inicio hasta fin del contrato
-    const duracionMeses = Math.ceil((fechaFinalizacion.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24 * 30))
-    const mesesAMostrar = Math.min(duracionMeses, 12) // Máximo 12 puntos
-    
-    for (let i = 0; i <= mesesAMostrar; i++) {
-      const fecha = new Date(fechaInicio)
-      fecha.setMonth(fecha.getMonth() + i)
-      
-      const progreso = i / mesesAMostrar
-      const valorAcumulado = valorContrato
-      const facturadoProgresivo = valorFacturado * progreso
-      const pagadoProgresivo = valorPagado * progreso
-      
-      data.push({
-        periodo: fecha.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' }),
-        valorContrato: valorAcumulado,
-        valorFacturado: facturadoProgresivo,
-        valorPagado: pagadoProgresivo,
-        ejecucion: (facturadoProgresivo / valorAcumulado) * 100
-      })
+    if (!contrato) {
+      return []
     }
-    
-    return data
+
+    // Caso 1: Hay reportes históricos - procesarlos normalmente
+    if (contrato.reportes && contrato.reportes.length > 0) {
+      // Verificar que al menos un reporte tenga fecha válida
+      const reportesConFecha = contrato.reportes.filter((reporte: any) => {
+        if (!reporte.fecha_reporte) return false
+        const fecha = new Date(reporte.fecha_reporte)
+        return !isNaN(fecha.getTime())
+      })
+
+      if (reportesConFecha.length === 0) {
+        // Si hay reportes pero sin fechas válidas, usar datos actuales
+        return createCurrentDataPoint(contrato)
+      }
+
+      const valorContrato = contrato.valor_contrato || contrato.valor_del_contrato || 0
+
+      const weeklyData = reportesConFecha.reduce((acc: any, reporte: any) => {
+        const fecha = new Date(reporte.fecha_reporte)
+        const week = getISOWeek(fecha)
+        const year = fecha.getFullYear()
+        const weekKey = `${year}-W${week}`
+
+        if (!acc[weekKey]) {
+          acc[weekKey] = {
+            count: 0,
+            avance_fisico: 0,
+            avance_financiero: 0,
+          }
+        }
+
+        acc[weekKey].count += 1
+        acc[weekKey].avance_fisico += reporte.avance_fisico || 0
+        acc[weekKey].avance_financiero += reporte.avance_financiero || 0
+
+        return acc
+      }, {})
+
+      return Object.keys(weeklyData)
+        .sort((a, b) => {
+          const [yearA, weekA] = a.split('-W').map(Number)
+          const [yearB, weekB] = b.split('-W').map(Number)
+          if (yearA !== yearB) return yearA - yearB
+          return weekA - weekB
+        })
+        .map(weekKey => {
+          const weekData = weeklyData[weekKey]
+
+          return {
+            periodo: weekKey,
+            'Avance Físico': weekData.avance_fisico / weekData.count,
+            'Avance Financiero': weekData.avance_financiero / weekData.count,
+          }
+        })
+    }
+
+    // Caso 2: No hay reportes históricos - crear punto de datos actual
+    return createCurrentDataPoint(contrato)
   }, [contrato])
 
-  if (timeSeriesData.length === 0) {
+  // Función para crear un punto de datos con la información actual del contrato
+  function createCurrentDataPoint(contrato: any): any[] {
+    const avanceFisico = contrato.avance_fisico || contrato.ejecucion_fisica || 0
+    const avanceFinanciero = contrato.avance_financiero || contrato.ejecucion_financiera || 0
+
+    // Crear punto de datos para la semana actual
+    const now = new Date()
+    const week = getISOWeek(now)
+    const year = now.getFullYear()
+
+    return [{
+      periodo: `${year}-W${week}`,
+      'Avance Físico': avanceFisico,
+      'Avance Financiero': avanceFinanciero,
+    }]
+  }
+
+  // Verificar si hay datos válidos (no todos cero)
+  const hasValidData = timeSeriesData.some(data => 
+    (data['Avance Físico'] || 0) > 0 || 
+    (data['Avance Financiero'] || 0) > 0
+  )
+
+  if (timeSeriesData.length === 0 || !hasValidData) {
     return (
-      <div className="h-48 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
-        No hay datos temporales disponibles
+      <div className="h-48 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 text-sm p-4">
+        <div className="font-semibold mb-2">
+          No hay datos de ejecución disponibles
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <div>Contrato: {contrato?.referencia_contrato || 'N/A'}</div>
+          <div>Este contrato aún no tiene registros de avance</div>
+        </div>
       </div>
     )
   }
 
-  const formatValue = (value: number) => {
-    if (value >= 1000000000) return `$${(value / 1000000000).toFixed(1)}B`
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
-    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`
-    return `$${value.toFixed(0)}`
-  }
+  const formatYAxis = (value: number) => `${value.toFixed(0)}%`
 
+  // Determinar si los datos son sintéticos (sin historial) o históricos
+  const esDataSintetico = !contrato?.reportes || contrato.reportes.length === 0
+  
   return (
-    <div className="h-48">
+    <div className="w-full h-64">
+      {esDataSintetico && (
+        <div className="text-xs text-blue-600 dark:text-blue-400 mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded flex items-center gap-2">
+          <Info className="w-4 h-4" />
+          <span>Mostrando estado actual del contrato - No hay reportes históricos disponibles</span>
+        </div>
+      )}
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart
           data={timeSeriesData}
-          margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis 
@@ -87,15 +154,14 @@ const ContractTimeSeries: React.FC<ContractTimeSeriesProps> = ({ contrato }) => 
           />
           <YAxis 
             tick={{ fontSize: 10 }}
-            tickFormatter={formatValue}
             stroke="#6b7280"
+            tickFormatter={formatYAxis}
+            domain={[0, 100]}
           />
           <Tooltip
             formatter={(value: number, name: string) => [
-              formatValue(value),
-              name === 'valorContrato' ? 'Valor Contrato' :
-              name === 'valorFacturado' ? 'Facturado' :
-              name === 'valorPagado' ? 'Pagado' : name
+              `${value.toFixed(2)}%`,
+              name
             ]}
             labelStyle={{ fontSize: '11px' }}
             contentStyle={{ 
@@ -106,27 +172,23 @@ const ContractTimeSeries: React.FC<ContractTimeSeriesProps> = ({ contrato }) => 
             }}
           />
           
-          <Bar 
-            dataKey="valorContrato" 
-            fill="#e5e7eb" 
-            opacity={0.4}
-            name="Valor Contrato"
-          />
           <Line 
             type="monotone" 
-            dataKey="valorFacturado" 
+            dataKey="Avance Físico" 
             stroke="#10b981" 
-            strokeWidth={2}
-            dot={{ r: 3 }}
-            name="Facturado"
+            strokeWidth={3}
+            strokeDasharray="0"
+            dot={{ r: 4, fill: "#10b981" }}
+            name="Avance Físico"
           />
           <Line 
             type="monotone" 
-            dataKey="valorPagado" 
+            dataKey="Avance Financiero" 
             stroke="#3b82f6" 
             strokeWidth={2}
-            dot={{ r: 3 }}
-            name="Pagado"
+            strokeDasharray="5 5"
+            dot={{ r: 3, fill: "#3b82f6", stroke: "#ffffff", strokeWidth: 1 }}
+            name="Avance Financiero"
           />
         </ComposedChart>
       </ResponsiveContainer>

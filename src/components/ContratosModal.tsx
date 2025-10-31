@@ -85,19 +85,40 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
     setError(null)
 
     try {
-      const response = await fetch('/api/contratos')
-      if (!response.ok) {
+      // Cargar contratos
+      const contratosResponse = await fetch('/api/contratos')
+      if (!contratosResponse.ok) {
         throw new Error('Error al cargar datos de contratos')
       }
 
-      const contratos: any[] = await response.json()
+      const contratos: any[] = await contratosResponse.json()
       const contratoEncontrado = contratos.find(c => c.referencia_contrato === referenciaContrato)
 
       if (!contratoEncontrado) {
         throw new Error(`No se encontró el contrato con referencia: ${referenciaContrato}`)
       }
 
-      setContrato(contratoEncontrado)
+      // Cargar reportes asociados al contrato
+      const reportesResponse = await fetch('/api/reportes_contratos_all')
+      let reportesContrato = []
+      if (reportesResponse.ok) {
+        const reportesData = await reportesResponse.json()
+
+        const allReportes = reportesData.data || []
+        reportesContrato = allReportes.filter((reporte: any) =>
+          reporte.referencia_contrato?.trim() === referenciaContrato?.trim()
+        )
+      } else {
+        console.error('Error en respuesta del API:', reportesResponse.status, reportesResponse.statusText)
+      }
+
+      // Agregar reportes al contrato
+      const contratoConReportes = {
+        ...contratoEncontrado,
+        reportes: reportesContrato
+      }
+
+      setContrato(contratoConReportes)
     } catch (err) {
       console.error('Error cargando contrato:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -129,21 +150,21 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-7xl w-full h-[95vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header con colores unificados */}
-          <div className={`${headerColors.bg} ${headerColors.border} border-b p-4`}>
+          {/* Header con colores sólidos */}
+          <div className={`bg-blue-600 border-blue-700 border-b p-4 flex-shrink-0`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="p-1.5 bg-white/20 dark:bg-gray-800/20 rounded-lg">
-                  <FileText className={`w-5 h-5 ${headerColors.accent}`} />
+                <div className="p-1.5 bg-white/20 rounded-lg">
+                  <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5 leading-tight">
+                  <h2 className="text-lg font-bold text-white mb-0.5 leading-tight">
                     {contractDataToShow?.descripcion_proceso || contractDataToShow?.objeto_del_contrato || contractDataToShow?.objeto_contrato || 'Detalle del Contrato'}
                   </h2>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 opacity-90">
+                  <div className="text-xs text-blue-100 opacity-90">
                     {contractDataToShow?.referencia_contrato || referenciaContrato}
                     {contractDataToShow?.proceso_compra && (
                       <span className="ml-2">• Proceso: {contractDataToShow.proceso_compra}</span>
@@ -153,16 +174,16 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
           </div>
 
-          {/* Contenido scrolleable compacto */}
-          <div className="overflow-y-auto max-h-[calc(95vh-80px)]">
-            <div className="p-4 space-y-4">
+          {/* Contenido scrolleable completo */}
+          <div className="overflow-y-auto flex-grow min-h-0">
+            <div className="p-4 space-y-4 pb-8">
               {loading && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -468,24 +489,21 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                   {/* Enlaces y acciones - Ancho Completo y Mejorada Visibilidad */}
                   {(contractDataToShow.urlproceso?.url || contractDataToShow.urlproceso) && (
                     <div className="col-span-1 lg:col-span-2 pt-4 mt-4 border-t-2 border-gray-300 dark:border-gray-600">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => {
-                            const url = contractDataToShow.urlproceso?.url || contractDataToShow.urlproceso
-                            console.log('🔗 URL SECOP:', url, 'Tipo:', typeof url)
-                            if (typeof url === 'string' && url.trim()) {
-                              console.log('✅ Navegando a URL:', url.trim())
-                              // Navegar directamente al enlace
-                              window.location.href = url.trim()
-                            } else {
-                              console.log('❌ URL inválida o vacía')
-                            }
-                          }}
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 duration-200"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Ver en SECOP
-                        </button>
+                      <div className="space-y-3">
+                        <div className="text-center">
+                          <button
+                            onClick={() => {
+                              const url = contractDataToShow.urlproceso?.url || contractDataToShow.urlproceso
+                              if (typeof url === 'string' && url.trim()) {
+                                window.open(url.trim(), '_blank', 'noopener,noreferrer')
+                              }
+                            }}
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 duration-200"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Ver en SECOP
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
