@@ -565,3 +565,80 @@ div[class*="fixed inset-0"] {
   position: relative;
   z-index: 1;
 }
+
+/* Barra de scroll horizontal visible para gráficos */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 14px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #9ca3af;
+  border-radius: 7px;
+  border: 2px solid #f3f4f6;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background-color: #e5e7eb;
+  border-radius: 7px;
+}
+
+:is(.dark .scrollbar-thin)::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+  border-color: #1f2937;
+}
+
+:is(.dark .scrollbar-thin)::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
+}
+
+:is(.dark .scrollbar-thin)::-webkit-scrollbar-track {
+  background-color: #374151;
+}
+
+/* Scroll más visible para contenedores específicos */
+.overflow-x-scroll::-webkit-scrollbar {
+  height: 16px;
+  background: transparent;
+}
+
+.overflow-x-scroll::-webkit-scrollbar-track {
+  background: linear-gradient(to bottom, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.overflow-x-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+  border-radius: 8px;
+  border: 2px solid #f3f4f6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.overflow-x-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #2563eb 0%, #1d4ed8 50%, #1e40af 100%);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.overflow-x-scroll::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(to bottom, #1e40af 0%, #1e3a8a 50%, #1e3a8a 100%);
+}
+
+/* Scroll oscuro para modo dark */
+:is(.dark .overflow-x-scroll)::-webkit-scrollbar-track {
+  background: linear-gradient(to bottom, #1f2937 0%, #111827 50%, #1f2937 100%);
+  border: 1px solid #374151;
+}
+
+:is(.dark .overflow-x-scroll)::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+  border-color: #1f2937;
+}
+
+:is(.dark .overflow-x-scroll)::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
+}

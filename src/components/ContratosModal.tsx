@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -15,7 +15,10 @@ import {
   Shield,
   ExternalLink,
   Clock,
-  TrendingUp
+  TrendingUp,
+  MessageSquare,
+  AlertTriangle,
+  ChevronDown
 } from 'lucide-react'
 import { formatNumber } from '@/lib/design-system'
 import { getContractStateColors, getMetricColors, getInfoColors } from '@/lib/contract-colors'
@@ -24,12 +27,40 @@ import ContractGantt from './ContractGantt'
 import ContractFinancialVisuals from './ContractFinancialVisuals'
 import ContractTimeSeries from './ContractTimeSeries'
 
+interface ReporteEmprestito {
+  id: string
+  referencia_contrato: string
+  avance_fisico: number
+  avance_financiero: number
+  fecha_reporte: string
+  observaciones: string
+  nombre_centro_gestor: string
+  nombre_centro_gestor_source: string
+  estado_reporte: string
+  alertas: {
+    descripcion: string
+    es_alerta: boolean
+    tipos: string[]
+  }
+  archivos_evidencia?: Array<{
+    url: string
+    drive_id: string
+    name: string
+    type: string
+    size: number
+    status: string
+    download_url: string
+  }>
+  url_carpeta_drive?: string
+}
+
 interface ContratosModalProps {
   isOpen: boolean
   onClose: () => void
   referenciaContrato?: string
   contratoData?: any
   proyectoData?: any
+  reportes?: ReporteEmprestito[]
 }
 
 // Componente para secciones colapsables minimalistas
@@ -66,19 +97,15 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
   onClose,
   referenciaContrato,
   contratoData,
-  proyectoData
+  proyectoData,
+  reportes = []
 }) => {
   const [contrato, setContrato] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [expandReportes, setExpandReportes] = useState(true)
 
-  useEffect(() => {
-    if (isOpen && !contratoData) {
-      loadContratoData()
-    }
-  }, [isOpen, referenciaContrato, contratoData])
-
-  const loadContratoData = async () => {
+  const loadContratoData = useCallback(async () => {
     if (!referenciaContrato) return
 
     setLoading(true)
@@ -125,7 +152,13 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [referenciaContrato])
+
+  useEffect(() => {
+    if (isOpen && !contratoData) {
+      loadContratoData()
+    }
+  }, [isOpen, contratoData, loadContratoData])
 
   if (!isOpen) return null
 
@@ -474,6 +507,82 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                       </div>
                     </div>
                   </div>
+
+                  {/* Observaciones y Alertas de Reportes - Ancho Completo - Colapsable */}
+                  {(reportes.length > 0 || contractDataToShow?.reportes?.length > 0) && (
+                    <div className="col-span-1 lg:col-span-2 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg p-3">
+                      <button
+                        onClick={() => setExpandReportes(!expandReportes)}
+                        className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+                      >
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-purple-600" />
+                          Historial de Reportes ({(reportes.filter(r => r.referencia_contrato === contractDataToShow?.referencia_contrato) || contractDataToShow?.reportes || []).length})
+                        </h3>
+                        <ChevronDown 
+                          className={`w-4 h-4 text-purple-600 transition-transform ${expandReportes ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      
+                      {expandReportes && (
+                        <div className="space-y-2 mt-3 max-h-[500px] overflow-y-auto">
+                          {((reportes.filter(r => r.referencia_contrato === contractDataToShow?.referencia_contrato) || contractDataToShow?.reportes || [])
+                            .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())
+                            .map((reporte, idx) => (
+                            <div key={`${reporte.id}-${idx}`} className="bg-white/60 dark:bg-gray-700/40 rounded-lg p-2 border border-purple-200 dark:border-purple-800">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="flex-1">
+                                  <div className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+                                    {formatearFecha(reporte.fecha_reporte)}
+                                  </div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                                    {reporte.nombre_centro_gestor || 'Centro gestor no especificado'}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                    Físico: {(reporte.avance_fisico || 0).toFixed(1)}%
+                                  </div>
+                                  <div className="text-xs font-semibold text-green-600 dark:text-green-400">
+                                    Financiero: {(reporte.avance_financiero || 0).toFixed(1)}%
+                                  </div>
+                                </div>
+                              </div>
+                              {reporte.observaciones && (
+                                <div className="text-xs text-gray-700 dark:text-gray-300 bg-white/40 dark:bg-gray-800/40 rounded px-2 py-1 mb-1">
+                                  <span className="font-medium">Observaciones: </span>
+                                  {reporte.observaciones}
+                                </div>
+                              )}
+                              {reporte.alertas?.es_alerta && (
+                                <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1 mb-1 flex items-start gap-1">
+                                  <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                                  <span><span className="font-medium">Alerta: </span>{reporte.alertas.descripcion}</span>
+                                </div>
+                              )}
+                              {reporte.url_carpeta_drive && (
+                                <a 
+                                  href={reporte.url_carpeta_drive} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-1"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  Ver Evidencia en Drive
+                                </a>
+                              )}
+                            </div>
+                          ))
+                          )}
+                          {(reportes.filter(r => r.referencia_contrato === contractDataToShow?.referencia_contrato) || contractDataToShow?.reportes || []).length === 0 && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 italic py-4 text-center">
+                              No hay reportes disponibles para este contrato
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Objeto del Contrato - Ancho Completo */}
                   <div className="col-span-1 lg:col-span-2 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg p-3">
