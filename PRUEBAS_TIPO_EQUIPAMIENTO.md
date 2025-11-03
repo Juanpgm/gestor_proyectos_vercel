@@ -11,10 +11,12 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 ## 🧪 Pruebas Realizadas
 
 ### 1️⃣ Test de Flujo Completo UI
+
 **Archivo**: `test-ui-flow.js`  
 **Resultado**: ✅ **6/6 pasos exitosos**
 
 #### Pasos Verificados:
+
 1. ✅ **Carga inicial**: 791 features cargadas sin filtros
 2. ✅ **Generación de opciones**: 20 tipos de equipamiento extraídos
 3. ✅ **Filtro singular**: "Bibliotecas" → 57 resultados (7.2% del total)
@@ -25,10 +27,12 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 ---
 
 ### 2️⃣ Test de Funcionalidad API
+
 **Archivo**: `test-tipo-equipamiento.js`  
 **Resultado**: ✅ **5/7 pruebas exitosas**
 
 #### Pruebas Exitosas:
+
 - ✅ Filtro tipo_equipamiento=Bibliotecas (57 resultados)
 - ✅ Filtro con nombre compuesto "Parques y zonas verdes" (55 resultados)
 - ✅ Filtro tipo_equipamiento=CAD (13 resultados)
@@ -36,6 +40,7 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 - ✅ Comparación filtrado vs sin filtrar (reducción 92.8%)
 
 #### Pruebas con Limitaciones Conocidas:
+
 - ⚠️ `/filters` no retorna `tipos_equipamiento` → **Solución**: Se genera client-side desde attributes
 - ⚠️ `/attributes` formato diferente → **Solución**: Se usa `/geometry` como fallback
 
@@ -44,24 +49,30 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 ## 🔧 Correcciones Aplicadas
 
 ### 1. Botones sin `type="button"` (Causa de recarga de página)
+
 **Problema**: Botones causaban submit de formulario inexistente
 **Solución**: Agregado `type="button"` a:
+
 - Toggle multi-select mode
 - Botón "Limpiar filtros"
 
 ### 2. Mapeo de claves en `handleMultiFilterChange`
+
 **Problema**: `tipos_equipamiento` no se mapeaba a `tipo_equipamiento`
 **Solución**: Agregada línea de mapeo en `UnidadesProyectoFilters.tsx`
 
 ### 3. Recarga de geometría en hook
+
 **Problema**: Geometría no se recargaba con filtros del servidor
 **Solución**: Modificado `setFilters` en `useUnidadesProyectoEnhanced.ts`
 
 ### 4. Filtrado local de múltiples valores
+
 **Problema**: `tipo_equipamiento_multiple` no estaba implementado
 **Solución**: Agregado soporte en `filterAttributeData` del servicio
 
 ### 5. Cache buster innecesario
+
 **Problema**: Timestamp causaba requests diferentes constantemente
 **Solución**: Eliminado parámetro `_t` de `buildFilterQuery`
 
@@ -70,6 +81,7 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 ## 📊 Resultados de Datos
 
 ### Tipos de Equipamiento Disponibles (20 total):
+
 1. Adquisición predios
 2. Bibliotecas (57 proyectos)
 3. CAD (13 proyectos)
@@ -92,6 +104,7 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 20. Vivienda nueva
 
 ### Estadísticas:
+
 - **Total de proyectos**: 791
 - **Tipos de equipamiento únicos**: 20
 - **Filtrado efectivo**: Reduce dataset hasta 92.8%
@@ -102,6 +115,7 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 ## ✅ Funcionalidades Verificadas
 
 ### Dropdown
+
 - ✅ Carga 20 opciones correctamente
 - ✅ Ordenamiento alfabético
 - ✅ Búsqueda dentro del dropdown
@@ -111,6 +125,7 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 - ✅ "Seleccionar todo" / "Limpiar todo"
 
 ### Filtrado
+
 - ✅ Filtro singular: aplica a endpoint `/geometry`
 - ✅ Multi-filtro: aplica localmente con lógica OR
 - ✅ Limpieza de filtros: restaura vista completa
@@ -118,6 +133,7 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 - ✅ Caracteres especiales: manejo correcto
 
 ### Integración
+
 - ✅ No recarga la página al seleccionar
 - ✅ Sincronización con mapa
 - ✅ Sincronización con tabla de atributos
@@ -125,6 +141,7 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 - ✅ Consistencia con otros filtros
 
 ### Performance
+
 - ✅ Sin requests duplicados
 - ✅ Sin cache buster innecesario
 - ✅ Filtrado local eficiente
@@ -134,20 +151,21 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 
 ## 🎯 Comportamiento Esperado vs Actual
 
-| Acción del Usuario | Comportamiento Esperado | Estado |
-|---------------------|------------------------|---------|
-| Seleccionar "Bibliotecas" | Mostrar 57 proyectos en mapa | ✅ Funciona |
-| Seleccionar múltiples valores | Mostrar suma de proyectos | ✅ Funciona |
-| Búsqueda en dropdown | Filtrar opciones visibles | ✅ Funciona |
-| Limpiar filtro | Restaurar 791 proyectos | ✅ Funciona |
-| Alternar multi-mode | Cambiar comportamiento | ✅ Funciona |
-| Nombres con espacios | Aplicar filtro correctamente | ✅ Funciona |
+| Acción del Usuario            | Comportamiento Esperado      | Estado      |
+| ----------------------------- | ---------------------------- | ----------- |
+| Seleccionar "Bibliotecas"     | Mostrar 57 proyectos en mapa | ✅ Funciona |
+| Seleccionar múltiples valores | Mostrar suma de proyectos    | ✅ Funciona |
+| Búsqueda en dropdown          | Filtrar opciones visibles    | ✅ Funciona |
+| Limpiar filtro                | Restaurar 791 proyectos      | ✅ Funciona |
+| Alternar multi-mode           | Cambiar comportamiento       | ✅ Funciona |
+| Nombres con espacios          | Aplicar filtro correctamente | ✅ Funciona |
 
 ---
 
 ## 🔍 Pruebas de Regresión
 
 ### Otros Filtros (No Afectados)
+
 - ✅ Estado
 - ✅ Tipo de Intervención
 - ✅ Centro Gestor
@@ -161,12 +179,15 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
 ## 📝 Notas Técnicas
 
 ### Arquitectura del Filtrado:
+
 1. **Filtro Singular** (`tipo_equipamiento`):
+
    - Se envía al servidor en `/geometry?tipo_equipamiento=valor`
    - El servidor retorna solo las features que coinciden
    - Eficiente para datasets grandes
 
 2. **Multi-Filtro** (`tipo_equipamiento_multiple`):
+
    - Se aplica LOCALMENTE en el cliente
    - Usa `filterAttributeData` del servicio
    - Lógica OR: muestra features que coincidan con CUALQUIER valor seleccionado
@@ -178,8 +199,9 @@ El dropdown de `tipo_equipamiento` ha sido implementado y probado exhaustivament
    - Fallback a datos de geometry si es necesario
 
 ### Flujo de Datos:
+
 ```
-Usuario selecciona → handleMultiFilterChange 
+Usuario selecciona → handleMultiFilterChange
                   → mapeo tipos_equipamiento → tipo_equipamiento
                   → actions.setFilters
                   → fetchGeometryData (servidor)
@@ -194,6 +216,7 @@ Usuario selecciona → handleMultiFilterChange
 El filtro de `tipo_equipamiento` está **100% funcional** y **listo para producción**.
 
 ### Ventajas Implementadas:
+
 - ✅ No recarga la página
 - ✅ Performance optimizada
 - ✅ Filtrado híbrido (servidor + cliente)
@@ -202,12 +225,14 @@ El filtro de `tipo_equipamiento` está **100% funcional** y **listo para producc
 - ✅ Código limpio y mantenible
 
 ### Archivos Modificados:
+
 1. `src/services/unidades-proyecto.service.ts` - Lógica de filtrado
 2. `src/components/UnidadesProyectoFilters.tsx` - UI del filtro
 3. `src/hooks/useUnidadesProyectoEnhanced.ts` - Gestión de estado
 4. `src/components/EnhancedUnidadesProyectoMap.tsx` - Integración con mapa
 
 ### Tests Creados:
+
 1. `test-tipo-equipamiento.js` - Pruebas de API
 2. `test-ui-flow.js` - Pruebas de flujo UI
 
