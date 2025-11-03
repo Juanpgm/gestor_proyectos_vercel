@@ -282,6 +282,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   const [multiFilters, setMultiFilters] = useState<{
     estados: string[];
     tipos_intervencion: string[];
+    tipos_equipamiento: string[];
     centros_gestores: string[];
     comunas_corregimientos: string[];
     barrios_veredas: string[];
@@ -290,6 +291,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   }>({
     estados: [],
     tipos_intervencion: [],
+    tipos_equipamiento: [],
     centros_gestores: [],
     comunas_corregimientos: [],
     barrios_veredas: [],
@@ -320,6 +322,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                      key === 'comunas_corregimientos' ? 'comuna_corregimiento' :
                      key === 'barrios_veredas' ? 'barrio_vereda' :
                      key === 'fuentes_financiacion' ? 'fuente_financiacion' :
+                     key === 'tipos_equipamiento' ? 'tipo_equipamiento' :
                      'ano';
     
     // Crear un nuevo objeto de filtros con el array de valores
@@ -367,6 +370,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     setMultiFilters({
       estados: [],
       tipos_intervencion: [],
+      tipos_equipamiento: [],
       centros_gestores: [],
       comunas_corregimientos: [],
       barrios_veredas: [],
@@ -385,6 +389,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       setMultiFilters({
         estados: [],
         tipos_intervencion: [],
+        tipos_equipamiento: [],
         centros_gestores: [],
         comunas_corregimientos: [],
         barrios_veredas: [],
@@ -424,6 +429,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
           <div className="flex items-center space-x-2">
             {/* Toggle de modo multi-select - más compacto si es necesario */}
             <button
+              type="button"
               onClick={handleToggleMultiMode}
               className={`inline-flex items-center ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} text-xs font-medium rounded-lg transition-colors ${
                 isMultiMode 
@@ -438,6 +444,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             
             {hasActiveFilters && (
               <button
+                type="button"
                 onClick={handleClearAllFilters}
                 disabled={isLoading}
                 className={`inline-flex items-center ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50`}
@@ -496,6 +503,19 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             multiSelect={isMultiMode}
             selectedItems={multiFilters.tipos_intervencion}
             onMultiChange={(values) => handleMultiFilterChange('tipos_intervencion', values)}
+          />
+
+          {/* Tipo de equipamiento */}
+          <EnhancedFilterSelect
+            label="Tipo de Equipamiento"
+            value={filters.tipo_equipamiento}
+            onChange={(value) => handleFilterChange('tipo_equipamiento', value)}
+            options={filterData?.tipos_equipamiento || []}
+            placeholder="Todos los equipamientos"
+            disabled={isLoading}
+            multiSelect={isMultiMode}
+            selectedItems={multiFilters.tipos_equipamiento}
+            onMultiChange={(values) => handleMultiFilterChange('tipos_equipamiento', values)}
           />
 
           {/* Centro gestor */}
@@ -575,6 +595,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                 const labels = {
                   estados: 'Estados',
                   tipos_intervencion: 'Tipos',
+                  tipos_equipamiento: 'Equipamientos',
                   centros_gestores: 'Centros',
                   comunas_corregimientos: 'Comunas',
                   barrios_veredas: 'Barrios',

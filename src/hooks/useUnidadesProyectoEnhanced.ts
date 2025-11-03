@@ -153,28 +153,47 @@ export const useUnidadesProyecto = (
 
   // Funciones de filtrado
   const setFilters = useCallback((newFilters: FilterParams) => {
+    console.log('🎯 setFilters: Setting new filters:', newFilters);
     setFiltersState(newFilters);
+    
+    // IMPORTANTE: Siempre recargar geometría con filtros del servidor
+    // El filtrado local solo se usa para attributes, pero geometry debe venir filtrada del servidor
     if (!enableLocalFiltering) {
+      // Modo sin filtrado local: recargar todo
       fetchAllData(newFilters);
+    } else {
+      // Modo con filtrado local: solo recargar geometry, attributes se filtran localmente
+      fetchGeometryData(newFilters)
+        .then(geometry => {
+          console.log('✅ Geometry reloaded with filters:', geometry ? `${geometry.features?.length || 0} features` : 'null');
+          updateState({ geometryData: geometry });
+        })
+        .catch(error => {
+          console.error('❌ Error reloading geometry:', error);
+        });
     }
-  }, [enableLocalFiltering, fetchAllData]);
+  }, [enableLocalFiltering, fetchAllData, updateState]);
 
   const clearFilters = useCallback(() => {
     console.log('🧹 Limpiando todos los filtros...');
     setFiltersState({});
     setSearchTermState('');
     
-    // Forzar recarga completa de datos
-    setState(createInitialState());
-    
-    // Recargar datos desde el servidor
+    // Recargar datos desde el servidor sin filtros
     if (!enableLocalFiltering) {
       fetchAllData({}); 
     } else {
-      // En modo local, también recargar para asegurar datos frescos
-      fetchAllData({});
+      // En modo local, solo recargar geometry sin filtros
+      fetchGeometryData({})
+        .then(geometry => {
+          console.log('✅ Geometry reloaded without filters:', geometry ? `${geometry.features?.length || 0} features` : 'null');
+          updateState({ geometryData: geometry });
+        })
+        .catch(error => {
+          console.error('❌ Error reloading geometry:', error);
+        });
     }
-  }, [enableLocalFiltering, fetchAllData]);
+  }, [enableLocalFiltering, fetchAllData, updateState]);
 
   const setSearchTerm = useCallback((term: string) => {
     setSearchTermState(term);

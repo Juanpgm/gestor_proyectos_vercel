@@ -209,6 +209,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     identificador: false, // Nueva columna de identificador (oculta por defecto)
     estado: true,
     tipo_intervencion: false,
+    tipo_equipamiento: false,
     avance_obra: true,
     presupuesto_base: true,
     nombre_centro_gestor: true, // Mostrar por defecto ya que el usuario lo necesita completo
@@ -234,6 +235,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         (item.identificador && item.identificador.toLowerCase().includes(term)) ||
         item.estado.toLowerCase().includes(term) ||
         item.tipo_intervencion.toLowerCase().includes(term) ||
+        (item.tipo_equipamiento && item.tipo_equipamiento.toLowerCase().includes(term)) ||
         item.nombre_centro_gestor.toLowerCase().includes(term) ||
         item.barrio_vereda.toLowerCase().includes(term) ||
         item.comuna_corregimiento.toLowerCase().includes(term) ||
@@ -418,6 +420,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         nombre_up: true,
         identificador: false,
         estado: true,
+        tipo_equipamiento: false,
         avance_obra: true,
         presupuesto_base: true,
         ubicacion: true,
@@ -437,6 +440,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         identificador: false,
         estado: true,
         tipo_intervencion: true,
+        tipo_equipamiento: true,
         avance_obra: true,
         presupuesto_base: true,
         nombre_centro_gestor: true,
@@ -640,6 +644,13 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   <ColumnHeader 
                     label="Tipo" 
                     sortKey="tipo_intervencion" 
+                    icon={<Building2 className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.tipo_equipamiento && (
+                  <ColumnHeader 
+                    label="Equipamiento" 
+                    sortKey="tipo_equipamiento" 
                     icon={<Building2 className="w-3 h-3" />} 
                   />
                 )}
@@ -929,6 +940,13 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="leading-tight break-words whitespace-normal">
                         {item.tipo_intervencion}
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.tipo_equipamiento && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      <div className="leading-tight break-words whitespace-normal">
+                        {item.tipo_equipamiento || 'N/A'}
                       </div>
                     </td>
                   )}

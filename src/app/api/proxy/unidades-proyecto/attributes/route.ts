@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Marcar esta ruta como dinámica
+export const dynamic = 'force-dynamic'
+
 const FASTAPI_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
 
 export async function GET(request: NextRequest) {

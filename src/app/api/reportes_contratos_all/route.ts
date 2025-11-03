@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 
+// Marcar esta ruta como dinámica para evitar errores de pre-renderizado
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const response = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes_contratos/', {

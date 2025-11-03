@@ -37,6 +37,7 @@ interface UnidadesProyectoMapProps {
 type ColoringType = 
   | 'estado' 
   | 'tipo_intervencion' 
+  | 'tipo_equipamiento'
   | 'avance_obra' 
   | 'nombre_centro_gestor' 
   | 'presupuesto_base'
@@ -71,6 +72,7 @@ const ColoringControl: React.FC<{
   const coloringOptions: Array<{ value: ColoringType; label: string }> = [
     { value: 'estado', label: 'Estado' },
     { value: 'tipo_intervencion', label: 'Tipo de Intervención' },
+    { value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' },
     { value: 'avance_obra', label: 'Avance de Obra' },
     { value: 'nombre_centro_gestor', label: 'Centro Gestor' },
     { value: 'presupuesto_base', label: 'Presupuesto Base' },
@@ -260,6 +262,9 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
           case 'tipo_intervencion':
             field = 'tipo_intervencion';
             break;
+          case 'tipo_equipamiento':
+            field = 'tipo_equipamiento';
+            break;
           case 'comuna_corregimiento':
             field = 'comuna_corregimiento';
             break;
@@ -417,6 +422,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
                       <div><strong>UPID:</strong> ${attributeItem.upid}</div>
                       <div><strong>Estado:</strong> ${attributeItem.estado}</div>
                       <div><strong>Tipo:</strong> ${attributeItem.tipo_intervencion}</div>
+                      ${attributeItem.tipo_equipamiento ? `<div><strong>Equipamiento:</strong> ${attributeItem.tipo_equipamiento}</div>` : ''}
                       <div><strong>Avance:</strong> ${Math.round(attributeItem.avance_obra || 0)}%</div>
                       <div style="grid-column: span 2; word-wrap: break-word; overflow-wrap: break-word;"><strong>Centro Gestor:</strong> ${attributeItem.nombre_centro_gestor}</div>
                       <div style="grid-column: span 2;"><strong>Ubicación:</strong> ${attributeItem.barrio_vereda}, ${attributeItem.comuna_corregimiento}</div>

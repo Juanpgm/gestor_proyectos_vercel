@@ -41,6 +41,7 @@ interface UnidadesProyectoMapSimpleProps {
 type ColoringType = 
   | 'estado' 
   | 'tipo_intervencion' 
+  | 'tipo_equipamiento'
   | 'avance_obra' 
   | 'nombre_centro_gestor' 
   | 'presupuesto_base'
@@ -106,6 +107,7 @@ const ColoringControl: React.FC<{
   const coloringOptions: Array<{ value: ColoringType; label: string }> = [
     { value: 'estado', label: 'Estado' },
     { value: 'tipo_intervencion', label: 'Tipo de Intervención' },
+    { value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' },
     { value: 'avance_obra', label: 'Avance de Obra' },
     { value: 'nombre_centro_gestor', label: 'Centro Gestor' },
     { value: 'presupuesto_base', label: 'Presupuesto Base' },
@@ -305,6 +307,9 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
             break;
           case 'tipo_intervencion':
             field = 'tipo_intervencion';
+            break;
+          case 'tipo_equipamiento':
+            field = 'tipo_equipamiento';
             break;
           case 'comuna_corregimiento':
             field = 'comuna_corregimiento';
@@ -706,6 +711,30 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
                       font-size: 12px;
                       color: ${isDark ? '#9ca3af' : '#6b7280'};
                     ">
+                      ${attributeItem.tipo_intervencion ? `
+                        <div style="
+                          display: flex;
+                          align-items: center;
+                          gap: 6px;
+                        ">
+                          <span style="opacity: 0.7;">🔧</span>
+                          <span style="font-weight: 500; color: ${isDark ? '#d1d5db' : '#374151'};">
+                            ${attributeItem.tipo_intervencion}
+                          </span>
+                        </div>
+                      ` : ''}
+                      ${attributeItem.tipo_equipamiento ? `
+                        <div style="
+                          display: flex;
+                          align-items: center;
+                          gap: 6px;
+                        ">
+                          <span style="opacity: 0.7;">🏢</span>
+                          <span style="font-weight: 500; color: ${isDark ? '#d1d5db' : '#374151'};">
+                            ${attributeItem.tipo_equipamiento}
+                          </span>
+                        </div>
+                      ` : ''}
                       <div style="
                         display: flex;
                         align-items: center;

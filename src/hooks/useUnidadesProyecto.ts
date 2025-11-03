@@ -28,6 +28,7 @@ export interface AttributeData {
   nombre_up: string;
   estado: string;
   tipo_intervencion: string;
+  tipo_equipamiento?: string;
   nombre_centro_gestor: string;
   comuna_corregimiento: string;
   barrio_vereda: string;
