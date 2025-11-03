@@ -70,16 +70,74 @@ const MapFocusController: React.FC<{
         feature => feature.properties?.upid === focusedItem
       );
 
-      if (targetFeature && targetFeature.geometry.type === 'Point') {
-        const coords = targetFeature.geometry.coordinates as [number, number];
-        // Leaflet usa [lat, lng] pero GeoJSON usa [lng, lat]
-        const latLng: [number, number] = [coords[1], coords[0]];
+      if (targetFeature) {
+        const geomType = targetFeature.geometry.type;
         
-        // Enfocar en el punto con zoom y animación
-        map.setView(latLng, 16, {
-          animate: true,
-          duration: 1
-        });
+        // Calcular centro de la geometría según su tipo
+        let latLng: [number, number] | null = null;
+        
+        try {
+          if (geomType === 'Point') {
+            const coords = targetFeature.geometry.coordinates as [number, number];
+            latLng = [coords[1], coords[0]]; // [lat, lng]
+          } else if (geomType === 'LineString') {
+            const coords = targetFeature.geometry.coordinates as [number, number][];
+            // Calcular el punto medio de la línea
+            const midIndex = Math.floor(coords.length / 2);
+            latLng = [coords[midIndex][1], coords[midIndex][0]];
+          } else if (geomType === 'Polygon') {
+            const coords = targetFeature.geometry.coordinates as [number, number][][];
+            // Calcular el centroide del polígono (primer anillo)
+            const ring = coords[0];
+            const latSum = ring.reduce((sum, coord) => sum + coord[1], 0);
+            const lngSum = ring.reduce((sum, coord) => sum + coord[0], 0);
+            latLng = [latSum / ring.length, lngSum / ring.length];
+          } else if (geomType === 'MultiPoint') {
+            const coords = targetFeature.geometry.coordinates as [number, number][];
+            // Usar el primer punto
+            if (coords.length > 0) {
+              latLng = [coords[0][1], coords[0][0]];
+            }
+          } else if (geomType === 'MultiLineString') {
+            const coords = targetFeature.geometry.coordinates as [number, number][][];
+            // Usar el punto medio de la primera línea
+            if (coords.length > 0 && coords[0].length > 0) {
+              const midIndex = Math.floor(coords[0].length / 2);
+              latLng = [coords[0][midIndex][1], coords[0][midIndex][0]];
+            }
+          } else if (geomType === 'MultiPolygon') {
+            const coords = targetFeature.geometry.coordinates as [number, number][][][];
+            // Usar el centroide del primer polígono
+            if (coords.length > 0 && coords[0].length > 0) {
+              const ring = coords[0][0];
+              const latSum = ring.reduce((sum, coord) => sum + coord[1], 0);
+              const lngSum = ring.reduce((sum, coord) => sum + coord[0], 0);
+              latLng = [latSum / ring.length, lngSum / ring.length];
+            }
+          } else if (geomType === 'GeometryCollection') {
+            // Para GeometryCollection, usar la primera geometría
+            const geometries = (targetFeature.geometry as any).geometries;
+            if (geometries && geometries.length > 0) {
+              const firstGeom = geometries[0];
+              if (firstGeom.type === 'Point') {
+                latLng = [firstGeom.coordinates[1], firstGeom.coordinates[0]];
+              } else if (firstGeom.type === 'LineString' && firstGeom.coordinates.length > 0) {
+                const midIndex = Math.floor(firstGeom.coordinates.length / 2);
+                latLng = [firstGeom.coordinates[midIndex][1], firstGeom.coordinates[midIndex][0]];
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Error al calcular centro de geometría:', error);
+        }
+        
+        // Enfocar en el elemento con zoom y animación
+        if (latLng) {
+          map.setView(latLng, 16, {
+            animate: true,
+            duration: 1
+          });
+        }
       }
     }
   }, [focusedItem, geometryData, map]);
@@ -358,14 +416,33 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
     const color = getFeatureColor(feature.properties);
     const isFocused = focusedItem === feature.properties?.upid;
     const isDimmed = showOnlyFocused && focusedItem && !isFocused;
+    const geomType = feature.geometry?.type;
     
-    return {
+    // Estilos base según el tipo de geometría
+    const baseStyle: any = {
       color: isFocused ? '#FF6B35' : color,
-      weight: isFocused ? 4 : 3,
-      opacity: isDimmed ? 0.2 : (isFocused ? 1 : 0.8),
       fillColor: isFocused ? '#FF6B35' : color,
+      opacity: isDimmed ? 0.2 : (isFocused ? 1 : 0.8),
       fillOpacity: isDimmed ? 0.1 : (isFocused ? 0.7 : 0.4)
     };
+    
+    // Ajustar peso según el tipo de geometría
+    if (geomType === 'LineString' || geomType === 'MultiLineString') {
+      // Líneas más gruesas para mejor visibilidad
+      baseStyle.weight = isFocused ? 6 : 4;
+      baseStyle.opacity = isDimmed ? 0.3 : (isFocused ? 1 : 0.9);
+    } else if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+      // Polígonos con borde visible
+      baseStyle.weight = isFocused ? 4 : 2;
+    } else if (geomType === 'GeometryCollection') {
+      // GeometryCollection usa estilo por defecto
+      baseStyle.weight = isFocused ? 4 : 3;
+    } else {
+      // Puntos y otros
+      baseStyle.weight = isFocused ? 4 : 3;
+    }
+    
+    return baseStyle;
   };
 
   // Función específica para marcadores circulares

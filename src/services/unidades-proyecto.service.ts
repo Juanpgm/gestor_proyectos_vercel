@@ -11,7 +11,7 @@ const GeometrySchema = z.object({
   features: z.array(z.object({
     type: z.literal('Feature'),
     geometry: z.object({
-      type: z.enum(['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon']),
+      type: z.enum(['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection']),
       coordinates: z.union([
         // Point: [lon, lat]
         z.tuple([z.number(), z.number()]),
@@ -21,7 +21,8 @@ const GeometrySchema = z.object({
         z.array(z.array(z.tuple([z.number(), z.number()]))),
         // Casos más complejos
         z.array(z.any())
-      ])
+      ]).optional(), // Hacer opcional porque GeometryCollection no tiene coordinates directas
+      geometries: z.array(z.any()).optional() // Para GeometryCollection
     }),
     properties: z.record(z.any())
   }))
