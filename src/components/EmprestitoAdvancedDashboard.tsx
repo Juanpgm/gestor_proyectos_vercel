@@ -2011,7 +2011,7 @@ const useEmprestitoRealData = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 max-w-full overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full"
       >
         <div className="flex items-center gap-3 mb-2">
           <BarChart3 className="w-6 h-6 text-blue-600" />
@@ -2195,7 +2195,7 @@ const useEmprestitoRealData = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 max-w-full overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full"
       >
         <div className="flex items-center gap-3 mb-2">
           <Building2 className="w-6 h-6 text-green-600" />
@@ -2393,7 +2393,7 @@ const useEmprestitoRealData = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 max-w-full overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 w-full"
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
@@ -2775,9 +2775,12 @@ const useEmprestitoRealData = () => {
     }
   
     return (
-      <div className="flex relative max-w-full overflow-hidden">
+      <div className="flex relative w-full">
         {/* Contenido principal */}
-        <div className="flex-1 space-y-3 sm:space-y-4 p-4 sm:p-6" style={{ marginRight: showFilters ? '300px' : '0' }}>
+        <div 
+          className="flex-1 space-y-3 sm:space-y-4 p-4 sm:p-6 transition-all duration-300" 
+          style={{ marginRight: showFilters ? '320px' : '0' }}
+        >
           {/* Título del Dashboard */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -2792,7 +2795,7 @@ const useEmprestitoRealData = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 max-w-full overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 w-full"
         >
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -3623,11 +3626,11 @@ const useEmprestitoRealData = () => {
       <AnimatePresence>
         {showFilters && (
           <motion.div
-            initial={{ x: 300, opacity: 0 }}
+            initial={{ x: 320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 300, opacity: 0 }}
+            exit={{ x: 320, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-[60] overflow-y-auto"
+            className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto border-l border-gray-200 dark:border-gray-700"
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
