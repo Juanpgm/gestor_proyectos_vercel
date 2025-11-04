@@ -98,16 +98,16 @@ const useTimeSeriesData = (reportes: ReporteEmprestito[], contratos: ContratoEmp
       data.valor_contrato += valorContrato
       data.contratos_count += 1
       
-      // Acumular avances para calcular promedios
-      data.total_avance_fisico += reporte.avance_fisico || 0
-      data.total_avance_financiero += reporte.avance_financiero || 0
+      // Acumular avances PONDERADOS para calcular promedios
+      data.total_avance_fisico += (reporte.avance_fisico || 0) * valorContrato
+      data.total_avance_financiero += (reporte.avance_financiero || 0) * valorContrato
     })
     
-    // Calcular promedios y convertir a array
+    // Calcular promedios PONDERADOS y convertir a array
     const result = Array.from(dateMap.values()).map(data => ({
       ...data,
-      avance_fisico_promedio: data.contratos_count > 0 ? data.total_avance_fisico / data.contratos_count : 0,
-      avance_financiero_promedio: data.contratos_count > 0 ? data.total_avance_financiero / data.contratos_count : 0
+      avance_fisico_promedio: data.valor_contrato > 0 ? data.total_avance_fisico / data.valor_contrato : 0,
+      avance_financiero_promedio: data.valor_contrato > 0 ? data.total_avance_financiero / data.valor_contrato : 0
     }))
     
     return result.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
@@ -217,16 +217,16 @@ const TimeSeriesChart: React.FC<{ reportes: ReporteEmprestito[], contratos: Cont
       data.valor_contrato += valorContrato
       data.contratos_count += 1
       
-      // Acumular avances para calcular promedios
-      data.total_avance_fisico += reporte.avance_fisico || 0
-      data.total_avance_financiero += reporte.avance_financiero || 0
+      // Acumular avances PONDERADOS para calcular promedios
+      data.total_avance_fisico += (reporte.avance_fisico || 0) * valorContrato
+      data.total_avance_financiero += (reporte.avance_financiero || 0) * valorContrato
     })
     
-    // Calcular promedios y devolver ordenado
+    // Calcular promedios PONDERADOS y devolver ordenado
     const filteredResult = Array.from(dateMap.values()).map(data => ({
       ...data,
-      avance_fisico_promedio: data.contratos_count > 0 ? data.total_avance_fisico / data.contratos_count : 0,
-      avance_financiero_promedio: data.contratos_count > 0 ? data.total_avance_financiero / data.contratos_count : 0
+      avance_fisico_promedio: data.valor_contrato > 0 ? data.total_avance_fisico / data.valor_contrato : 0,
+      avance_financiero_promedio: data.valor_contrato > 0 ? data.total_avance_financiero / data.valor_contrato : 0
     }))
     
     return filteredResult.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
@@ -492,10 +492,8 @@ const WeeklyVariationPanel: React.FC<{
       contratos.map(c => [c.referencia_contrato, Number(c.valor_contrato) || 0])
     )
 
-    const filteredReportes = reportes.filter(r => contratoMap.has(r.referencia_contrato))
-
     const weeksSet = new Set<string>()
-    filteredReportes.forEach(reporte => {
+    reportes.forEach(reporte => {
       if (!reporte.fecha_reporte) return
       const fecha = new Date(reporte.fecha_reporte)
       if (isNaN(fecha.getTime())) return
@@ -518,7 +516,7 @@ const WeeklyVariationPanel: React.FC<{
       
       const lastReportByContract: { [contrato: string]: ReporteEmprestito } = {}
       
-      filteredReportes.forEach(reporte => {
+      reportes.forEach(reporte => {
         if (!reporte.fecha_reporte) return
         const fecha = new Date(reporte.fecha_reporte)
         if (isNaN(fecha.getTime())) return
@@ -540,16 +538,20 @@ const WeeklyVariationPanel: React.FC<{
         }
       })
 
-      let totalFisico = 0
-      let contratosConReporte = 0
+      let totalFisicoPonderado = 0
+      let totalValorContratos = 0
       
       Object.entries(lastReportByContract).forEach(([contratoKey, reporte]) => {
         const avanceFisico = reporte.avance_fisico || 0
-        totalFisico += avanceFisico
-        contratosConReporte++
+        const valorContrato = contratoMap.get(contratoKey) || 0
+        
+        if (valorContrato > 0) {
+          totalFisicoPonderado += (avanceFisico * valorContrato)
+          totalValorContratos += valorContrato
+        }
       })
       
-      const avanceFisicoPromedio = contratosConReporte > 0 ? totalFisico / contratosConReporte : 0
+      const avanceFisicoPromedio = totalValorContratos > 0 ? totalFisicoPonderado / totalValorContratos : 0
       
       return {
         periodo: weekKey,
@@ -636,12 +638,9 @@ const WeeklyProgressChart: React.FC<{
       contratos.map(c => [c.referencia_contrato, Number(c.valor_contrato) || 0])
     )
 
-    // Filtrar reportes solo de los contratos que están en el mapa (filtrados)
-    const filteredReportes = data.filter(r => contratoMap.has(r.referencia_contrato))
-
     // Obtener todas las semanas únicas y ordenarlas
     const weeksSet = new Set<string>()
-    filteredReportes.forEach(reporte => {
+    data.forEach(reporte => {
       if (!reporte.fecha_reporte) return
       const fecha = new Date(reporte.fecha_reporte)
       if (isNaN(fecha.getTime())) return
@@ -659,7 +658,7 @@ const WeeklyProgressChart: React.FC<{
       return weekA - weekB
     })
 
-    // Para cada semana, calcular el promedio SIMPLE del último reporte DE ESA SEMANA de cada contrato
+    // Para cada semana, calcular el promedio PONDERADO del último reporte DE ESA SEMANA de cada contrato
     return sortedWeeks.map((weekKey, weekIndex) => {
       const [year, week] = weekKey.split('-W').map(Number)
       const isLastWeek = weekIndex === sortedWeeks.length - 1
@@ -668,7 +667,7 @@ const WeeklyProgressChart: React.FC<{
       // EXCEPTO en la última semana, donde usamos el último reporte absoluto de cada contrato
       const lastReportByContract: { [contrato: string]: ReporteEmprestito } = {}
       
-      filteredReportes.forEach(reporte => {
+      data.forEach(reporte => {
         if (!reporte.fecha_reporte) return
         const fecha = new Date(reporte.fecha_reporte)
         if (isNaN(fecha.getTime())) return
@@ -703,22 +702,25 @@ const WeeklyProgressChart: React.FC<{
         }
       })
 
-      // Calcular promedio SIMPLE del último reporte de cada contrato en esta semana
-      let totalFisico = 0
-      let totalFinanciero = 0
-      let contratosConReporte = 0
+      // Calcular promedio PONDERADO del último reporte de cada contrato en esta semana
+      let totalFisicoPonderado = 0
+      let totalFinancieroPonderado = 0
+      let totalValorContratos = 0
       
       Object.entries(lastReportByContract).forEach(([contratoKey, reporte]) => {
         const avanceFisico = reporte.avance_fisico || 0
         const avanceFinanciero = reporte.avance_financiero || 0
+        const valorContrato = contratoMap.get(contratoKey) || 0
         
-        totalFisico += avanceFisico
-        totalFinanciero += avanceFinanciero
-        contratosConReporte++
+        if (valorContrato > 0) {
+          totalFisicoPonderado += (avanceFisico * valorContrato)
+          totalFinancieroPonderado += (avanceFinanciero * valorContrato)
+          totalValorContratos += valorContrato
+        }
       })
       
-      const avanceFisicoPromedio = contratosConReporte > 0 ? totalFisico / contratosConReporte : 0
-      const avanceFinancieroPromedio = contratosConReporte > 0 ? totalFinanciero / contratosConReporte : 0
+      const avanceFisicoPromedio = totalValorContratos > 0 ? totalFisicoPonderado / totalValorContratos : 0
+      const avanceFinancieroPromedio = totalValorContratos > 0 ? totalFinancieroPonderado / totalValorContratos : 0
       
       return {
         periodo: weekKey,
@@ -1642,7 +1644,11 @@ const useEmprestitoRealData = () => {
       analysis.valorAsignadoBanco += valorContrato // Asignado Banco = suma de contratos adjudicados
       analysis.valorEjecutado += valorEjecutado
       // valorPagado se mantiene en 0 como solicitado
-      analysis.promedioAvance += avanceFinanciero
+      
+      // Solo sumar al promedio ponderado si hay reporte
+      if (reporteContrato) {
+        analysis.promedioAvance += (avanceFinanciero * valorContrato)
+      }
     })
 
     // Calcular porcentajes y promedios
@@ -1650,8 +1656,9 @@ const useEmprestitoRealData = () => {
       analysis.porcentajeEjecucion = analysis.valorAdjudicado > 0 
         ? (analysis.valorEjecutado / analysis.valorAdjudicado) * 100 
         : 0
-      analysis.promedioAvance = analysis.totalContratos > 0 
-        ? analysis.promedioAvance / analysis.totalContratos 
+      // Promedio PONDERADO: dividir suma ponderada entre valor total
+      analysis.promedioAvance = analysis.valorAdjudicado > 0 
+        ? analysis.promedioAvance / analysis.valorAdjudicado 
         : 0
     })
 
@@ -1802,7 +1809,11 @@ const useEmprestitoRealData = () => {
         analysis.totalContratos += 1
         analysis.valorAdjudicado += valorContrato
         analysis.valorEjecutado += valorEjecutado
-        analysis.promedioAvance += avanceFinanciero
+        
+        // Solo sumar al promedio ponderado si hay reporte
+        if (reporteContrato) {
+          analysis.promedioAvance += (avanceFinanciero * valorContrato)
+        }
       }
     })
 
@@ -1811,8 +1822,9 @@ const useEmprestitoRealData = () => {
       analysis.porcentajeEjecucion = analysis.valorAdjudicado > 0 
         ? (analysis.valorEjecutado / analysis.valorAdjudicado) * 100 
         : 0
-      analysis.promedioAvance = analysis.totalContratos > 0 
-        ? analysis.promedioAvance / analysis.totalContratos 
+      // Promedio PONDERADO: dividir suma ponderada entre valor total
+      analysis.promedioAvance = analysis.valorAdjudicado > 0 
+        ? analysis.promedioAvance / analysis.valorAdjudicado 
         : 0
     })
 
@@ -1887,82 +1899,73 @@ const useEmprestitoRealData = () => {
     return totalPagado
   }, [filteredData, reportes])
 
-  // Cálculo del porcentaje físico - Promedio SIMPLE del último reporte de cada contrato
+  // Cálculo del porcentaje físico promedio ponderado por valor_contrato
   const porcentajeFisicoPromedio = useMemo(() => {
-    if (!filteredData || filteredData.length === 0 || !reportes || reportes.length === 0) return 0
-    
-    let totalAvance = 0
-    let contratosConReporte = 0
-    
-    // Para cada contrato, obtener su último reporte
+    let totalPonderado = 0
+    let totalPeso = 0
+
     filteredData.forEach(contrato => {
-      const reportesContrato = reportes.filter(r => r.referencia_contrato === contrato.referencia_contrato)
-      
-      if (reportesContrato.length > 0) {
-        // Ordenar por fecha y tomar el más reciente
-        const reporteContrato = reportesContrato.sort((a, b) => 
-          new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime()
-        )[0]
-        
+      // Buscar el reporte más reciente para este contrato
+      const reporteContrato = reportes
+        .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+        .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+
+      if (reporteContrato) {
         const avanceFisico = reporteContrato.avance_fisico || 0
-        totalAvance += avanceFisico
-        contratosConReporte++
+        const valorContrato = Number(contrato.valor_contrato) || 0
+
+        totalPonderado += avanceFisico * valorContrato
+        totalPeso += valorContrato
       }
     })
-    
-    return contratosConReporte > 0 ? totalAvance / contratosConReporte : 0
+
+    return totalPeso > 0 ? totalPonderado / totalPeso : 0
   }, [filteredData, reportes])
 
-  // Cálculo del porcentaje financiero - Promedio SIMPLE del último reporte de cada contrato
+  // Cálculo del porcentaje financiero promedio ponderado por valor_contrato
   const porcentajeFinancieroPromedio = useMemo(() => {
-    if (!filteredData || filteredData.length === 0 || !reportes || reportes.length === 0) return 0
-    
-    let totalAvance = 0
-    let contratosConReporte = 0
-    
-    // Para cada contrato, obtener su último reporte
+    let totalPonderado = 0
+    let totalPeso = 0
+
     filteredData.forEach(contrato => {
-      const reportesContrato = reportes.filter(r => r.referencia_contrato === contrato.referencia_contrato)
-      
-      if (reportesContrato.length > 0) {
-        // Ordenar por fecha y tomar el más reciente
-        const reporteContrato = reportesContrato.sort((a, b) => 
-          new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime()
-        )[0]
-        
+      // Buscar el reporte más reciente para este contrato
+      const reporteContrato = reportes
+        .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+        .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+
+      if (reporteContrato) {
         const avanceFinanciero = (reporteContrato as any).avance_financiero || 0
-        totalAvance += avanceFinanciero
-        contratosConReporte++
+        const valorContrato = Number(contrato.valor_contrato) || 0
+
+        totalPonderado += avanceFinanciero * valorContrato
+        totalPeso += valorContrato
       }
     })
-    
-    return contratosConReporte > 0 ? totalAvance / contratosConReporte : 0
+
+    return totalPeso > 0 ? totalPonderado / totalPeso : 0
   }, [filteredData, reportes])
 
-  // Cálculo del porcentaje de pagos - Promedio SIMPLE del último reporte de cada contrato
+  // Cálculo del porcentaje de pagos promedio ponderado por valor_contrato
   const porcentajePagosPromedio = useMemo(() => {
-    if (!filteredData || filteredData.length === 0 || !reportes || reportes.length === 0) return 0
-    
-    let totalAvance = 0
-    let contratosConReporte = 0
-    
-    // Para cada contrato, obtener su último reporte
+    let totalPonderado = 0
+    let totalPeso = 0
+
     filteredData.forEach(contrato => {
-      const reportesContrato = reportes.filter(r => r.referencia_contrato === contrato.referencia_contrato)
-      
-      if (reportesContrato.length > 0) {
-        // Ordenar por fecha y tomar el más reciente
-        const reporteContrato = reportesContrato.sort((a, b) => 
-          new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime()
-        )[0]
-        
+      // Buscar el reporte más reciente para este contrato
+      const reporteContrato = reportes
+        .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+        .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+
+      if (reporteContrato) {
         const avancePagos = (reporteContrato as any).avance_pagos || 0
-        totalAvance += avancePagos
-        contratosConReporte++
+        const valorContrato = Number(contrato.valor_contrato) || 0
+
+        totalPonderado += avancePagos * valorContrato
+        totalPeso += valorContrato
       }
     })
-    
-    return contratosConReporte > 0 ? totalAvance / contratosConReporte : 0
+
+    return totalPeso > 0 ? totalPonderado / totalPeso : 0
   }, [filteredData, reportes])
 
       return {
@@ -2894,13 +2897,13 @@ const useEmprestitoRealData = () => {
                       <BarChart 
                         data={analysisByCentroGestor
                           .map(centro => {
-                            // Calcular el promedio de avance físico para este centro gestor
+                            // Calcular el promedio PONDERADO de avance físico para este centro gestor
                             const contratosDelCentro = contratos.filter(c => 
                               (c.nombre_centro_gestor || 'Sin definir') === centro.centroGestor
                             )
                             
-                            let totalAvanceFisico = 0
-                            let contratosConReporte = 0
+                            let totalAvanceFisicoPonderado = 0
+                            let totalValorContratos = 0
                             
                             contratosDelCentro.forEach(contrato => {
                               const reporteContrato = reportes
@@ -2908,12 +2911,15 @@ const useEmprestitoRealData = () => {
                                 .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
                               
                               if (reporteContrato) {
-                                totalAvanceFisico += (reporteContrato.avance_fisico || 0)
-                                contratosConReporte++
+                                const avanceFisico = reporteContrato.avance_fisico || 0
+                                const valorContrato = Number(contrato.valor_contrato) || 0
+                                
+                                totalAvanceFisicoPonderado += (avanceFisico * valorContrato)
+                                totalValorContratos += valorContrato
                               }
                             })
                             
-                            const promedioAvanceFisico = contratosConReporte > 0 ? totalAvanceFisico / contratosConReporte : 0
+                            const promedioAvanceFisico = totalValorContratos > 0 ? totalAvanceFisicoPonderado / totalValorContratos : 0
                             
                             return {
                               name: centro.centroGestor,
