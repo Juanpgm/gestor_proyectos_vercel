@@ -32,6 +32,7 @@ interface ProcesoEmprestito {
   id?: string
   referencia_proceso?: string
   nombre_proceso?: string
+  nombre_resumido_proceso?: string
   valor_proyectado?: number
   valor_publicacion?: number
   nombre_centro_gestor?: string
@@ -42,6 +43,7 @@ interface ProcesoEmprestito {
   tipo_contrato?: string
   nombre_banco?: string
   bp?: string
+  id_paa?: string
   descripcion_proceso?: string
   fase?: string
   estado_resumen?: string
@@ -88,11 +90,15 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
-    'referencia_proceso', // Siempre visible
-    'nombre_proceso',
-    'nombre_centro_gestor',
+    'referencia_proceso', // Referencia del Proceso
+    'nombre_resumido_proceso', // Nombre Resumido del Proceso
+    'nombre_centro_gestor', // Centro Gestor
+    'nombre_banco', // Banco
+    'plataforma', // Plataforma
+    'bp', // Código BP
+    'id_paa', // ID PAA
+    'valor_proyectado', // Valor Proyectado (COP)
     'estado_proceso',
-    'valor_proyectado',
     'valor_secop',
     'fecha_publicacion',
     'modalidad_contratacion',
@@ -108,13 +114,16 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
 
   const columns = useMemo(() => [
-    { key: 'referencia_proceso', label: 'Referencia', isSortable: true },
+    { key: 'referencia_proceso', label: 'Referencia del Proceso', isSortable: true },
+    { key: 'nombre_resumido_proceso', label: 'Nombre Resumido del Proceso', isSortable: true },
     { key: 'nombre_proceso', label: 'Nombre del Proceso', isSortable: true },
     { key: 'nombre_centro_gestor', label: 'Centro Gestor', isSortable: true },
     { key: 'nombre_banco', label: 'Banco', isSortable: true },
     { key: 'plataforma', label: 'Plataforma', isSortable: true },
+    { key: 'bp', label: 'Código BP', isSortable: true },
+    { key: 'id_paa', label: 'ID PAA', isSortable: true },
     { key: 'estado_proceso', label: 'Estado', isSortable: true },
-    { key: 'valor_proyectado', label: 'Valor Proyectado', isSortable: true },
+    { key: 'valor_proyectado', label: 'Valor Proyectado (COP)', isSortable: true },
     { 
       key: 'valor_secop', 
       label: 'Valor SECOP', 
@@ -124,8 +133,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     { key: 'fecha_publicacion', label: 'Fecha Publicación', isSortable: true },
     { key: 'modalidad_contratacion', label: 'Modalidad', isSortable: true },
     { key: 'tipo_contrato', label: 'Tipo de Contrato', isSortable: true },
-    { key: 'bp', label: 'BP', isSortable: true },
-    { key: 'id_paa', label: 'ID PAA', isSortable: true },
     { key: 'descripcion_proceso', label: 'Descripción', isSortable: true },
     { key: 'fase', label: 'Fase', isSortable: true },
     { key: 'estado_resumen', label: 'Estado Resumen', isSortable: true },

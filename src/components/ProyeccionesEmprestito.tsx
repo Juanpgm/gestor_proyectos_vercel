@@ -13,6 +13,7 @@ import {
   DollarSign,
   AlertCircle,
   Eye,
+  EyeOff,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
@@ -20,8 +21,11 @@ import {
   ArrowDown,
   X,
   TrendingUp,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Columns
 } from 'lucide-react'
+import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
 
 // Interfaz para proyección de empréstito
 interface ProyeccionEmprestito {
@@ -84,6 +88,23 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
   const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
   
+  // Estados para modal de agregar proceso
+  const [showAgregarProcesoModal, setShowAgregarProcesoModal] = useState(false)
+  const [proyeccionSeleccionada, setProyeccionSeleccionada] = useState<ProyeccionEmprestito | null>(null)
+  
+  // Estados para selector de columnas
+  const [showColumnSelector, setShowColumnSelector] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
+    'referencia_proceso',
+    'estado_proceso',
+    'nombre_organismo_reducido',
+    'nombre_banco',
+    'BP',
+    'nombre_resumido_proceso',
+    'id_paa',
+    'valor_proyectado',
+  ]))
+  
   // Estados para redimensionamiento de columnas
   const [columnWidths, setColumnWidths] = useState<{[key: string]: number}>({})
   const [isResizing, setIsResizing] = useState(false)
@@ -92,7 +113,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
   // Refs para manejar clics fuera del dropdown
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
   
-  // Effect para manejar clics fuera de los filtros
+  // Effect para manejar clics fuera de los filtros y selector de columnas
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       // Verificar si el clic fue fuera de cualquier filtro abierto
@@ -104,13 +125,21 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
           }
         }
       })
+      
+      // Verificar si el clic fue fuera del selector de columnas
+      if (showColumnSelector) {
+        const columnSelector = document.querySelector('[data-column-selector]')
+        if (columnSelector && !columnSelector.contains(event.target as Node)) {
+          setShowColumnSelector(false)
+        }
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showFilters])
+  }, [showFilters, showColumnSelector])
 
   // Cargar datos de proyecciones al montar el componente
   useEffect(() => {
@@ -409,6 +438,28 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
   const getColumnWidth = (columnKey: string) => {
     return columnWidths[columnKey] || 150
+  }
+
+  // Funciones para manejo de columnas visibles
+  const toggleColumnVisibility = (columnKey: string) => {
+    setVisibleColumns(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(columnKey)) {
+        newSet.delete(columnKey)
+      } else {
+        newSet.add(columnKey)
+      }
+      return newSet
+    })
+  }
+
+  const showAllColumns = () => {
+    setVisibleColumns(new Set(columns.map(col => col.key)))
+  }
+
+  const hideAllColumns = () => {
+    // Mantener al menos una columna visible (referencia_proceso)
+    setVisibleColumns(new Set(['referencia_proceso']))
   }
 
   const generateUUID = () => {
@@ -746,6 +797,70 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
               </button>
             )}
             
+            {/* Selector de Columnas */}
+            <div className="relative" data-column-selector>
+              <button
+                onClick={() => setShowColumnSelector(!showColumnSelector)}
+                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Columns className="w-4 h-4" />
+                <span>Columnas</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showColumnSelector ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {showColumnSelector && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+                  <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Columnas Visibles ({visibleColumns.size}/{columns.length})
+                      </span>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={showAllColumns}
+                          className="text-xs px-2 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                        >
+                          Todas
+                        </button>
+                        <button
+                          onClick={hideAllColumns}
+                          className="text-xs px-2 py-1 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded"
+                        >
+                          Ninguna
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-2">
+                    {columns.map((column) => (
+                      <label
+                        key={column.key}
+                        className="flex items-center space-x-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.has(column.key)}
+                          onChange={() => toggleColumnVisibility(column.key)}
+                          className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0"
+                        />
+                        <div className="flex items-center justify-between flex-1">
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {column.label}
+                          </span>
+                          {visibleColumns.has(column.key) ? (
+                            <Eye className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-gray-400" />
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             {/* Refresh */}
             <button
               onClick={fetchProyecciones}
@@ -769,7 +884,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
               <tr>
-                {columns.map((column) => (
+                {columns.filter(col => visibleColumns.has(col.key)).map((column) => (
                   <th 
                     key={column.key} 
                     className="px-3 py-2 text-left relative border-r border-gray-200 dark:border-gray-600 last:border-r-0 group"
@@ -823,12 +938,27 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                     />
                   </th>
                 ))}
+                
+                {/* Columna de Acciones - Solo visible si hay proyecciones sin proceso */}
+                {stats.sinProceso > 0 && (
+                  <th className="px-3 py-2 text-left border-r border-gray-200 dark:border-gray-600">
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Acciones</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {allProyecciones.map((proyeccion) => (
-                <tr key={proyeccion.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  {columns.map((column) => (
+                <tr 
+                  key={proyeccion.id} 
+                  className={`transition-colors ${
+                    proyeccion.sin_proceso 
+                      ? 'bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border-l-4 border-amber-500 dark:border-amber-600' 
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                  title={proyeccion.sin_proceso ? 'Esta proyección no tiene proceso asociado' : ''}
+                >
+                  {columns.filter(col => visibleColumns.has(col.key)).map((column) => (
                     <td 
                       key={`${proyeccion.id}-${column.key}`} 
                       className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700"
@@ -837,11 +967,11 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                       <div className="max-w-full overflow-hidden">
                         {column.key === 'estado_proceso' ? (
                           proyeccion.sin_proceso ? (
-                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 rounded-full">
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded">
                               Sin Proceso
                             </span>
                           ) : (
-                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 rounded-full">
+                            <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 rounded">
                               Con Proceso
                             </span>
                           )
@@ -870,12 +1000,56 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                       </div>
                     </td>
                   ))}
+                  
+                  {/* Columna de acciones - Solo para proyecciones sin proceso */}
+                  {proyeccion.sin_proceso && (
+                    <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700">
+                      <button
+                        onClick={() => {
+                          setProyeccionSeleccionada(proyeccion)
+                          setShowAgregarProcesoModal(true)
+                        }}
+                        className="inline-flex items-center px-2 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                        title="Agregar proceso contractual"
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Agregar Proceso
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </motion.div>
+
+      {/* Modal para agregar proceso desde proyección */}
+      <AgregarProcesoModalAlt
+        isOpen={showAgregarProcesoModal}
+        onClose={() => {
+          setShowAgregarProcesoModal(false)
+          setProyeccionSeleccionada(null)
+        }}
+        onSuccess={async () => {
+          setShowAgregarProcesoModal(false)
+          setProyeccionSeleccionada(null)
+          // Recargar las proyecciones para actualizar el estado
+          await fetchProyecciones()
+        }}
+        editingData={proyeccionSeleccionada ? {
+          referencia_proceso: proyeccionSeleccionada.referencia_proceso,
+          nombre_proceso: proyeccionSeleccionada.nombre_generico_proyecto,
+          nombre_resumido_proceso: proyeccionSeleccionada.nombre_resumido_proceso,
+          nombre_centro_gestor: proyeccionSeleccionada.nombre_organismo_reducido,
+          nombre_banco: proyeccionSeleccionada.nombre_banco,
+          bp: proyeccionSeleccionada.BP,
+          id_paa: proyeccionSeleccionada.id_paa,
+          valor_proyectado: proyeccionSeleccionada.valor_proyectado,
+          plataforma: proyeccionSeleccionada.urlProceso?.includes('secop') ? 'SECOP II' : undefined,
+          descripcion_proceso: proyeccionSeleccionada.descripcion_bp,
+        } : null}
+      />
     </div>
   )
 }
