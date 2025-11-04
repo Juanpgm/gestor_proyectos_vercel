@@ -642,3 +642,50 @@ div[class*="fixed inset-0"] {
 :is(.dark .overflow-x-scroll)::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
 }
+
+/* Scrollbar personalizado para tablets - Más grande y visible */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800 rounded-full;
+  margin: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-blue-400 dark:bg-blue-600 rounded-full;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-blue-500 dark:bg-blue-500;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  @apply bg-blue-600 dark:bg-blue-400;
+}
+
+/* Scrollbar horizontal más visible en tablets */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 14px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-track {
+    @apply bg-gray-200 dark:bg-gray-700 rounded-lg;
+    margin: 0 8px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    @apply bg-blue-500 dark:bg-blue-500 rounded-lg;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    @apply bg-blue-600 dark:bg-blue-400;
+  }
+}
