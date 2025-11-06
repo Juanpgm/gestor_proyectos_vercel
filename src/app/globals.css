@@ -905,3 +905,25 @@ div[class*="fixed inset-0"] {
     @apply bg-blue-600 dark:bg-blue-400;
   }
 }
+
+/* Estilos para etiquetas de capas base del mapa */
+.base-layer-label {
+  z-index: 1000 !important;
+  pointer-events: none !important;
+}
+
+.base-layer-label div {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  display: inline-block !important;
+}
+
+.leaflet-pane.leaflet-marker-pane {
+  z-index: 600 !important;
+}
+
+/* Asegurar que los markers de etiquetas estén por encima */
+.leaflet-marker-icon.base-layer-label {
+  z-index: 1000 !important;
+}
