@@ -342,7 +342,9 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
                         </div>
                       </td>
                       <td className="py-2 md:py-3 px-2 md:px-4 text-gray-600 dark:text-gray-400">
-                        {proyecto.nombre_centro_gestor || 'Sin centro gestor'}
+                        <div className="whitespace-normal break-words">
+                          {proyecto.nombre_centro_gestor || 'Sin centro gestor'}
+                        </div>
                       </td>
                       <td className="py-2 md:py-3 px-2 md:px-4 text-gray-600 dark:text-gray-400">
                         {proyecto.nombre_dimension || 'Sin dimensión'}

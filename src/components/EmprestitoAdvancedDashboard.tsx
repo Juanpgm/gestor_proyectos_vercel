@@ -635,7 +635,16 @@ const WeeklyProgressChart: React.FC<{
 }> = ({ data, contratos, maxAvance }) => {
   // Para cada semana, calcular el promedio ponderado por valor de contrato
   const timeSeriesData = useMemo(() => {
-    if (!data || data.length === 0 || !contratos || contratos.length === 0) return []
+    console.log('📊 WeeklyProgressChart - Datos recibidos:', { 
+      reportes: data?.length || 0, 
+      contratos: contratos?.length || 0,
+      muestraReportes: data?.slice(0, 2)
+    })
+    
+    if (!data || data.length === 0 || !contratos || contratos.length === 0) {
+      console.log('⚠️ WeeklyProgressChart - Sin datos suficientes para mostrar')
+      return []
+    }
 
     // Crear mapa de contratos para acceso rápido
     const contratoMap = new Map(
@@ -3015,8 +3024,9 @@ const useEmprestitoRealData = () => {
                             const lines: string[] = []
                             let currentLine = ''
                             
+                            // Dividir el texto en líneas sin límite de caracteres estricto
                             words.forEach(word => {
-                              if ((currentLine + ' ' + word).length <= 18) {
+                              if ((currentLine + ' ' + word).length <= 30) {
                                 currentLine += (currentLine ? ' ' : '') + word
                               } else {
                                 if (currentLine) lines.push(currentLine)
@@ -3025,21 +3035,17 @@ const useEmprestitoRealData = () => {
                             })
                             if (currentLine) lines.push(currentLine)
                             
-                            const displayLines = lines.slice(0, 2)
-                            if (lines.length > 2) {
-                              displayLines[1] = displayLines[1].substring(0, 16) + '...'
-                            }
-                            
+                            // Mostrar todas las líneas necesarias sin truncar
                             return (
                               <g transform={`translate(${x},${y})`}>
-                                {displayLines.map((line, i) => (
+                                {lines.map((line, i) => (
                                   <text 
                                     key={i}
                                     x={0} 
                                     y={i * 11 + 5} 
                                     textAnchor="middle" 
                                     fill="#4B5563" 
-                                    fontSize="11"
+                                    fontSize="10"
                                   >
                                     {line}
                                   </text>
@@ -3047,7 +3053,7 @@ const useEmprestitoRealData = () => {
                               </g>
                             )
                           }}
-                          height={60}
+                          height={80}
                           interval={0}
                         />
                         
@@ -3444,7 +3450,7 @@ const useEmprestitoRealData = () => {
                                  title={contrato.nombre_resumido_proceso || 'Sin proceso'}>
                               {contrato.nombre_resumido_proceso || 'Sin proceso'}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight truncate"
+                            <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight whitespace-normal break-words"
                                  title={contrato.nombre_centro_gestor || 'Sin centro gestor'}>
                               {contrato.nombre_centro_gestor || 'Sin centro gestor'}
                             </div>
