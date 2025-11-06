@@ -1349,16 +1349,22 @@ const useSeguimientoData = () => {
     const fetchSeguimiento = async () => {
       setLoadingSeguimiento(true)
       try {
-        // Endpoint para reportes de contratos con timestamp
+        // Endpoint para reportes de contratos - usar el endpoint directo
         const reportesData = await fetchWithErrorHandling<any>(
-          '/api/reportes_contratos_all',
+          'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
           {},
           120000 // 2 minutos de timeout
         )
         setSeguimiento(reportesData.data || [])
-        setLastUpdate(reportesData.lastUpdate || new Date().toISOString())
-      } catch (error) {
-        console.warn('Error fetching seguimiento data:', error)
+        setLastUpdate(new Date().toISOString())
+      } catch (error: any) {
+        console.warn('⚠️ Error fetching seguimiento data:', error)
+        console.warn('⚠️ Detalles del error:', {
+          message: error?.message,
+          type: error?.type,
+          code: error?.code
+        })
+        setSeguimiento([]) // Set empty array on error
       } finally {
         setLoadingSeguimiento(false)
       }
@@ -1491,26 +1497,40 @@ const useEmprestitoRealData = () => {
         setLoading(true)
         setError(null)
 
+        console.log('🔄 Iniciando carga de datos de Empréstito...')
+
         // Obtener contratos con timeout extendido
+        console.log('📡 Solicitando contratos_emprestito_all...')
         const contratosData = await fetchWithErrorHandling<any>(
           'https://gestorproyectoapi-production.up.railway.app/contratos_emprestito_all',
           {},
           120000 // 2 minutos de timeout
         )
+        console.log('✅ Contratos recibidos:', contratosData)
 
         // Obtener reportes del endpoint correcto
+        console.log('📡 Solicitando reportes_contratos...')
         const reportesData = await fetchWithErrorHandling<any>(
           'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
           {},
           120000 // 2 minutos de timeout
-        ).catch(() => ({ data: [] }))
+        ).catch((err) => {
+          console.warn('⚠️ Error en reportes_contratos, usando array vacío:', err)
+          return { data: [] }
+        })
+        console.log('✅ Reportes recibidos:', reportesData)
 
         // Obtener datos de bancos empréstito
+        console.log('📡 Solicitando bancos_emprestito_all...')
         const bancosData = await fetchWithErrorHandling<any>(
           'https://gestorproyectoapi-production.up.railway.app/bancos_emprestito_all',
           {},
           120000 // 2 minutos de timeout
-        ).catch(() => ({ data: [] }))
+        ).catch((err) => {
+          console.warn('⚠️ Error en bancos_emprestito_all, usando array vacío:', err)
+          return { data: [] }
+        })
+        console.log('✅ Bancos recibidos:', bancosData)
 
         const contratosArray = contratosData.data || []
         const reportesArray = reportesData.data || []
@@ -1552,9 +1572,16 @@ const useEmprestitoRealData = () => {
         const totalValorAsignadoBanco = bancosArray.reduce((sum: number, banco: any) => sum + (banco.valor_asignado_banco || 0), 0)
         console.log('💵 Total Valor Asignado Banco calculado para card:', totalValorAsignadoBanco.toLocaleString())
 
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
+      } catch (err: any) {
+        const errorMessage = err?.message || err?.type || 'Error al cargar datos de Empréstito'
+        setError(errorMessage)
         console.error('❌ Error cargando datos:', err)
+        console.error('❌ Detalles del error:', {
+          message: err?.message,
+          type: err?.type,
+          code: err?.code,
+          context: err?.context
+        })
       } finally {
         setLoading(false)
       }

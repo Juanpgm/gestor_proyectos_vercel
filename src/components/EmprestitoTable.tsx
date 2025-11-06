@@ -101,7 +101,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
       try {
         setLoadingReportes(true)
         const reportes = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/reportes-contratos/',
+          'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
           {},
           120000 // 2 minutos de timeout
         )

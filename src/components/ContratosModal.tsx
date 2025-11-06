@@ -125,8 +125,8 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
         throw new Error(`No se encontró el contrato con referencia: ${referenciaContrato}`)
       }
 
-      // Cargar reportes asociados al contrato
-      const reportesResponse = await fetch('/api/reportes_contratos_all')
+      // Cargar reportes asociados al contrato directamente del endpoint externo
+      const reportesResponse = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes_contratos/')
       let reportesContrato = []
       if (reportesResponse.ok) {
         const reportesData = await reportesResponse.json()
