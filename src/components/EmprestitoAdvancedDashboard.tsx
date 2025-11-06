@@ -19,7 +19,10 @@ import {
   Calendar,
   LineChart,
   Eye,
-  Settings
+  Settings,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 import { 
   ResponsiveContainer, 
@@ -40,6 +43,7 @@ import {
 } from 'recharts'
 import { CATEGORIES, formatNumber, CHART_COLORS } from '@/lib/design-system'
 import ContratosModal from './ContratosModal'
+import { fetchWithErrorHandling } from '@/utils/errorHandler'
 
 // Tipos para los reportes de contratos (usar la estructura existente)
 interface ReporteContratoTS extends ReporteEmprestito {
@@ -1337,12 +1341,13 @@ const useSeguimientoData = () => {
       setLoadingSeguimiento(true)
       try {
         // Endpoint para reportes de contratos con timestamp
-        const reportesResponse = await fetch('/api/reportes_contratos_all')
-        if (reportesResponse.ok) {
-          const reportesData = await reportesResponse.json()
-          setSeguimiento(reportesData.data || [])
-          setLastUpdate(reportesData.lastUpdate || new Date().toISOString())
-        }
+        const reportesData = await fetchWithErrorHandling<any>(
+          '/api/reportes_contratos_all',
+          {},
+          120000 // 2 minutos de timeout
+        )
+        setSeguimiento(reportesData.data || [])
+        setLastUpdate(reportesData.lastUpdate || new Date().toISOString())
       } catch (error) {
         console.warn('Error fetching seguimiento data:', error)
       } finally {
@@ -1477,24 +1482,26 @@ const useEmprestitoRealData = () => {
         setLoading(true)
         setError(null)
 
-        // Obtener contratos
-        const contratosRes = await fetch('https://gestorproyectoapi-production.up.railway.app/contratos_emprestito_all')
-        if (!contratosRes.ok) throw new Error('Error al obtener contratos')
-        const contratosData = await contratosRes.json()
+        // Obtener contratos con timeout extendido
+        const contratosData = await fetchWithErrorHandling<any>(
+          'https://gestorproyectoapi-production.up.railway.app/contratos_emprestito_all',
+          {},
+          120000 // 2 minutos de timeout
+        )
 
         // Obtener reportes del endpoint correcto
-        const reportesRes = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes_contratos/')
-        let reportesData = { data: [] }
-        if (reportesRes.ok) {
-          reportesData = await reportesRes.json()
-        }
+        const reportesData = await fetchWithErrorHandling<any>(
+          'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
+          {},
+          120000 // 2 minutos de timeout
+        ).catch(() => ({ data: [] }))
 
         // Obtener datos de bancos empréstito
-        const bancosRes = await fetch('https://gestorproyectoapi-production.up.railway.app/bancos_emprestito_all')
-        let bancosData = { data: [] }
-        if (bancosRes.ok) {
-          bancosData = await bancosRes.json()
-        }
+        const bancosData = await fetchWithErrorHandling<any>(
+          'https://gestorproyectoapi-production.up.railway.app/bancos_emprestito_all',
+          {},
+          120000 // 2 minutos de timeout
+        ).catch(() => ({ data: [] }))
 
         const contratosArray = contratosData.data || []
         const reportesArray = reportesData.data || []
@@ -2613,6 +2620,7 @@ const useEmprestitoRealData = () => {
       diasRestantes: false
     })
     const [showColumnSelector, setShowColumnSelector] = useState(false)
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: '', direction: 'asc' })
   
     const {
       loading,
@@ -2664,13 +2672,77 @@ const useEmprestitoRealData = () => {
       const uniqueCentros = Array.from(new Set(contratos.map(c => c.nombre_centro_gestor).filter(Boolean)))
       return uniqueCentros.sort()
     }, [contratos])
+
+    // Función para manejar ordenamiento
+    const handleSort = (key: string) => {
+      setSortConfig(prev => ({
+        key,
+        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      }))
+    }
+
+    // Contratos ordenados
+    const sortedContratos = useMemo(() => {
+      if (!sortConfig.key) return contratos
+
+      return [...contratos].sort((a: any, b: any) => {
+        let aValue = a[sortConfig.key]
+        let bValue = b[sortConfig.key]
+
+        // Casos especiales para campos calculados
+        if (sortConfig.key === 'avance_financiero') {
+          // Buscar el reporte más reciente para cada contrato
+          const reporteA = reportes
+            .filter(r => r.referencia_contrato === a.referencia_contrato)
+            .sort((r1, r2) => new Date(r2.fecha_reporte).getTime() - new Date(r1.fecha_reporte).getTime())[0]
+          const reporteB = reportes
+            .filter(r => r.referencia_contrato === b.referencia_contrato)
+            .sort((r1, r2) => new Date(r2.fecha_reporte).getTime() - new Date(r1.fecha_reporte).getTime())[0]
+          
+          // Obtener el avance financiero del reporte o calcularlo
+          aValue = reporteA?.avance_financiero || ((a.valor_pagado || 0) / (a.valor_contrato || 1)) * 100
+          bValue = reporteB?.avance_financiero || ((b.valor_pagado || 0) / (b.valor_contrato || 1)) * 100
+        } else if (sortConfig.key === 'dias_transcurridos' || sortConfig.key === 'dias_restantes') {
+          const fechaInicioA = a.fecha_firma_contrato ? new Date(a.fecha_firma_contrato) : null
+          const fechaFinA = a.fecha_fin_contrato ? new Date(a.fecha_fin_contrato) : null
+          const fechaInicioB = b.fecha_firma_contrato ? new Date(b.fecha_firma_contrato) : null
+          const fechaFinB = b.fecha_fin_contrato ? new Date(b.fecha_fin_contrato) : null
+          const fechaActual = new Date()
+
+          if (sortConfig.key === 'dias_transcurridos') {
+            aValue = fechaInicioA ? Math.floor((fechaActual.getTime() - fechaInicioA.getTime()) / (1000 * 60 * 60 * 24)) : null
+            bValue = fechaInicioB ? Math.floor((fechaActual.getTime() - fechaInicioB.getTime()) / (1000 * 60 * 60 * 24)) : null
+          } else {
+            aValue = fechaFinA ? Math.floor((fechaFinA.getTime() - fechaActual.getTime()) / (1000 * 60 * 60 * 24)) : null
+            bValue = fechaFinB ? Math.floor((fechaFinB.getTime() - fechaActual.getTime()) / (1000 * 60 * 60 * 24)) : null
+          }
+        }
+
+        // Manejar valores nulos o indefinidos
+        if (aValue === null || aValue === undefined) return 1
+        if (bValue === null || bValue === undefined) return -1
+
+        // Comparación numérica
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue
+        }
+
+        // Comparación de strings
+        const aStr = String(aValue).toLowerCase()
+        const bStr = String(bValue).toLowerCase()
+        
+        if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1
+        if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1
+        return 0
+      })
+    }, [contratos, sortConfig, reportes])
   
     // Cálculos de paginación
-    const totalItems = contratos.length
+    const totalItems = sortedContratos.length
     const totalPages = Math.ceil(totalItems / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
-    const currentItems = contratos.slice(startIndex, endIndex)
+    const currentItems = sortedContratos.slice(startIndex, endIndex)
   
     // Función para cambiar página
     const handlePageChange = (page: number) => {
@@ -3132,29 +3204,78 @@ const useEmprestitoRealData = () => {
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   {columnSettings.proceso && (
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[300px]">
-                      <div>Proceso / Centro Gestor</div>
-                      <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div>Proceso / Centro Gestor</div>
+                          <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Nombre - Entidad - Referencia</div>
+                        </div>
+                        <button onClick={() => handleSort('nombre_resumido_proceso')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'nombre_resumido_proceso' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.banco && (
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
-                      Banco
+                      <div className="flex items-center gap-2">
+                        <span>Banco</span>
+                        <button onClick={() => handleSort('banco')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'banco' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.estado && (
                     <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
-                      Estado
+                      <div className="flex items-center justify-center gap-2">
+                        <span>Estado</span>
+                        <button onClick={() => handleSort('estado')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'estado' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.valor && (
                     <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[130px]">
-                      Valor Contrato
+                      <div className="flex items-center justify-end gap-2">
+                        <span>Valor Contrato</span>
+                        <button onClick={() => handleSort('valor_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'valor_contrato' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.avance && (
                     <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[160px]">
-                      <div>Avance Ejecución</div>
-                      <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Financiero / Físico</div>
+                      <div className="flex items-center justify-center gap-2">
+                        <div>
+                          <div>Avance Ejecución</div>
+                          <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Financiero / Físico</div>
+                        </div>
+                        <button onClick={() => handleSort('avance_financiero')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'avance_financiero' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.observaciones && (
@@ -3164,49 +3285,134 @@ const useEmprestitoRealData = () => {
                   )}
                   {columnSettings.tipo && (
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
-                      Tipo Contrato
+                      <div className="flex items-center gap-2">
+                        <span>Tipo Contrato</span>
+                        <button onClick={() => handleSort('tipo_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'tipo_contrato' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.modalidad && (
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[140px]">
-                      Modalidad
+                      <div className="flex items-center gap-2">
+                        <span>Modalidad</span>
+                        <button onClick={() => handleSort('modalidad_contratacion')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'modalidad_contratacion' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.sector && (
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
-                      Sector
+                      <div className="flex items-center gap-2">
+                        <span>Sector</span>
+                        <button onClick={() => handleSort('sector')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'sector' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.categoria && (
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
-                      Categoría
+                      <div className="flex items-center gap-2">
+                        <span>Categoría</span>
+                        <button onClick={() => handleSort('codigo_categoria')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'codigo_categoria' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.supervisor && (
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[140px]">
-                      Supervisor
+                      <div className="flex items-center gap-2">
+                        <span>Supervisor</span>
+                        <button onClick={() => handleSort('supervisor')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'supervisor' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.fechaInicio && (
                     <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[110px]">
-                      Fecha Inicio
+                      <div className="flex items-center justify-center gap-2">
+                        <span>Fecha Inicio</span>
+                        <button onClick={() => handleSort('fecha_firma_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'fecha_firma_contrato' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.fechaFin && (
                     <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[110px]">
-                      Fecha Fin
+                      <div className="flex items-center justify-center gap-2">
+                        <span>Fecha Fin</span>
+                        <button onClick={() => handleSort('fecha_fin_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'fecha_fin_contrato' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.diasTranscurridos && (
                     <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
-                      <div>Días</div>
-                      <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Transcurridos</div>
+                      <div className="flex items-center justify-center gap-2">
+                        <div>
+                          <div>Días</div>
+                          <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Transcurridos</div>
+                        </div>
+                        <button onClick={() => handleSort('dias_transcurridos')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'dias_transcurridos' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.diasRestantes && (
                     <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
-                      <div>Días</div>
-                      <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Restantes</div>
+                      <div className="flex items-center justify-center gap-2">
+                        <div>
+                          <div>Días</div>
+                          <div className="text-xs font-normal text-gray-500 dark:text-gray-400">Restantes</div>
+                        </div>
+                        <button onClick={() => handleSort('dias_restantes')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'dias_restantes' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                   )}
                   {columnSettings.detalle && (

@@ -11,12 +11,16 @@ import {
   Building,
   ChevronLeft,
   ChevronRight,
-  FileText
+  FileText,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
 import { EmprestitoContrato, EmprestitoProyecto } from '@/hooks/useEmprestito'
 import { openSecopLink } from '@/utils/url-helpers'
 import ContratosModal from './ContratosModal'
+import { fetchWithErrorHandling } from '@/utils/errorHandler'
 
 // Función helper para obtener los colores del estado del contrato
 const getContractStateColors = (estado: string) => {
@@ -88,6 +92,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
   const [selectedContrato, setSelectedContrato] = useState<EmprestitoContrato | null>(null)
   const [reportesData, setReportesData] = useState<any[]>([])
   const [loadingReportes, setLoadingReportes] = useState(false)
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: '', direction: 'asc' })
   const itemsPerPage = 10
 
   // Cargar datos de reportes para los detalles del modal
@@ -95,11 +100,12 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
     const fetchReportesData = async () => {
       try {
         setLoadingReportes(true)
-        const reportesRes = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes-contratos/')
-        if (reportesRes.ok) {
-          const reportes = await reportesRes.json()
-          setReportesData(reportes.data || [])
-        }
+        const reportes = await fetchWithErrorHandling<any>(
+          'https://gestorproyectoapi-production.up.railway.app/reportes-contratos/',
+          {},
+          120000 // 2 minutos de timeout
+        )
+        setReportesData(reportes.data || [])
       } catch (error) {
         console.error('Error cargando reportes:', error)
       } finally {
@@ -138,11 +144,48 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
     setModalOpen(true)
   }
 
+  // Función para manejar ordenamiento
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }))
+    setCurrentPage(1) // Resetear a la primera página al ordenar
+  }
+
+  // Función para ordenar los datos
+  const sortData = <T extends Record<string, any>>(data: T[], key: string): T[] => {
+    if (!key) return data
+
+    return [...data].sort((a, b) => {
+      let aValue = a[key]
+      let bValue = b[key]
+
+      // Manejar valores nulos o indefinidos
+      if (aValue === null || aValue === undefined) return 1
+      if (bValue === null || bValue === undefined) return -1
+
+      // Comparación numérica
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue
+      }
+
+      // Comparación de strings
+      const aStr = String(aValue).toLowerCase()
+      const bStr = String(bValue).toLowerCase()
+      
+      if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1
+      if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1
+      return 0
+    })
+  }
+
   // Paginación
   const getCurrentItems = (): (EmprestitoProyecto | EmprestitoContrato)[] => {
     const items = activeTab === 'proyectos' ? proyectos : contratos
+    const sortedItems = sortData(items as any[], sortConfig.key)
     const startIndex = (currentPage - 1) * itemsPerPage
-    return items.slice(startIndex, startIndex + itemsPerPage)
+    return sortedItems.slice(startIndex, startIndex + itemsPerPage)
   }
 
   const totalPages = Math.ceil(
@@ -179,6 +222,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
               onClick={() => {
                 setActiveTab('proyectos')
                 setCurrentPage(1)
+                setSortConfig({ key: '', direction: 'asc' })
               }}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'proyectos'
@@ -192,6 +236,7 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
               onClick={() => {
                 setActiveTab('contratos')
                 setCurrentPage(1)
+                setSortConfig({ key: '', direction: 'asc' })
               }}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'contratos'
@@ -214,11 +259,66 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
               <table className="w-full text-xs md:text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">BPIN</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">Proyecto</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">Centro Gestor</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">Dimensión</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">Año</th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-2">
+                        <span>BPIN</span>
+                        <button onClick={() => handleSort('bpin')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'bpin' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-2">
+                        <span>Proyecto</span>
+                        <button onClick={() => handleSort('nombre_proyecto')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'nombre_proyecto' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-2">
+                        <span>Centro Gestor</span>
+                        <button onClick={() => handleSort('nombre_centro_gestor')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'nombre_centro_gestor' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-2">
+                        <span>Dimensión</span>
+                        <button onClick={() => handleSort('nombre_dimension')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'nombre_dimension' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-2">
+                        <span>Año</span>
+                        <button onClick={() => handleSort('anio')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'anio' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -263,12 +363,78 @@ const EmprestitoTable: React.FC<EmprestitoTableProps> = ({
               <table className="w-full text-xs md:text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">BPIN</th>
-                    <th className="text-left py-2 md:py-3 px-2 font-medium text-gray-900 dark:text-white w-48 md:w-64">Referencia / Centro Gestor</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Proveedor</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Valor Contrato</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white w-32 md:w-40">Avance</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Estado</th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span>BPIN</span>
+                        <button onClick={() => handleSort('bpin')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'bpin' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 font-medium text-gray-900 dark:text-white w-48 md:w-64">
+                      <div className="flex items-center gap-2">
+                        <span>Referencia / Centro Gestor</span>
+                        <button onClick={() => handleSort('referencia_del_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'referencia_del_contrato' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span>Proveedor</span>
+                        <button onClick={() => handleSort('proveedor_adjudicado')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'proveedor_adjudicado' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span>Valor Contrato</span>
+                        <button onClick={() => handleSort('valor_del_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'valor_del_contrato' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white w-32 md:w-40">
+                      <div className="flex items-center gap-2">
+                        <span>Avance</span>
+                        <button onClick={() => handleSort('valor_pagado')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'valor_pagado' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span>Estado</span>
+                        <button onClick={() => handleSort('estado_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'estado_contrato' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 md:w-4 md:h-4" /> : <ArrowDown className="w-3 h-3 md:w-4 md:h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
                     <th className="text-left py-2 md:py-3 px-2 md:px-4 font-medium text-gray-900 dark:text-white w-32 md:w-48">Observaciones / Alertas</th>
                     <th className="text-center py-2 md:py-3 px-2 font-medium text-gray-900 dark:text-white w-12 md:w-16 whitespace-nowrap">Detalle</th>
                   </tr>

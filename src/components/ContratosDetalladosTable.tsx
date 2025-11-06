@@ -158,8 +158,24 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
     // Aplicar ordenamiento
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key]
-        const bValue = b[sortConfig.key]
+        let aValue: any
+        let bValue: any
+
+        // Manejar campos calculados
+        if (sortConfig.key === 'dias_transcurridos') {
+          const diasA = calcularDias(a.fecha_inicio, a.fecha_fin)
+          const diasB = calcularDias(b.fecha_inicio, b.fecha_fin)
+          aValue = diasA.transcurridos
+          bValue = diasB.transcurridos
+        } else if (sortConfig.key === 'dias_restantes') {
+          const diasA = calcularDias(a.fecha_inicio, a.fecha_fin)
+          const diasB = calcularDias(b.fecha_inicio, b.fecha_fin)
+          aValue = diasA.restantes
+          bValue = diasB.restantes
+        } else {
+          aValue = a[sortConfig.key]
+          bValue = b[sortConfig.key]
+        }
 
         if (aValue === null || aValue === undefined) return 1
         if (bValue === null || bValue === undefined) return -1
@@ -712,61 +728,151 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                 {/* Resto de columnas opcionales */}
                 {visibleColumns.has('ultima_observacion') && (
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Última Observación
+                    <div className="flex items-center gap-2">
+                      <span>Última Observación</span>
+                      <button onClick={() => handleSort('ultima_observacion')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'ultima_observacion' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('tipo_contrato') && (
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Tipo Contrato
+                    <div className="flex items-center gap-2">
+                      <span>Tipo Contrato</span>
+                      <button onClick={() => handleSort('tipo_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'tipo_contrato' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('modalidad_contratacion') && (
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Modalidad
+                    <div className="flex items-center gap-2">
+                      <span>Modalidad</span>
+                      <button onClick={() => handleSort('modalidad_contratacion')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'modalidad_contratacion' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('sector') && (
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Sector
+                    <div className="flex items-center gap-2">
+                      <span>Sector</span>
+                      <button onClick={() => handleSort('sector')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'sector' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('codigo_categoria') && (
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Categoría
+                    <div className="flex items-center gap-2">
+                      <span>Categoría</span>
+                      <button onClick={() => handleSort('codigo_categoria')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'codigo_categoria' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('supervisor') && (
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Supervisor
+                    <div className="flex items-center gap-2">
+                      <span>Supervisor</span>
+                      <button onClick={() => handleSort('supervisor')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'supervisor' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('fecha_inicio') && (
                   <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Fecha Inicio
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Fecha Inicio</span>
+                      <button onClick={() => handleSort('fecha_inicio')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'fecha_inicio' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('fecha_fin') && (
                   <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Fecha Fin
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Fecha Fin</span>
+                      <button onClick={() => handleSort('fecha_fin')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'fecha_fin' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('dias_transcurridos') && (
                   <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Días Transcurridos
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Días Transcurridos</span>
+                      <button onClick={() => handleSort('dias_transcurridos')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'dias_transcurridos' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
 
                 {visibleColumns.has('dias_restantes') && (
                   <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                    Días Restantes
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Días Restantes</span>
+                      <button onClick={() => handleSort('dias_restantes')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                        {sortConfig.key === 'dias_restantes' ? (
+                          sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                        ) : (
+                          <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 )}
               </tr>

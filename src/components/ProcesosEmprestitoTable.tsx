@@ -18,8 +18,12 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  XCircle
+  XCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
+import { fetchWithErrorHandling } from '@/utils/errorHandler'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
@@ -60,13 +64,8 @@ interface NuevoProceso {
 }
 
 const ProcesosEmprestitoTable: React.FC = () => {
-  console.log('🚨🚨🚨 COMPONENTE PROCESOSEMPRESTITOTABLE CARGADO 🚨🚨🚨')
-  console.log('⏰ Timestamp:', new Date().toLocaleTimeString())
-  alert('COMPONENTE CARGADO - VER CONSOLA')
-  
   // Estados para datos
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
-  const [filteredProcesos, setFilteredProcesos] = useState<ProcesoEmprestito[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -79,6 +78,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
     modalidad: '',
     tipoContrato: ''
   })
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: '', direction: 'asc' })
 
   // Estados para modales
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -121,13 +121,12 @@ const ProcesosEmprestitoTable: React.FC = () => {
         throw new Error('URL de API no configurada')
       }
 
-      const response = await fetch(`${apiUrl}/procesos_emprestito_all`)
+      const data = await fetchWithErrorHandling<any>(
+        `${apiUrl}/procesos_emprestito_all`,
+        {},
+        120000 // 2 minutos de timeout
+      )
       
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`)
-      }
-
-      const data = await response.json()
       setProcesos(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error al cargar procesos:', error)
@@ -138,23 +137,55 @@ const ProcesosEmprestitoTable: React.FC = () => {
     }
   }
 
+  // Función para manejar ordenamiento
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
+
+  // Procesos ordenados
+  const sortedProcesos = useMemo(() => {
+    if (!sortConfig.key) return procesos
+
+    return [...procesos].sort((a, b) => {
+      const aValue = a[sortConfig.key as keyof ProcesoEmprestito]
+      const bValue = b[sortConfig.key as keyof ProcesoEmprestito]
+
+      // Manejar valores nulos o indefinidos
+      if (aValue === null || aValue === undefined) return 1
+      if (bValue === null || bValue === undefined) return -1
+
+      // Comparación numérica
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue
+      }
+
+      // Comparación de strings
+      const aStr = String(aValue).toLowerCase()
+      const bStr = String(bValue).toLowerCase()
+      
+      if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1
+      if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [procesos, sortConfig])
+
   // Función para cargar centros gestores
   const fetchCentrosGestores = async () => {
     setLoadingCentros(true)
     
     try {
-      const response = await fetch(`/api/proxy/centros-gestores/nombres-unicos`)
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`)
-      }
-
-      const result = await response.json()
+      const result = await fetchWithErrorHandling<any>(
+        `/api/proxy/centros-gestores/nombres-unicos`,
+        {},
+        120000 // 2 minutos de timeout
+      )
       
       // Verificar si la respuesta tiene el formato esperado {success: true, data: [...]}
       if (result.success && Array.isArray(result.data)) {
         setCentrosGestores(result.data)
-        console.log(`✅ Centros gestores cargados: ${result.data.length} elementos`)
       } else if (Array.isArray(result)) {
         // Fallback si viene directamente como array
         setCentrosGestores(result)
@@ -175,21 +206,17 @@ const ProcesosEmprestitoTable: React.FC = () => {
     setLoadingBancos(true)
     
     try {
-      const response = await fetch(`/api/proxy/bancos_emprestito_all`)
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`)
-      }
-
-      const result = await response.json()
-      console.log('📊 Respuesta del endpoint bancos_emprestito_all:', result)
+      const result = await fetchWithErrorHandling<any>(
+        `/api/proxy/bancos_emprestito_all`,
+        {},
+        120000 // 2 minutos de timeout
+      )
       
       let data = result
       
       // Verificar si la respuesta tiene el formato esperado {success: true, data: [...]}
       if (result.success && Array.isArray(result.data)) {
         data = result.data
-        console.log('🔄 Usando result.data:', data)
       } else if (!Array.isArray(result)) {
         console.warn('Formato de respuesta inesperado para bancos:', result)
         setBancos([])
@@ -198,14 +225,10 @@ const ProcesosEmprestitoTable: React.FC = () => {
       
       // Extraer solo los nombres de los bancos del array de objetos
       const nombresBancos = Array.isArray(data) 
-        ? data.map((banco: any) => {
-            console.log('🏦 Objeto banco:', banco)
-            return banco.nombre_banco || banco.nombre || banco.bank_name
-          }).filter(Boolean)
+        ? data.map((banco: any) => banco.nombre_banco || banco.nombre || banco.bank_name).filter(Boolean)
         : []
       
       setBancos(nombresBancos)
-      console.log(`✅ Bancos cargados: ${nombresBancos.length} elementos`, nombresBancos)
     } catch (error) {
       console.error('Error al cargar bancos:', error)
       setBancos([])
@@ -216,8 +239,6 @@ const ProcesosEmprestitoTable: React.FC = () => {
 
   // Función para abrir modal de añadir proceso
   const openAddModal = () => {
-    console.log('� ABRIENDO MODAL')
-    alert('MODAL ABRIÉNDOSE!')
     setShowAddModal(true)
     fetchCentrosGestores() // Cargar centros gestores cuando se abre el modal
     fetchBancos() // Cargar bancos cuando se abre el modal
@@ -290,32 +311,18 @@ const ProcesosEmprestitoTable: React.FC = () => {
 
   // Función para enviar el nuevo proceso
   const handleSubmitProceso = async () => {
-    console.log('🚀 FUNCIÓN handleSubmitProceso INICIADA')
-    alert('✅ FUNCIÓN handleSubmitProceso EJECUTADA CORRECTAMENTE')
-    console.log('📋 Valores actuales del formulario:', nuevoProceso)
-    console.log('🔍 Tipos de datos:')
-    console.log('  - referencia_proceso:', typeof nuevoProceso.referencia_proceso, nuevoProceso.referencia_proceso)
-    console.log('  - nombre_centro_gestor:', typeof nuevoProceso.nombre_centro_gestor, nuevoProceso.nombre_centro_gestor)
-    console.log('  - nombre_banco:', typeof nuevoProceso.nombre_banco, nuevoProceso.nombre_banco)
-    console.log('  - plataforma:', typeof nuevoProceso.plataforma, nuevoProceso.plataforma)
-    
     // Validar campos requeridos
     const camposRequeridos = ['referencia_proceso', 'nombre_centro_gestor', 'nombre_banco', 'plataforma']
     const camposFaltantes = camposRequeridos.filter(campo => !nuevoProceso[campo as keyof NuevoProceso])
     
     if (camposFaltantes.length > 0) {
-      console.log('❌ Campos faltantes:', camposFaltantes)
-      alert(`❌ Faltan campos obligatorios: ${camposFaltantes.join(', ')}`)
       return
     }
 
-    console.log('✅ Validación de campos pasada')
-    console.log('🔄 Estableciendo isSubmitting = true')
     setIsSubmitting(true)
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      console.log('🌐 API URL:', apiUrl)
       
       if (!apiUrl) {
         throw new Error('URL de API no configurada')
@@ -329,47 +336,20 @@ const ProcesosEmprestitoTable: React.FC = () => {
         plataforma: nuevoProceso.plataforma.trim()
       }
 
-      console.log('📤 Datos a enviar:', procesoData)
-      console.log('📤 JSON stringify:', JSON.stringify(procesoData))
-      console.log('🎯 URL completa:', `${apiUrl}/emprestito/cargar-proceso`)
-
-      const response = await fetch(`${apiUrl}/emprestito/cargar-proceso`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+      const result = await fetchWithErrorHandling<any>(
+        `${apiUrl}/emprestito/cargar-proceso`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(procesoData)
         },
-        body: JSON.stringify(procesoData)
-      })
-
-      console.log('📥 Response status:', response.status)
-      console.log('📥 Response ok:', response.ok)
-      console.log('📥 Response headers:', response.headers)
-
-      // Leer la respuesta una sola vez
-      const responseText = await response.text()
-      console.log('📥 Response text:', responseText)
-
-      if (!response.ok) {
-        let errorData
-        try {
-          errorData = JSON.parse(responseText)
-          console.error('❌ Error JSON:', errorData)
-        } catch {
-          console.error('❌ Error text:', responseText)
-          errorData = { message: responseText }
-        }
-        throw new Error(`HTTP ${response.status}: ${errorData.detail || errorData.message || responseText}`)
-      }
-
-      const result = JSON.parse(responseText)
-      console.log('✅ Respuesta exitosa:', result)
-      
-      // Mostrar mensaje de éxito
-      alert('✅ Proceso creado exitosamente!')
+        120000 // 2 minutos de timeout
+      )
       
       // Cerrar el modal inmediatamente
-      console.log('🚪 Cerrando modal...')
       setShowAddModal(false)
       
       // Limpiar el formulario
@@ -381,7 +361,6 @@ const ProcesosEmprestitoTable: React.FC = () => {
       })
       
       // Recargar la lista de procesos
-      console.log('🔄 Recargando lista de procesos...')
       await fetchProcesos()
       
     } catch (error) {
@@ -390,9 +369,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
       if (error instanceof Error) {
         console.error('❌ Stack del error:', error.stack)
       }
-      alert(`❌ Error al crear proceso: ${error}`)
     } finally {
-      console.log('🔄 Estableciendo isSubmitting = false')
       setIsSubmitting(false)
     }
   }
@@ -403,46 +380,6 @@ const ProcesosEmprestitoTable: React.FC = () => {
   }, [])
 
   // Filtrar procesos basado en búsqueda y filtros
-  useEffect(() => {
-    let filtered = procesos
-
-    // Aplicar búsqueda
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase()
-      filtered = filtered.filter(proceso =>
-        proceso.proceso_nombre?.toLowerCase().includes(searchLower) ||
-        proceso.proceso_numero?.toLowerCase().includes(searchLower) ||
-        proceso.entidad_compradora?.toLowerCase().includes(searchLower) ||
-        proceso.objeto_contratar?.toLowerCase().includes(searchLower)
-      )
-    }
-
-    // Aplicar filtros
-    if (filtros.entidad) {
-      filtered = filtered.filter(p => p.entidad_compradora === filtros.entidad)
-    }
-    if (filtros.estado) {
-      filtered = filtered.filter(p => p.estado_proceso === filtros.estado)
-    }
-    if (filtros.modalidad) {
-      filtered = filtered.filter(p => p.modalidad_contratacion === filtros.modalidad)
-    }
-    if (filtros.tipoContrato) {
-      filtered = filtered.filter(p => p.tipo_contrato === filtros.tipoContrato)
-    }
-
-    setFilteredProcesos(filtered)
-  }, [procesos, searchTerm, filtros])
-
-  // Log de renderizado del modal
-  useEffect(() => {
-    if (showAddModal) {
-      console.log('🔄 Modal renderizado, isSubmitting:', isSubmitting)
-      console.log('🔄 Estado del botón disabled:', false)
-      console.log('🔄 Valores del formulario:', nuevoProceso)
-    }
-  }, [showAddModal, isSubmitting, nuevoProceso])
-
   // Cerrar dropdown cuando se hace clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -470,11 +407,6 @@ const ProcesosEmprestitoTable: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* INDICADOR VISUAL */}
-      <div style={{ backgroundColor: 'red', color: 'white', padding: '10px', textAlign: 'center', fontSize: '20px' }}>
-        🚨 COMPONENTE PROCESOSEMPRESTITOTABLE ACTIVO 🚨
-      </div>
-      
       {/* Header con botón de añadir proceso */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
@@ -487,14 +419,8 @@ const ProcesosEmprestitoTable: React.FC = () => {
         </div>
         
         <button 
-          onClick={() => {
-            console.log('🚨 CLICK EN BOTÓN AÑADIR PROCESO')
-            alert('CLICK EN AÑADIR PROCESO!')
-            openAddModal()
-          }}
-          onMouseOver={() => console.log('🖱️ MOUSE SOBRE BOTÓN AÑADIR')}
-          style={{ backgroundColor: 'green', color: 'white', border: '2px solid yellow' }}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md"
+          onClick={openAddModal}
+          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
           <Plus className="h-4 w-4" />
           Añadir Proceso SECOP II
@@ -508,23 +434,18 @@ const ProcesosEmprestitoTable: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
             onClick={(e) => {
-              console.log('🔴 CLICK EN OVERLAY - CERRANDO MODAL')
-              console.log('Event target:', e.target)
-              console.log('Current target:', e.currentTarget)
-              closeAddModal()
+              if (e.target === e.currentTarget) {
+                closeAddModal()
+              }
             }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => {
-                console.log('🟢 CLICK EN CONTENIDO DEL MODAL')
-                console.log('Event target:', e.target)
-                e.stopPropagation()
-              }}
+              onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden"
             >
               {/* Header del modal */}
@@ -800,10 +721,11 @@ const ProcesosEmprestitoTable: React.FC = () => {
                     Cancelar
                   </button>
                   <button
-                    onClick={() => alert('BOTÓN FUNCIONANDO!')}
-                    className="px-6 py-2 text-sm font-medium text-white bg-red-500 rounded-md"
+                    onClick={handleSubmitProceso}
+                    disabled={isSubmitting}
+                    className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    TEST BOTÓN
+                    {isSubmitting ? 'Creando...' : 'Crear Proceso'}
                   </button>
                 </div>
               </div>
@@ -840,33 +762,140 @@ const ProcesosEmprestitoTable: React.FC = () => {
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Referencia
+                      <div className="flex items-center gap-2">
+                        <span>Proceso / Centro Gestor</span>
+                        <button onClick={() => handleSort('proceso_numero')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'proceso_numero' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Centro Gestor
+                      <div className="flex items-center gap-2">
+                        <span>Banco</span>
+                        <button onClick={() => handleSort('entidad_compradora')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'entidad_compradora' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Banco
+                      <div className="flex items-center gap-2">
+                        <span>Estado</span>
+                        <button onClick={() => handleSort('estado_proceso')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'estado_proceso' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Plataforma
+                      <div className="flex items-center gap-2">
+                        <span>Valor Contrato</span>
+                        <button onClick={() => handleSort('proceso_presupuesto_estimado')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
+                          {sortConfig.key === 'proceso_presupuesto_estimado' ? (
+                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      <span>Avance Ejecución</span>
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      <span>Observaciones / Alertas</span>
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      <span>Detalle</span>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {procesos.map((proceso, index) => (
+                  {sortedProcesos.map((proceso, index) => (
                     <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {proceso.proceso_numero || 'N/A'}
+                      {/* Proceso / Centro Gestor */}
+                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        <div className="space-y-1">
+                          <div className="font-medium">
+                            {proceso.proceso_nombre || 'Sin nombre'}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            {proceso.entidad_compradora || 'Sin entidad'}
+                          </div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                            {proceso.proceso_numero || 'Sin referencia'}
+                          </div>
+                        </div>
                       </td>
+                      
+                      {/* Banco */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {proceso.entidad_compradora || 'N/A'}
+                        <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-xs font-medium">
+                          {proceso.modalidad_contratacion || 'N/A'}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        N/A
+                      
+                      {/* Estado */}
+                      <td className="px-6 py-4 text-center text-sm">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          proceso.estado_proceso === 'Activo' 
+                            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                        }`}>
+                          {proceso.estado_proceso || 'N/A'}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        N/A
+                      
+                      {/* Valor Contrato */}
+                      <td className="px-6 py-4 text-right text-sm font-medium text-teal-600 dark:text-teal-400 whitespace-nowrap">
+                        {proceso.proceso_presupuesto_estimado 
+                          ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(proceso.proceso_presupuesto_estimado)
+                          : 'N/A'
+                        }
+                      </td>
+                      
+                      {/* Avance Ejecución */}
+                      <td className="px-6 py-4 text-center text-sm">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-24 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                            <div
+                              className="bg-teal-600 h-2 rounded-full"
+                              style={{ width: `0%` }}
+                            />
+                          </div>
+                          <span className="font-medium">0%</span>
+                        </div>
+                      </td>
+                      
+                      {/* Observaciones / Alertas */}
+                      <td className="px-6 py-4 text-xs text-gray-600 dark:text-gray-400">
+                        <div className="line-clamp-2">
+                          {proceso.objeto_contratar || 'Sin observaciones'}
+                        </div>
+                      </td>
+                      
+                      {/* Detalle */}
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => {
+                            setSelectedProceso(proceso)
+                            setShowDetailModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg"
+                          title="Ver detalles del proceso"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}

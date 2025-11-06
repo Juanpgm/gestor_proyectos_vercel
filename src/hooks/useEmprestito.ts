@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fetchWithErrorHandling } from '@/utils/errorHandler'
 
 export interface EmprestitoContrato {
   nombre_entidad: string;
@@ -192,21 +193,12 @@ export const useEmprestito = (): EmprestitoState => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        // Cargar contratos directamente desde emp_contratos.json
-        const contratosRes = await fetch('/data/emprestito/emp_contratos.json')
-        
-        // Verificar que la respuesta sea exitosa
-        if (!contratosRes.ok) {
-          throw new Error('Error al cargar archivo de contratos de empréstito')
-        }
-
-        // Parsear los datos
-        let contratosData
-        try {
-          contratosData = await contratosRes.json()
-        } catch (jsonError) {
-          throw new Error(`Error al parsear JSON: ${jsonError instanceof Error ? jsonError.message : 'JSON inválido'}`)
-        }
+        // Cargar contratos con timeout extendido (120 segundos)
+        const contratosData = await fetchWithErrorHandling<any>(
+          '/data/emprestito/emp_contratos.json',
+          {},
+          120000 // 2 minutos de timeout
+        )
         
         // Los contratos pueden venir como array directo o envueltos en contratos_encontrados
         const contratosArray = contratosData.contratos_encontrados || (Array.isArray(contratosData) ? contratosData : [])

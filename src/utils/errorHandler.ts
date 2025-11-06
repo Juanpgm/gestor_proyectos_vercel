@@ -130,7 +130,7 @@ export function handleApiError(error: any, endpoint?: string): AppError {
 export async function fetchWithErrorHandling<T>(
   url: string,
   options: RequestInit = {},
-  timeoutMs: number = 30000
+  timeoutMs: number = 120000
 ): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

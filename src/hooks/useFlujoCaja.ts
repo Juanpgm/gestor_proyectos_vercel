@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fetchWithErrorHandling } from '@/utils/errorHandler'
 
 export interface FlujoCajaItem {
   banco: string
@@ -26,13 +27,11 @@ export const useFlujoCaja = (): FlujoCajaState => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        const response = await fetch('/data/emprestito/flujo_caja.json')
-        
-        if (!response.ok) {
-          throw new Error('Error al cargar archivo de flujo de caja')
-        }
-
-        const flujoCajaData = await response.json()
+        const flujoCajaData = await fetchWithErrorHandling<any>(
+          '/data/emprestito/flujo_caja.json',
+          {},
+          120000 // 2 minutos de timeout
+        )
         
         // Los datos están bajo la clave "Hoja1"
         const data: FlujoCajaItem[] = flujoCajaData.Hoja1 || []
