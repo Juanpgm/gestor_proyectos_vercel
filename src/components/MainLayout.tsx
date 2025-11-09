@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import GestionProcesos from '@/components/GestionProcesos'
+import GestionContratos from '@/components/GestionContratos'
 import ProyeccionesEmprestito from '@/components/ProyeccionesEmprestito'
 
 interface MainLayoutProps {
@@ -33,6 +34,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
             <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
               <GestionProcesos onNavigateHome={handleNavigateHome} />
+            </div>
+          </div>
+        )
+      case 'gestionar-contratos':
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+            <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
+              <GestionContratos onNavigateHome={handleNavigateHome} />
             </div>
           </div>
         )

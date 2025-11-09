@@ -1,11 +1,13 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bell, Settings, User, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { UserProfile } from '@/components/AuthWrapper'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
+import { useTodayNotificationCount } from '@/hooks/useNotifications'
+import NotificationPanel from '@/components/NotificationPanel'
 
 interface HeaderProps {
   onToggleSidebar?: () => void
@@ -13,6 +15,8 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { theme, setTheme } = useTheme()
+  const unreadCount = useTodayNotificationCount() // Ahora muestra solo las notificaciones de hoy
+  const [showNotifications, setShowNotifications] = useState(false)
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
@@ -81,10 +85,20 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => setShowNotifications(!showNotifications)}
               className={`${CSS_UTILS.iconButton} tablet-interactive p-2 tablet:p-3 rounded-lg tablet:rounded-xl ${CATEGORIES.activities.className.text} relative`}
               title="Notificaciones"
             >
               <Bell className="w-4 h-4 tablet:w-6 tablet:h-6 md:w-5 md:h-5" />
+              {unreadCount > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </motion.span>
+              )}
             </motion.button>
 
             {/* Settings - Visible en tablets */}
@@ -117,6 +131,12 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           </div>
         </div>
       </div>
+
+      {/* Panel de Notificaciones */}
+      <NotificationPanel 
+        isOpen={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
+      />
     </motion.header>
   )
 }
