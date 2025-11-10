@@ -440,6 +440,12 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                           <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.tipoIntervencion}</dd>
                         </div>
                       )}
+                      {projectUnit.tipoEquipamiento && (
+                        <div className="flex justify-between items-start">
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Tipo de Equipamiento:</dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.tipoEquipamiento}</dd>
+                        </div>
+                      )}
                       {projectUnit.claseObra && (
                         <div className="flex justify-between items-start">
                           <dt className="text-gray-600 dark:text-gray-300 font-medium">Clase de Obra:</dt>

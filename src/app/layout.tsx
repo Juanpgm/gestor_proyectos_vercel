@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import '@/styles/ipad-10-optimizations.css';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { DashboardProvider } from '@/context/DashboardContext';
 import { AuthProvider } from '@/context/AuthContext';
@@ -12,10 +13,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Dashboard Alcaldía Cali - Unidad de Cumplimiento',
+  title: 'CaliTrack',
   description: 'Sistema de Gestión de Proyectos - Alcaldía de Santiago de Cali',
   generator: 'Next.js',
-  applicationName: 'Dashboard Alcaldía Cali',
+  applicationName: 'CaliTrack',
   referrer: 'origin-when-cross-origin',
   keywords: ['gestión', 'proyectos', 'alcaldía', 'cali', 'dashboard'],
   authors: [{ name: 'Alcaldía de Santiago de Cali' }],
@@ -35,7 +36,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={inter.className}>
-      <body className="min-h-screen bg-gray-50 antialiased">
+      <body className="min-h-screen bg-gray-50 antialiased overflow-x-hidden">
         <AuthProvider>
           <ThemeProvider>
             <DashboardProvider>

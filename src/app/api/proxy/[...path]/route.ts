@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { API_BASE_URL, DEFAULT_TIMEOUT } from '@/services/api'
 
+// Marcar esta ruta como dinámica
+export const dynamic = 'force-dynamic'
+
 // CORS headers for FastAPI integration
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

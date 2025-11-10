@@ -1,0 +1,811 @@
+/* Optimizaciones específicas para iPad de 10ª generación */
+/* Resolución: 2360x1640 pixels, CSS: ~834x1194px */
+
+/* Media query específica para iPad 10ª generación */
+@media only screen 
+  and (min-device-width: 820px) 
+  and (max-device-width: 850px) 
+  and (-webkit-min-device-pixel-ratio: 2.5) {
+  
+  /* Contenedor principal optimizado */
+  .ipad-10-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: 100%;
+  }
+  
+  /* Ajustes para tablas */
+  .ipad-10-table {
+    width: 100%;
+    min-width: 800px;
+    font-size: 0.875rem;
+  }
+  
+  .ipad-10-table th,
+  .ipad-10-table td {
+    padding: 0.75rem 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Optimizaciones de grid para iPad 10 */
+  .ipad-10-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  .ipad-10-grid-5 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  /* Elementos táctiles optimizados */
+  .ipad-10-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+  }
+  
+  /* Texto optimizado para PPI */
+  .ipad-10-text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  
+  .ipad-10-text-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  
+  .ipad-10-text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  
+  /* Botones específicos para iPad 10 */
+  .ipad-10-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    border-radius: 0.5rem;
+    min-height: 44px;
+    transition: all 0.2s ease;
+  }
+  
+  .ipad-10-btn:hover {
+    transform: scale(1.02);
+  }
+  
+  .ipad-10-btn:active {
+    transform: scale(0.98);
+  }
+  
+  /* Cards optimizadas */
+  .ipad-10-card {
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .ipad-10-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Espaciado específico */
+  .ipad-10-spacing {
+    padding: 1rem;
+    margin: 0.75rem 0;
+  }
+  
+  /* Panel lateral optimizado */
+  .ipad-10-sidebar {
+    width: 280px;
+    padding: 1.5rem;
+  }
+  
+  /* Scrolling optimizado */
+  .ipad-10-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Progress bars optimizadas */
+  .ipad-10-progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #e5e7eb;
+  }
+  
+  .ipad-10-progress-bar {
+    height: 100%;
+    border-radius: 0.25rem;
+    transition: width 0.3s ease;
+  }
+}
+
+/* Media query para iPad 10 en landscape */
+@media only screen 
+  and (min-device-width: 1170px) 
+  and (max-device-width: 1220px) 
+  and (-webkit-min-device-pixel-ratio: 2.5) 
+  and (orientation: landscape) {
+  
+  /* Aprovechar mejor el ancho en landscape */
+  .ipad-10-landscape-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  .ipad-10-landscape-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .ipad-10-landscape-table {
+    min-width: 1100px;
+  }
+  
+  /* Sidebar más ancha en landscape */
+  .ipad-10-landscape-sidebar {
+    width: 320px;
+  }
+}
+
+/* Utilidades para detección de iPad 10 */
+@supports (-webkit-appearance: none) {
+  @media (min-width: 834px) and (max-width: 834px) {
+    .ipad-10-specific {
+      /* Estilos específicos solo para iPad 10 portrait */
+      font-size: 1rem;
+    }
+  }
+  
+  @media (min-width: 1194px) and (max-width: 1194px) {
+    .ipad-10-landscape-specific {
+      /* Estilos específicos solo para iPad 10 landscape */
+      font-size: 1.125rem;
+    }
+  }
+}
+
+/* Mejoras de accesibilidad táctil */
+.touch-friendly {
+  cursor: pointer;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+/* Animaciones optimizadas para tablets */
+@media (hover: none) and (pointer: coarse) {
+  .hover-optimized:hover {
+    transform: none;
+  }
+  
+  .hover-optimized:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Corrección de zoom en inputs */
+@media screen and (max-device-width: 1024px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* === OPTIMIZACIONES ADICIONALES PARA GRÁFICOS Y TABLA === */
+
+/* Gráficos y dashboards se adaptan al ancho completo */
+@media (max-width: 834px) {
+  /* Contenedores de gráficos responsive */
+  .chart-container,
+  .dashboard-chart,
+  .graph-wrapper {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: 100% !important;
+    overflow-x: visible !important;
+  }
+  
+  /* Cards y elementos del dashboard adaptativos */
+  .dashboard-card,
+  .metric-card,
+  .summary-card {
+    width: 100% !important;
+    min-width: unset !important;
+    max-width: 100% !important;
+  }
+  
+  /* Grid containers responsive */
+  .grid-responsive,
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (min-width: 835px) and (max-width: 1194px) {
+  /* iPad landscape - gráficos adaptativos */
+  .chart-container,
+  .dashboard-chart {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+  
+  .grid-responsive {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    gap: 1.5rem !important;
+  }
+}
+
+/* Tabla con scroll horizontal INDEPENDIENTE del responsive de gráficos */
+.contracts-table-container {
+  width: 100%;
+  overflow-x: visible;
+  overflow-y: visible;
+  position: relative;
+}
+
+.contracts-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+  background: white;
+  margin: 0;
+  border-spacing: 0;
+}
+
+/* La tabla ahora ocupa todo el ancho disponible sin scroll horizontal */
+@media (max-width: 1400px) {
+  .contracts-table-container {
+    overflow-x: visible;
+  }
+  
+  .contracts-table {
+    width: 100% !important;
+  }
+}
+
+/* Indicador visual de scroll horizontal */
+.contracts-table-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to left, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.contracts-table-container:hover::after {
+  opacity: 1;
+}
+
+/* Mejoras de UX para scroll horizontal */
+.contracts-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.contracts-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.contracts-table-container::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 4px;
+}
+
+.contracts-table-container::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 4px;
+  border: 2px solid #f7fafc;
+}
+
+.contracts-table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #a0aec0;
+}
+
+/* Optimizaciones específicas para iPad scroll horizontal */
+@media only screen 
+  and (min-device-width: 820px) 
+  and (max-device-width: 850px) 
+  and (-webkit-min-device-pixel-ratio: 2.5) {
+  
+  /* Scroll horizontal optimizado para iPad 10 */
+  .ipad-10-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+  }
+  
+  /* Tabla específica para iPad 10 */
+  .ipad-10-table {
+    min-width: 1100px !important;
+    width: max-content !important;
+    table-layout: auto;
+  }
+  
+  /* Headers más espaciosos en iPad */
+  .ipad-10-table th {
+    padding: 1rem 0.75rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  
+  /* Celdas optimizadas para iPad */
+  .ipad-10-table td {
+    padding: 0.875rem 0.75rem;
+    font-size: 0.875rem;
+    vertical-align: top;
+  }
+  
+  /* Scrollbar más prominente en iPad */
+  .ipad-10-scroll::-webkit-scrollbar {
+    height: 12px;
+  }
+  
+  .ipad-10-scroll::-webkit-scrollbar-thumb {
+    background-color: #14b8a6;
+    border-radius: 6px;
+    border: 3px solid #f7fafc;
+  }
+  
+  .ipad-10-scroll::-webkit-scrollbar-thumb:active {
+    background-color: #0f766e;
+  }
+}
+
+/* iPad en landscape - aprovechar mejor el ancho */
+@media only screen 
+  and (min-device-width: 1170px) 
+  and (max-device-width: 1220px) 
+  and (-webkit-min-device-pixel-ratio: 2.5) 
+  and (orientation: landscape) {
+  
+  .ipad-10-landscape-table {
+    min-width: 1140px !important;
+  }
+  
+  .ipad-10-landscape-table th,
+  .ipad-10-landscape-table td {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+}
+
+/* Indicador visual mejorado para scroll */
+.contracts-table-container::before {
+  content: '';
+  position: sticky;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, #14b8a6, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+/* Clases de utilidad para aplicar responsive */
+.adaptive-width {
+  width: 100% !important;
+  min-width: unset !important;
+  max-width: 100% !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+.fixed-table-width {
+  min-width: 1140px !important;
+  width: max-content !important;
+  table-layout: auto !important;
+}
+
+/* Prevenir cortes de contenido en todos los contenedores */
+.dashboard-container {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* Asegurar que los gráficos se adapten correctamente */
+.chart-responsive,
+.dashboard-chart,
+.metric-container {
+  width: 100% !important;
+  min-width: unset !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* Contenedor principal del empréstito */
+.emprestito-dashboard {
+  width: 100%;
+  min-width: 0;
+  overflow-x: visible;
+  overflow-y: visible;
+  box-sizing: border-box;
+}
+
+/* Grid responsivo mejorado */
+.grid-container-responsive {
+  display: grid;
+  width: 100%;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .grid-container-responsive {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .grid-container-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .grid-container-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* === SIDEBAR DE FILTROS NO MODAL === */
+
+/* Botón flotante que se mueve con el sidebar */
+.filter-button-floating {
+  z-index: 52 !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease-in-out !important;
+}
+
+.filter-button-floating:hover {
+  transform: scale(1.05) !important;
+}
+
+.filter-button-floating:active {
+  transform: scale(0.95) !important;
+}
+
+/* Sidebar de filtros */
+.filters-sidebar {
+  z-index: 50 !important;
+  pointer-events: auto !important;
+  transition: all 0.3s ease-in-out !important;
+  backdrop-filter: blur(10px);
+}
+
+.filters-sidebar.open {
+  box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Contenido principal que se ajusta */
+.main-content-with-sidebar {
+  transition: margin-right 0.3s ease-in-out !important;
+}
+
+/* Mejoras para el contenido del sidebar */
+.filter-controls {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.filter-controls::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-controls::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 3px;
+}
+
+.filter-controls::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 3px;
+}
+
+.filter-controls::-webkit-scrollbar-thumb:hover {
+  background-color: #a0aec0;
+}
+
+/* Animación del icono de filtros */
+.filter-icon-rotate {
+  transition: transform 0.3s ease-in-out !important;
+}
+
+/* Optimización para la columna "Proceso / Centro Gestor" - Mejorada legibilidad */
+.contracts-table td:first-child {
+  min-width: 280px !important;
+  max-width: 280px !important;
+  width: 280px !important;
+}
+
+.contracts-table th:first-child {
+  min-width: 280px !important;
+  max-width: 280px !important;
+  width: 280px !important;
+}
+
+/* Tabla compacta - reducir espacios */
+.contracts-table td,
+.contracts-table th {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.2 !important;
+}
+
+.contracts-table tbody tr {
+  height: auto !important;
+  min-height: 4rem !important;
+}
+
+/* Permitir mejor legibilidad en columnas específicas */
+.contracts-table td:first-child,
+.contracts-table td:nth-child(6) {
+  vertical-align: top !important;
+}
+
+/* Hacer textos más compactos */
+.contracts-table .text-sm {
+  font-size: 0.75rem !important;
+}
+
+.contracts-table .text-xs {
+  font-size: 0.7rem !important;
+}
+
+/* Barras de progreso compactas */
+.contracts-table .progress-bar {
+  height: 0.375rem !important;
+}
+
+/* Espaciado compacto entre elementos */
+.contracts-table .space-y-1 > * + * {
+  margin-top: 0.125rem !important;
+}
+
+.contracts-table .space-y-0 > * + * {
+  margin-top: 0 !important;
+}
+
+/* Texto multi-línea optimizado */
+.multiline-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  hyphens: auto;
+  line-height: 1.3;
+}
+
+.multiline-text-sm {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  hyphens: auto;
+  line-height: 1.2;
+  font-size: 0.75rem;
+}
+
+/* Estados del botón según el sidebar */
+.filter-button-active {
+  background-color: #ea580c !important;
+}
+
+.filter-button-active:hover {
+  background-color: #dc2626 !important;
+}
+
+.filter-button-inactive {
+  background-color: #0d9488 !important;
+}
+
+.filter-button-inactive:hover {
+  background-color: #0f766e !important;
+}
+
+/* Responsive para el sidebar */
+@media (max-width: 768px) {
+  .filters-sidebar {
+    width: 280px !important;
+  }
+  
+  .filter-button-floating {
+    right: 1rem !important;
+  }
+  
+  .filter-button-floating.open {
+    right: 290px !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .filters-sidebar {
+    width: 320px !important;
+  }
+}
+
+/* === CORRECCIÓN GLOBAL PARA PREVENIR CORTES === */
+
+/* Asegurar que todos los contenedores principales respeten el viewport */
+.emprestito-dashboard-main {
+  width: 100vw;
+  max-width: calc(100vw - 2rem);
+  box-sizing: border-box;
+  overflow-x: visible;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Corregir padding y márgenes que pueden causar overflow */
+@media (max-width: 1200px) {
+  .dashboard-container,
+  .main-content,
+  .emprestito-section {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  
+  /* Cards y contenedores */
+  .bg-white,
+  .dark\:bg-gray-800,
+  .rounded-xl {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+  
+  /* Grids responsivos */
+  .grid {
+    width: 100% !important;
+    box-sizing: border-box;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Tabla: mantener scroll horizontal pero sin cortar otros elementos */
+.table-section {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible; /* Solo la tabla interna tiene scroll */
+}
+
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 0.5rem;
+  background: white;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* Contiene el scroll interno */
+}
+
+/* Corrección específica para tablets */
+@media (max-width: 1024px) {
+  /* Reducir padding en dispositivos medianos */
+  .space-y-3 > * + *,
+  .space-y-4 > * + * {
+    margin-top: 0.75rem !important;
+  }
+  
+  /* Asegurar que las métricas se vean completas */
+  .metric-cards,
+  .execution-metrics {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  
+  /* Grid de métricas responsive */
+  .execution-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+  
+  @media (min-width: 640px) {
+    .execution-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .execution-grid {
+      grid-template-columns: repeat(3, 1fr) !important;
+    }
+  }
+}
+
+/* Estilos para controles de ordenación en tabla */
+.contracts-table th.sortable-header {
+  user-select: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.contracts-table th.sortable-header:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.contracts-table th.sortable-header:active {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.contracts-table th.sortable-header.sorted {
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+.sort-button {
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.sort-button:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: rgb(59, 130, 246);
+}
+
+.sort-button:active {
+  transform: scale(0.95);
+}
+
+/* Mejoras para iconos de ordenación */
+.sort-icon {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.sort-icon:hover {
+  color: rgb(59, 130, 246);
+  transform: scale(1.1);
+}
+
+/* Responsive para controles de ordenación en móviles */
+@media (max-width: 768px) {
+  .contracts-table th.sortable-header {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .sort-icon {
+    width: 12px;
+    height: 12px;
+  }
+}

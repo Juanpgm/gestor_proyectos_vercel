@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Marcar esta ruta como dinámica
+export const dynamic = 'force-dynamic'
+
 const FASTAPI_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
 
 export async function GET(request: NextRequest) {
@@ -13,6 +16,10 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'X-Timestamp': Date.now().toString(),
       }
     });
 
@@ -28,7 +35,12 @@ export async function GET(request: NextRequest) {
       actualData = data.filters;
     }
     
-    return NextResponse.json(actualData);
+    const filtersResponse = NextResponse.json(actualData);
+    filtersResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    filtersResponse.headers.set('Pragma', 'no-cache');
+    filtersResponse.headers.set('Expires', '0');
+    filtersResponse.headers.set('X-Timestamp', Date.now().toString());
+    return filtersResponse;
   } catch (error) {
     return NextResponse.json(
       { 

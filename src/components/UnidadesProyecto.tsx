@@ -348,7 +348,7 @@ const CompactMetrics: React.FC<{
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
       <div className="text-center">
         <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.total}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Total Proyectos</div>
+        <div className="text-xs text-gray-600 dark:text-gray-400">Total Intervenciones</div>
       </div>
       <div className="text-center">
         <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.avgProgress.toFixed(1)}%</div>
@@ -485,82 +485,86 @@ const UnidadesProyecto: React.FC = () => {
   }
 
   return (
-    <main className="space-y-6">
-      {/* Header con controles */}
-      <section className={`${CSS_UTILS.card} p-6`}>
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-          {/* Información principal */}
-          <div className="flex-1">
-            <div className="flex items-center space-x-3">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Unidades de Proyecto
-              </h2>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                {filteredData.length} de {state.attributeData.length}
-              </span>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Sistema integrado de seguimiento y análisis de proyectos
-            </p>
-          </div>
-
-          {/* Controles de vista y acciones */}
-          <div className="flex items-center space-x-3">
-            {/* Selector de vista */}
-            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('split')}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'split' 
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                <div className="w-4 h-4 grid grid-cols-2 gap-0.5">
-                  <div className="bg-current rounded-sm"></div>
-                  <div className="bg-current rounded-sm"></div>
-                  <div className="bg-current rounded-sm"></div>
-                  <div className="bg-current rounded-sm"></div>
-                </div>
-                <span>Mixto</span>
-              </button>
-              <button
-                onClick={() => setViewMode('map')}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  viewMode === 'map' 
-                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                <Map className="w-4 h-4" />
-                <span>Mapa</span>
-              </button>
+    <main className="space-y-6 overflow-x-auto pb-4">
+      {/* Header con controles - Responsive con scroll horizontal en tablets */}
+      <section className={`${CSS_UTILS.card} p-4 md:p-6`}>
+        <div className="min-w-[640px] md:min-w-0">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 gap-3">
+            {/* Información principal */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-3 flex-wrap gap-2">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  Unidades de Proyecto
+                </h2>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 whitespace-nowrap">
+                  {filteredData.length} de {state.attributeData.length}
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                Sistema integrado de seguimiento y análisis de proyectos
+              </p>
             </div>
 
-            {/* Botón limpiar filtros - más visible */}
-            {(Object.values(filters).some(value => value && value !== '') || filters.searchTerm) && (
-              <button
-                onClick={handleClearFilters}
-                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-              >
-                <X className="w-4 h-4" />
-                <span>Limpiar ({Object.values(filters).filter(v => v && v !== '').length + (filters.searchTerm ? 1 : 0)})</span>
-              </button>
+            {/* Controles de vista y acciones */}
+            <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+              {/* Selector de vista */}
+              <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('split')}
+                  className={`flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors ${
+                    viewMode === 'split' 
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <div className="w-3 h-3 md:w-4 md:h-4 grid grid-cols-2 gap-0.5">
+                    <div className="bg-current rounded-sm"></div>
+                    <div className="bg-current rounded-sm"></div>
+                    <div className="bg-current rounded-sm"></div>
+                    <div className="bg-current rounded-sm"></div>
+                  </div>
+                  <span className="hidden sm:inline">Mixto</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={`flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors ${
+                    viewMode === 'map' 
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Map className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">Mapa</span>
+                </button>
+              </div>
+
+              {/* Botón limpiar filtros - más visible */}
+              {(Object.values(filters).some(value => value && value !== '') || filters.searchTerm) && (
+                <button
+                  onClick={handleClearFilters}
+                  className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors whitespace-nowrap"
+                >
+                  <X className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">Limpiar</span>
+                  <span className="inline sm:hidden">({Object.values(filters).filter(v => v && v !== '').length + (filters.searchTerm ? 1 : 0)})</span>
+                  <span className="hidden sm:inline">({Object.values(filters).filter(v => v && v !== '').length + (filters.searchTerm ? 1 : 0)})</span>
+                </button>
+              )}
+            </div>
+
+            {/* Timestamp - Oculto en móvil, visible en tablet+ */}
+            {state.lastUpdate && (
+              <div className="hidden md:flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                <Calendar className="w-3 h-3" />
+                <span className="whitespace-nowrap">Actualizado: {state.lastUpdate.toLocaleString('es-CO')}</span>
+              </div>
             )}
           </div>
 
-          {/* Timestamp */}
-          {state.lastUpdate && (
-            <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
-              <Calendar className="w-3 h-3" />
-              <span>Actualizado: {state.lastUpdate.toLocaleString('es-CO')}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Métricas compactas */}
-        <div className="mt-6">
-          <CompactMetrics metrics={metrics} />
+          {/* Métricas compactas */}
+          <div className="mt-4 md:mt-6">
+            <CompactMetrics metrics={metrics} />
+          </div>
         </div>
       </section>
 
@@ -586,7 +590,7 @@ const UnidadesProyecto: React.FC = () => {
       </AnimatePresence>
 
       {/* Contenido principal basado en vista */}
-      <section className="space-y-6">
+      <section className="space-y-6 overflow-x-auto">
         {viewMode === 'map' && (
           <motion.div
             key="map"
@@ -603,63 +607,67 @@ const UnidadesProyecto: React.FC = () => {
 
         {viewMode === 'split' && (
           <div className="space-y-6">
-            {/* Layout horizontal: Mapa + Filtros */}
+            {/* Layout horizontal: Mapa + Filtros - Responsive con scroll */}
             <motion.div
               key="split-map-filters"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 lg:grid-cols-4 gap-6"
+              className="overflow-x-auto"
             >
-              {/* Mapa - 3 columnas */}
-              <div className={`${CSS_UTILS.card} p-4 lg:col-span-3`}>
-                <div className="h-[650px] rounded-lg overflow-hidden">
-                  {memoizedMap}
+              <div className="min-w-[768px] md:min-w-0 grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
+                {/* Mapa - 3 columnas en tablet+ */}
+                <div className={`${CSS_UTILS.card} p-4 md:col-span-3`}>
+                  <div className="h-[500px] md:h-[650px] rounded-lg overflow-hidden">
+                    {memoizedMap}
+                  </div>
                 </div>
-              </div>
 
-              {/* Filtros - 1 columna */}
-              <div className="lg:col-span-1 relative z-40">
-                <AnimatePresence>
-                  {showFilters && (
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3 }}
-                      className="h-[650px] overflow-y-auto relative z-40"
-                      style={{ zIndex: 40 }}
-                    >
-                      <UnidadesProyectoFilters
-                        filterData={state.filterData}
-                        filters={filters}
-                        onFiltersChange={handleFiltersChange}
-                        onSearchChange={handleSearchChange}
-                        onClearFilters={handleClearFilters}
-                        isLoading={state.loading}
-                        compact={true}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* Filtros - 1 columna, colapsable en móvil */}
+                <div className="md:col-span-1 relative z-40">
+                  <AnimatePresence>
+                    {showFilters && (
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.3 }}
+                        className="h-[400px] md:h-[650px] overflow-y-auto relative z-40"
+                        style={{ zIndex: 40 }}
+                      >
+                        <UnidadesProyectoFilters
+                          filterData={state.filterData}
+                          filters={filters}
+                          onFiltersChange={handleFiltersChange}
+                          onSearchChange={handleSearchChange}
+                          onClearFilters={handleClearFilters}
+                          isLoading={state.loading}
+                          compact={true}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </motion.div>
 
-            {/* Tabla de Atributos - Debajo del layout completo */}
+            {/* Tabla de Atributos - Con scroll horizontal en tablets */}
             <motion.div
               key="split-attributes"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`${CSS_UTILS.card} p-0`}
+              className={`${CSS_UTILS.card} p-0 overflow-x-auto`}
             >
-              <UnidadesProyectoAttributesTable
-                data={filteredData}
-                className="h-[700px]"
-                maxHeight="550px"
-                pageSize={20}
-                onRowClick={handleItemFocus}
-                focusedItem={focusedItem}
-                onShowDetails={handleShowDetails}
-              />
+              <div className="min-w-[640px]">
+                <UnidadesProyectoAttributesTable
+                  data={filteredData}
+                  className="h-[600px] md:h-[700px]"
+                  maxHeight="550px"
+                  pageSize={20}
+                  onRowClick={handleItemFocus}
+                  focusedItem={focusedItem}
+                  onShowDetails={handleShowDetails}
+                />
+              </div>
             </motion.div>
           </div>
         )}
@@ -693,7 +701,7 @@ const UnidadesProyecto: React.FC = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               <ProjectDetailsModal

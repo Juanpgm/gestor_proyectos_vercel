@@ -26,6 +26,8 @@ import { CATEGORIES, formatNumber, ANIMATIONS } from '@/lib/design-system'
 import { openSecopLink } from '@/utils/url-helpers'
 import { Contrato } from '@/hooks/useContratos'
 import { getContractStateColors } from '@/lib/contract-colors'
+import { IPadOptimizedContainer, IPadOptimizedTable, IPadOptimizedButton } from './IPadOptimizedContainer'
+import { useIPadClasses } from '@/hooks/useIPadDetection'
 
 interface ContratosTableProps {
   contratos: Contrato[]
@@ -61,6 +63,9 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
+
+  // Hook para optimizaciones de iPad
+  const { deviceInfo, getResponsiveClasses, getGridClasses, getTableClasses, getTouchTargetClasses } = useIPadClasses()
 
   const [filters, setFilters] = useState<TableFilters>({
     search: '',
@@ -221,17 +226,17 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
       className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
     >
       {/* Header con filtros */}
-      <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.contracts.gradient}`}>
-              <FileText className="w-5 h-5 text-white" />
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 Tabla de Contratos
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 {processedData.length} de {contratos.length} contratos
               </p>
             </div>
@@ -263,9 +268,9 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-600"
+              className="mt-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-600"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* Búsqueda */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -387,13 +392,13 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
 
       {/* Tabla */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <IPadOptimizedTable className={getTableClasses()}>
           <thead className="bg-gray-50 dark:bg-gray-900/50">
             <tr>
               <th className="px-4 py-3 text-left">
                 <button
                   onClick={() => handleSort('referencia_contrato')}
-                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
+                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300 touch-target"
                 >
                   Contrato
                   {sortField === 'referencia_contrato' && (
@@ -401,10 +406,10 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-left min-w-[200px] md:min-w-[250px] ipad-10:min-w-[230px]">
                 <button
                   onClick={() => handleSort('proveedor_adjudicado')}
-                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
+                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300 touch-target"
                 >
                   Proveedor
                   {sortField === 'proveedor_adjudicado' && (
@@ -412,10 +417,10 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-left min-w-[120px] md:min-w-[140px] ipad-10:min-w-[130px]">
                 <button
                   onClick={() => handleSort('valor_contrato')}
-                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
+                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300 touch-target"
                 >
                   Valor
                   {sortField === 'valor_contrato' && (
@@ -423,10 +428,10 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-left min-w-[100px] md:min-w-[120px] ipad-10:min-w-[110px]">
                 <button
                   onClick={() => handleSort('estado_contrato')}
-                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
+                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300 touch-target"
                 >
                   Estado
                   {sortField === 'estado_contrato' && (
@@ -434,10 +439,10 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-left min-w-[120px] md:min-w-[140px] ipad-10:min-w-[130px]">
                 <button
                   onClick={() => handleSort('fecha_firma')}
-                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
+                  className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300 touch-target"
                 >
                   Fecha Firma
                   {sortField === 'fecha_firma' && (
@@ -726,7 +731,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
               )
             })}
           </tbody>
-        </table>
+        </IPadOptimizedTable>
       </div>
 
       {/* Paginación */}

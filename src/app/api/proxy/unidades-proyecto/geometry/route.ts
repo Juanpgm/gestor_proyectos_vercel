@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Marcar esta ruta como dinámica
+export const dynamic = 'force-dynamic'
+
 const FASTAPI_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
 
 export async function GET(request: NextRequest) {
@@ -11,8 +14,11 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'User-Agent': 'NextJS-Proxy/1.0',
+        'X-Timestamp': Date.now().toString(),
       }
     });
 
@@ -24,7 +30,12 @@ export async function GET(request: NextRequest) {
     
     // API now returns direct GeoJSON FeatureCollection
     if (data?.type === "FeatureCollection") {
-      return NextResponse.json(data);
+      const geoResponse = NextResponse.json(data);
+      geoResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      geoResponse.headers.set('Pragma', 'no-cache');
+      geoResponse.headers.set('Expires', '0');
+      geoResponse.headers.set('X-Timestamp', Date.now().toString());
+      return geoResponse;
     }
     
     // Legacy handling for old wrapper format (if still used)
@@ -40,15 +51,23 @@ export async function GET(request: NextRequest) {
               }))
           : []
       };
-      return NextResponse.json(actualData);
+      const legacyResponse = NextResponse.json(actualData);
+      legacyResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      legacyResponse.headers.set('Pragma', 'no-cache');
+      legacyResponse.headers.set('Expires', '0');
+      return legacyResponse;
     }
     
     // Fallback for unexpected format
-    return NextResponse.json({
+    const fallbackResponse = NextResponse.json({
       type: "FeatureCollection",
       features: [],
       message: "No geometry data available"
     });
+    fallbackResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    fallbackResponse.headers.set('Pragma', 'no-cache');
+    fallbackResponse.headers.set('Expires', '0');
+    return fallbackResponse;
   } catch (error) {
     return NextResponse.json(
       { 

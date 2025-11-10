@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fetchWithErrorHandling } from '@/utils/errorHandler'
 
 export interface EmprestitoContrato {
   nombre_entidad: string;
@@ -192,21 +193,12 @@ export const useEmprestito = (): EmprestitoState => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
 
-        // Cargar contratos directamente desde emp_contratos.json
-        const contratosRes = await fetch('/data/emprestito/emp_contratos.json')
-        
-        // Verificar que la respuesta sea exitosa
-        if (!contratosRes.ok) {
-          throw new Error('Error al cargar archivo de contratos de empréstito')
-        }
-
-        // Parsear los datos
-        let contratosData
-        try {
-          contratosData = await contratosRes.json()
-        } catch (jsonError) {
-          throw new Error(`Error al parsear JSON: ${jsonError instanceof Error ? jsonError.message : 'JSON inválido'}`)
-        }
+        // Cargar contratos con timeout extendido (120 segundos)
+        const contratosData = await fetchWithErrorHandling<any>(
+          '/data/emprestito/emp_contratos.json',
+          {},
+          120000 // 2 minutos de timeout
+        )
         
         // Los contratos pueden venir como array directo o envueltos en contratos_encontrados
         const contratosArray = contratosData.contratos_encontrados || (Array.isArray(contratosData) ? contratosData : [])
@@ -283,13 +275,19 @@ export const useEmprestitoMetrics = (data: EmprestitoData) => {
     totalContratos: data.contratos.length,
     centrosGestor: Array.from(new Set(data.proyectos.map(p => p.nombre_centro_gestor))),
     entidades: Array.from(new Set(data.contratos.map(c => c.nombre_entidad))),
-    valorTotalContratos: data.contratos.reduce((sum, c) => sum + (c.valor_del_contrato || 0), 0),
+    // Usar valor_contrato para "Valor Adjudicado" con respaldo a valor_del_contrato
+    valorTotalContratos: data.contratos.reduce((sum, c) => {
+      const valorContrato = (c as any).valor_contrato || c.valor_del_contrato || 0
+      return sum + valorContrato
+    }, 0),
     contratosPorEntidad: data.contratos.reduce((acc, contrato) => {
       acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + 1
       return acc
     }, {} as Record<string, number>),
+    // Usar valor_contrato para "Valor Adjudicado" con respaldo a valor_del_contrato
     valorPorEntidad: data.contratos.reduce((acc, contrato) => {
-      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + (contrato.valor_del_contrato || 0)
+      const valorContrato = (contrato as any).valor_contrato || contrato.valor_del_contrato || 0
+      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + valorContrato
       return acc
     }, {} as Record<string, number>),
     proyectosPorCentroGestor: data.proyectos.reduce((acc, proyecto) => {

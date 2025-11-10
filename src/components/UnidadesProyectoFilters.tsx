@@ -282,6 +282,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   const [multiFilters, setMultiFilters] = useState<{
     estados: string[];
     tipos_intervencion: string[];
+    tipos_equipamiento: string[];
     centros_gestores: string[];
     comunas_corregimientos: string[];
     barrios_veredas: string[];
@@ -290,6 +291,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   }>({
     estados: [],
     tipos_intervencion: [],
+    tipos_equipamiento: [],
     centros_gestores: [],
     comunas_corregimientos: [],
     barrios_veredas: [],
@@ -297,8 +299,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     anos: []
   });
 
-  // Toggle entre modo single y multi-select
-  const [isMultiMode, setIsMultiMode] = useState(false);
+  // Toggle entre modo single y multi-select - habilitado por defecto
+  const [isMultiMode, setIsMultiMode] = useState(true);
 
   const handleFilterChange = (key: keyof FilterParams, value: string) => {
     onFiltersChange({
@@ -313,36 +315,31 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       [key]: values
     }));
     
-    // Si hay valores seleccionados, aplicar el filtro con el primer valor como fallback
-    // En el futuro, el backend debería soportar múltiples valores
+    // Mapear las claves de filtros múltiples a las claves del FilterParams
+    const mappedKey = key === 'estados' ? 'estado' :
+                     key === 'tipos_intervencion' ? 'tipo_intervencion' :
+                     key === 'centros_gestores' ? 'centro_gestor' :
+                     key === 'comunas_corregimientos' ? 'comuna_corregimiento' :
+                     key === 'barrios_veredas' ? 'barrio_vereda' :
+                     key === 'fuentes_financiacion' ? 'fuente_financiacion' :
+                     key === 'tipos_equipamiento' ? 'tipo_equipamiento' :
+                     'ano';
+    
+    // Crear un nuevo objeto de filtros con el array de valores
+    const newFilters = { ...filters };
+    
     if (values.length > 0) {
-      const mappedKey = key === 'estados' ? 'estado' :
-                       key === 'tipos_intervencion' ? 'tipo_intervencion' :
-                       key === 'centros_gestores' ? 'centro_gestor' :
-                       key === 'comunas_corregimientos' ? 'comuna_corregimiento' :
-                       key === 'barrios_veredas' ? 'barrio_vereda' :
-                       key === 'fuentes_financiacion' ? 'fuente_financiacion' :
-                       'ano';
-      
-      onFiltersChange({
-        ...filters,
-        [mappedKey]: values[0] // Por ahora usar el primer valor hasta que el backend soporte arrays
-      });
+      // Almacenar todos los valores seleccionados
+      (newFilters as any)[`${mappedKey}_multiple`] = values;
+      // Mantener compatibilidad con el filtro singular usando el primer valor
+      (newFilters as any)[mappedKey] = values[0];
     } else {
-      // Limpiar el filtro si no hay valores seleccionados
-      const mappedKey = key === 'estados' ? 'estado' :
-                       key === 'tipos_intervencion' ? 'tipo_intervencion' :
-                       key === 'centros_gestores' ? 'centro_gestor' :
-                       key === 'comunas_corregimientos' ? 'comuna_corregimiento' :
-                       key === 'barrios_veredas' ? 'barrio_vereda' :
-                       key === 'fuentes_financiacion' ? 'fuente_financiacion' :
-                       'ano';
-      
-      onFiltersChange({
-        ...filters,
-        [mappedKey]: undefined
-      });
+      // Limpiar ambos filtros si no hay valores seleccionados
+      delete (newFilters as any)[`${mappedKey}_multiple`];
+      delete (newFilters as any)[mappedKey];
     }
+    
+    onFiltersChange(newFilters);
   };
 
   const hasActiveFilters = useMemo(() => {
@@ -373,6 +370,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     setMultiFilters({
       estados: [],
       tipos_intervencion: [],
+      tipos_equipamiento: [],
       centros_gestores: [],
       comunas_corregimientos: [],
       barrios_veredas: [],
@@ -380,6 +378,25 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       anos: []
     });
     onClearFilters();
+  };
+
+  const handleToggleMultiMode = () => {
+    const newMode = !isMultiMode;
+    setIsMultiMode(newMode);
+    
+    // Si se cambia a modo single, limpiar los filtros múltiples
+    if (!newMode) {
+      setMultiFilters({
+        estados: [],
+        tipos_intervencion: [],
+        tipos_equipamiento: [],
+        centros_gestores: [],
+        comunas_corregimientos: [],
+        barrios_veredas: [],
+        fuentes_financiacion: [],
+        anos: []
+      });
+    }
   };
 
   return (
@@ -402,24 +419,32 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                 {activeFiltersCount} activo{activeFiltersCount > 1 ? 's' : ''}
               </span>
             )}
+            {isMultiMode && !compact && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700">
+                Multifiltro activado
+              </span>
+            )}
           </div>
           
           <div className="flex items-center space-x-2">
             {/* Toggle de modo multi-select - más compacto si es necesario */}
             <button
-              onClick={() => setIsMultiMode(!isMultiMode)}
+              type="button"
+              onClick={handleToggleMultiMode}
               className={`inline-flex items-center ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} text-xs font-medium rounded-lg transition-colors ${
                 isMultiMode 
-                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
                   : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
+              title={isMultiMode ? 'Multifiltros activados - Puedes seleccionar múltiples opciones' : 'Cambiar a modo de filtros múltiples'}
             >
               <Check className={`${compact ? 'w-3 h-3' : 'w-4 h-4'} ${compact ? '' : 'mr-1'}`} />
-              {!compact && 'Filtros múltiples'}
+              {!compact && (isMultiMode ? 'Multi-filtros ON' : 'Single filtros')}
             </button>
             
             {hasActiveFilters && (
               <button
+                type="button"
                 onClick={handleClearAllFilters}
                 disabled={isLoading}
                 className={`inline-flex items-center ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50`}
@@ -478,6 +503,19 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             multiSelect={isMultiMode}
             selectedItems={multiFilters.tipos_intervencion}
             onMultiChange={(values) => handleMultiFilterChange('tipos_intervencion', values)}
+          />
+
+          {/* Tipo de equipamiento */}
+          <EnhancedFilterSelect
+            label="Tipo de Equipamiento"
+            value={filters.tipo_equipamiento}
+            onChange={(value) => handleFilterChange('tipo_equipamiento', value)}
+            options={filterData?.tipos_equipamiento || []}
+            placeholder="Todos los equipamientos"
+            disabled={isLoading}
+            multiSelect={isMultiMode}
+            selectedItems={multiFilters.tipos_equipamiento}
+            onMultiChange={(values) => handleMultiFilterChange('tipos_equipamiento', values)}
           />
 
           {/* Centro gestor */}
@@ -557,6 +595,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                 const labels = {
                   estados: 'Estados',
                   tipos_intervencion: 'Tipos',
+                  tipos_equipamiento: 'Equipamientos',
                   centros_gestores: 'Centros',
                   comunas_corregimientos: 'Comunas',
                   barrios_veredas: 'Barrios',

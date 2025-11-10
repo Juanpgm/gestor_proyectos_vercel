@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Eye, 
   ChevronLeft,
@@ -12,7 +12,11 @@ import {
   Search,
   MapPin,
   Calendar,
-  Building2
+  Building2,
+  Filter,
+  X,
+  ChevronDown,
+  Check
 } from 'lucide-react'
 import ProjectModal from './ProjectModal'
 import { useDataContext } from '@/context/DataContext'
@@ -41,6 +45,8 @@ export interface Project {
   descripcion?: string
   texto1?: string
   texto2?: string
+  nombre_fondo?: string
+  clasificacion_fondo?: string
 }
 
 interface ProjectsTableProps {
@@ -49,8 +55,138 @@ interface ProjectsTableProps {
   compact?: boolean
 }
 
+// Tipos para filtros
+interface ProjectFilters {
+  searchTerm: string
+  status: string
+  centroGestor: string
+  comuna: string
+  nombreFondo: string
+  clasificacionFondo: string
+  minBudget: string
+  maxBudget: string
+  minProgress: string
+  maxProgress: string
+}
+
 type SortKey = keyof Project
 type SortDirection = 'asc' | 'desc'
+
+// Componente de dropdown mejorado
+const FilterDropdown: React.FC<{
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: string[]
+  placeholder: string
+  className?: string
+}> = ({ label, value, onChange, options, placeholder, className = '' }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  const filteredOptions = useMemo(() => {
+    if (!searchTerm) return options
+    return options.filter(option => 
+      option.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [options, searchTerm])
+
+  const displayValue = value || placeholder
+
+  return (
+    <div className={`relative ${className}`}>
+      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+      >
+        <span className="truncate text-left">
+          {displayValue}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ml-2 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl max-h-64 overflow-hidden"
+          >
+            {/* Búsqueda interna */}
+            <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Opción para limpiar */}
+            <button
+              type="button"
+              onClick={() => {
+                onChange('')
+                setIsOpen(false)
+                setSearchTerm('')
+              }}
+              className="w-full px-3 py-2 text-left text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-700"
+            >
+              <span className="italic">{placeholder}</span>
+            </button>
+
+            {/* Lista de opciones */}
+            <div className="max-h-48 overflow-y-auto">
+              {filteredOptions.length === 0 ? (
+                <div className="p-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                  No se encontraron opciones
+                </div>
+              ) : (
+                filteredOptions.map(option => {
+                  const isSelected = value === option
+                  
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        onChange(option)
+                        setIsOpen(false)
+                        setSearchTerm('')
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors flex items-center ${
+                        isSelected 
+                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' 
+                          : 'text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <span className="truncate flex-1">
+                        {option}
+                      </span>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 ml-2 flex-shrink-0" />
+                      )}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 const ProjectsTable: React.FC<ProjectsTableProps> = ({ 
   className = '',
@@ -66,6 +202,21 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false)
+  
+  // Estados para filtros locales
+  const [localFilters, setLocalFilters] = useState<ProjectFilters>({
+    searchTerm: '',
+    status: '',
+    centroGestor: '',
+    comuna: '',
+    nombreFondo: '',
+    clasificacionFondo: '',
+    minBudget: '',
+    maxBudget: '',
+    minProgress: '',
+    maxProgress: ''
+  })
 
   useEffect(() => {
     setMounted(true)
@@ -170,12 +321,134 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
           progressFinanciero: progresoFinanciero,
           descripcion: proyecto.nombre_actividad || `Descripción del proyecto ${proyecto.bpin}`,
           texto1: proyecto.nombre_programa || 'Programa asociado',
-          texto2: proyecto.nombre_linea_estrategica || 'Línea estratégica'
+          texto2: proyecto.nombre_linea_estrategica || 'Línea estratégica',
+          nombre_fondo: proyecto.nombre_fondo || movimiento?.nombre_fondo || 'No especificado',
+          clasificacion_fondo: proyecto.clasificacion_fondo || movimiento?.clasificacion_fondo || 'No especificada'
         } as Project
       })
 
     return projectsArray
   }, [filteredMovimientosPresupuestales, filteredProyectos, ejecucionPresupuestal, seguimientoPa])
+
+  // Filtros aplicados localmente
+  const filteredProjects = useMemo(() => {
+    return projects.filter(project => {
+      // Filtro de búsqueda
+      if (localFilters.searchTerm) {
+        const searchTerm = localFilters.searchTerm.toLowerCase()
+        const searchableText = [
+          project.name,
+          project.bpin,
+          project.responsible,
+          project.comuna || '',
+          project.descripcion || '',
+          project.texto1 || '',
+          project.texto2 || '',
+          project.nombre_fondo || '',
+          project.clasificacion_fondo || ''
+        ].join(' ').toLowerCase()
+        
+        if (!searchableText.includes(searchTerm)) return false
+      }
+
+      // Filtro por estado
+      if (localFilters.status && localFilters.status !== project.status) {
+        return false
+      }
+
+      // Filtro por centro gestor
+      if (localFilters.centroGestor && localFilters.centroGestor !== project.responsible) {
+        return false
+      }
+
+      // Filtro por comuna
+      if (localFilters.comuna && localFilters.comuna !== (project.comuna || '')) {
+        return false
+      }
+
+      // Filtro por nombre de fondo
+      if (localFilters.nombreFondo && localFilters.nombreFondo !== (project.nombre_fondo || '')) {
+        return false
+      }
+
+      // Filtro por clasificación de fondo
+      if (localFilters.clasificacionFondo && localFilters.clasificacionFondo !== (project.clasificacion_fondo || '')) {
+        return false
+      }
+
+      // Filtro por presupuesto mínimo
+      if (localFilters.minBudget) {
+        const minBudget = parseFloat(localFilters.minBudget)
+        if (!isNaN(minBudget) && project.budget < minBudget) return false
+      }
+
+      // Filtro por presupuesto máximo
+      if (localFilters.maxBudget) {
+        const maxBudget = parseFloat(localFilters.maxBudget)
+        if (!isNaN(maxBudget) && project.budget > maxBudget) return false
+      }
+
+      // Filtro por progreso mínimo
+      if (localFilters.minProgress) {
+        const minProgress = parseFloat(localFilters.minProgress)
+        if (!isNaN(minProgress) && project.progress < minProgress) return false
+      }
+
+      // Filtro por progreso máximo
+      if (localFilters.maxProgress) {
+        const maxProgress = parseFloat(localFilters.maxProgress)
+        if (!isNaN(maxProgress) && project.progress > maxProgress) return false
+      }
+
+      return true
+    })
+  }, [projects, localFilters])
+
+  // Opciones para dropdowns
+  const filterOptions = useMemo(() => {
+    const statuses = Array.from(new Set(projects.map(p => p.status))).sort()
+    const centrosGestores = Array.from(new Set(projects.map(p => p.responsible))).filter(Boolean).sort()
+    const comunas = Array.from(new Set(projects.map(p => p.comuna).filter(Boolean))).sort() as string[]
+    const nombresFondo = Array.from(new Set(projects.map(p => p.nombre_fondo).filter(Boolean))).sort() as string[]
+    const clasificacionesFondo = Array.from(new Set(projects.map(p => p.clasificacion_fondo).filter(Boolean))).sort() as string[]
+
+    return {
+      statuses,
+      centrosGestores,
+      comunas,
+      nombresFondo,
+      clasificacionesFondo
+    }
+  }, [projects])
+
+  // Función para limpiar filtros
+  const clearFilters = () => {
+    setLocalFilters({
+      searchTerm: '',
+      status: '',
+      centroGestor: '',
+      comuna: '',
+      nombreFondo: '',
+      clasificacionFondo: '',
+      minBudget: '',
+      maxBudget: '',
+      minProgress: '',
+      maxProgress: ''
+    })
+  }
+
+  // Contar filtros activos
+  const activeFiltersCount = useMemo(() => {
+    return Object.values(localFilters).filter(value => value !== '').length
+  }, [localFilters])
+
+  // Función para actualizar filtro
+  const updateFilter = (key: keyof ProjectFilters, value: string) => {
+    setLocalFilters(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -224,7 +497,7 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
   }
 
   const sortedProjects = useMemo(() => {
-    const sorted = [...projects].sort((a, b) => {
+    const sorted = [...filteredProjects].sort((a, b) => {
       const aValue = a[sortKey]
       const bValue = b[sortKey]
 
@@ -246,7 +519,7 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
     })
 
     return sorted
-  }, [projects, sortKey, sortDirection])
+  }, [filteredProjects, sortKey, sortDirection])
 
   const totalPages = Math.ceil(sortedProjects.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -255,7 +528,7 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
   // Reset page when projects change
   useEffect(() => {
     setCurrentPage(1)
-  }, [projects.length])
+  }, [filteredProjects.length])
 
   // Componente de tarjeta de proyecto para vista responsiva
   if (!mounted) {
@@ -269,9 +542,195 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
       transition={ANIMATIONS.fadeIn.transition}
       className={`space-y-4 ${className}`}
     >
+      {/* Panel de filtros colapsable */}
+      <AnimatePresence>
+        {showFilters && showFiltersPanel && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className={`${CSS_UTILS.card} mb-4 overflow-hidden`}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Filtros de Proyectos
+                  </h3>
+                  {activeFiltersCount > 0 && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                      {activeFiltersCount} activo{activeFiltersCount > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+
+              {/* Búsqueda general */}
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Búsqueda General
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre, BPIN, descripción..."
+                    value={localFilters.searchTerm}
+                    onChange={(e) => updateFilter('searchTerm', e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Primera fila de filtros */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                {/* Estado */}
+                <FilterDropdown
+                  label="Estado"
+                  value={localFilters.status}
+                  onChange={(value) => updateFilter('status', value)}
+                  options={filterOptions.statuses}
+                  placeholder="Todos los estados"
+                />
+
+                {/* Centro Gestor */}
+                <FilterDropdown
+                  label="Centro Gestor"
+                  value={localFilters.centroGestor}
+                  onChange={(value) => updateFilter('centroGestor', value)}
+                  options={filterOptions.centrosGestores}
+                  placeholder="Todos los centros"
+                />
+
+                {/* Comuna */}
+                <FilterDropdown
+                  label="Comuna"
+                  value={localFilters.comuna}
+                  onChange={(value) => updateFilter('comuna', value)}
+                  options={filterOptions.comunas}
+                  placeholder="Todas las comunas"
+                />
+
+                {/* Presupuesto mínimo */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Presupuesto Mínimo (COP)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={localFilters.minBudget}
+                    onChange={(e) => updateFilter('minBudget', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Segunda fila de filtros con fondos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                {/* Nombre del Fondo */}
+                <FilterDropdown
+                  label="Nombre del Fondo"
+                  value={localFilters.nombreFondo}
+                  onChange={(value) => updateFilter('nombreFondo', value)}
+                  options={filterOptions.nombresFondo}
+                  placeholder="Todos los fondos"
+                />
+
+                {/* Clasificación del Fondo */}
+                <FilterDropdown
+                  label="Clasificación del Fondo"
+                  value={localFilters.clasificacionFondo}
+                  onChange={(value) => updateFilter('clasificacionFondo', value)}
+                  options={filterOptions.clasificacionesFondo}
+                  placeholder="Todas las clasificaciones"
+                />
+
+                {/* Presupuesto máximo */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Presupuesto Máximo (COP)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Sin límite"
+                    value={localFilters.maxBudget}
+                    onChange={(e) => updateFilter('maxBudget', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Progreso mínimo */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Progreso Mínimo (%)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                    value={localFilters.minProgress}
+                    onChange={(e) => updateFilter('minProgress', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Tercera fila de filtros con rangos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                {/* Progreso máximo */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Progreso Máximo (%)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="100"
+                    min="0"
+                    max="100"
+                    value={localFilters.maxProgress}
+                    onChange={(e) => updateFilter('maxProgress', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Espacio vacío para balance visual */}
+                <div></div>
+              </div>
+
+              {/* Estadísticas de filtros */}
+              <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                  <span>Total proyectos: {projects.length}</span>
+                  <span>Filtrados: {filteredProjects.length}</span>
+                  <span>Estados disponibles: {filterOptions.statuses.length}</span>
+                  <span>Centros gestores: {filterOptions.centrosGestores.length}</span>
+                  <span>Comunas: {filterOptions.comunas.length}</span>
+                  <span>Fondos: {filterOptions.nombresFondo.length}</span>
+                  <span>Clasificaciones: {filterOptions.clasificacionesFondo.length}</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Contenido principal */}
       <div className={`${CSS_UTILS.card} overflow-hidden`}>
-          {/* Header más compacto integrado */}
+          {/* Header mejorado con controles */}
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3">
@@ -282,7 +741,43 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
                   <h2 className={`${TYPOGRAPHY.h5} font-bold text-gray-900 dark:text-white`}>
                     Proyectos de Inversión
                   </h2>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {filteredProjects.length} de {projects.length} proyectos
+                    {activeFiltersCount > 0 && ` • ${activeFiltersCount} filtro${activeFiltersCount > 1 ? 's' : ''} activo${activeFiltersCount > 1 ? 's' : ''}`}
+                  </p>
                 </div>
+              </div>
+
+              {/* Controles */}
+              <div className="flex items-center gap-2">
+                {showFilters && (
+                  <button
+                    onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      showFiltersPanel || activeFiltersCount > 0
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+                    }`}
+                  >
+                    <Filter className="w-4 h-4" />
+                    Filtros
+                    {activeFiltersCount > 0 && (
+                      <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {activeFiltersCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+                
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-1 px-2 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Limpiar todos los filtros"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

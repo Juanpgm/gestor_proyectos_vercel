@@ -49,7 +49,7 @@ export const FIREBASE_CONFIG = {
 
 // Configuración de la aplicación
 export const APP_CONFIG = {
-  NAME: process.env.NEXT_PUBLIC_APP_NAME || 'Dashboard Alcaldía Cali',
+  NAME: process.env.NEXT_PUBLIC_APP_NAME || 'Sistema de Gestión de Proyectos',
   VERSION: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
   ENVIRONMENT: process.env.NEXT_PUBLIC_APP_ENV || 'development',
   DEBUG: process.env.NEXT_PUBLIC_DEBUG_MODE === 'true',

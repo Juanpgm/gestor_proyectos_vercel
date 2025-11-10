@@ -11,7 +11,7 @@ const GeometrySchema = z.object({
   features: z.array(z.object({
     type: z.literal('Feature'),
     geometry: z.object({
-      type: z.enum(['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon']),
+      type: z.enum(['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection']),
       coordinates: z.union([
         // Point: [lon, lat]
         z.tuple([z.number(), z.number()]),
@@ -21,7 +21,8 @@ const GeometrySchema = z.object({
         z.array(z.array(z.tuple([z.number(), z.number()]))),
         // Casos más complejos
         z.array(z.any())
-      ])
+      ]).optional(), // Hacer opcional porque GeometryCollection no tiene coordinates directas
+      geometries: z.array(z.any()).optional() // Para GeometryCollection
     }),
     properties: z.record(z.any())
   }))
@@ -34,6 +35,7 @@ const AttributeSchema = z.object({
   identificador: z.string().optional(),
   estado: z.string(),
   tipo_intervencion: z.string(),
+  tipo_equipamiento: z.string().optional(),
   nombre_centro_gestor: z.string(),
   comuna_corregimiento: z.string(),
   barrio_vereda: z.string(),
@@ -49,6 +51,7 @@ const AttributeSchema = z.object({
 const FilterSchema = z.object({
   estados: z.array(z.string()),
   tipos_intervencion: z.array(z.string()),
+  tipos_equipamiento: z.array(z.string()),
   centros_gestores: z.array(z.string()),
   comunas_corregimientos: z.array(z.string()),
   barrios_veredas: z.array(z.string()),
@@ -65,12 +68,22 @@ export type FilterData = z.infer<typeof FilterSchema>;
 export interface FilterParams {
   estado?: string;
   tipo_intervencion?: string;
+  tipo_equipamiento?: string;
   centro_gestor?: string;
   comuna_corregimiento?: string;
   barrio_vereda?: string;
   fuente_financiacion?: string;
   ano?: number;
   search?: string;
+  // Campos para filtros múltiples
+  estado_multiple?: string[];
+  tipo_intervencion_multiple?: string[];
+  tipo_equipamiento_multiple?: string[];
+  centro_gestor_multiple?: string[];
+  comuna_corregimiento_multiple?: string[];
+  barrio_vereda_multiple?: string[];
+  fuente_financiacion_multiple?: string[];
+  ano_multiple?: string[];
 }
 
 // Tipo para respuestas de la API
@@ -119,6 +132,9 @@ const fetchWithRetry = async (
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'X-Cache-Bust': Date.now().toString(),
         ...options.headers
       }
     });
@@ -292,6 +308,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           identificador: properties.identificador || undefined,
           estado: properties.estado || '',
           tipo_intervencion: properties.tipo_intervencion || '',
+          tipo_equipamiento: properties.tipo_equipamiento || undefined,
           nombre_centro_gestor: properties.nombre_centro_gestor || '',
           comuna_corregimiento: properties.comuna_corregimiento || '',
           barrio_vereda: properties.barrio_vereda || '',
@@ -357,9 +374,26 @@ export const fetchFilterData = async (): Promise<FilterData> => {
     
     console.log(`📊 fetchFilterData: Raw filters keys:`, Object.keys(rawFilters));
     
+    // Si tipos_equipamiento no viene en los filtros, obtenerlo de los datos de atributos
+    let tiposEquipamiento = rawFilters.tipos_equipamiento || [];
+    
+    if (!tiposEquipamiento || tiposEquipamiento.length === 0) {
+      console.log('⚠️ tipos_equipamiento no disponible en filtros, obteniendo desde datos de atributos...');
+      try {
+        const attributeData = await fetchAttributeData();
+        const extractUniqueValues = <T>(items: T[], key: keyof T): string[] => 
+          Array.from(new Set(items.map(item => String(item[key])).filter(Boolean))).sort();
+        tiposEquipamiento = extractUniqueValues(attributeData, 'tipo_equipamiento');
+        console.log(`✅ tipos_equipamiento generados: ${tiposEquipamiento.length} valores únicos`);
+      } catch (error) {
+        console.warn('⚠️ No se pudieron obtener tipos_equipamiento desde datos de atributos:', error);
+      }
+    }
+    
     const processedFilters = FilterSchema.parse({
       estados: rawFilters.estados || [],
       tipos_intervencion: rawFilters.tipos_intervencion || [],
+      tipos_equipamiento: tiposEquipamiento,
       centros_gestores: rawFilters.centros_gestores || [],
       comunas_corregimientos: rawFilters.comunas_corregimientos || rawFilters.comunas || [],
       barrios_veredas: rawFilters.barrios_veredas || [],
@@ -370,6 +404,7 @@ export const fetchFilterData = async (): Promise<FilterData> => {
     console.log(`✅ fetchFilterData: Processed filters:`, {
       estados: processedFilters.estados.length,
       tipos_intervencion: processedFilters.tipos_intervencion.length,
+      tipos_equipamiento: processedFilters.tipos_equipamiento.length,
       centros_gestores: processedFilters.centros_gestores.length,
       comunas_corregimientos: processedFilters.comunas_corregimientos.length,
       barrios_veredas: processedFilters.barrios_veredas.length,
@@ -397,6 +432,7 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
   return {
     estados: extractUniqueValues(data, 'estado'),
     tipos_intervencion: extractUniqueValues(data, 'tipo_intervencion'),
+    tipos_equipamiento: extractUniqueValues(data, 'tipo_equipamiento'),
     centros_gestores: extractUniqueValues(data, 'nombre_centro_gestor'),
     comunas_corregimientos: extractUniqueValues(data, 'comuna_corregimiento'),
     barrios_veredas: extractUniqueValues(data, 'barrio_vereda'),
@@ -440,23 +476,54 @@ export const filterAttributeData = (
         if (!value || value === '' || key === 'searchTerm') return true;
         
         try {
-          switch (key) {
-            case 'estado':
-              return item.estado === value;
-            case 'tipo_intervencion':
-              return item.tipo_intervencion === value;
-            case 'centro_gestor':
-              return item.nombre_centro_gestor === value;
-            case 'comuna_corregimiento':
-              return item.comuna_corregimiento === value;
-            case 'barrio_vereda':
-              return item.barrio_vereda === value;
-            case 'fuente_financiacion':
-              return item.fuente_financiacion === value;
-            case 'ano':
-              return item.ano === Number(value);
-            default:
-              return true;
+          // Verificar si existe un filtro múltiple para esta clave
+          const multipleKey = `${key}_multiple`;
+          const multipleValues = (filters as any)[multipleKey];
+          
+          if (multipleValues && Array.isArray(multipleValues) && multipleValues.length > 0) {
+            // Si hay filtros múltiples, usar esos en lugar del filtro singular
+            switch (key) {
+              case 'estado':
+                return multipleValues.includes(item.estado);
+              case 'tipo_intervencion':
+                return multipleValues.includes(item.tipo_intervencion);
+              case 'tipo_equipamiento':
+                return multipleValues.includes(item.tipo_equipamiento);
+              case 'centro_gestor':
+                return multipleValues.includes(item.nombre_centro_gestor);
+              case 'comuna_corregimiento':
+                return multipleValues.includes(item.comuna_corregimiento);
+              case 'barrio_vereda':
+                return multipleValues.includes(item.barrio_vereda);
+              case 'fuente_financiacion':
+                return multipleValues.includes(item.fuente_financiacion);
+              case 'ano':
+                return multipleValues.map(String).includes(String(item.ano));
+              default:
+                return true;
+            }
+          } else {
+            // Usar filtro singular como antes
+            switch (key) {
+              case 'estado':
+                return item.estado === value;
+              case 'tipo_intervencion':
+                return item.tipo_intervencion === value;
+              case 'tipo_equipamiento':
+                return item.tipo_equipamiento === value;
+              case 'centro_gestor':
+                return item.nombre_centro_gestor === value;
+              case 'comuna_corregimiento':
+                return item.comuna_corregimiento === value;
+              case 'barrio_vereda':
+                return item.barrio_vereda === value;
+              case 'fuente_financiacion':
+                return item.fuente_financiacion === value;
+              case 'ano':
+                return item.ano === Number(value);
+              default:
+                return true;
+            }
           }
         } catch (filterError) {
           console.warn(`⚠️ Filter error for ${key}:`, filterError);

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 
+// Marcar esta ruta como dinámica para evitar errores de pre-renderizado
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)

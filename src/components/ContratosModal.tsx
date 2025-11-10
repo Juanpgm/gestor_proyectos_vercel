@@ -125,8 +125,8 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
         throw new Error(`No se encontró el contrato con referencia: ${referenciaContrato}`)
       }
 
-      // Cargar reportes asociados al contrato
-      const reportesResponse = await fetch('/api/reportes_contratos_all')
+      // Cargar reportes asociados al contrato directamente del endpoint externo
+      const reportesResponse = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes_contratos/')
       let reportesContrato = []
       if (reportesResponse.ok) {
         const reportesData = await reportesResponse.json()
@@ -519,60 +519,60 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                           <MessageSquare className="w-4 h-4 text-purple-600" />
                           Historial de Reportes ({(reportes.filter(r => r.referencia_contrato === contractDataToShow?.referencia_contrato) || contractDataToShow?.reportes || []).length})
                         </h3>
-                        <ChevronDown 
+                        <ChevronDown
                           className={`w-4 h-4 text-purple-600 transition-transform ${expandReportes ? 'rotate-180' : ''}`}
                         />
                       </button>
-                      
+
                       {expandReportes && (
                         <div className="space-y-2 mt-3 max-h-[500px] overflow-y-auto">
                           {((reportes.filter(r => r.referencia_contrato === contractDataToShow?.referencia_contrato) || contractDataToShow?.reportes || [])
                             .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())
                             .map((reporte, idx) => (
-                            <div key={`${reporte.id}-${idx}`} className="bg-white/60 dark:bg-gray-700/40 rounded-lg p-2 border border-purple-200 dark:border-purple-800">
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="flex-1">
-                                  <div className="text-xs font-semibold text-purple-700 dark:text-purple-300">
-                                    {formatearFecha(reporte.fecha_reporte)}
+                              <div key={`${reporte.id}-${idx}`} className="bg-white/60 dark:bg-gray-700/40 rounded-lg p-2 border border-purple-200 dark:border-purple-800">
+                                <div className="flex items-start justify-between gap-2 mb-2">
+                                  <div className="flex-1">
+                                    <div className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+                                      {formatearFecha(reporte.fecha_reporte)}
+                                    </div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                                      {reporte.nombre_centro_gestor || 'Centro gestor no especificado'}
+                                    </div>
                                   </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                                    {reporte.nombre_centro_gestor || 'Centro gestor no especificado'}
+                                  <div className="text-right">
+                                    <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                      Físico: {(reporte.avance_fisico || 0).toFixed(1)}%
+                                    </div>
+                                    <div className="text-xs font-semibold text-green-600 dark:text-green-400">
+                                      Financiero: {(reporte.avance_financiero || 0).toFixed(1)}%
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="text-right">
-                                  <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                                    Físico: {(reporte.avance_fisico || 0).toFixed(1)}%
+                                {reporte.observaciones && (
+                                  <div className="text-xs text-gray-700 dark:text-gray-300 bg-white/40 dark:bg-gray-800/40 rounded px-2 py-1 mb-1">
+                                    <span className="font-medium">Observaciones: </span>
+                                    {reporte.observaciones}
                                   </div>
-                                  <div className="text-xs font-semibold text-green-600 dark:text-green-400">
-                                    Financiero: {(reporte.avance_financiero || 0).toFixed(1)}%
+                                )}
+                                {reporte.alertas?.es_alerta && (
+                                  <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1 mb-1 flex items-start gap-1">
+                                    <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                                    <span><span className="font-medium">Alerta: </span>{reporte.alertas.descripcion}</span>
                                   </div>
-                                </div>
+                                )}
+                                {reporte.url_carpeta_drive && (
+                                  <a
+                                    href={reporte.url_carpeta_drive}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-1"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    Ver Evidencia en Drive
+                                  </a>
+                                )}
                               </div>
-                              {reporte.observaciones && (
-                                <div className="text-xs text-gray-700 dark:text-gray-300 bg-white/40 dark:bg-gray-800/40 rounded px-2 py-1 mb-1">
-                                  <span className="font-medium">Observaciones: </span>
-                                  {reporte.observaciones}
-                                </div>
-                              )}
-                              {reporte.alertas?.es_alerta && (
-                                <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1 mb-1 flex items-start gap-1">
-                                  <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                                  <span><span className="font-medium">Alerta: </span>{reporte.alertas.descripcion}</span>
-                                </div>
-                              )}
-                              {reporte.url_carpeta_drive && (
-                                <a 
-                                  href={reporte.url_carpeta_drive} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-1"
-                                >
-                                  <ExternalLink className="w-3 h-3" />
-                                  Ver Evidencia en Drive
-                                </a>
-                              )}
-                            </div>
-                          ))
+                            ))
                           )}
                           {(reportes.filter(r => r.referencia_contrato === contractDataToShow?.referencia_contrato) || contractDataToShow?.reportes || []).length === 0 && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 italic py-4 text-center">

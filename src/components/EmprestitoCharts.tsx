@@ -27,10 +27,12 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
   data,
   loading = false
 }) => {
-  // Datos para gráfico de barras - Valor por entidad
+  // Datos para gráfico de barras - Valor por entidad (usando valor_contrato en lugar de valor_del_contrato)
   const valorPorEntidad = React.useMemo(() => {
     const entidadValues = data.contratos.reduce((acc, contrato) => {
-      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + (contrato.valor_del_contrato || 0)
+      // Usar valor_contrato si está disponible, sino valor_del_contrato como respaldo
+      const valorContrato = (contrato as any).valor_contrato || contrato.valor_del_contrato || 0
+      acc[contrato.nombre_entidad] = (acc[contrato.nombre_entidad] || 0) + valorContrato
       return acc
     }, {} as Record<string, number>)
 
@@ -161,10 +163,10 @@ const EmprestitoCharts: React.FC<EmprestitoChartsProps> = ({
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Valor de Contratos por Entidad
+              Valor Adjudicado por Entidad
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Top 10 entidades por valor total de contratos
+              Top 10 entidades por valor adjudicado de contratos
             </p>
           </div>
         </div>

@@ -10,7 +10,7 @@ const TestReportesAPI = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/reportes_contratos_all')
+        const response = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes_contratos/')
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -31,7 +31,7 @@ const TestReportesAPI = () => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Test API /api/reportes_contratos_all</h1>
+      <h1 className="text-2xl font-bold mb-4">Test API Reportes de Contratos</h1>
 
       <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded mb-4">
         <h2 className="text-lg font-semibold mb-2">Respuesta del API:</h2>

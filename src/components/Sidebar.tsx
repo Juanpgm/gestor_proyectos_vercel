@@ -31,6 +31,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       description: 'Gestión de procesos contractuales'
     },
     {
+      id: 'gestionar-contratos',
+      label: 'Gestionar Contratos',
+      icon: FileText,
+      description: 'Administración de convenios y transferencias'
+    },
+    {
       id: 'proyecciones-emprestito',
       label: 'Proyecciones de Empréstito',
       icon: TrendingUp,

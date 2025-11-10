@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap, Marker } from 'react-leaflet';
 import * as L from 'leaflet';
 import { 
   Layers, 
@@ -13,7 +13,8 @@ import {
   Eye,
   EyeOff,
   Target,
-  X
+  X,
+  Map as MapIcon
 } from 'lucide-react';
 import { type GeometryData, type AttributeData } from '@/services/unidades-proyecto.service';
 
@@ -41,11 +42,34 @@ interface UnidadesProyectoMapSimpleProps {
 type ColoringType = 
   | 'estado' 
   | 'tipo_intervencion' 
+  | 'tipo_equipamiento'
   | 'avance_obra' 
   | 'nombre_centro_gestor' 
   | 'presupuesto_base'
   | 'comuna_corregimiento'
   | 'barrio_vereda';
+
+// Tipo para capas base
+type BaseLayerType = 'none' | 'comunas' | 'barrios';
+
+// Tipo para el modo de color de capas base
+type BaseLayerColorMode = 'monotone' | 'multitone-vibrant' | 'multitone-pastel' | 'multitone-earth';
+
+// Colores disponibles para modo monotono
+const MONOTONE_COLORS = [
+  { value: '#3B82F6', label: 'Azul' },
+  { value: '#10B981', label: 'Verde' },
+  { value: '#F59E0B', label: 'Naranja' },
+  { value: '#EF4444', label: 'Rojo' },
+  { value: '#8B5CF6', label: 'Violeta' },
+  { value: '#EC4899', label: 'Rosa' },
+  { value: '#06B6D4', label: 'Cian' },
+];
+
+// Colores para diferentes modos multitono
+const MULTITONE_VIBRANT = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'];
+const MULTITONE_PASTEL = ['#93C5FD', '#86EFAC', '#FDE68A', '#FCA5A5', '#C4B5FD', '#67E8F9', '#BEF264', '#FDBA74', '#F9A8D4', '#A5B4FC'];
+const MULTITONE_EARTH = ['#92400E', '#065F46', '#1E40AF', '#701A75', '#78350F', '#064E3B', '#1E3A8A', '#581C87', '#7C2D12', '#134E4A'];
 
 // Esquemas de colores
 const COLOR_SCHEMES = {
@@ -69,21 +93,153 @@ const MapFocusController: React.FC<{
         feature => feature.properties?.upid === focusedItem
       );
 
-      if (targetFeature && targetFeature.geometry.type === 'Point') {
-        const coords = targetFeature.geometry.coordinates as [number, number];
-        // Leaflet usa [lat, lng] pero GeoJSON usa [lng, lat]
-        const latLng: [number, number] = [coords[1], coords[0]];
+      if (targetFeature) {
+        const geomType = targetFeature.geometry.type;
         
-        // Enfocar en el punto con zoom y animación
-        map.setView(latLng, 16, {
-          animate: true,
-          duration: 1
-        });
+        // Calcular centro de la geometría según su tipo
+        let latLng: [number, number] | null = null;
+        
+        try {
+          if (geomType === 'Point') {
+            const coords = targetFeature.geometry.coordinates as [number, number];
+            latLng = [coords[1], coords[0]]; // [lat, lng]
+          } else if (geomType === 'LineString') {
+            const coords = targetFeature.geometry.coordinates as [number, number][];
+            // Calcular el punto medio de la línea
+            const midIndex = Math.floor(coords.length / 2);
+            latLng = [coords[midIndex][1], coords[midIndex][0]];
+          } else if (geomType === 'Polygon') {
+            const coords = targetFeature.geometry.coordinates as [number, number][][];
+            // Calcular el centroide del polígono (primer anillo)
+            const ring = coords[0];
+            const latSum = ring.reduce((sum, coord) => sum + coord[1], 0);
+            const lngSum = ring.reduce((sum, coord) => sum + coord[0], 0);
+            latLng = [latSum / ring.length, lngSum / ring.length];
+          } else if (geomType === 'MultiPoint') {
+            const coords = targetFeature.geometry.coordinates as [number, number][];
+            // Usar el primer punto
+            if (coords.length > 0) {
+              latLng = [coords[0][1], coords[0][0]];
+            }
+          } else if (geomType === 'MultiLineString') {
+            const coords = targetFeature.geometry.coordinates as [number, number][][];
+            // Usar el punto medio de la primera línea
+            if (coords.length > 0 && coords[0].length > 0) {
+              const midIndex = Math.floor(coords[0].length / 2);
+              latLng = [coords[0][midIndex][1], coords[0][midIndex][0]];
+            }
+          } else if (geomType === 'MultiPolygon') {
+            const coords = targetFeature.geometry.coordinates as [number, number][][][];
+            // Usar el centroide del primer polígono
+            if (coords.length > 0 && coords[0].length > 0) {
+              const ring = coords[0][0];
+              const latSum = ring.reduce((sum, coord) => sum + coord[1], 0);
+              const lngSum = ring.reduce((sum, coord) => sum + coord[0], 0);
+              latLng = [latSum / ring.length, lngSum / ring.length];
+            }
+          } else if (geomType === 'GeometryCollection') {
+            // Para GeometryCollection, usar la primera geometría
+            const geometries = (targetFeature.geometry as any).geometries;
+            if (geometries && geometries.length > 0) {
+              const firstGeom = geometries[0];
+              if (firstGeom.type === 'Point') {
+                latLng = [firstGeom.coordinates[1], firstGeom.coordinates[0]];
+              } else if (firstGeom.type === 'LineString' && firstGeom.coordinates.length > 0) {
+                const midIndex = Math.floor(firstGeom.coordinates.length / 2);
+                latLng = [firstGeom.coordinates[midIndex][1], firstGeom.coordinates[midIndex][0]];
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Error al calcular centro de geometría:', error);
+        }
+        
+        // Enfocar en el elemento con zoom y animación
+        if (latLng) {
+          map.setView(latLng, 16, {
+            animate: true,
+            duration: 1
+          });
+        }
       }
     }
   }, [focusedItem, geometryData, map]);
 
   return null;
+};
+
+// Componente para añadir etiquetas de texto a las capas base
+const BaseLayerLabels: React.FC<{
+  data: any;
+  layerType: 'comunas' | 'barrios';
+}> = ({ data, layerType }) => {
+  if (!data || !data.features) return null;
+
+  // Calcular el centroide de cada polígono para posicionar la etiqueta
+  const labels = data.features.map((feature: any, index: number) => {
+    const properties = feature.properties;
+    const name = properties?.NOMBRE || properties?.nombre || properties?.name || '';
+    
+    if (!name) return null;
+
+    // Calcular centroide
+    let lat = 0, lng = 0;
+    try {
+      const geomType = feature.geometry?.type;
+      
+      if (geomType === 'Polygon') {
+        const coords = feature.geometry.coordinates[0];
+        const latSum = coords.reduce((sum: number, coord: number[]) => sum + coord[1], 0);
+        const lngSum = coords.reduce((sum: number, coord: number[]) => sum + coord[0], 0);
+        lat = latSum / coords.length;
+        lng = lngSum / coords.length;
+      } else if (geomType === 'MultiPolygon') {
+        const coords = feature.geometry.coordinates[0][0];
+        const latSum = coords.reduce((sum: number, coord: number[]) => sum + coord[1], 0);
+        const lngSum = coords.reduce((sum: number, coord: number[]) => sum + coord[0], 0);
+        lat = latSum / coords.length;
+        lng = lngSum / coords.length;
+      }
+    } catch (error) {
+      console.warn('Error calculando centroide:', error);
+      return null;
+    }
+
+    if (lat === 0 && lng === 0) return null;
+
+    // Crear icono de texto
+    const textIcon = L.divIcon({
+      className: 'base-layer-label',
+      html: `<div style="
+        position: absolute;
+        transform: translate(-50%, -50%);
+        font-size: 11px;
+        font-weight: 700;
+        color: #1f2937;
+        background-color: rgba(255, 255, 255, 0.85);
+        padding: 2px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(55, 65, 81, 0.3);
+        white-space: nowrap;
+        pointer-events: none;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      ">${name}</div>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0]
+    });
+
+    return (
+      <Marker
+        key={`label-${layerType}-${index}`}
+        position={[lat, lng]}
+        icon={textIcon}
+        interactive={false}
+      />
+    );
+  }).filter(Boolean);
+
+  return <>{labels}</>;
 };
 
 // Configuración de mapas base
@@ -93,6 +249,198 @@ const MAP_CONFIGS = {
     dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
   },
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+};
+
+// Componente de control de capas base
+const BaseLayerControl: React.FC<{
+  activeLayer: BaseLayerType;
+  onLayerChange: (layer: BaseLayerType) => void;
+  colorMode: BaseLayerColorMode;
+  onColorModeChange: (mode: BaseLayerColorMode) => void;
+  monotoneColor: string;
+  onMonotoneColorChange: (color: string) => void;
+  showLabels: boolean;
+  onShowLabelsChange: (show: boolean) => void;
+}> = ({ activeLayer, onLayerChange, colorMode, onColorModeChange, monotoneColor, onMonotoneColorChange, showLabels, onShowLabelsChange }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="absolute bottom-4 right-4 z-[1000]">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        {/* Botón colapsable */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center space-x-2 px-3 py-2 w-full hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          title="Capas de referencia"
+        >
+          <MapIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <span className="text-xs font-medium text-gray-900 dark:text-white">
+            {activeLayer === 'none' ? 'Capas Base' : activeLayer === 'comunas' ? 'Comunas' : 'Barrios'}
+          </span>
+          <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+
+        {/* Panel expandible */}
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="border-t border-gray-200 dark:border-gray-700 px-3 py-2"
+          >
+            <div className="space-y-3">
+              {/* Selección de capa */}
+              <div className="space-y-1.5">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Capa</div>
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="baseLayer"
+                    value="none"
+                    checked={activeLayer === 'none'}
+                    onChange={() => onLayerChange('none')}
+                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                    Ninguna
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="baseLayer"
+                    value="comunas"
+                    checked={activeLayer === 'comunas'}
+                    onChange={() => onLayerChange('comunas')}
+                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                    Comunas y Corregimientos
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="baseLayer"
+                    value="barrios"
+                    checked={activeLayer === 'barrios'}
+                    onChange={() => onLayerChange('barrios')}
+                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                    Barrios y Veredas
+                  </span>
+                </label>
+              </div>
+
+              {/* Opciones de color (solo si hay una capa activa) */}
+              {activeLayer !== 'none' && (
+                <>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                    <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Modo de color</div>
+                    <div className="space-y-1.5">
+                      <label className="flex items-center space-x-2 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="colorMode"
+                          value="monotone"
+                          checked={colorMode === 'monotone'}
+                          onChange={() => onColorModeChange('monotone')}
+                          className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                        />
+                        <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                          Monotono
+                        </span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="colorMode"
+                          value="multitone-vibrant"
+                          checked={colorMode === 'multitone-vibrant'}
+                          onChange={() => onColorModeChange('multitone-vibrant')}
+                          className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                        />
+                        <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                          Multitono Vibrante
+                        </span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="colorMode"
+                          value="multitone-pastel"
+                          checked={colorMode === 'multitone-pastel'}
+                          onChange={() => onColorModeChange('multitone-pastel')}
+                          className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                        />
+                        <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                          Multitono Pastel
+                        </span>
+                      </label>
+                      <label className="flex items-center space-x-2 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="colorMode"
+                          value="multitone-earth"
+                          checked={colorMode === 'multitone-earth'}
+                          onChange={() => onColorModeChange('multitone-earth')}
+                          className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                        />
+                        <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                          Multitono Tierra
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Selector de color (solo en modo monotono) */}
+                  {colorMode === 'monotone' && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                      <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Color</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {MONOTONE_COLORS.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => onMonotoneColorChange(color.value)}
+                            className={`w-6 h-6 rounded-full border-2 transition-all ${
+                              monotoneColor === color.value
+                                ? 'border-gray-900 dark:border-white scale-110'
+                                : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                            }`}
+                            style={{ backgroundColor: color.value }}
+                            title={color.label}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Toggle para mostrar etiquetas (solo si hay una capa activa) */}
+              {activeLayer !== 'none' && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                  <label className="flex items-center space-x-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={showLabels}
+                      onChange={(e) => onShowLabelsChange(e.target.checked)}
+                      className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                    />
+                    <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                      Mostrar etiquetas
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 // Componente de control de coloración
@@ -106,6 +454,7 @@ const ColoringControl: React.FC<{
   const coloringOptions: Array<{ value: ColoringType; label: string }> = [
     { value: 'estado', label: 'Estado' },
     { value: 'tipo_intervencion', label: 'Tipo de Intervención' },
+    { value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' },
     { value: 'avance_obra', label: 'Avance de Obra' },
     { value: 'nombre_centro_gestor', label: 'Centro Gestor' },
     { value: 'presupuesto_base', label: 'Presupuesto Base' },
@@ -156,19 +505,19 @@ const ColoringControl: React.FC<{
       </div>
 
       {/* Leyenda */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 max-w-xs">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 max-w-sm">
         <div className="flex items-center space-x-2 mb-2">
           <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span className="text-sm font-medium text-gray-900 dark:text-white">Leyenda</span>
         </div>
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {legend.map((item, index) => (
-            <div key={index} className="flex items-center space-x-2">
+            <div key={index} className="flex items-start space-x-2">
               <div 
-                className="w-3 h-3 rounded-full flex-shrink-0" 
+                className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" 
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+              <span className="text-xs text-gray-600 dark:text-gray-400 leading-tight break-words">
                 {item.label}
                 {item.count !== undefined && ` (${item.count})`}
               </span>
@@ -192,6 +541,38 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   const [mapType, setMapType] = useState<'streets' | 'satellite'>('streets');
   const [isDark, setIsDark] = useState(false);
   const [coloringType, setColoringType] = useState<ColoringType>('estado');
+  const [baseLayer, setBaseLayer] = useState<BaseLayerType>('none');
+  const [baseLayerColorMode, setBaseLayerColorMode] = useState<BaseLayerColorMode>('monotone');
+  const [baseLayerMonotoneColor, setBaseLayerMonotoneColor] = useState<string>('#3B82F6');
+  const [showBaseLayerLabels, setShowBaseLayerLabels] = useState<boolean>(true);
+  const [comunasData, setComunasData] = useState<any>(null);
+  const [barriosData, setBarriosData] = useState<any>(null);
+
+  // Cargar archivos GeoJSON de capas base
+  useEffect(() => {
+    const loadBaseLayerData = async () => {
+      try {
+        const [comunasResponse, barriosResponse] = await Promise.all([
+          fetch('/data/geodata/cartografia_base/comunas_corregimientos.geojson'),
+          fetch('/data/geodata/cartografia_base/barrios_veredas.geojson')
+        ]);
+        
+        if (comunasResponse.ok) {
+          const comunasJson = await comunasResponse.json();
+          setComunasData(comunasJson);
+        }
+        
+        if (barriosResponse.ok) {
+          const barriosJson = await barriosResponse.json();
+          setBarriosData(barriosJson);
+        }
+      } catch (error) {
+        console.error('Error al cargar capas base:', error);
+      }
+    };
+
+    loadBaseLayerData();
+  }, []);
 
   // Detectar tema
   React.useEffect(() => {
@@ -210,6 +591,70 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
     
     return () => observer.disconnect();
   }, []);
+
+  // Estilo para capas base (semitransparente, sin relleno)
+  const baseLayerStyle = {
+    color: '#3B82F6',
+    weight: 1.5,
+    opacity: 0.6,
+    fillOpacity: 0,
+    fillColor: 'transparent'
+  };
+
+  // Función para obtener el estilo de las capas base según la configuración
+  const getBaseLayerStyle = (feature: any) => {
+    if (baseLayerColorMode === 'monotone') {
+      return {
+        color: baseLayerMonotoneColor,
+        weight: 1.5,
+        opacity: 0.5,
+        fillColor: baseLayerMonotoneColor,
+        fillOpacity: 0.08
+      };
+    } else {
+      // Seleccionar la paleta según el modo
+      let colorPalette: string[];
+      switch (baseLayerColorMode) {
+        case 'multitone-vibrant':
+          colorPalette = MULTITONE_VIBRANT;
+          break;
+        case 'multitone-pastel':
+          colorPalette = MULTITONE_PASTEL;
+          break;
+        case 'multitone-earth':
+          colorPalette = MULTITONE_EARTH;
+          break;
+        default:
+          colorPalette = MULTITONE_VIBRANT;
+      }
+      
+      // Generar un índice basado en el ID y nombre del feature para tener colores consistentes
+      // Usar múltiples propiedades para maximizar la variación de colores
+      const featureId = feature.id || '';
+      const featureName = feature.properties?.NOMBRE || feature.properties?.nombre || feature.properties?.name || '';
+      const featureCode = feature.properties?.CODIGO || feature.properties?.codigo || feature.properties?.code || '';
+      
+      // Crear una cadena única combinando todas las propiedades disponibles
+      const uniqueString = `${featureId}-${featureName}-${featureCode}`;
+      
+      // Función de hash mejorada (DJB2)
+      let hash = 5381;
+      for (let i = 0; i < uniqueString.length; i++) {
+        hash = ((hash << 5) + hash) + uniqueString.charCodeAt(i);
+      }
+      
+      const colorIndex = Math.abs(hash) % colorPalette.length;
+      const color = colorPalette[colorIndex];
+      
+      return {
+        color: color,
+        weight: 1.5,
+        opacity: 0.5,
+        fillColor: color,
+        fillOpacity: 0.08
+      };
+    }
+  };
 
   // Filtrar datos según el item enfocado
   const displayData = useMemo(() => {
@@ -306,6 +751,9 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
           case 'tipo_intervencion':
             field = 'tipo_intervencion';
             break;
+          case 'tipo_equipamiento':
+            field = 'tipo_equipamiento';
+            break;
           case 'comuna_corregimiento':
             field = 'comuna_corregimiento';
             break;
@@ -334,7 +782,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         
         const legend = uniqueValues.slice(0, 20).map((value, index) => ({
           color: COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
-          label: value.length > 25 ? `${value.substring(0, 25)}...` : value,
+          label: value, // Mostrar texto completo sin truncar
           count: valueCounts.get(value)
         }));
         
@@ -353,14 +801,33 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
     const color = getFeatureColor(feature.properties);
     const isFocused = focusedItem === feature.properties?.upid;
     const isDimmed = showOnlyFocused && focusedItem && !isFocused;
+    const geomType = feature.geometry?.type;
     
-    return {
+    // Estilos base según el tipo de geometría
+    const baseStyle: any = {
       color: isFocused ? '#FF6B35' : color,
-      weight: isFocused ? 4 : 3,
-      opacity: isDimmed ? 0.2 : (isFocused ? 1 : 0.8),
       fillColor: isFocused ? '#FF6B35' : color,
+      opacity: isDimmed ? 0.2 : (isFocused ? 1 : 0.8),
       fillOpacity: isDimmed ? 0.1 : (isFocused ? 0.7 : 0.4)
     };
+    
+    // Ajustar peso según el tipo de geometría
+    if (geomType === 'LineString' || geomType === 'MultiLineString') {
+      // Líneas más gruesas para mejor visibilidad
+      baseStyle.weight = isFocused ? 6 : 4;
+      baseStyle.opacity = isDimmed ? 0.3 : (isFocused ? 1 : 0.9);
+    } else if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+      // Polígonos con borde visible
+      baseStyle.weight = isFocused ? 4 : 2;
+    } else if (geomType === 'GeometryCollection') {
+      // GeometryCollection usa estilo por defecto
+      baseStyle.weight = isFocused ? 4 : 3;
+    } else {
+      // Puntos y otros
+      baseStyle.weight = isFocused ? 4 : 3;
+    }
+    
+    return baseStyle;
   };
 
   // Función específica para marcadores circulares
@@ -458,6 +925,18 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         </div>
       </div>
 
+      {/* Control de capas base */}
+      <BaseLayerControl
+        activeLayer={baseLayer}
+        onLayerChange={setBaseLayer}
+        colorMode={baseLayerColorMode}
+        onColorModeChange={setBaseLayerColorMode}
+        monotoneColor={baseLayerMonotoneColor}
+        onMonotoneColorChange={setBaseLayerMonotoneColor}
+        showLabels={showBaseLayerLabels}
+        onShowLabelsChange={setShowBaseLayerLabels}
+      />
+
       {/* Mapa de Leaflet */}
       <MapContainer
         center={defaultCenter}
@@ -476,6 +955,32 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
           geometryData={geometryData} 
         />
 
+        {/* Capas base - se renderizan primero para quedar por debajo */}
+        {baseLayer === 'comunas' && comunasData && (
+          <>
+            <GeoJSON
+              key={`comunas-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+              data={comunasData}
+              style={getBaseLayerStyle}
+              pane="tilePane"
+            />
+            {showBaseLayerLabels && <BaseLayerLabels data={comunasData} layerType="comunas" />}
+          </>
+        )}
+
+        {baseLayer === 'barrios' && barriosData && (
+          <>
+            <GeoJSON
+              key={`barrios-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+              data={barriosData}
+              style={getBaseLayerStyle}
+              pane="tilePane"
+            />
+            {showBaseLayerLabels && <BaseLayerLabels data={barriosData} layerType="barrios" />}
+          </>
+        )}
+
+        {/* Geometrías de la API - se renderizan después para quedar por encima */}
         {geometryData && geometryData.features && (
           <GeoJSON
             key={`${mapType}-${isDark}-${coloringType}-${geometryData.features.length}`}
@@ -630,6 +1135,9 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
                         font-size: 12px;
                         color: ${isDark ? '#9ca3af' : '#6b7280'};
                         font-weight: 500;
+                        word-wrap: break-word;
+                        overflow-wrap: break-word;
+                        line-height: 1.3;
                       ">
                         ${attributeItem.nombre_centro_gestor || 'Centro gestor no especificado'}
                       </div>
@@ -703,6 +1211,30 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
                       font-size: 12px;
                       color: ${isDark ? '#9ca3af' : '#6b7280'};
                     ">
+                      ${attributeItem.tipo_intervencion ? `
+                        <div style="
+                          display: flex;
+                          align-items: center;
+                          gap: 6px;
+                        ">
+                          <span style="opacity: 0.7;">🔧</span>
+                          <span style="font-weight: 500; color: ${isDark ? '#d1d5db' : '#374151'};">
+                            ${attributeItem.tipo_intervencion}
+                          </span>
+                        </div>
+                      ` : ''}
+                      ${attributeItem.tipo_equipamiento ? `
+                        <div style="
+                          display: flex;
+                          align-items: center;
+                          gap: 6px;
+                        ">
+                          <span style="opacity: 0.7;">🏢</span>
+                          <span style="font-weight: 500; color: ${isDark ? '#d1d5db' : '#374151'};">
+                            ${attributeItem.tipo_equipamiento}
+                          </span>
+                        </div>
+                      ` : ''}
                       <div style="
                         display: flex;
                         align-items: center;
