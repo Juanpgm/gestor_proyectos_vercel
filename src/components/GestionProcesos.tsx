@@ -225,14 +225,12 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   // Función para cargar órdenes de compra
   const fetchOrdenesCompra = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
+      // Usar endpoint local de Next.js
+      const baseUrl = window.location.origin
 
-      console.log('📡 Cargando órdenes de compra desde:', `${apiUrl}/emprestito/ordenes-compra`)
+      console.log('📡 Cargando órdenes de compra desde:', `${baseUrl}/api/emprestito/ordenes-compra`)
       
-      const response = await fetch(`${apiUrl}/emprestito/ordenes-compra`)
+      const response = await fetch(`${baseUrl}/api/emprestito/ordenes-compra`)
       
       if (!response.ok) {
         console.warn(`⚠️ Error al cargar órdenes de compra: ${response.status}`)

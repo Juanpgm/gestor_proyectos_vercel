@@ -150,15 +150,13 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     setLoading(true)
     setError(null)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
+      // Usar endpoints locales de Next.js en lugar de API externa
+      const baseUrl = window.location.origin
+      
       // Realizar ambas peticiones en paralelo
       const [proyeccionesResponse, proyeccionesSinProcesoResponse] = await Promise.all([
-        fetch(`${apiUrl}/emprestito/leer-tabla-proyecciones`),
-        fetch(`${apiUrl}/emprestito/proyecciones-sin-proceso`)
+        fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones`),
+        fetch(`${baseUrl}/api/emprestito/proyecciones-sin-proceso`)
       ])
 
       if (!proyeccionesResponse.ok) {
