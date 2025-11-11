@@ -95,6 +95,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
   // Estados para selector de columnas
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
+    'item',
     'referencia_proceso',
     'estado_proceso',
     'nombre_organismo_reducido',
@@ -172,6 +173,16 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
       console.log('Datos de proyecciones principales:', proyeccionesData)
       console.log('Datos de proyecciones sin proceso:', proyeccionesSinProcesoData)
+      
+      // Verificar que valor_proyectado existe en los datos
+      if (proyeccionesData.success && proyeccionesData.data && proyeccionesData.data.length > 0) {
+        console.log('Ejemplo de proyección con valor_proyectado:', {
+          id: proyeccionesData.data[0].id,
+          nombre: proyeccionesData.data[0].nombre_resumido_proceso,
+          valor_proyectado: proyeccionesData.data[0].valor_proyectado,
+          tipo_valor: typeof proyeccionesData.data[0].valor_proyectado
+        })
+      }
 
       // Combinar los datos de ambas APIs
       let todasLasProyecciones: ProyeccionEmprestito[] = []
@@ -319,29 +330,33 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     console.log('Filtered count:', filteredProyecciones.length)
     console.log('Sort config:', sortConfig)
     
-    if (!sortConfig.key) {
-      console.log('No sort config, returning filtered as-is')
-      return filteredProyecciones
-    }
-
     const sorted = [...filteredProyecciones].sort((a, b) => {
-      const aValue = a[sortConfig.key]
-      const bValue = b[sortConfig.key]
-
-      // Manejar valores nulos/undefined
-      if (aValue === null || aValue === undefined) return 1
-      if (bValue === null || bValue === undefined) return -1
-
-      // Conversión a string para comparación
-      const aString = String(aValue).toLowerCase()
-      const bString = String(bValue).toLowerCase()
-
-      if (aString < bString) {
-        return sortConfig.direction === 'asc' ? -1 : 1
+      // ORDEN PRIMARIO: Sin Proceso primero
+      if (a.sin_proceso !== b.sin_proceso) {
+        return a.sin_proceso ? -1 : 1 // sin_proceso=true va primero
       }
-      if (aString > bString) {
-        return sortConfig.direction === 'asc' ? 1 : -1
+      
+      // ORDEN SECUNDARIO: Si hay configuración de ordenamiento, aplicarla
+      if (sortConfig.key) {
+        const aValue = a[sortConfig.key]
+        const bValue = b[sortConfig.key]
+
+        // Manejar valores nulos/undefined
+        if (aValue === null || aValue === undefined) return 1
+        if (bValue === null || bValue === undefined) return -1
+
+        // Conversión a string para comparación
+        const aString = String(aValue).toLowerCase()
+        const bString = String(bValue).toLowerCase()
+
+        if (aString < bString) {
+          return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (aString > bString) {
+          return sortConfig.direction === 'asc' ? 1 : -1
+        }
       }
+      
       return 0
     })
     
@@ -531,16 +546,16 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       return new Intl.NumberFormat('es-CO', {
         style: 'currency',
         currency: 'COP',
-        minimumFractionDigits: 3,
-        maximumFractionDigits: 3
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
       }).format(value || 0)
     }
     
     const formatted = new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
-      minimumFractionDigits: 3,
-      maximumFractionDigits: 3
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 2
     }).format(Math.abs(compactValue))
     
     return (value < 0 ? '-' : '') + formatted + suffix
@@ -670,7 +685,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Total</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">
+              <p className="text-lg font-bold text-gray-900 dark:text-white" title={formatValue(stats.totalValorProyectado, 'currency')}>
                 {formatCompactCurrency(stats.totalValorProyectado)}
               </p>
             </div>
