@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar'
 import GestionProcesos from '@/components/GestionProcesos'
 import GestionContratos from '@/components/GestionContratos'
 import ProyeccionesEmprestito from '@/components/ProyeccionesEmprestito'
+import GestionPagos from '@/components/GestionPagos'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -50,6 +51,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
             <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
               <ProyeccionesEmprestito onNavigateHome={handleNavigateHome} />
+            </div>
+          </div>
+        )
+      case 'gestion-pagos':
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+            <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
+              <GestionPagos onNavigateHome={handleNavigateHome} />
             </div>
           </div>
         )

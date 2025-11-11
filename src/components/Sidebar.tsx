@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Home, FileText, ChevronRight, TrendingUp } from 'lucide-react'
+import { X, Home, FileText, ChevronRight, TrendingUp, DollarSign } from 'lucide-react'
 
 interface SidebarProps {
   isOpen: boolean
@@ -41,6 +41,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       label: 'Proyecciones de Empréstito',
       icon: TrendingUp,
       description: 'Gestión y seguimiento de proyecciones'
+    },
+    {
+      id: 'gestion-pagos',
+      label: 'Gestión de Pagos',
+      icon: DollarSign,
+      description: 'Gestión de RPCs y pagos de empréstito'
     }
   ]
 
