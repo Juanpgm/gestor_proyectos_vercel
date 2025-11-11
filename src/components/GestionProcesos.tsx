@@ -73,8 +73,6 @@ interface GestionProcesosProps {
 const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => {
   // Estados para datos
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
-  const [ordenesCompra, setOrdenesCompra] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'procesos' | 'ordenes'>('procesos')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -219,60 +217,50 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   // Cargar datos al montar el componente
   useEffect(() => {
     fetchProcesos()
-    fetchOrdenesCompra()
   }, [])
-
-  // Función para cargar órdenes de compra
-  const fetchOrdenesCompra = async () => {
-    try {
-      // Usar endpoint local de Next.js
-      const baseUrl = window.location.origin
-
-      console.log('📡 Cargando órdenes de compra desde:', `${baseUrl}/api/emprestito/ordenes-compra`)
-      
-      const response = await fetch(`${baseUrl}/api/emprestito/ordenes-compra`)
-      
-      if (!response.ok) {
-        console.warn(`⚠️ Error al cargar órdenes de compra: ${response.status}`)
-        return
-      }
-      
-      const data = await response.json()
-      console.log('✅ Órdenes de compra recibidas:', data)
-      
-      if (data.success && Array.isArray(data.data)) {
-        console.log('📊 Total órdenes de compra:', data.data.length)
-        console.log('🔍 Muestra de órdenes:', data.data.slice(0, 2))
-        
-        // Verificar nombre_banco
-        const conBanco = data.data.filter((o: any) => o.nombre_banco)
-        console.log(`✅ Órdenes con nombre_banco: ${conBanco.length}/${data.data.length}`)
-        
-        if (conBanco.length < data.data.length) {
-          console.warn('⚠️ Algunas órdenes no tienen nombre_banco:', 
-            data.data.filter((o: any) => !o.nombre_banco).slice(0, 3)
-          )
-        }
-        
-        setOrdenesCompra(data.data)
-      } else if (Array.isArray(data)) {
-        setOrdenesCompra(data)
-      } else {
-        console.warn('Formato de respuesta inesperado:', data)
-        setOrdenesCompra([])
-      }
-    } catch (error) {
-      console.error('❌ Error cargando órdenes de compra:', error)
-    }
-  }
 
   // Función para manejar el éxito al agregar proceso
   const handleAgregarProcesoSuccess = () => {
     // Recargar los datos
+    const fetchProcesos = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+        if (!apiUrl) {
+          throw new Error('URL de API no configurada')
+        }
+
+        const response = await fetch(`${apiUrl}/procesos_emprestito_all`)
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        }
+        
+        const data = await response.json()
+        
+        // Manejar diferentes formatos de respuesta
+        if (Array.isArray(data)) {
+          setProcesos(data)
+        } else if (data && Array.isArray(data.data)) {
+          setProcesos(data.data)
+        } else if (data && Array.isArray(data.procesos)) {
+          setProcesos(data.procesos)
+        } else {
+          console.warn('Formato de respuesta inesperado:', data)
+          setProcesos([])
+        }
+      } catch (error) {
+        console.error('Error fetching procesos:', error)
+        setError(error instanceof Error ? error.message : 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchProcesos()
-    fetchOrdenesCompra()
   }
-  
   // Función para manejar la edición
   const handleEditProceso = (proceso: ProcesoEmprestito) => {
     setEditingData(proceso)
@@ -833,43 +821,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         </div>
       </motion.div>
 
-      {/* Tabs para Procesos y Órdenes de Compra */}
-      <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => setActiveTab('procesos')}
-          className={`px-6 py-3 font-medium transition-colors relative ${
-            activeTab === 'procesos'
-              ? 'text-indigo-600 dark:text-indigo-400'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-          }`}
-        >
-          Procesos ({procesos.length})
-          {activeTab === 'procesos' && (
-            <motion.div
-              layoutId="activeTab"
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400"
-            />
-          )}
-        </button>
-        
-        <button
-          onClick={() => setActiveTab('ordenes')}
-          className={`px-6 py-3 font-medium transition-colors relative ${
-            activeTab === 'ordenes'
-              ? 'text-indigo-600 dark:text-indigo-400'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-          }`}
-        >
-          Órdenes de Compra ({ordenesCompra.length})
-          {activeTab === 'ordenes' && (
-            <motion.div
-              layoutId="activeTab"
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400"
-            />
-          )}
-        </button>
-      </div>
-
         {/* Active Filters */}
         {(searchTerm || Object.values(columnFilters).some(f => f?.length > 0)) && (
           <motion.div
@@ -1144,7 +1095,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         </motion.div>
 
         {/* Table */}
-        {activeTab === 'procesos' ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1359,85 +1309,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
             </table>
           </div>
         </motion.div>
-        ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Número Orden
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Centro Gestor
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Banco
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Proceso
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Valor Proyectado
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    BP
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {ordenesCompra.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                      No hay órdenes de compra disponibles
-                    </td>
-                  </tr>
-                ) : (
-                  ordenesCompra.map((orden, index) => (
-                    <tr key={orden.numero_orden || index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                        {orden.numero_orden || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="whitespace-normal break-words max-w-xs">
-                          {orden.nombre_centro_gestor || '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-2 whitespace-normal break-words max-w-xs">
-                          <Landmark className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                          <span className="font-medium">
-                            {orden.nombre_banco || <span className="text-red-500 italic">Sin banco</span>}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="whitespace-normal break-words max-w-md">
-                          {orden.nombre_resumido_proceso || '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-green-600 dark:text-green-400">
-                        {orden.valor_proyectado ? new Intl.NumberFormat('es-CO', {
-                          style: 'currency',
-                          currency: 'COP',
-                          minimumFractionDigits: 0
-                        }).format(orden.valor_proyectado) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {orden.bp || '-'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-        )}
 
       {/* Modal para agregar/editar proceso */}
       <AgregarProcesoModalAlt

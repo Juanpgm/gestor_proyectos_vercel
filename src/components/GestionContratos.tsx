@@ -20,11 +20,35 @@ import {
   TrendingUp,
   Landmark,
   Edit2,
-  Trash2,
+  Upload,
   Eye,
-  EyeOff
+  EyeOff,
+  CheckCircle
 } from 'lucide-react'
 import AgregarConvenioTransferenciaModal from '@/components/AgregarConvenioTransferenciaModal'
+import CargarRPCModal from '@/components/CargarRPCModal'
+
+// Interfaz para RPC
+interface RPC {
+  id: string
+  numero_rpc: string
+  referencia_contrato: string
+  beneficiario_id?: string
+  beneficiario_nombre?: string
+  descripcion_rpc?: string
+  fecha_contabilizacion?: string
+  fecha_impresion?: string
+  estado_liberacion?: string
+  bp?: string
+  valor_rpc?: number
+  cdp_asociados?: string[]
+  programacion_pac?: {[key: string]: string}
+  nombre_centro_gestor?: string
+  fecha_creacion?: string
+  fecha_actualizacion?: string
+  estado?: string
+  tipo?: string
+}
 
 // Interfaz para contrato de empréstito
 interface ContratoEmprestito {
@@ -72,6 +96,7 @@ interface GestionContratosProps {
 const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) => {
   // Estados para datos
   const [contratos, setContratos] = useState<ContratoEmprestito[]>([])
+  const [rpcs, setRpcs] = useState<RPC[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -82,7 +107,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
   const [showAgregarModal, setShowAgregarModal] = useState(false)
   const [editingData, setEditingData] = useState<ContratoEmprestito | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<ContratoEmprestito | null>(null)
+  const [showCargarRPCModal, setShowCargarRPCModal] = useState(false)
+  const [selectedContratoForRPC, setSelectedContratoForRPC] = useState<ContratoEmprestito | null>(null)
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [columnSearchTerm, setColumnSearchTerm] = useState('')
   const [columnOrder, setColumnOrder] = useState<string[]>([])
@@ -209,8 +235,43 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     }
   }
 
+  const fetchRPCs = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!apiUrl) {
+        throw new Error('URL de API no configurada')
+      }
+
+      const response = await fetch(`${apiUrl}/rpc_all`)
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('API Response (RPCs):', data)
+      
+      if (data.success && Array.isArray(data.data)) {
+        setRpcs(data.data)
+      } else {
+        console.warn('Formato de respuesta inesperado para RPCs:', data)
+        setRpcs([])
+      }
+    } catch (error) {
+      console.error('Error fetching RPCs:', error)
+      setRpcs([])
+    }
+  }
+
+  // Función para verificar si un contrato tiene RPC cargado
+  const tieneRPCCargado = (contrato: ContratoEmprestito): boolean => {
+    const referenciaContrato = contrato.referencia_contrato || contrato.numero_contrato
+    return rpcs.some(rpc => rpc.referencia_contrato === referenciaContrato)
+  }
+
   useEffect(() => {
     fetchContratos()
+    fetchRPCs()
   }, [])
 
   const handleAgregarContratoSuccess = () => {
@@ -247,30 +308,6 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     } catch (error) {
       console.error('Error al actualizar contrato:', error)
       throw error
-    }
-  }
-
-  const handleDeleteContrato = async (numeroContrato: string) => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
-      const response = await fetch(`${apiUrl}/emprestito/contrato/${numeroContrato}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || `Error ${response.status}`)
-      }
-
-      await fetchContratos()
-      setDeleteConfirm(null)
-    } catch (error) {
-      console.error('Error al eliminar contrato:', error)
-      alert(`Error al eliminar: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     }
   }
 
@@ -1089,11 +1126,22 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => setDeleteConfirm(contrato)}
-                        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                        title="Eliminar"
+                        onClick={() => {
+                          setSelectedContratoForRPC(contrato)
+                          setShowCargarRPCModal(true)
+                        }}
+                        className={`p-1.5 rounded transition-colors ${
+                          tieneRPCCargado(contrato)
+                            ? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                            : 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                        }`}
+                        title={tieneRPCCargado(contrato) ? "RPC ya cargado - Click para editar" : "Cargar RPC"}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {tieneRPCCargado(contrato) ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -1149,52 +1197,19 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         onEdit={handleUpdateContrato}
       />
       
-      {/* Delete Confirmation Dialog */}
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-            onClick={() => setDeleteConfirm(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Eliminar Contrato
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                ¿Está seguro que desea eliminar el contrato <strong>{deleteConfirm.numero_contrato}</strong>? Esta acción no se puede deshacer.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={async () => {
-                    if (deleteConfirm?.numero_contrato) {
-                      await handleDeleteContrato(deleteConfirm.numero_contrato)
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Eliminar</span>
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Modal de Cargar RPC */}
+      <CargarRPCModal
+        isOpen={showCargarRPCModal}
+        onClose={() => {
+          setShowCargarRPCModal(false)
+          setSelectedContratoForRPC(null)
+        }}
+        onSuccess={() => {
+          fetchContratos()
+          fetchRPCs()
+        }}
+        contratoData={selectedContratoForRPC}
+      />
     </div>
   )
 }
