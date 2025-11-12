@@ -23,9 +23,13 @@ import {
   Edit2,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  ShoppingCart,
+  Handshake
 } from 'lucide-react'
 import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
+import TiendaVirtualTable from './TiendaVirtualTable'
+import ConveniosTable from './ConveniosTable'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
@@ -71,10 +75,19 @@ interface GestionProcesosProps {
 }
 
 const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => {
+  // Estados para tabs
+  const [activeTab, setActiveTab] = useState<'secop' | 'tiendaVirtual' | 'convenios'>('secop')
+  
   // Estados para datos
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Estados para datos agregados de otros tabs
+  const [ordenesCompra, setOrdenesCompra] = useState<any[]>([])
+  const [convenios, setConvenios] = useState<any[]>([])
+  const [loadingOrdenes, setLoadingOrdenes] = useState(true)
+  const [loadingConvenios, setLoadingConvenios] = useState(true)
 
   // Estados para UI
   const [searchTerm, setSearchTerm] = useState('')
@@ -217,7 +230,51 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   // Cargar datos al montar el componente
   useEffect(() => {
     fetchProcesos()
+    fetchOrdenesCompra()
+    fetchConveniosData()
   }, [])
+  
+  // Función para cargar órdenes de compra
+  const fetchOrdenesCompra = async () => {
+    try {
+      setLoadingOrdenes(true)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!apiUrl) return
+      
+      const response = await fetch(`${apiUrl}/emprestito/ordenes-compra`)
+      if (!response.ok) return
+      
+      const result = await response.json()
+      if (result.success && Array.isArray(result.data)) {
+        setOrdenesCompra(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching órdenes:', error)
+    } finally {
+      setLoadingOrdenes(false)
+    }
+  }
+  
+  // Función para cargar convenios
+  const fetchConveniosData = async () => {
+    try {
+      setLoadingConvenios(true)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!apiUrl) return
+      
+      const response = await fetch(`${apiUrl}/convenios_transferencias_all`)
+      if (!response.ok) return
+      
+      const result = await response.json()
+      if (result.success && Array.isArray(result.data)) {
+        setConvenios(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching convenios:', error)
+    } finally {
+      setLoadingConvenios(false)
+    }
+  }
 
   // Función para manejar el éxito al agregar proceso
   const handleAgregarProcesoSuccess = () => {
@@ -492,7 +549,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     }
 
     return filtered
-  }, [procesos, searchTerm, columnFilters, sortConfig])
+  }, [procesos, searchTerm, columnFilters, sortConfig, columns])
 
   const stats = useMemo(() => {
     const parseNumeric = (value: any) => {
@@ -562,6 +619,72 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       publicado
     }
   }, [procesos, allProcesos])
+  
+  // Estadísticas agregadas (SECOP + Tienda Virtual + Convenios)
+  const aggregatedStats = useMemo(() => {
+    const parseNumeric = (value: any) => {
+      if (typeof value === 'number') return value
+      if (typeof value === 'string') {
+        const cleaned = value.replace(/[^\d.-]/g, '')
+        const numeric = Number(cleaned)
+        return Number.isFinite(numeric) ? numeric : 0
+      }
+      return 0
+    }
+
+    // SECOP
+    const totalProcesosSECOP = procesos.length
+    const valorTotalSECOP = procesos.reduce((sum, p) => sum + parseNumeric(p.valor_proyectado), 0)
+    
+    // Tienda Virtual
+    const totalOrdenesCompra = ordenesCompra.length
+    const valorTotalOrdenes = ordenesCompra.reduce((sum, o) => sum + parseNumeric(o.valor_orden), 0)
+    
+    // Convenios
+    const totalConvenios = convenios.length
+    const valorTotalConvenios = convenios.reduce((sum, c) => sum + parseNumeric(c.valor_contrato), 0)
+    
+    // Agregados
+    const totalProcesosGeneral = totalProcesosSECOP + totalOrdenesCompra + totalConvenios
+    const valorTotalGeneral = valorTotalSECOP + valorTotalOrdenes + valorTotalConvenios
+    
+    // Centros gestores únicos de todas las fuentes
+    const allCentrosGestores = new Set([
+      ...procesos.map(p => p.nombre_centro_gestor).filter(Boolean),
+      ...ordenesCompra.map(o => o.nombre_centro_gestor).filter(Boolean),
+      ...convenios.map(c => c.nombre_centro_gestor).filter(Boolean)
+    ])
+    
+    // Bancos únicos de todas las fuentes
+    const allBancos = new Set([
+      ...procesos.map(p => p.nombre_banco).filter(Boolean),
+      ...ordenesCompra.map(o => o.nombre_banco).filter(Boolean),
+      ...convenios.map(c => c.banco).filter(Boolean)
+    ])
+    
+    // Proveedores únicos de Tienda Virtual
+    const allProveedores = new Set(ordenesCompra.map(o => o.proveedor).filter(Boolean))
+    
+    // Modalidades únicas de SECOP
+    const allModalidades = new Set(procesos.map(p => p.tipo_modalidad).filter(Boolean))
+
+    return {
+      totalProcesosGeneral,
+      totalProcesosSECOP,
+      totalOrdenesCompra,
+      totalConvenios,
+      valorTotalGeneral,
+      valorTotalSECOP,
+      valorTotalOrdenes,
+      valorTotalConvenios,
+      centrosGestoresTotal: allCentrosGestores.size,
+      bancosTotal: allBancos.size,
+      totalCentrosGestoresUnicos: allCentrosGestores.size,
+      totalBancosUnicos: allBancos.size,
+      totalProveedores: allProveedores.size,
+      totalModalidadesUnicas: allModalidades.size
+    }
+  }, [procesos, ordenesCompra, convenios])
 
   // Función para manejar la visibilidad de columnas
   const toggleColumnVisibility = (columnKey: string) => {
@@ -821,6 +944,133 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         </div>
       </motion.div>
 
+      {/* Tabs - Immediately after header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setActiveTab('secop')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'secop'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/10'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <FileText className="w-4 h-4" />
+              <span>SECOP</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('tiendaVirtual')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'tiendaVirtual'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/10'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <ShoppingCart className="w-4 h-4" />
+              <span>Tienda Virtual</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('convenios')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'convenios'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/10'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Handshake className="w-4 h-4" />
+              <span>Convenios</span>
+            </div>
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Tarjetas Agregadas - Nivel Superior (SECOP + Tienda Virtual + Convenios) - COMPACTAS */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
+      >
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-3 shadow border border-indigo-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-indigo-100 text-xs font-medium truncate">Total General</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalProcesosGeneral}</p>
+              <p className="text-[10px] text-indigo-100 truncate">S:{aggregatedStats.totalProcesosSECOP} T:{aggregatedStats.totalOrdenesCompra} C:{aggregatedStats.totalConvenios}</p>
+            </div>
+            <Layers className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg p-3 shadow border border-emerald-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-emerald-100 text-xs font-medium truncate">Valor Total</p>
+              <p className="text-lg font-bold text-white truncate">{formatCompactCurrency(aggregatedStats.valorTotalGeneral)}</p>
+              <p className="text-[10px] text-emerald-100 truncate">Suma completa</p>
+            </div>
+            <DollarSign className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 shadow border border-purple-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-purple-100 text-xs font-medium truncate">Centros Gestores</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalCentrosGestoresUnicos}</p>
+              <p className="text-[10px] text-purple-100 truncate">Únicos</p>
+            </div>
+            <Building className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-3 shadow border border-cyan-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-cyan-100 text-xs font-medium truncate">Bancos</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalBancosUnicos}</p>
+              <p className="text-[10px] text-cyan-100 truncate">Participantes</p>
+            </div>
+            <Landmark className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 shadow border border-blue-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-blue-100 text-xs font-medium truncate">Proveedores</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalProveedores}</p>
+              <p className="text-[10px] text-blue-100 truncate">Únicos TV</p>
+            </div>
+            <Building className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 shadow border border-orange-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-orange-100 text-xs font-medium truncate">Modalidades</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalModalidadesUnicas}</p>
+              <p className="text-[10px] text-orange-100 truncate">Tipos</p>
+            </div>
+            <Layers className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Tab Content - SECOP Tab */}
+      {activeTab === 'secop' && (
+        <div className="space-y-6">
         {/* Active Filters */}
         {(searchTerm || Object.values(columnFilters).some(f => f?.length > 0)) && (
           <motion.div
@@ -1309,65 +1559,81 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
             </table>
           </div>
         </motion.div>
+        </div>
+      )}
 
-      {/* Modal para agregar/editar proceso */}
-      <AgregarProcesoModalAlt
-        isOpen={showAgregarModal}
-        onClose={() => {
-          setShowAgregarModal(false)
-          setEditingData(null)
-        }}
-        onSuccess={handleAgregarProcesoSuccess}
-        editingData={editingData}
-        onEdit={handleUpdateProceso}
-      />
+      {/* Tab Content - Tienda Virtual */}
+      {activeTab === 'tiendaVirtual' && (
+        <TiendaVirtualTable />
+      )}
+
+      {/* Tab Content - Convenios */}
+      {activeTab === 'convenios' && (
+        <ConveniosTable />
+      )}
+
+      {/* Modal para agregar/editar proceso - Solo para SECOP */}
+      {activeTab === 'secop' && (
+        <AgregarProcesoModalAlt
+          isOpen={showAgregarModal}
+          onClose={() => {
+            setShowAgregarModal(false)
+            setEditingData(null)
+          }}
+          onSuccess={handleAgregarProcesoSuccess}
+          editingData={editingData}
+          onEdit={handleUpdateProceso}
+        />
+      )}
       
-      {/* Delete Confirmation Dialog */}
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-            onClick={() => setDeleteConfirm(null)}
-          >
+      {/* Delete Confirmation Dialog - Solo para SECOP */}
+      {activeTab === 'secop' && (
+        <AnimatePresence>
+          {deleteConfirm && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+              onClick={() => setDeleteConfirm(null)}
             >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Eliminar Proceso
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                ¿Está seguro que desea eliminar el proceso <strong>{deleteConfirm.referencia_proceso}</strong>? Esta acción no se puede deshacer.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={async () => {
-                    if (deleteConfirm?.referencia_proceso) {
-                      await handleDeleteProceso(deleteConfirm.referencia_proceso)
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Eliminar</span>
-                </button>
-              </div>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Eliminar Proceso
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  ¿Está seguro que desea eliminar el proceso <strong>{deleteConfirm.referencia_proceso}</strong>? Esta acción no se puede deshacer.
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (deleteConfirm?.referencia_proceso) {
+                        await handleDeleteProceso(deleteConfirm.referencia_proceso)
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      )}
       </div>
   )
 }
