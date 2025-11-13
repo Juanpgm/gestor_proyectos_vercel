@@ -4,6 +4,7 @@ import React from 'react'
 
 interface ContractMetricsRingsProps {
   contrato: any
+  pagosContrato?: number // Total de pagos realizados para este contrato
 }
 
 interface RingChartProps {
@@ -88,7 +89,7 @@ const getColorByMetricType = (metricType: 'fisico' | 'financiero' | 'pagos'): st
   }
 }
 
-const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato }) => {
+const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato, pagosContrato = 0 }) => {
   // Usar datos del endpoint reportes-contratos cuando estén disponibles
   // Si vienen del endpoint contratos_emprestito_all, usar esos
   const valorContrato = contrato.valor_contrato || contrato.valor_del_contrato || 0
@@ -110,8 +111,9 @@ const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato })
     ? avanceFinancieroReporte 
     : (valorContrato > 0 ? (valorFacturado / valorContrato) * 100 : 0)
 
-  // Pagos = por ahora siempre 0 (datos no mapeados aún)
-  const pagos = 0
+  // Pagos - calcular desde los pagos reales si están disponibles, sino usar valor_pagado del contrato
+  const totalPagado = pagosContrato > 0 ? pagosContrato : valorPagado
+  const pagosPercentage = valorContrato > 0 ? (totalPagado / valorContrato) * 100 : 0
 
   return (
     <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-6">
@@ -129,7 +131,7 @@ const ContractMetricsRings: React.FC<ContractMetricsRingsProps> = ({ contrato })
         />
         
         <RingChart
-          percentage={Math.max(0, Math.min(100, pagos))}
+          percentage={Math.max(0, Math.min(100, pagosPercentage))}
           label="Pagos Realizados"
           color={getColorByMetricType('pagos')}
         />
