@@ -3091,7 +3091,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Ejecución Física"
-                  description="Aprox. (reportada por el organismo)"
+                  description="Aprox. (reportado por el organismo)"
                   percentage={porcentajeFisicoPromedio}
                   value={valorTotalFisico}
                   total={valorTotalAsignado}
@@ -3105,7 +3105,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Ejecución Financiera"
-                  description="Aprox. (reporte de organismos)"
+                  description="Aprox. (reportado por el organismo)"
                   percentage={porcentajeFinancieroPromedio}
                   value={valorTotalEjecutado}
                   total={valorTotalAsignado}
