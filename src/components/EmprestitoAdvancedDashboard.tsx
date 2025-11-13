@@ -485,6 +485,19 @@ const getISOWeek = (date: Date) => {
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
+// Helper para obtener la fecha de un día específico de una semana ISO
+const getDateFromWeek = (year: number, week: number, day: number = 7) => {
+  const simple = new Date(year, 0, 1 + (week - 1) * 7)
+  const dow = simple.getDay()
+  const ISOweekStart = simple
+  if (dow <= 4)
+    ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1)
+  else
+    ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay())
+  ISOweekStart.setDate(ISOweekStart.getDate() + day - 1)
+  return ISOweekStart
+}
+
 // Componente para mostrar variación entre semanas
 const WeeklyVariationPanel: React.FC<{
   reportes: ReporteEmprestito[]
@@ -519,7 +532,24 @@ const WeeklyVariationPanel: React.FC<{
     const timeSeriesData = sortedWeeks.map(weekKey => {
       const [year, week] = weekKey.split('-W').map(Number)
 
+      // Calcular la fecha de fin de esta semana
+      const weekEndDate = getDateFromWeek(year, week, 7) // Domingo de esa semana
+
       const lastReportByContract: { [contrato: string]: ReporteEmprestito } = {}
+      let reportesCount = 0
+      
+      // Contar todos los registros (contratos, órdenes, convenios) que ya estaban guardados hasta esta semana
+      let contratosActivosCount = 0
+      contratos.forEach(contrato => {
+        // Buscar fecha en múltiples campos: fecha_guardado (SECOP), fecha_creacion (TVEC/Convenios), fecha_inicio_contrato
+        const fechaGuardado = (contrato as any).fecha_guardado || (contrato as any).fecha_creacion || (contrato as any).fecha_inicio_contrato
+        if (fechaGuardado) {
+          const fechaGuardadoDate = new Date(fechaGuardado)
+          if (!isNaN(fechaGuardadoDate.getTime()) && fechaGuardadoDate <= weekEndDate) {
+            contratosActivosCount++
+          }
+        }
+      })
 
       reportes.forEach(reporte => {
         if (!reporte.fecha_reporte) return
@@ -530,6 +560,7 @@ const WeeklyVariationPanel: React.FC<{
         const reportYear = fecha.getFullYear()
 
         if (reportYear === year && reportWeek === week) {
+          reportesCount++
           const contratoKey = reporte.referencia_contrato
 
           if (!lastReportByContract[contratoKey]) {
@@ -561,6 +592,8 @@ const WeeklyVariationPanel: React.FC<{
       return {
         periodo: weekKey,
         'Avance Físico': avanceFisicoPromedio,
+        reportesCount,
+        contratosCount: contratosActivosCount // Contratos activos acumulados hasta esta semana
       }
     })
 
@@ -579,7 +612,9 @@ const WeeklyVariationPanel: React.FC<{
         rendimiento,
         valorInicial: anterior,
         valorFinal: actual,
-        isPositivo: variacion >= 0
+        isPositivo: variacion >= 0,
+        reportesCount: item.reportesCount,
+        contratosCount: item.contratosCount
       }
     }).reverse() // Invertir para mostrar la más reciente primero
   }, [reportes, contratos])
@@ -589,7 +624,8 @@ const WeeklyVariationPanel: React.FC<{
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 flex flex-col h-full"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 flex flex-col"
+        style={{ height: '500px' }}
       >
         <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-blue-600" />
@@ -599,25 +635,36 @@ const WeeklyVariationPanel: React.FC<{
           Puntos porcentuales
         </p>
 
-        <div className="flex-1 overflow-y-auto space-y-2">
+        <div className="overflow-y-auto space-y-1.5 flex-1">
           {variationData.length === 0 ? (
             <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">
               Sin datos de variación
             </div>
           ) : (
             variationData.map(item => (
-              <div key={item.periodo} className="text-xs p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="font-medium text-gray-700 dark:text-gray-300">
-                  {item.periodo}
+              <div key={item.periodo} className="text-xs p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-700 dark:text-gray-300 text-xs mb-0.5">
+                      {item.periodo}
+                    </div>
+                    <div className="flex gap-2 text-[10px] text-gray-500 dark:text-gray-400">
+                      <span>{item.reportesCount} rep.</span>
+                      <span>•</span>
+                      <span>{item.contratosCount} contr.</span>
+                    </div>
+                  </div>
+                  <div className={`font-bold text-sm ${item.isPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {item.isPositivo ? '↑' : '↓'} {Math.abs(item.variacion).toFixed(1)}pp
+                  </div>
                 </div>
-                <div className={`font-bold text-sm mt-1 ${item.isPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {item.isPositivo ? '↑' : '↓'} {Math.abs(item.variacion).toFixed(1)}pp
-                </div>
-                <div className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs">
-                  {item.valorInicial.toFixed(1)}% → {item.valorFinal.toFixed(1)}%
-                </div>
-                <div className={`text-xs mt-1 font-medium ${item.isPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  Rend: {item.isPositivo ? '+' : ''}{item.rendimiento.toFixed(1)}%
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {item.valorInicial.toFixed(1)}% → {item.valorFinal.toFixed(1)}%
+                  </span>
+                  <span className={`font-medium ${item.isPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    Rend: {item.isPositivo ? '+' : ''}{item.rendimiento.toFixed(1)}%
+                  </span>
                 </div>
               </div>
             ))
@@ -676,6 +723,22 @@ const WeeklyProgressChart: React.FC<{
     return sortedWeeks.map((weekKey, weekIndex) => {
       const [year, week] = weekKey.split('-W').map(Number)
       const isLastWeek = weekIndex === sortedWeeks.length - 1
+
+      // Calcular la fecha de fin de esta semana
+      const weekEndDate = getDateFromWeek(year, week, 7) // Domingo de esa semana
+
+      // Contar todos los registros (contratos, órdenes, convenios) que ya estaban guardados hasta esta semana
+      let contratosActivosCount = 0
+      contratos.forEach(contrato => {
+        // Buscar fecha en múltiples campos: fecha_guardado (SECOP), fecha_creacion (TVEC/Convenios), fecha_inicio_contrato
+        const fechaGuardado = (contrato as any).fecha_guardado || (contrato as any).fecha_creacion || (contrato as any).fecha_inicio_contrato
+        if (fechaGuardado) {
+          const fechaGuardadoDate = new Date(fechaGuardado)
+          if (!isNaN(fechaGuardadoDate.getTime()) && fechaGuardadoDate <= weekEndDate) {
+            contratosActivosCount++
+          }
+        }
+      })
 
       // Obtener el último reporte de cada contrato EN esta semana específica
       // EXCEPTO en la última semana, donde usamos el último reporte absoluto de cada contrato
@@ -743,7 +806,8 @@ const WeeklyProgressChart: React.FC<{
         periodo: weekKey,
         'Avance Físico': avanceFisicoPromedio,
         'Avance Financiero': avanceFinancieroPromedio,
-        reportesCount: reportesCount // Agregar el contador de reportes
+        reportesCount: reportesCount, // Contador de reportes
+        contratosCount: contratosActivosCount // Contratos activos acumulados hasta esta semana
       }
     })
   }, [data, contratos])
@@ -755,6 +819,7 @@ const WeeklyProgressChart: React.FC<{
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 flex flex-col"
+      style={{ height: '500px' }}
     >
       <div className="flex items-center gap-2 mb-3">
         <TrendingUp className="w-5 h-5 text-green-600" />
@@ -763,8 +828,8 @@ const WeeklyProgressChart: React.FC<{
         </h4>
       </div>
 
-      <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
-        <div style={{ height: '300px', width: '100%', minWidth: '600px' }}>
+      <div className="overflow-x-auto flex-1">
+        <div style={{ height: '100%', width: '100%', minWidth: '600px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={timeSeriesData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -790,11 +855,15 @@ const WeeklyProgressChart: React.FC<{
                 content={({ active, payload, label }: any) => {
                   if (active && payload && payload.length) {
                     const reportes = payload[0]?.payload?.reportesCount || 0
+                    const contratos = payload[0]?.payload?.contratosCount || 0
                     return (
                       <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{label}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                           📊 Reportes: <span className="font-bold text-blue-600">{reportes}</span>
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          📋 Contratos: <span className="font-bold text-purple-600">{contratos}</span>
                         </p>
                         {payload.map((entry: any, index: number) => (
                           <p key={index} className="text-xs" style={{ color: entry.color }}>
@@ -2711,18 +2780,18 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     avance: true,
     observaciones: false,
     detalle: true,
-    tipo: false,
+    tipo: true,
     modalidad: false,
     sector: false,
     supervisor: false,
     categoria: false,
-    fechaInicio: false,
-    fechaFin: false,
+    fechaInicio: true,
+    fechaFin: true,
     diasTranscurridos: false,
     diasRestantes: true
   })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'diasRestantes', direction: 'desc' })
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'dias_restantes', direction: 'asc' })
 
   const {
     loading,
@@ -3022,7 +3091,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Ejecución Física"
-                  description="Progreso físico de los contratos"
+                  description="Aprox. (reportada por el organismo)"
                   percentage={porcentajeFisicoPromedio}
                   value={valorTotalFisico}
                   total={valorTotalAsignado}
@@ -3036,7 +3105,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Ejecución Financiera"
-                  description="Progreso financiero de los contratos"
+                  description="Aprox. (reporte de organismos)"
                   percentage={porcentajeFinancieroPromedio}
                   value={valorTotalEjecutado}
                   total={valorTotalAsignado}
@@ -3050,7 +3119,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Pagos Realizados"
-                  description="Pagos efectuados sobre el total"
+                  description="Gestión de RPC"
                   percentage={porcentajePagosPromedio}
                   value={valorTotalPagado}
                   total={valorTotalAsignado}
@@ -3066,9 +3135,9 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 flex flex-col"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 pb-2"
               >
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <Building2 className="w-5 h-5 text-blue-600" />
                   <h4 className="text-base font-semibold text-gray-900 dark:text-white">
                     Avance Físico por Organismo
@@ -3076,7 +3145,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <div style={{ minWidth: '800px', height: '400px' }}>
+                  <div style={{ minWidth: '800px', height: '480px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={analysisByCentroGestor
@@ -3112,7 +3181,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             }
                           })
                           .sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)}
-                        margin={{ top: 20, right: 10, left: 10, bottom: 60 }}
+                        margin={{ top: 30, right: 20, left: 20, bottom: 60 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" opacity={0.5} />
 
@@ -3153,7 +3222,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                               </g>
                             )
                           }}
-                          height={80}
+                          height={55}
                           interval={0}
                         />
 

@@ -69,7 +69,7 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('')
   const [columnFilters, setColumnFilters] = useState<ColumnFilter>({})
   const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'dias_restantes', direction: 'asc' })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [columnSearchTerm, setColumnSearchTerm] = useState('')
   
@@ -565,7 +565,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, nombre_proceso: !prev.nombre_proceso }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.nombre_proceso?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.nombre_proceso && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('nombre_proceso').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.nombre_proceso?.includes(value) || false}
+                                onChange={() => handleColumnFilter('nombre_proceso', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -706,7 +733,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, valor_contrato: !prev.valor_contrato }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.valor_contrato?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.valor_contrato && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('valor_contrato').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.valor_contrato?.includes(value) || false}
+                                onChange={() => handleColumnFilter('valor_contrato', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -721,7 +775,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, avance_ejecucion: !prev.avance_ejecucion }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.avance_ejecucion?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.avance_ejecucion && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('avance_ejecucion').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.avance_ejecucion?.includes(value) || false}
+                                onChange={() => handleColumnFilter('avance_ejecucion', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -737,7 +818,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, ultima_observacion: !prev.ultima_observacion }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.ultima_observacion?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.ultima_observacion && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('ultima_observacion').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.ultima_observacion?.includes(value) || false}
+                                onChange={() => handleColumnFilter('ultima_observacion', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -752,7 +860,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, tipo_contrato: !prev.tipo_contrato }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.tipo_contrato?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.tipo_contrato && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('tipo_contrato').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.tipo_contrato?.includes(value) || false}
+                                onChange={() => handleColumnFilter('tipo_contrato', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -767,7 +902,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, modalidad_contratacion: !prev.modalidad_contratacion }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.modalidad_contratacion?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.modalidad_contratacion && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('modalidad_contratacion').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.modalidad_contratacion?.includes(value) || false}
+                                onChange={() => handleColumnFilter('modalidad_contratacion', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -782,7 +944,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, sector: !prev.sector }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.sector?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.sector && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('sector').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.sector?.includes(value) || false}
+                                onChange={() => handleColumnFilter('sector', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -797,7 +986,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, codigo_categoria: !prev.codigo_categoria }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.codigo_categoria?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.codigo_categoria && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('codigo_categoria').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.codigo_categoria?.includes(value) || false}
+                                onChange={() => handleColumnFilter('codigo_categoria', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -812,7 +1028,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, supervisor: !prev.supervisor }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.supervisor?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.supervisor && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('supervisor').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.supervisor?.includes(value) || false}
+                                onChange={() => handleColumnFilter('supervisor', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -827,7 +1070,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, fecha_inicio: !prev.fecha_inicio }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.fecha_inicio?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.fecha_inicio && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('fecha_inicio').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.fecha_inicio?.includes(value) || false}
+                                onChange={() => handleColumnFilter('fecha_inicio', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -842,7 +1112,34 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, fecha_fin: !prev.fecha_fin }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.fecha_fin?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.fecha_fin && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {getUniqueValues('fecha_fin').map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.fecha_fin?.includes(value) || false}
+                                onChange={() => handleColumnFilter('fecha_fin', value)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -857,7 +1154,37 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, dias_transcurridos: !prev.dias_transcurridos }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.dias_transcurridos?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.dias_transcurridos && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {Array.from(new Set(contratos.map(c => {
+                            const dias = calcularDias(c.fecha_inicio, c.fecha_fin);
+                            return dias.transcurridos !== null ? String(dias.transcurridos) : null;
+                          }).filter(Boolean))).sort((a, b) => Number(a) - Number(b)).map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.dias_transcurridos?.includes(value!) || false}
+                                onChange={() => handleColumnFilter('dias_transcurridos', value!)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value} días</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
 
@@ -872,7 +1199,37 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                           <ArrowUpDown className="w-4 h-4 text-gray-400" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowFilters(prev => ({ ...prev, dias_restantes: !prev.dias_restantes }))}
+                        className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
+                      >
+                        <Filter className={`w-4 h-4 ${columnFilters.dias_restantes?.length ? 'text-teal-600' : 'text-gray-400'}`} />
+                      </button>
                     </div>
+                    {showFilters.dias_restantes && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="absolute mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-20 p-3 border border-gray-200 dark:border-gray-600 max-h-60 overflow-y-auto"
+                      >
+                        <div className="space-y-2">
+                          {Array.from(new Set(contratos.map(c => {
+                            const dias = calcularDias(c.fecha_inicio, c.fecha_fin);
+                            return dias.restantes !== null ? String(dias.restantes) : null;
+                          }).filter(Boolean))).sort((a, b) => Number(a) - Number(b)).map(value => (
+                            <label key={value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
+                              <input
+                                type="checkbox"
+                                checked={columnFilters.dias_restantes?.includes(value!) || false}
+                                onChange={() => handleColumnFilter('dias_restantes', value!)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{value} días</span>
+                            </label>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </th>
                 )}
               </tr>

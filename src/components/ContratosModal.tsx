@@ -323,69 +323,6 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Pagos Realizados - Sección Compacta */}
-                    {pagosList.length > 0 && (
-                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-green-600" />
-                          Pagos Realizados ({pagosList.length})
-                        </h3>
-                        
-                        {/* Resumen de Pagos */}
-                        <div className="grid grid-cols-2 gap-2 mb-3">
-                          <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Total Pagado</div>
-                            <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                              {formatCurrency(pagosList.reduce((sum, p) => sum + (Number(p.valor_pago) || 0), 0))}
-                            </div>
-                          </div>
-                          <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
-                            <div className="text-xs text-gray-500 dark:text-gray-400">% del Contrato</div>
-                            <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                              {contractDataToShow?.valor_contrato 
-                                ? ((pagosList.reduce((sum, p) => sum + (Number(p.valor_pago) || 0), 0) / Number(contractDataToShow.valor_contrato)) * 100).toFixed(2)
-                                : '0.00'}%
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Lista de Pagos */}
-                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                          {pagosList
-                            .sort((a, b) => new Date(b.fecha_transaccion).getTime() - new Date(a.fecha_transaccion).getTime())
-                            .map((pago, idx) => (
-                              <div key={`${pago.id}-${idx}`} className="bg-white/60 dark:bg-gray-700/40 rounded p-2 text-xs border border-green-200 dark:border-green-800">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-semibold text-green-700 dark:text-green-300 truncate">
-                                        RPC: {pago.numero_rpc}
-                                      </span>
-                                      <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
-                                        pago.estado === 'registrado' 
-                                          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                                          : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                                      }`}>
-                                        {pago.estado}
-                                      </span>
-                                    </div>
-                                    <div className="text-gray-500 dark:text-gray-400">
-                                      Fecha: {formatDate(pago.fecha_transaccion)}
-                                    </div>
-                                  </div>
-                                  <div className="text-right flex-shrink-0">
-                                    <div className="font-bold text-green-600 dark:text-green-400">
-                                      {formatCurrency(pago.valor_pago)}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          }
-                        </div>
-                      </div>
-                    )}
-
                     {/* Información del Contratista */}
                     <div className={`${getInfoColors('contratista').bg} ${getInfoColors('contratista').border} border rounded-lg p-3`}>
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -601,6 +538,81 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                       </div>
                     </div>
                   </div>
+
+                  {/* Pagos Realizados - Ancho Completo - Colapsable */}
+                  {pagosList.length > 0 && (
+                    <div className="col-span-1 lg:col-span-2 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                      <button
+                        onClick={() => setExpandPagos(!expandPagos)}
+                        className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+                      >
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-green-600" />
+                          Historial de Pagos Realizados ({pagosList.length})
+                        </h3>
+                        <ChevronDown
+                          className={`w-4 h-4 text-green-600 transition-transform ${expandPagos ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+
+                      {expandPagos && (
+                        <>
+                          {/* Resumen de Pagos */}
+                          <div className="grid grid-cols-2 gap-2 mb-3 mt-3">
+                            <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">Total Pagado</div>
+                              <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                                {formatCurrency(pagosList.reduce((sum, p) => sum + (Number(p.valor_pago) || 0), 0))}
+                              </div>
+                            </div>
+                            <div className="bg-white/70 dark:bg-gray-800/70 rounded p-2">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">% del Contrato</div>
+                              <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                                {contractDataToShow?.valor_contrato 
+                                  ? ((pagosList.reduce((sum, p) => sum + (Number(p.valor_pago) || 0), 0) / Number(contractDataToShow.valor_contrato)) * 100).toFixed(2)
+                                  : '0.00'}%
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Lista de Pagos */}
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {pagosList
+                              .sort((a, b) => new Date(b.fecha_transaccion).getTime() - new Date(a.fecha_transaccion).getTime())
+                              .map((pago, idx) => (
+                                <div key={`${pago.id}-${idx}`} className="bg-white/60 dark:bg-gray-700/40 rounded p-2 text-xs border border-green-200 dark:border-green-800">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-semibold text-green-700 dark:text-green-300 truncate">
+                                          RPC: {pago.numero_rpc}
+                                        </span>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                          pago.estado === 'registrado' 
+                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                        }`}>
+                                          {pago.estado}
+                                        </span>
+                                      </div>
+                                      <div className="text-gray-500 dark:text-gray-400">
+                                        Fecha: {formatDate(pago.fecha_transaccion)}
+                                      </div>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                      <div className="font-bold text-green-600 dark:text-green-400">
+                                        {formatCurrency(pago.valor_pago)}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            }
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {/* Observaciones y Alertas de Reportes - Ancho Completo - Colapsable */}
                   {(reportes.length > 0 || contractDataToShow?.reportes?.length > 0) && (
