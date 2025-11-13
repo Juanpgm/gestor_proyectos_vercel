@@ -10,7 +10,14 @@ import {
   Filter as FilterIcon,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Building2,
+  DollarSign,
+  Settings,
+  MapPin,
+  Clock,
+  FileText,
+  ExternalLink
 } from 'lucide-react';
 import { CSS_UTILS } from '@/lib/design-system';
 import dynamic from 'next/dynamic';
@@ -112,7 +119,7 @@ const ProjectDetailsModal: React.FC<{
       const formatDate = (date: Date) => {
         return date.toLocaleDateString('es-CO', {
           day: 'numeric',
-          month: 'long',
+          month: 'short',
           year: 'numeric'
         });
       };
@@ -146,173 +153,264 @@ const ProjectDetailsModal: React.FC<{
   const progress = Math.round(item.avance_obra || 0);
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-xl overflow-hidden">
-      {/* Header mejorado */}
-      <div className="relative bg-white dark:bg-gray-900 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col h-full bg-gradient-to-br from-white via-blue-50/20 to-purple-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 rounded-xl overflow-hidden shadow-2xl">
+      {/* Header moderno con gradiente */}
+      <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-700 dark:via-indigo-700 dark:to-purple-700 px-6 py-5">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="absolute top-3 right-3 p-2 rounded-full bg-white/20 hover:bg-white/30 dark:bg-black/20 dark:hover:bg-black/30 backdrop-blur-sm transition-all duration-200"
+          title="Cerrar"
         >
-          <X className="w-4 h-4 text-gray-400" />
+          <X className="w-5 h-5 text-white" />
         </button>
         
-        <div className="pr-8">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2 leading-tight line-clamp-2">
+        <div className="pr-12">
+          <h2 className="text-xl font-bold text-white mb-3 leading-tight line-clamp-2 drop-shadow-md">
             {item.nombre_up}
           </h2>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400 font-mono text-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-3 py-1.5 bg-white/90 dark:bg-white/20 backdrop-blur-sm rounded-lg text-gray-800 dark:text-white font-mono text-sm font-semibold shadow-sm">
               {item.upid}
             </span>
-            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 rounded text-blue-700 dark:text-blue-300 text-sm font-medium">
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold backdrop-blur-sm shadow-sm ${
+              item.estado.toLowerCase().includes('ejecución') || item.estado.toLowerCase().includes('activ')
+                ? 'bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200'
+                : item.estado.toLowerCase().includes('finaliz')
+                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200'
+                : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200'
+            }`}>
               {item.estado}
             </span>
+            {item.tipo_equipamiento && (
+              <span className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/60 backdrop-blur-sm rounded-lg text-purple-800 dark:text-purple-200 text-sm font-semibold shadow-sm">
+                {item.tipo_equipamiento}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Content scrolleable */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        <div className="space-y-4">
-          {/* Progreso mejorado */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Progreso</span>
-            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full transition-all ${
-                  progress >= 70 ? 'bg-green-500' : 
-                  progress >= 40 ? 'bg-amber-500' : 
-                  'bg-red-500'
-                }`}
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
+      {/* Content con scroll mejorado - Layout de 2 columnas */}
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Columna Izquierda */}
+          <div className="space-y-6">
+            {/* Barra de progreso destacada */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Avance de Obra</span>
+                <span className={`text-2xl font-bold ${
+                  progress >= 70 ? 'text-green-600 dark:text-green-400' : 
+                  progress >= 40 ? 'text-amber-600 dark:text-amber-400' : 
+                  'text-red-600 dark:text-red-400'
+                }`}>
+                  {progress}%
+                </span>
+              </div>
+              <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden shadow-inner">
+                <div 
+                  className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 shadow-md ${
+                    progress >= 70 ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
+                    progress >= 40 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 
+                    'bg-gradient-to-r from-red-500 to-rose-500'
+                  }`}
+                  style={{ width: `${Math.min(progress, 100)}%` }}
+                >
+                  <div className="absolute inset-0 bg-white/20"></div>
+                </div>
+              </div>
             </div>
-            <span className={`text-sm font-semibold w-8 text-right ${
-              progress >= 70 ? 'text-green-600' : 
-              progress >= 40 ? 'text-amber-600' : 
-              'text-red-600'
-            }`}>
-              {progress}%
-            </span>
+
+            {/* Información General */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Centro Gestor */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+                    <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Centro Gestor</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                      {item.nombre_centro_gestor || 'No especificado'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tipo de Intervención */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                    <Settings className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tipo Intervención</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                      {item.tipo_intervencion}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Año */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg">
+                    <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Año</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      {item.ano}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ubicación destacada */}
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl p-5 shadow-lg border border-orange-200 dark:border-orange-800">
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                <h3 className="text-lg font-bold text-orange-900 dark:text-orange-100">Ubicación</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Barrio/Vereda</p>
+                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">{item.barrio_vereda || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Comuna/Corregimiento</p>
+                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">{item.comuna_corregimiento || 'N/A'}</p>
+                </div>
+                {item.direccion && (
+                  <div>
+                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Dirección</p>
+                    <p className="text-sm font-semibold text-orange-900 dark:text-orange-100">{item.direccion}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Información contractual */}
+            {(item.referencia_contrato || item.referencia_proceso || item.url_proceso) && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 space-y-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Información Contractual</p>
+                {item.referencia_contrato && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Ref. Contrato</span>
+                    <span className="text-sm font-mono text-gray-900 dark:text-white">{item.referencia_contrato}</span>
+                  </div>
+                )}
+                {item.referencia_proceso && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Ref. Proceso</span>
+                    <span className="text-sm font-mono text-gray-900 dark:text-white">{item.referencia_proceso}</span>
+                  </div>
+                )}
+                {item.url_proceso && (
+                  <a 
+                    href={item.url_proceso} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white rounded-lg font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Ver Proceso en SECOP
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Información con tipografía balanceada */}
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Centro</span>
-              <span className="text-sm text-gray-900 dark:text-white font-medium leading-relaxed">
-                {item.nombre_centro_gestor || 'No especificado'}
-              </span>
+          {/* Columna Derecha */}
+          <div className="space-y-6">
+            {/* Presupuesto */}
+            {item.presupuesto_base && (
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 shadow-md border border-green-200 dark:border-green-800 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Presupuesto</p>
+                    <p className="text-sm font-bold text-green-700 dark:text-green-400 leading-tight">
+                      {formatCurrency(item.presupuesto_base)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Duración del proyecto */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Duración del Proyecto</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Duración estimada</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{projectDuration.duration}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Estado temporal</span>
+                  <span className={`px-3 py-1 text-xs rounded-full font-semibold ${
+                    projectDuration.status === 'en-curso' 
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                      : projectDuration.status === 'finalizado'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                  }`}>
+                    {projectDuration.status === 'en-curso' ? '🟢 En Curso' : 
+                     projectDuration.status === 'finalizado' ? '🔵 Finalizado' : '🟡 Planificado'}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Período</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{projectDuration.dateRange}</p>
+                </div>
+              </div>
             </div>
-            
+
+            {/* Fuente de financiación */}
+            {item.fuente_financiacion && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 shadow-md border border-blue-200 dark:border-blue-800">
+                <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">Fuente de Financiación</p>
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{item.fuente_financiacion}</p>
+              </div>
+            )}
+
+            {/* Información adicional */}
             {item.nombre_up_detalle && (
-              <div className="flex items-start gap-3">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Detalle</span>
-                <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
-                  {item.nombre_up_detalle}
-                </span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Detalle de UP</p>
+                <p className="text-sm text-gray-900 dark:text-white leading-relaxed">{item.nombre_up_detalle}</p>
               </div>
             )}
             
             {item.identificador && (
-              <div className="flex items-start gap-3">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">ID</span>
-                <span className="text-sm text-gray-900 dark:text-white font-mono text-xs leading-relaxed">
-                  {item.identificador}
-                </span>
-              </div>
-            )}
-            
-            <div className="flex items-start gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Ubicación</span>
-              <div className="text-sm text-gray-900 dark:text-white leading-relaxed">
-                <div className="font-medium">{item.barrio_vereda || 'N/A'}</div>
-                <div className="text-gray-500 dark:text-gray-400 text-sm">{item.comuna_corregimiento || 'N/A'}</div>
-              </div>
-            </div>
-
-            {item.presupuesto_base && (
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Presupuesto</span>
-                <span className="text-sm text-green-600 dark:text-green-400 font-semibold">
-                  {formatCurrency(item.presupuesto_base)}
-                </span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Identificador</p>
+                <p className="text-sm text-gray-900 dark:text-white font-mono bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-lg">{item.identificador}</p>
               </div>
             )}
 
-            <div className="flex items-start gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Tipo</span>
-              <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
-                {item.tipo_intervencion}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Año</span>
-              <span className="text-sm text-gray-900 dark:text-white font-medium">
-                {item.ano}
-              </span>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Duración</span>
-              <div className="text-sm text-gray-900 dark:text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium">{projectDuration.duration}</span>
-                  <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                    projectDuration.status === 'en-curso' 
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                      : projectDuration.status === 'finalizado'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                      : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
-                  }`}>
-                    {projectDuration.status === 'en-curso' ? 'En Curso' : 
-                     projectDuration.status === 'finalizado' ? 'Finalizado' : 'Planificado'}
-                  </span>
+            {/* Descripción de la intervención */}
+            {item.descripcion_intervencion && (
+              <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800 rounded-xl p-5 shadow-md border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Descripción de la Intervención</h3>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{projectDuration.dateRange}</div>
-              </div>
-            </div>
-
-            {item.fuente_financiacion && (
-              <div className="flex items-start gap-3">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Fuente</span>
-                <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
-                  {item.fuente_financiacion}
-                </span>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                  {item.descripcion_intervencion}
+                </p>
               </div>
             )}
           </div>
         </div>
-
-        {/* Fuente de financiación - solo si existe */}
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ubicación</h3>
-          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Barrio/Vereda</h4>
-                <p className="text-gray-900 dark:text-white font-medium">{item.barrio_vereda || 'N/A'}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Comuna/Corregimiento</h4>
-                <p className="text-gray-900 dark:text-white font-medium">{item.comuna_corregimiento || 'N/A'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Descripción */}
-        {item.descripcion_intervencion && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Descripción de la Intervención</h3>
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <p className="text-gray-900 dark:text-white leading-relaxed">
-                {item.descripcion_intervencion}
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -701,7 +799,7 @@ const UnidadesProyecto: React.FC = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               <ProjectDetailsModal
