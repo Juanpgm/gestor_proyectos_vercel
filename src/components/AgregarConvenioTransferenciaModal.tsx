@@ -19,6 +19,7 @@ interface FormData {
   banco: string
   objeto_contrato: string
   valor_contrato: string
+  nombre_resumido_proceso: string
   
   // Campos opcionales
   bp?: string
@@ -64,6 +65,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
     banco: '',
     objeto_contrato: '',
     valor_contrato: '',
+    nombre_resumido_proceso: '',
     
     // Campos opcionales
     bp: '',
@@ -115,6 +117,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
         banco: editingData.banco || editingData.nombre_banco || '',
         objeto_contrato: editingData.objeto_contrato || '',
         valor_contrato: editingData.valor_contrato?.toString() || '',
+        nombre_resumido_proceso: editingData.nombre_resumido_proceso || '',
         
         // Campos opcionales
         bp: editingData.bp || '',
@@ -200,7 +203,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
     console.log('🔍 Datos del formulario (convenio/transferencia):', formData)
     
     // Campos obligatorios según el endpoint
-    const requiredFields = ['referencia_contrato', 'nombre_centro_gestor', 'banco', 'objeto_contrato', 'valor_contrato']
+    const requiredFields = ['referencia_contrato', 'nombre_centro_gestor', 'banco', 'objeto_contrato', 'valor_contrato', 'nombre_resumido_proceso']
     const missingFields = requiredFields.filter(field => {
       const value = formData[field as keyof FormData]
       console.log(`🔍 Campo ${field}:`, value, 'Vacío:', !value)
@@ -214,7 +217,8 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
         'nombre_centro_gestor': 'Centro Gestor',
         'banco': 'Banco',
         'objeto_contrato': 'Objeto del Contrato',
-        'valor_contrato': 'Valor del Contrato'
+        'valor_contrato': 'Valor del Contrato',
+        'nombre_resumido_proceso': 'Nombre del Proceso'
       }
       const friendlyNames = missingFields.map(f => fieldNames[f] || f)
       setError(`Campos obligatorios faltantes: ${friendlyNames.join(', ')}`)
@@ -266,6 +270,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
       formDataToSend.append('banco', formData.banco?.trim() || "")
       formDataToSend.append('objeto_contrato', formData.objeto_contrato?.trim() || "")
       formDataToSend.append('valor_contrato', formData.valor_contrato?.toString() || "")
+      formDataToSend.append('nombre_resumido_proceso', formData.nombre_resumido_proceso?.trim() || "")
       
       // Campos opcionales - solo enviar si tienen valor
       if (formData.bp && formData.bp.trim()) {
@@ -348,7 +353,9 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
                     'objeto_contrato': 'Objeto del Contrato',
                     'nombre_centro_gestor': 'Centro Gestor',
                     'nombre_banco': 'Banco',
+                    'banco': 'Banco',
                     'valor_contrato': 'Valor del Contrato',
+                    'nombre_resumido_proceso': 'Nombre del Proceso',
                     'fecha_inicio': 'Fecha de Inicio',
                     'fecha_fin': 'Fecha de Fin',
                     'contratista': 'Contratista',
@@ -409,6 +416,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
         banco: '',
         objeto_contrato: '',
         valor_contrato: '',
+        nombre_resumido_proceso: '',
         bp: '',
         bpin: '',
         valor_convenio: '',
@@ -458,6 +466,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
         banco: '',
         objeto_contrato: '',
         valor_contrato: '',
+        nombre_resumido_proceso: '',
         bp: '',
         bpin: '',
         valor_convenio: '',
@@ -687,6 +696,22 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
                   step="0.01"
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Ej: 1000000000"
+                />
+              </div>
+
+              {/* Nombre Resumido del Proceso */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nombre del Proceso <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="nombre_resumido_proceso"
+                  value={formData.nombre_resumido_proceso}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Nombre resumido del proceso contractual"
                 />
               </div>
 

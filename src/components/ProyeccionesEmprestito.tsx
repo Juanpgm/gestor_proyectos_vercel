@@ -151,105 +151,65 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     setLoading(true)
     setError(null)
     try {
-      // Usar endpoints locales de Next.js en lugar de API externa
       const baseUrl = window.location.origin
+      const timestamp = new Date().getTime()
       
-      // Realizar ambas peticiones en paralelo
-      const [proyeccionesResponse, proyeccionesSinProcesoResponse] = await Promise.all([
-        fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones`),
-        fetch(`${baseUrl}/api/emprestito/proyecciones-sin-proceso`)
-      ])
-
-      if (!proyeccionesResponse.ok) {
-        throw new Error(`Error al cargar proyecciones: ${proyeccionesResponse.status}`)
-      }
-      
-      if (!proyeccionesSinProcesoResponse.ok) {
-        throw new Error(`Error al cargar proyecciones sin proceso: ${proyeccionesSinProcesoResponse.status}`)
-      }
-
-      const proyeccionesData = await proyeccionesResponse.json()
-      const proyeccionesSinProcesoData = await proyeccionesSinProcesoResponse.json()
-
-      console.log('Datos de proyecciones principales:', proyeccionesData)
-      console.log('Datos de proyecciones sin proceso:', proyeccionesSinProcesoData)
-      
-      // Verificar que valor_proyectado existe en los datos
-      if (proyeccionesData.success && proyeccionesData.data && proyeccionesData.data.length > 0) {
-        console.log('Ejemplo de proyección con valor_proyectado:', {
-          id: proyeccionesData.data[0].id,
-          nombre: proyeccionesData.data[0].nombre_resumido_proceso,
-          valor_proyectado: proyeccionesData.data[0].valor_proyectado,
-          tipo_valor: typeof proyeccionesData.data[0].valor_proyectado
-        })
-      }
-
-      // Combinar los datos de ambas APIs
-      let todasLasProyecciones: ProyeccionEmprestito[] = []
-      let idCounter = 0 // Contador local para asegurar IDs únicos
-
-      // Agregar las proyecciones principales
-      if (proyeccionesData.success && proyeccionesData.data) {
-        todasLasProyecciones = proyeccionesData.data.map((p: ProyeccionEmprestito) => {
-          const uniqueId = p.id || `main-${p.referencia_proceso || 'no-ref'}-${idCounter++}`
-          return {
-            ...p,
-            id: uniqueId,
-            sin_proceso: false // Marcar explícitamente como con proceso
-          }
-        })
-        console.log(`Proyecciones principales cargadas: ${todasLasProyecciones.length}`)
-      }
-
-      // Agregar las proyecciones sin proceso, marcándolas para distinguirlas
-      if (proyeccionesSinProcesoData && proyeccionesSinProcesoData.success && proyeccionesSinProcesoData.data && Array.isArray(proyeccionesSinProcesoData.data)) {
-        const proyeccionesSinProceso = proyeccionesSinProcesoData.data.map((p: ProyeccionEmprestito) => {
-          const uniqueId = p.id || `sinproc-${p.referencia_proceso || 'no-ref'}-${idCounter++}`
-          return {
-            ...p,
-            id: uniqueId,
-            sin_proceso: true, // Marcador para identificar proyecciones sin proceso
-            estado_proceso: 'Sin Proceso' // Campo adicional para filtrado
-          }
-        })
-        todasLasProyecciones = [...todasLasProyecciones, ...proyeccionesSinProceso]
-        console.log(`Proyecciones sin proceso agregadas: ${proyeccionesSinProceso.length}`)
-      } else {
-        console.log('No se pudieron cargar proyecciones sin proceso:', proyeccionesSinProcesoData)
-      }
-
-      // DEDUPLICAR: Mantener la versión más actualizada de cada proyección
-      // Si un ID existe en ambas APIs, dar prioridad a la versión de "sin proceso"
-      const proyeccionesMap = new Map<string, ProyeccionEmprestito>()
-      
-      todasLasProyecciones.forEach(proyeccion => {
-        const id = proyeccion.id || 'undefined'
-        const existing = proyeccionesMap.get(id)
-        
-        if (!existing) {
-          // No existe, agregar
-          proyeccionesMap.set(id, proyeccion)
-        } else {
-          // Ya existe, decidir cuál mantener
-          // Si la nueva es "sin proceso" y la existente no, reemplazar
-          if (proyeccion.sin_proceso && !existing.sin_proceso) {
-            console.warn(`Reemplazando proyección con ID ${id} - Priorizando versión "Sin Proceso"`)
-            proyeccionesMap.set(id, proyeccion)
-          } else {
-            console.warn(`Duplicado ignorado: ID ${id}`)
-          }
+      // Cargar solo desde el endpoint principal con parámetro false
+      const response = await fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       })
 
-      // Convertir el Map de vuelta a array
-      const proyeccionesDeduplicated = Array.from(proyeccionesMap.values())
+      if (!response.ok) {
+        throw new Error(`Error al cargar proyecciones: ${response.status}`)
+      }
 
-      console.log(`Total proyecciones antes de deduplicar: ${todasLasProyecciones.length}`)
-      console.log(`Total proyecciones después de deduplicar: ${proyeccionesDeduplicated.length}`)
-      console.log(`- Con proceso: ${proyeccionesDeduplicated.filter(p => !p.sin_proceso).length}`)
-      console.log(`- Sin proceso: ${proyeccionesDeduplicated.filter(p => p.sin_proceso).length}`)
+      const data = await response.json()
 
-      setProyecciones(proyeccionesDeduplicated)
+      if (!data.success || !data.data) {
+        throw new Error('Respuesta inválida del servidor')
+      }
+
+      // Cargar proyecciones sin proceso desde el segundo endpoint
+      const sinProcesoResponse = await fetch(`${baseUrl}/api/emprestito/proyecciones-sin-proceso?_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
+
+      let proyeccionesSinProceso: ProyeccionEmprestito[] = []
+      if (sinProcesoResponse.ok) {
+        const sinProcesoData = await sinProcesoResponse.json()
+        if (sinProcesoData.success && Array.isArray(sinProcesoData.data)) {
+          proyeccionesSinProceso = sinProcesoData.data
+        }
+      }
+
+      // Crear un Set con los IDs de proyecciones sin proceso
+      const idsSinProceso = new Set(proyeccionesSinProceso.map(p => p.id))
+
+      // Procesar todas las proyecciones del endpoint principal
+      const todasLasProyecciones = data.data.map((p: ProyeccionEmprestito) => {
+        // Verificar si NO tiene referencia_proceso O está en la lista de sin proceso
+        const sinRefProceso = !p.referencia_proceso || p.referencia_proceso.trim() === ''
+        const enListaSinProceso = idsSinProceso.has(p.id)
+        const esSinProceso = sinRefProceso || enListaSinProceso
+
+        return {
+          ...p,
+          sin_proceso: esSinProceso,
+          estado_proceso: esSinProceso ? 'Sin Proceso' : 'Con Proceso'
+        }
+      })
+
+      setProyecciones(todasLasProyecciones)
 
     } catch (err) {
       console.error('Error al cargar proyecciones:', err)
@@ -271,10 +231,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
   // Aplicar filtros y búsqueda
   const filteredProyecciones = useMemo(() => {
-    console.log('=== FILTERING DEBUG ===')
-    console.log('Total proyecciones in state:', proyecciones.length)
-    
-    const filtered = proyecciones.filter(proyeccion => {
+    return proyecciones.filter(proyeccion => {
       // Filtro de búsqueda global
       if (searchTerm) {
         const searchValue = searchTerm.toLowerCase()
@@ -307,30 +264,11 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
       return true
     })
-    
-    console.log('Filtered count:', filtered.length)
-    
-    // Verificar duplicados
-    const ids = proyecciones.map(p => p.id)
-    const uniqueIds = new Set(ids)
-    if (ids.length !== uniqueIds.size) {
-      console.error('⚠️ DUPLICATE IDs IN BASE PROYECCIONES!')
-      console.error('Total items:', ids.length)
-      console.error('Unique IDs:', uniqueIds.size)
-      const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
-      console.error('Duplicate IDs:', Array.from(new Set(duplicates)))
-    }
-    
-    return filtered
   }, [proyecciones, searchTerm, columnFilters])
 
   // Aplicar ordenamiento
   const sortedProyecciones = useMemo(() => {
-    console.log('=== SORTING DEBUG ===')
-    console.log('Filtered count:', filteredProyecciones.length)
-    console.log('Sort config:', sortConfig)
-    
-    const sorted = [...filteredProyecciones].sort((a, b) => {
+    return [...filteredProyecciones].sort((a, b) => {
       // ORDEN PRIMARIO: Sin Proceso primero
       if (a.sin_proceso !== b.sin_proceso) {
         return a.sin_proceso ? -1 : 1 // sin_proceso=true va primero
@@ -359,24 +297,6 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       
       return 0
     })
-    
-    console.log('Sorted count:', sorted.length)
-    console.log('First 3 IDs after sort:', sorted.slice(0, 3).map(p => p.id))
-    
-    // Verificar duplicados
-    const ids = sorted.map(p => p.id)
-    const uniqueIds = new Set(ids)
-    if (ids.length !== uniqueIds.size) {
-      console.error('⚠️ DUPLICATE IDs DETECTED!')
-      console.error('Total items:', ids.length)
-      console.error('Unique IDs:', uniqueIds.size)
-      
-      // Encontrar y loguear los IDs duplicados
-      const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
-      console.error('Duplicate IDs:', duplicates)
-    }
-    
-    return sorted
   }, [filteredProyecciones, sortConfig])
 
   // Calcular paginación

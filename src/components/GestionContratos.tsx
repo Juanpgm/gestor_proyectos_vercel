@@ -62,7 +62,7 @@ interface ContratoEmprestito {
   nombre_centro_gestor?: string
   estado?: string
   tipo_contrato?: string
-  nombre_banco?: string
+  banco?: string
   contratista?: string
   nit_contratista?: string
   supervisor?: string
@@ -118,14 +118,14 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     'numero_contrato',
     'objeto_contrato',
     'nombre_centro_gestor',
+    'banco',
     'estado_contrato',
     'modalidad_contratacion',
     'entidad_contratante',
     'valor_contrato',
     'fecha_firma_contrato',
     'contratista',
-    'nombre_resumido_proceso',
-    'contratista'
+    'nombre_resumido_proceso'
   ]))
   
   // Estados para paginación
@@ -148,8 +148,9 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       accessor: (contrato: ContratoEmprestito) => contrato.referencia_contrato || contrato.numero_contrato
     },
     { key: 'objeto_contrato', label: 'Objeto del Contrato', isSortable: true },
+    { key: 'nombre_resumido_proceso', label: 'Nombre Proceso', isSortable: true },
     { key: 'nombre_centro_gestor', label: 'Centro Gestor', isSortable: true },
-    { key: 'nombre_banco', label: 'Banco', isSortable: true },
+    { key: 'banco', label: 'Banco', isSortable: true },
     { key: 'estado_contrato', label: 'Estado Contrato', isSortable: true },
     { key: 'estado', label: 'Estado', isSortable: true },
     { key: 'valor_contrato', label: 'Valor Contrato', isSortable: true },
@@ -163,7 +164,6 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     { key: 'contratista', label: 'Contratista', isSortable: true },
     { key: 'nit_contratista', label: 'NIT Contratista', isSortable: true },
     { key: 'supervisor', label: 'Supervisor', isSortable: true },
-    { key: 'nombre_resumido_proceso', label: 'Nombre Proceso', isSortable: true },
     { key: 'referencia_proceso', label: 'Ref. Proceso', isSortable: true },
   ], []);
 
@@ -423,7 +423,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
 
     const bancos = new Set(
       allContratos
-        .map(contrato => contrato.nombre_banco)
+        .map(contrato => contrato.banco)
         .filter(Boolean)
     ).size
 

@@ -15,10 +15,21 @@ export async function GET(request: NextRequest) {
     
     console.log(`🌐 Conectando al backend: ${apiBaseUrl}`)
     
-    // Hacer petición al backend real
-    const backendUrl = `${apiBaseUrl}/emprestito/leer-tabla-proyecciones`
+    // Obtener parámetros de query de la request original
+    const { searchParams } = new URL(request.url)
+    const solo_no_guardados = searchParams.get('solo_no_guardados') || 'false'
+    const sheet_url = searchParams.get('sheet_url')
     
-    const response = await fetch(backendUrl, {
+    // Construir URL del backend con los parámetros
+    const backendUrl = new URL(`${apiBaseUrl}/emprestito/leer-tabla-proyecciones`)
+    backendUrl.searchParams.set('solo_no_guardados', solo_no_guardados)
+    if (sheet_url) {
+      backendUrl.searchParams.set('sheet_url', sheet_url)
+    }
+    
+    console.log(`📡 URL completa del backend: ${backendUrl.toString()}`)
+    
+    const response = await fetch(backendUrl.toString(), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
