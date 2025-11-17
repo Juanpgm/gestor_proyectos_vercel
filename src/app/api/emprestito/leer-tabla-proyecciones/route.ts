@@ -2,6 +2,47 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+// Función auxiliar para reintentar peticiones con backoff exponencial
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  initialDelay = 1000
+): Promise<Response> {
+  let lastError: Error | null = null
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        const delay = initialDelay * Math.pow(2, attempt - 1)
+        console.log(`⏳ Reintento ${attempt}/${maxRetries} después de ${delay}ms...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+      
+      const response = await fetch(url, options)
+      
+      // Si es 503, reintentar
+      if (response.status === 503 && attempt < maxRetries) {
+        console.log(`⚠️ Servicio no disponible (503), reintentando...`)
+        lastError = new Error(`503 Service Unavailable (intento ${attempt + 1})`)
+        continue
+      }
+      
+      return response
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Error desconocido')
+      console.error(`❌ Error en intento ${attempt + 1}:`, lastError.message)
+      
+      // Si es el último intento o no es un error de red, lanzar
+      if (attempt === maxRetries || !(error instanceof TypeError)) {
+        throw lastError
+      }
+    }
+  }
+  
+  throw lastError || new Error('Todos los intentos fallaron')
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('📊 Cargando proyecciones de empréstito desde backend externo...')
@@ -29,17 +70,19 @@ export async function GET(request: NextRequest) {
     
     console.log(`📡 URL completa del backend: ${backendUrl.toString()}`)
     
-    const response = await fetch(backendUrl.toString(), {
+    const response = await fetchWithRetry(backendUrl.toString(), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      // Timeout de 30 segundos
-      signal: AbortSignal.timeout(30000)
-    })
+      // Timeout de 45 segundos
+      signal: AbortSignal.timeout(45000)
+    }, 3, 2000)
     
     if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Sin detalles')
+      console.error(`❌ Backend respondió con error: ${response.status} ${response.statusText}`, errorText)
       throw new Error(`Error del backend: ${response.status} ${response.statusText}`)
     }
     
