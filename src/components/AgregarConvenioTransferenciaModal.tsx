@@ -242,7 +242,12 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
       // Si estamos editando, usar función especial
       if (editingData && onEdit) {
         try {
-          await onEdit(editingData.numero_contrato, formData)
+          // Usar el ID del documento (doc_id) que es el campo 'id' en Firestore
+          const docId = editingData.id || editingData.doc_id
+          if (!docId) {
+            throw new Error('No se encontró el ID del documento para actualizar')
+          }
+          await onEdit(docId, formData)
           setSuccess('Convenio/Transferencia actualizado exitosamente')
           setTimeout(() => {
             onClose()

@@ -190,12 +190,24 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         if (sinProcesoData.success && Array.isArray(sinProcesoData.data)) {
           proyeccionesSinProceso = sinProcesoData.data
         }
+      } else {
+        console.error('❌ Error al cargar proyecciones sin proceso:', sinProcesoResponse.status)
       }
 
       // Crear un Set con los IDs de proyecciones sin proceso
       const idsSinProceso = new Set(proyeccionesSinProceso.map(p => p.id))
+      
+      // Verificar cuáles IDs de sin-proceso están en los datos principales
+      const idsEnPrincipal = new Set(data.data.map((p: any) => p.id))
+      const faltantesEnPrincipal = proyeccionesSinProceso.filter(p => !idsEnPrincipal.has(p.id))
+      
+      if (faltantesEnPrincipal.length > 0) {
+        console.log(`➕ Agregando ${faltantesEnPrincipal.length} registros sin proceso que faltan en el endpoint principal`)
+        // Agregar los registros faltantes al array principal
+        data.data = [...data.data, ...faltantesEnPrincipal]
+      }
 
-      // Procesar todas las proyecciones del endpoint principal
+      // Procesar todas las proyecciones del endpoint principal (ahora incluye los agregados)
       const todasLasProyecciones = data.data.map((p: ProyeccionEmprestito) => {
         // Verificar si NO tiene referencia_proceso O está en la lista de sin proceso
         const sinRefProceso = !p.referencia_proceso || p.referencia_proceso.trim() === ''
