@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { parseGeometry, createGeoJSONFeatureCollection } from '@/utils/geometryParser';
 
 // Schemas de validación usando Zod para garantizar tipo de datos
 const GeometrySchema = z.object({
@@ -255,8 +256,32 @@ export const fetchGeometryData = async (filters: FilterParams = {}): Promise<Geo
       throw new Error('Formato de respuesta de geometría inesperado');
     }
     
+    // Procesar geometrías con el parser para manejar strings JSON
+    console.log(`🔧 fetchGeometryData: Parsing geometries...`);
+    const parsedFeatures = geoJsonData.features.map((feature: any) => {
+      const parsedGeometry = parseGeometry(feature.geometry);
+      
+      if (!parsedGeometry) {
+        console.warn(`⚠️ Failed to parse geometry for feature:`, feature.properties?.upid);
+        return null;
+      }
+      
+      return {
+        type: 'Feature',
+        geometry: parsedGeometry,
+        properties: feature.properties
+      };
+    }).filter((f: any) => f !== null);
+    
+    const parsedGeoJsonData = {
+      type: 'FeatureCollection' as const,
+      features: parsedFeatures
+    };
+    
+    console.log(`✅ fetchGeometryData: Parsed ${parsedFeatures.length} of ${geoJsonData.features.length} features`);
+    
     // Validar estructura de datos con el schema
-    const validatedData = GeometrySchema.parse(geoJsonData);
+    const validatedData = GeometrySchema.parse(parsedGeoJsonData);
     
     console.log(`✅ fetchGeometryData: Successfully validated ${validatedData.features.length} features`);
     

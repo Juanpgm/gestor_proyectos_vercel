@@ -11,10 +11,12 @@
 ### ✅ Datos Existentes
 
 1. **En la tabla de filtros (`/unidades-proyecto/filters`)**:
+
    - "Vias" aparece correctamente en la lista de tipos de equipamiento
    - Posición #21 de 23 tipos de equipamiento totales
 
 2. **En la tabla de atributos (`/unidades-proyecto/attributes`)**:
+
    - **231 registros** con `tipo_equipamiento = "Vias"`
    - 4 registros adicionales con `tipo_equipamiento = "Señalización Vial"`
    - **Total relacionado con vías: 235 registros**
@@ -31,6 +33,7 @@
 **El problema es del BACKEND (base de datos), NO del frontend.**
 
 ### Causa raíz:
+
 Los 231 registros con `tipo_equipamiento = "Vias"` **NO tienen geometrías asociadas** en la base de datos. Por lo tanto:
 
 - ✅ Los datos existen en la tabla de atributos
@@ -40,16 +43,17 @@ Los 231 registros con `tipo_equipamiento = "Vias"` **NO tienen geometrías asoci
 ### Características de los registros sin geometría:
 
 | Característica | Cantidad | Porcentaje |
-|----------------|----------|------------|
-| **Sin UPID** | 231/231 | 100% |
-| **Con Estado** | 229/231 | 99.1% |
-| **Sin Estado** | 2/231 | 0.9% |
-| **Con Nombre** | 230/231 | 99.6% |
-| **Sin Comuna** | Variable | - |
+| -------------- | -------- | ---------- |
+| **Sin UPID**   | 231/231  | 100%       |
+| **Con Estado** | 229/231  | 99.1%      |
+| **Sin Estado** | 2/231    | 0.9%       |
+| **Con Nombre** | 230/231  | 99.6%      |
+| **Sin Comuna** | Variable | -          |
 
 ### Ejemplos de registros sin geometría:
 
 1. **Carrera 118 Entre Calle 15 Y 16**
+
    - Estado: Finalizado
    - Comuna: PANCE
    - Centro Gestor: Secretaría de Infraestructura
@@ -57,6 +61,7 @@ Los 231 registros con `tipo_equipamiento = "Vias"` **NO tienen geometrías asoci
    - **Geometría: No existe**
 
 2. **Autopista Suroriental Entre Calle 52 Y 58**
+
    - Estado: Finalizado
    - Comuna: COMUNA 08
    - Centro Gestor: Secretaría de Infraestructura
@@ -84,11 +89,13 @@ Los 231 registros con `tipo_equipamiento = "Vias"` **NO tienen geometrías asoci
 4. Vincular las geometrías con los registros de atributos
 
 **Ventajas**:
+
 - ✅ Solución definitiva
 - ✅ Permite visualización completa en el mapa
 - ✅ Mantiene la consistencia de datos
 
 **Desventajas**:
+
 - ⏱️ Requiere tiempo para geocodificar 231 vías
 - 🔧 Requiere acceso y modificación de la base de datos
 
@@ -99,6 +106,7 @@ Los 231 registros con `tipo_equipamiento = "Vias"` **NO tienen geometrías asoci
 **Acción requerida**: Equipo de frontend
 
 Agregar un indicador visual que muestre:
+
 - Total de registros con datos
 - Total de registros con geometría
 - Diferencia (registros sin representación en el mapa)
@@ -112,20 +120,24 @@ const recordsWithGeometry = geometries.length; // 0
 const missingGeometries = totalRecords - recordsWithGeometry; // 231
 
 // Mostrar alerta
-{missingGeometries > 0 && (
-  <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
-    ⚠️ {missingGeometries} registros de "Vias" no tienen geometría asociada 
-    y no se pueden mostrar en el mapa.
-  </div>
-)}
+{
+  missingGeometries > 0 && (
+    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
+      ⚠️ {missingGeometries} registros de "Vias" no tienen geometría asociada y
+      no se pueden mostrar en el mapa.
+    </div>
+  );
+}
 ```
 
 **Ventajas**:
+
 - ✅ Implementación rápida
 - ✅ Informa al usuario del problema
 - ✅ No requiere cambios en backend
 
 **Desventajas**:
+
 - ❌ No resuelve el problema de fondo
 - ❌ Los datos siguen sin visualizarse
 
@@ -135,17 +147,17 @@ const missingGeometries = totalRecords - recordsWithGeometry; // 231
 
 Para contexto, estos son los tipos de equipamiento con más geometrías:
 
-| Tipo de Equipamiento | Features en Geometría |
-|----------------------|----------------------|
-| Vivienda Nueva | 671 |
-| Vivienda Mejoramiento | 231 |
-| Institución Educativa | 221 |
-| Infraestructura Cultural | 146 |
-| Infraestructura Recreo Deportiva | 118 |
-| Bibliotecas | 57 |
-| Parques y Zonas Verdes | 56 |
-| **Vias** | **0** ❌ |
-| Señalización Vial | 4 |
+| Tipo de Equipamiento             | Features en Geometría |
+| -------------------------------- | --------------------- |
+| Vivienda Nueva                   | 671                   |
+| Vivienda Mejoramiento            | 231                   |
+| Institución Educativa            | 221                   |
+| Infraestructura Cultural         | 146                   |
+| Infraestructura Recreo Deportiva | 118                   |
+| Bibliotecas                      | 57                    |
+| Parques y Zonas Verdes           | 56                    |
+| **Vias**                         | **0** ❌              |
+| Señalización Vial                | 4                     |
 
 ---
 
@@ -170,10 +182,12 @@ Se verificó que el frontend está funcionando correctamente:
 **Pasos sugeridos**:
 
 1. **Inmediato** (Frontend):
+
    - Implementar Opción 2 para informar al usuario
    - Agregar tooltip o mensaje explicativo
 
 2. **Corto plazo** (Backend):
+
    - Revisar la fuente original de datos de vías
    - Geocodificar las ubicaciones de las vías
    - Crear geometrías (LineString para vías lineales)
@@ -199,5 +213,6 @@ Se verificó que el frontend está funcionando correctamente:
 
 **Generado por**: Sistema de Diagnóstico de Unidades de Proyecto  
 **Archivos de test creados**:
+
 - `test-vias-equipamiento.js`
 - `test-vias-geometry-issue.js`
