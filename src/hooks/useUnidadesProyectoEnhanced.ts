@@ -148,8 +148,12 @@ export const useUnidadesProyecto = (
     }
   }, [enableLocalFiltering, updateState]);
 
-  // Función pública para refrescar datos
-  const refetch = useCallback(() => fetchAllData(filters), [fetchAllData, filters]);
+  // Función pública para refrescar datos (fuerza recarga completa sin cache)
+  const refetch = useCallback(() => {
+    console.log('🔄 REFETCH: Forzando recarga completa de datos...');
+    console.log('⏰ REFETCH: Timestamp', new Date().toISOString());
+    return fetchAllData(filters);
+  }, [fetchAllData, filters]);
 
   // Funciones de filtrado
   const setFilters = useCallback((newFilters: FilterParams) => {

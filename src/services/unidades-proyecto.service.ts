@@ -53,10 +53,10 @@ const FilterSchema = z.object({
   tipos_intervencion: z.array(z.string()),
   tipos_equipamiento: z.array(z.string()),
   centros_gestores: z.array(z.string()),
-  comunas_corregimientos: z.array(z.string()),
+  comunas: z.array(z.string()), // La API devuelve 'comunas' no 'comunas_corregimientos'
   barrios_veredas: z.array(z.string()),
   fuentes_financiacion: z.array(z.string()),
-  anos: z.array(z.number())
+  anos: z.array(z.string()) // La API devuelve años como strings
 });
 
 // Tipos derivados de los schemas
@@ -73,7 +73,7 @@ export interface FilterParams {
   comuna_corregimiento?: string;
   barrio_vereda?: string;
   fuente_financiacion?: string;
-  ano?: number;
+  ano?: string; // Cambiar a string para consistencia con la API
   search?: string;
   // Campos para filtros múltiples
   estado_multiple?: string[];
@@ -126,14 +126,20 @@ const fetchWithRetry = async (
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
     
-    const response = await fetch(url, {
+    // Agregar timestamp único a la URL para evitar cualquier cache
+    const separator = url.includes('?') ? '&' : '?';
+    const urlWithTimestamp = `${url}${separator}_t=${Date.now()}&_r=${Math.random()}`;
+    
+    const response = await fetch(urlWithTimestamp, {
       ...options,
       signal: controller.signal,
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
         'Pragma': 'no-cache',
+        'Expires': '0',
         'X-Cache-Bust': Date.now().toString(),
         ...options.headers
       }
@@ -186,9 +192,11 @@ export const fetchGeometryData = async (filters: FilterParams = {}): Promise<Geo
     const queryString = buildFilterQuery(filters);
     const url = `${API_CONFIG.BASE_PATH}/geometry${queryString ? `?${queryString}` : ''}`;
     
-    console.log(`🌐 fetchGeometryData: Requesting ${url}`);
+    console.log(`🌐 fetchGeometryData: Requesting FRESH data from ${url}`);
+    console.log(`⏰ fetchGeometryData: Timestamp ${new Date().toISOString()}`);
     
     const response = await fetchWithRetry(url);
+    console.log(`📦 fetchGeometryData: Cache headers:`, response.headers.get('cache-control'));
     const apiResponse = await response.json();
     
     console.log(`📦 fetchGeometryData: Response structure:`, {
@@ -267,12 +275,14 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
     const queryString = buildFilterQuery(filters);
     const url = `${API_CONFIG.BASE_PATH}/attributes${queryString ? `?${queryString}` : ''}`;
     
-    console.log(`🌐 fetchAttributeData: Requesting ${url}`);
+    console.log(`🌐 fetchAttributeData: Requesting FRESH data from ${url}`);
+    console.log(`⏰ fetchAttributeData: Timestamp ${new Date().toISOString()}`);
     
     const response = await fetchWithRetry(url);
     const apiResponse = await response.json();
     
     console.log(`📦 fetchAttributeData: Response type:`, typeof apiResponse, Array.isArray(apiResponse) ? 'array' : 'object');
+    console.log(`📦 fetchAttributeData: Cache headers:`, response.headers.get('cache-control'));
     
     // Los datos ahora vienen unwrapped desde el proxy
     let dataArray;
@@ -343,76 +353,56 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
 
 /**
  * Obtiene opciones de filtros disponibles
+ * Siempre genera filtros desde los datos reales de attributes para garantizar consistencia
  */
 export const fetchFilterData = async (): Promise<FilterData> => {
   try {
-    console.log(`🌐 fetchFilterData: Requesting ${API_CONFIG.BASE_PATH}/filters`);
+    console.log(`🌐 fetchFilterData: Obteniendo filtros desde datos de attributes`);
     
-    const response = await fetchWithRetry(`${API_CONFIG.BASE_PATH}/filters`);
-    const apiResponse = await response.json();
+    // SIEMPRE obtener filtros desde los datos reales de attributes
+    const attributeData = await fetchAttributeData();
     
-    console.log(`📦 fetchFilterData: Response structure:`, {
-      hasSuccess: 'success' in apiResponse,
-      hasFilters: 'filters' in apiResponse,
-      isArray: Array.isArray(apiResponse),
-      keys: Object.keys(apiResponse)
-    });
-    
-    // Determinar dónde están los filtros basado en la respuesta de la API
-    let rawFilters;
-    
-    if (apiResponse.success && apiResponse.filters) {
-      // Respuesta estándar de la API con success: true
-      rawFilters = apiResponse.filters;
-    } else if (apiResponse.filters) {
-      // Respuesta con filtros directos
-      rawFilters = apiResponse.filters;
-    } else {
-      // Respuesta directa (posiblemente unwrapped por el proxy)
-      rawFilters = apiResponse;
+    if (!attributeData || attributeData.length === 0) {
+      console.warn('⚠️ No hay datos de attributes disponibles para generar filtros');
+      return FilterSchema.parse({
+        estados: [],
+        tipos_intervencion: [],
+        tipos_equipamiento: [],
+        centros_gestores: [],
+        comunas_corregimientos: [],
+        barrios_veredas: [],
+        fuentes_financiacion: [],
+        anos: []
+      });
     }
     
-    console.log(`📊 fetchFilterData: Raw filters keys:`, Object.keys(rawFilters));
+    console.log(`📊 fetchFilterData: Generando filtros desde ${attributeData.length} registros`);
     
-    // Si tipos_equipamiento no viene en los filtros, obtenerlo de los datos de atributos
-    let tiposEquipamiento = rawFilters.tipos_equipamiento || [];
+    // Generar filtros desde los datos reales
+    const generatedFilters = generateFiltersFromData(attributeData);
     
-    if (!tiposEquipamiento || tiposEquipamiento.length === 0) {
-      console.log('⚠️ tipos_equipamiento no disponible en filtros, obteniendo desde datos de atributos...');
-      try {
-        const attributeData = await fetchAttributeData();
-        const extractUniqueValues = <T>(items: T[], key: keyof T): string[] => 
-          Array.from(new Set(items.map(item => String(item[key])).filter(Boolean))).sort();
-        tiposEquipamiento = extractUniqueValues(attributeData, 'tipo_equipamiento');
-        console.log(`✅ tipos_equipamiento generados: ${tiposEquipamiento.length} valores únicos`);
-      } catch (error) {
-        console.warn('⚠️ No se pudieron obtener tipos_equipamiento desde datos de atributos:', error);
-      }
-    }
-    
-    const processedFilters = FilterSchema.parse({
-      estados: rawFilters.estados || [],
-      tipos_intervencion: rawFilters.tipos_intervencion || [],
-      tipos_equipamiento: tiposEquipamiento,
-      centros_gestores: rawFilters.centros_gestores || [],
-      comunas_corregimientos: rawFilters.comunas_corregimientos || rawFilters.comunas || [],
-      barrios_veredas: rawFilters.barrios_veredas || [],
-      fuentes_financiacion: rawFilters.fuentes_financiacion || [],
-      anos: rawFilters.anos ? rawFilters.anos.map((ano: string) => parseInt(ano)).filter((ano: number) => !isNaN(ano)) : []
+    console.log(`✅ fetchFilterData: Filtros generados exitosamente:`, {
+      estados: generatedFilters.estados.length,
+      tipos_intervencion: generatedFilters.tipos_intervencion.length,
+      tipos_equipamiento: generatedFilters.tipos_equipamiento.length,
+      centros_gestores: generatedFilters.centros_gestores.length,
+      comunas: generatedFilters.comunas.length,
+      barrios_veredas: generatedFilters.barrios_veredas.length,
+      fuentes_financiacion: generatedFilters.fuentes_financiacion.length,
+      anos: generatedFilters.anos.length
     });
     
-    console.log(`✅ fetchFilterData: Processed filters:`, {
-      estados: processedFilters.estados.length,
-      tipos_intervencion: processedFilters.tipos_intervencion.length,
-      tipos_equipamiento: processedFilters.tipos_equipamiento.length,
-      centros_gestores: processedFilters.centros_gestores.length,
-      comunas_corregimientos: processedFilters.comunas_corregimientos.length,
-      barrios_veredas: processedFilters.barrios_veredas.length,
-      fuentes_financiacion: processedFilters.fuentes_financiacion.length,
-      anos: processedFilters.anos.length
+    // Log de muestra de valores
+    console.log(`📋 fetchFilterData: Muestra de valores únicos:`, {
+      estados: generatedFilters.estados.slice(0, 3),
+      tipos_intervencion: generatedFilters.tipos_intervencion.slice(0, 3),
+      tipos_equipamiento: generatedFilters.tipos_equipamiento.slice(0, 3),
+      centros_gestores: generatedFilters.centros_gestores.slice(0, 3),
+      comunas: generatedFilters.comunas.slice(0, 3),
+      anos: generatedFilters.anos
     });
     
-    return processedFilters;
+    return generatedFilters;
   } catch (error) {
     console.error('❌ fetchFilterData error:', error);
     return handleApiError(error);
@@ -421,24 +411,50 @@ export const fetchFilterData = async (): Promise<FilterData> => {
 
 /**
  * Función utilitaria para generar filtros desde datos existentes
+ * Extrae valores únicos de cada campo, filtrando vacíos y undefined
  */
 export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
-  const extractUniqueValues = <T>(items: T[], key: keyof T): string[] => 
-    Array.from(new Set(items.map(item => String(item[key])).filter(Boolean))).sort();
+  const extractUniqueValues = <T>(items: T[], key: keyof T): string[] => {
+    const values = items
+      .map(item => item[key])
+      .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
+      .map(val => String(val).trim());
+    
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, 'es'));
+  };
 
-  const extractUniqueNumbers = <T>(items: T[], key: keyof T): number[] => 
-    Array.from(new Set(items.map(item => Number(item[key])).filter(num => !isNaN(num)))).sort((a, b) => b - a);
+  const extractUniqueYears = <T>(items: T[], key: keyof T): string[] => {
+    const years = items
+      .map(item => String(item[key]).replace('.0', '')) // Remover .0 de los años
+      .filter(year => year && year !== 'undefined' && year !== 'null' && !isNaN(Number(year)));
+    
+    return Array.from(new Set(years)).sort((a, b) => Number(b) - Number(a));
+  };
 
-  return {
+  const filters = {
     estados: extractUniqueValues(data, 'estado'),
     tipos_intervencion: extractUniqueValues(data, 'tipo_intervencion'),
     tipos_equipamiento: extractUniqueValues(data, 'tipo_equipamiento'),
     centros_gestores: extractUniqueValues(data, 'nombre_centro_gestor'),
-    comunas_corregimientos: extractUniqueValues(data, 'comuna_corregimiento'),
+    comunas: extractUniqueValues(data, 'comuna_corregimiento'), // Mapear comuna_corregimiento a comunas
     barrios_veredas: extractUniqueValues(data, 'barrio_vereda'),
     fuentes_financiacion: extractUniqueValues(data, 'fuente_financiacion'),
-    anos: extractUniqueNumbers(data, 'ano')
+    anos: extractUniqueYears(data, 'ano')
   };
+  
+  console.log('🔍 generateFiltersFromData: Filtros extraídos:', {
+    totalData: data.length,
+    estados: filters.estados.length,
+    tipos_intervencion: filters.tipos_intervencion.length,
+    tipos_equipamiento: filters.tipos_equipamiento.length,
+    centros_gestores: filters.centros_gestores.length,
+    comunas: filters.comunas.length,
+    barrios_veredas: filters.barrios_veredas.length,
+    fuentes_financiacion: filters.fuentes_financiacion.length,
+    anos: filters.anos.length
+  });
+  
+  return filters;
 };
 
 /**
@@ -498,7 +514,7 @@ export const filterAttributeData = (
               case 'fuente_financiacion':
                 return multipleValues.includes(item.fuente_financiacion);
               case 'ano':
-                return multipleValues.map(String).includes(String(item.ano));
+                return multipleValues.map(v => String(v).replace('.0', '')).includes(String(item.ano).replace('.0', ''));
               default:
                 return true;
             }
@@ -520,7 +536,7 @@ export const filterAttributeData = (
               case 'fuente_financiacion':
                 return item.fuente_financiacion === value;
               case 'ano':
-                return item.ano === Number(value);
+                return String(item.ano).replace('.0', '') === String(value).replace('.0', '');
               default:
                 return true;
             }

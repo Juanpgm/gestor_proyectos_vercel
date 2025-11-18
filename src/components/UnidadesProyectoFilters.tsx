@@ -536,7 +536,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Comuna/Corregimiento"
             value={filters.comuna_corregimiento}
             onChange={(value) => handleFilterChange('comuna_corregimiento', value)}
-            options={filterData?.comunas_corregimientos || []}
+            options={filterData?.comunas || []}
             placeholder="Todas las comunas"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -575,7 +575,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Año"
             value={filters.ano}
             onChange={(value) => handleFilterChange('ano', value)}
-            options={filterData?.anos?.map(ano => ano.toString()) || []}
+            options={filterData?.anos || []}
             placeholder="Todos los años"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -635,8 +635,9 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
               <span>Estados: {filterData.estados.length}</span>
               <span>Tipos: {filterData.tipos_intervencion.length}</span>
+              <span>Equipamientos: {filterData.tipos_equipamiento.length}</span>
               <span>Centros: {filterData.centros_gestores.length}</span>
-              <span>Comunas: {filterData.comunas_corregimientos.length}</span>
+              <span>Comunas: {filterData.comunas.length}</span>
               <span>Barrios: {filterData.barrios_veredas.length}</span>
               <span>Años: {filterData.anos.length}</span>
             </div>
