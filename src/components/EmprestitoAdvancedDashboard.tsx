@@ -1769,6 +1769,13 @@ const useEmprestitoRealData = () => {
 
   // Análisis por banco
   const analysisByBank = useMemo((): AnalysisByBank[] => {
+    // Valores fijos por banco (valores asignados reales)
+    const valoresAsignadosPorBanco: Record<string, number> = {
+      'Bancolombia': 362000000000,      // 362 mil millones
+      'Davivienda': 528000000000,       // 528 mil millones
+      'BBVA': 250000000000              // 250 mil millones
+    }
+
     const bankMap = new Map<string, AnalysisByBank>()
 
     filteredData.forEach(contrato => {
@@ -1792,7 +1799,7 @@ const useEmprestitoRealData = () => {
         bankMap.set(banco, {
           banco,
           totalContratos: 0,
-          valorAsignadoBanco: 0,                  // Será la suma de valorAdjudicado por banco
+          valorAsignadoBanco: valoresAsignadosPorBanco[banco] || 0,  // Asignar valor fijo desde el inicio
           valorAdjudicado: 0,                     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,                      // Calculado desde reportes
           valorPagado: 0,                         // Calculado desde pagos
@@ -1804,7 +1811,6 @@ const useEmprestitoRealData = () => {
       const analysis = bankMap.get(banco)!
       analysis.totalContratos += 1
       analysis.valorAdjudicado += valorContrato
-      analysis.valorAsignadoBanco += valorContrato // Asignado Banco = suma de contratos adjudicados
       analysis.valorEjecutado += valorEjecutado
       analysis.valorPagado += valorPagadoContrato
 
@@ -1825,7 +1831,13 @@ const useEmprestitoRealData = () => {
         : 0
     })
 
-    return Array.from(bankMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
+    const result = Array.from(bankMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
+    console.log('🏦 Análisis por Banco:', result.map(r => ({
+      banco: r.banco,
+      valorAsignadoBanco: r.valorAsignadoBanco,
+      valorAdjudicado: r.valorAdjudicado
+    })))
+    return result
   }, [filteredData, reportes, pagos])
 
   // Análisis por centro gestor
@@ -1942,19 +1954,29 @@ const useEmprestitoRealData = () => {
 
   // Análisis por banco para el gráfico (solo bancos con contratos asignados)
   const analysisByBankForChart = useMemo((): AnalysisByBank[] => {
+    // Valores fijos por banco (valores asignados reales)
+    const valoresAsignadosPorBanco: Record<string, number> = {
+      'Bancolombia': 362000000000,      // 362 mil millones
+      'Davivienda': 528000000000,       // 528 mil millones
+      'BBVA': 250000000000              // 250 mil millones
+    }
+
     const bankMap = new Map<string, AnalysisByBank>()
 
     // PASO 1: Inicializar TODOS los bancos que tienen valor_asignado_banco válido del endpoint
     emprestitoBancos.forEach((datosBanco: any) => {
       if (datosBanco.valor_asignado_banco && datosBanco.valor_asignado_banco > 0) {
         const nombreBanco = datosBanco.nombre_banco
+        // Usar valor fijo si existe, sino usar el del endpoint
+        const valorAsignado = valoresAsignadosPorBanco[nombreBanco] || datosBanco.valor_asignado_banco
+        
         bankMap.set(nombreBanco, {
           banco: nombreBanco,
           totalContratos: 0,
-          valorAsignadoBanco: datosBanco.valor_asignado_banco, // Del endpoint bancos_emprestito_all
-          valorAdjudicado: 0,                                  // Se calculará desde contratos
-          valorEjecutado: 0,                                   // Se calculará desde reportes
-          valorPagado: 0,                                      // Inicialmente 0
+          valorAsignadoBanco: valorAsignado, // Valor fijo o del endpoint
+          valorAdjudicado: 0,                // Se calculará desde contratos
+          valorEjecutado: 0,                 // Se calculará desde reportes
+          valorPagado: 0,                    // Inicialmente 0
           porcentajeEjecucion: 0,
           promedioAvance: 0
         })
@@ -1964,7 +1986,10 @@ const useEmprestitoRealData = () => {
     // Debug: Log de bancos inicializados
     console.log('🏦 Bancos inicializados en analysisByBankForChart:', {
       totalBancosConValor: bankMap.size,
-      bancos: Array.from(bankMap.keys())
+      bancos: Array.from(bankMap.entries()).map(([nombre, data]) => ({
+        nombre,
+        valorAsignadoBanco: data.valorAsignadoBanco
+      }))
     })
 
     // PASO 2: Agregar datos de contratos a los bancos que los tienen

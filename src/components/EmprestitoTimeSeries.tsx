@@ -12,34 +12,94 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  Cell
+  Cell,
+  BarChart,
+  PieChart,
+  Pie,
+  AreaChart,
+  Area
 } from 'recharts'
-import { TrendingUp } from 'lucide-react'
+import { TrendingUp, DollarSign, Building2, Calendar, TrendingDown } from 'lucide-react'
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
 
-interface FlujoCajaData {
+// Tipos para el endpoint /emprestito/flujo-caja/all
+interface FlujoCajaRecord {
+  id: string
+  bp_proyecto?: string
+  descripcion_bp?: string
+  responsable?: string
+  organismo?: string
   banco: string
-  centro_gestor: string
-  [key: string]: string // Los meses están como claves dinámicas con fechas en formato string
+  mes: string
+  periodo: string
+  desembolso: number
+  desembolso_real?: number
+}
+
+interface FlujoCajaResponse {
+  success: boolean
+  data: FlujoCajaRecord[]
 }
 
 interface EmprestitoTimeSeriesProps {
-  data?: FlujoCajaData[]
-  loading?: boolean
+  className?: string
 }
 
-const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
-  data = [],
-  loading = false
-}) => {
+const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className = '' }) => {
+  // Estado para datos y carga
+  const [data, setData] = React.useState<FlujoCajaRecord[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  // Función para formatear valores del eje Y de forma compacta
+  const formatAxisValue = (value: number): string => {
+    if (value === 0) return '$0'
+    const absValue = Math.abs(value)
+    if (absValue >= 1e12) return `$${(value / 1e12).toFixed(1)}B` // Billones
+    if (absValue >= 1e9) return `$${(value / 1e9).toFixed(1)}MM` // Miles de millones
+    if (absValue >= 1e6) return `$${(value / 1e6).toFixed(0)}M` // Millones
+    if (absValue >= 1e3) return `$${(value / 1e3).toFixed(0)}K` // Miles
+    return `$${value.toFixed(0)}`
+  }
+  
   // Estado para controlar qué bancos están seleccionados
   const [selectedBancos, setSelectedBancos] = React.useState<Set<string>>(new Set())
   const [isInitialized, setIsInitialized] = React.useState(false)
 
+  // Fetch data from API
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await fetch('https://gestorproyectoapi-production.up.railway.app/emprestito/flujo-caja/all')
+        
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        }
+        
+        const result: FlujoCajaResponse = await response.json()
+        
+        if (result.success && result.data) {
+          setData(result.data)
+        } else {
+          throw new Error('Formato de respuesta inválido')
+        }
+      } catch (err) {
+        console.error('Error fetching flujo de caja data:', err)
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
   // Obtener bancos únicos (fuera del useMemo para poder usar en useEffect)
   const bancos = React.useMemo(() => {
     if (!data || data.length === 0) return []
-    return Array.from(new Set(data.map(row => row.banco)))
+    return Array.from(new Set(data.map(row => row.banco))).sort()
   }, [data])
 
   // Inicializar bancos seleccionados cuando cambien los bancos disponibles
@@ -99,22 +159,25 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
       return { data: [], bancoColors: {} }
     }
 
-    // Obtener todas las fechas (columnas que no sean banco o centro_gestor)
-    const dateColumns = Object.keys(data[0] || {}).filter(
-      key => key !== 'banco' && key !== 'centro_gestor'
-    )
+    // Mapeo de meses a números para ordenamiento
+    const mesMap: Record<string, number> = {
+      'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4, 'may': 5, 'jun': 6,
+      'jul': 7, 'ago': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dic': 12
+    }
 
-    // Convertir fechas y ordenarlas
-    const sortedDates = dateColumns
-      .map(dateStr => ({ 
-        original: dateStr, 
-        date: new Date(dateStr),
-        formatted: new Date(dateStr).toLocaleDateString('es-ES', { 
-          year: 'numeric', 
-          month: '2-digit' 
-        }).replace('/', '-')
-      }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
+    // Obtener meses únicos y ordenarlos cronológicamente
+    const mesesUnicos = Array.from(new Set(data.map(r => r.mes)))
+      .sort((a, b) => {
+        // Extraer mes y año de formato "jul-25"
+        const [mesA, yearA] = a.split('-')
+        const [mesB, yearB] = b.split('-')
+        
+        // Ordenar primero por año, luego por mes
+        const yearDiff = parseInt('20' + yearA) - parseInt('20' + yearB)
+        if (yearDiff !== 0) return yearDiff
+        
+        return (mesMap[mesA] || 0) - (mesMap[mesB] || 0)
+      })
     
     // Filtrar bancos según selección
     const bancosToShow = bancos.filter(banco => selectedBancos.has(banco))
@@ -124,13 +187,16 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
       'Bancolombia': '#2563EB',
       'BBVA': '#EAB308', 
       'Davivienda': '#16A34A',
-      'Davivienda/Otro Si': '#8B5CF6'
+      'Davivienda/Otro Si': '#8B5CF6',
+      'BID': '#F97316',
+      'AFD': '#EC4899',
+      'FINDETER': '#06B6D4'
     }
 
     // Procesar datos mes a mes
-    const processedData = sortedDates.map(({ original: dateStr, formatted }) => {
+    const processedData = mesesUnicos.map(mes => {
       const mesData: any = { 
-        periodo: formatted,
+        periodo: mes,
         total: 0,
         acumulado: 0
       }
@@ -138,11 +204,8 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
       // Agregar valores por banco (solo los seleccionados)
       bancosToShow.forEach(banco => {
         const bancoTotal = data
-          .filter(row => row.banco === banco)
-          .reduce((sum, row) => {
-            const value = parseFloat(row[dateStr] || '0')
-            return sum + (isNaN(value) ? 0 : value)
-          }, 0)
+          .filter(row => row.banco === banco && row.mes === mes)
+          .reduce((sum, row) => sum + (row.desembolso_real || row.desembolso || 0), 0)
         
         mesData[`${banco}_valor`] = bancoTotal
         mesData.total += bancoTotal
@@ -172,7 +235,102 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
     }))
 
     return { data: enrichedData, bancosToShow, bancoColors }
-  }, [data, selectedBancos])
+  }, [data, selectedBancos, bancos])
+
+  // Calcular totales por banco
+  const totalesPorBanco = React.useMemo(() => {
+    if (!data || data.length === 0) return []
+
+    const bancosAgrupados: Record<string, { planeado: number; real: number; proyectos: Set<string> }> = {}
+
+    data.forEach(record => {
+      if (!bancosAgrupados[record.banco]) {
+        bancosAgrupados[record.banco] = { planeado: 0, real: 0, proyectos: new Set() }
+      }
+      bancosAgrupados[record.banco].planeado += record.desembolso || 0
+      bancosAgrupados[record.banco].real += record.desembolso_real || 0
+      if (record.bp_proyecto) {
+        bancosAgrupados[record.banco].proyectos.add(record.bp_proyecto)
+      }
+    })
+
+    return Object.entries(bancosAgrupados)
+      .map(([banco, values]) => ({
+        banco,
+        planeado: values.planeado,
+        real: values.real,
+        proyectos: values.proyectos.size,
+        cumplimiento: values.planeado > 0 ? (values.real / values.planeado) * 100 : 0
+      }))
+      .filter(b => b.planeado > 0) // Filtrar bancos sin datos
+      .sort((a, b) => b.planeado - a.planeado)
+  }, [data])
+
+  // Datos consolidados mensuales (planeado vs real)
+  const consolidadoMensual = React.useMemo(() => {
+    if (!data || data.length === 0) return []
+
+    const mesMap: Record<string, number> = {
+      'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4, 'may': 5, 'jun': 6,
+      'jul': 7, 'ago': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dic': 12
+    }
+
+    const mesesAgrupados: Record<string, { planeado: number; real: number }> = {}
+
+    data.forEach(record => {
+      if (!mesesAgrupados[record.mes]) {
+        mesesAgrupados[record.mes] = { planeado: 0, real: 0 }
+      }
+      mesesAgrupados[record.mes].planeado += record.desembolso || 0
+      mesesAgrupados[record.mes].real += record.desembolso_real || 0
+    })
+
+    return Object.entries(mesesAgrupados)
+      .map(([mes, values]) => ({
+        mes,
+        planeado: values.planeado,
+        real: values.real,
+        diferencia: values.real - values.planeado,
+        cumplimiento: values.planeado > 0 ? (values.real / values.planeado) * 100 : 0
+      }))
+      .sort((a, b) => {
+        const [mesA, yearA] = a.mes.split('-')
+        const [mesB, yearB] = b.mes.split('-')
+        const yearDiff = parseInt('20' + yearA) - parseInt('20' + yearB)
+        if (yearDiff !== 0) return yearDiff
+        return (mesMap[mesA] || 0) - (mesMap[mesB] || 0)
+      })
+  }, [data])
+
+  // Análisis por organismo
+  const analisisOrganismos = React.useMemo(() => {
+    if (!data || data.length === 0) return []
+
+    const organismosAgrupados: Record<string, { planeado: number; real: number; proyectos: Set<string> }> = {}
+
+    data.forEach(record => {
+      const org = record.organismo || 'Sin clasificar'
+      if (!organismosAgrupados[org]) {
+        organismosAgrupados[org] = { planeado: 0, real: 0, proyectos: new Set() }
+      }
+      organismosAgrupados[org].planeado += record.desembolso || 0
+      organismosAgrupados[org].real += record.desembolso_real || 0
+      if (record.bp_proyecto) {
+        organismosAgrupados[org].proyectos.add(record.bp_proyecto)
+      }
+    })
+
+    return Object.entries(organismosAgrupados)
+      .map(([organismo, values]) => ({
+        organismo,
+        planeado: values.planeado,
+        real: values.real,
+        proyectos: values.proyectos.size,
+        cumplimiento: values.planeado > 0 ? (values.real / values.planeado) * 100 : 0
+      }))
+      .sort((a, b) => b.planeado - a.planeado)
+      .slice(0, 10) // Top 10
+  }, [data])
 
   // Función para obtener color de intensidad para las barras
   const getColorIntensity = (value: number, maxValue: number, baseColor: [number, number, number]) => {
@@ -238,10 +396,26 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 ${className}`}
       >
         <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
           Cargando serie temporal de empréstito...
+        </div>
+      </motion.div>
+    )
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-red-200 dark:border-red-700 ${className}`}
+      >
+        <div className="text-center text-red-500 dark:text-red-400">
+          <p className="font-semibold mb-2">Error al cargar datos</p>
+          <p className="text-sm">{error}</p>
         </div>
       </motion.div>
     )
@@ -253,7 +427,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 ${className}`}
       >
         <div className="flex items-center gap-3 mb-6">
           <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -275,231 +449,477 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({
     )
   }
 
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 ${className}`}
+      >
+        <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
+          Cargando datos de empréstito...
+        </div>
+      </motion.div>
+    )
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-red-200 dark:border-red-700 ${className}`}
+      >
+        <div className="text-center text-red-500 dark:text-red-400">
+          <p className="font-semibold mb-2">Error al cargar datos</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      </motion.div>
+    )
+  }
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
-    >
-      <div className="flex items-center gap-3 mb-6">
-        <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
-          <TrendingUp className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Serie de Tiempo - Empréstito
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Flujo de caja mensual por banco (barras) y acumulado total (línea)
-          </p>
-        </div>
+    <div className="space-y-4">
+      {/* KPIs Principales */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between mb-0.5">
+            <DollarSign className="w-5 h-5 opacity-80" />
+            <span className="text-[10px] font-medium opacity-90">Total Adjudicado</span>
+          </div>
+          <div className="text-xl font-bold">
+            {formatNumber(data.reduce((sum, r) => sum + (r.desembolso || 0), 0), 'currency')}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between mb-0.5">
+            <TrendingUp className="w-5 h-5 opacity-80" />
+            <span className="text-[10px] font-medium opacity-90">Total Desembolsado</span>
+          </div>
+          <div className="text-xl font-bold">
+            {formatNumber(data.reduce((sum, r) => sum + (r.desembolso_real || 0), 0), 'currency')}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between mb-0.5">
+            <Building2 className="w-5 h-5 opacity-80" />
+            <span className="text-[10px] font-medium opacity-90">Bancos Activos</span>
+          </div>
+          <div className="text-xl font-bold">{bancos.filter(b => totalesPorBanco.find(t => t.banco === b && t.planeado > 0)).length}</div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 text-white shadow-lg"
+        >
+          <div className="flex items-center justify-between mb-0.5">
+            <Calendar className="w-5 h-5 opacity-80" />
+            <span className="text-[10px] font-medium opacity-90">% Cumplimiento</span>
+          </div>
+          <div className="text-xl font-bold">
+            {(() => {
+              const totalPlaneado = data.reduce((sum, r) => sum + (r.desembolso || 0), 0)
+              const totalReal = data.reduce((sum, r) => sum + (r.desembolso_real || 0), 0)
+              return totalPlaneado > 0 ? ((totalReal / totalPlaneado) * 100).toFixed(1) + '%' : '0%'
+            })()}
+          </div>
+        </motion.div>
       </div>
 
-      {/* Filtros de bancos */}
-      {bancos.length > 0 && (
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Filtrar por Banco:</h4>
-          <div className="flex flex-wrap gap-3">
-            {bancos.map(banco => (
-              <label key={banco} className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedBancos.has(banco)}
-                  onChange={(e) => {
-                    const newSelected = new Set(selectedBancos)
-                    if (e.target.checked) {
-                      newSelected.add(banco)
-                    } else {
-                      newSelected.delete(banco)
-                    }
-                    setSelectedBancos(newSelected)
-                  }}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span 
-                  className="text-sm font-medium"
-                  style={{ color: getBancoColor(banco) }}
-                >
-                  {banco}
-                </span>
-              </label>
-            ))}
+      {/* Serie de Tiempo Principal */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
+            <TrendingUp className="w-5 h-5 text-white" />
           </div>
-          
-          {/* Botones de acción rápida */}
-          <div className="mt-3 flex gap-2 items-center">
-            <button
-              onClick={() => {
-                if (bancos.length > 0) {
-                  setSelectedBancos(new Set(bancos))
-                }
-              }}
-              disabled={bancos.length === 0 || selectedBancos.size === bancos.length}
-              className={`px-3 py-1 text-xs rounded-md transition-all duration-200 font-medium ${
-                bancos.length === 0 || selectedBancos.size === bancos.length
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-100 hover:bg-blue-200 hover:shadow-sm text-blue-700 cursor-pointer active:bg-blue-300'
-              }`}
-              title={
-                bancos.length === 0 
-                  ? 'No hay bancos disponibles' 
-                  : selectedBancos.size === bancos.length 
-                    ? 'Todos los bancos ya están seleccionados'
-                    : `Seleccionar todos los bancos (${bancos.length})`
-              }
-            >
-              Seleccionar Todos
-              {bancos.length > 0 && selectedBancos.size < bancos.length && (
-                <span className="ml-1 text-xs opacity-75">
-                  ({bancos.length - selectedBancos.size})
-                </span>
-              )}
-            </button>
-            
-            <button
-              onClick={() => {
-                setSelectedBancos(new Set())
-              }}
-              className={`px-3 py-1 text-xs rounded-md transition-all duration-200 font-medium ${
-                selectedBancos.size === 0
-                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer'
-                  : 'bg-red-100 hover:bg-red-200 hover:shadow-sm text-red-700 cursor-pointer active:bg-red-300'
-              }`}
-              title={
-                selectedBancos.size === 0 
-                  ? 'Limpiar selección (ya está vacía)'
-                  : `Deseleccionar todos los bancos (${selectedBancos.size})`
-              }
-            >
-              Deseleccionar Todos
-              {selectedBancos.size > 0 && (
-                <span className="ml-1 text-xs opacity-75">
-                  ({selectedBancos.size})
-                </span>
-              )}
-            </button>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Serie de Tiempo - Empréstito
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Flujo de caja mensual por banco (barras) y acumulado total (línea)
+            </p>
+          </div>
+        </div>
 
-            <button
-              onClick={() => {
-                if (bancos.length > 0) {
-                  const newSelected = new Set<string>()
-                  bancos.forEach(banco => {
-                    if (!selectedBancos.has(banco)) {
-                      newSelected.add(banco)
-                    }
-                  })
-                  setSelectedBancos(newSelected)
-                }
-              }}
-              disabled={bancos.length === 0}
-              className={`px-3 py-1 text-xs rounded-md transition-all duration-200 font-medium ${
-                bancos.length === 0
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-purple-100 hover:bg-purple-200 hover:shadow-sm text-purple-700 cursor-pointer active:bg-purple-300'
-              }`}
-              title={
-                bancos.length === 0 
-                  ? 'No hay bancos disponibles' 
-                  : `Invertir selección actual (${bancos.length - selectedBancos.size} serán seleccionados)`
-              }
-            >
-              Alternar Selección
-              {bancos.length > 0 && (
-                <span className="ml-1 text-xs opacity-75">
-                  (→{bancos.length - selectedBancos.size})
-                </span>
-              )}
-            </button>
-
-            {/* Indicador de estado con atajos de teclado */}
-            <div className="ml-auto flex items-center gap-2">
-              <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
-                {selectedBancos.size} de {bancos.length} seleccionados
-              </div>
-              
-              {/* Tooltip de atajos de teclado */}
-              <div className="relative group">
-                <button 
-                  type="button"
-                  className="text-xs text-gray-400 hover:text-gray-600 w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center transition-colors"
-                  title="Atajos de teclado disponibles"
-                >
-                  ?
-                </button>
-                <div className="absolute right-0 top-6 w-64 bg-gray-800 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 shadow-lg">
-                  <div className="font-semibold mb-2">Atajos de teclado:</div>
-                  <div className="space-y-1">
-                    <div><span className="font-mono bg-gray-700 px-1 rounded">Ctrl+A</span> - Seleccionar todos</div>
-                    <div><span className="font-mono bg-gray-700 px-1 rounded">Ctrl+D</span> - Deseleccionar todos</div>
-                    <div><span className="font-mono bg-gray-700 px-1 rounded">Ctrl+I</span> - Invertir selección</div>
-                  </div>
-                  <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-800 transform rotate-45"></div>
-                </div>
-              </div>
+        {/* Filtros de bancos */}
+        {bancos.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filtrar por Banco:</h4>
+            <div className="flex flex-wrap gap-2">
+              {bancos.filter(b => totalesPorBanco.find(t => t.banco === b)).map(banco => (
+                <label key={banco} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedBancos.has(banco)}
+                    onChange={(e) => {
+                      const newSelected = new Set(selectedBancos)
+                      if (e.target.checked) {
+                        newSelected.add(banco)
+                      } else {
+                        newSelected.delete(banco)
+                      }
+                      setSelectedBancos(newSelected)
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span 
+                    className="text-sm font-medium"
+                    style={{ color: getBancoColor(banco) }}
+                  >
+                    {banco}
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="h-96">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart 
-            data={enrichedData} 
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
-            <XAxis 
-              dataKey="periodo" 
-              stroke="#6b7280"
-              fontSize={12}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis 
-              yAxisId="left"
-              stroke="#6b7280"
-              fontSize={12}
-              tickFormatter={(value) => formatNumber(value, 'currency')}
-            />
-            <YAxis 
-              yAxisId="right"
-              orientation="right"
-              stroke="#6b7280"
-              fontSize={12}
-              tickFormatter={(value) => formatNumber(value, 'currency')}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-            
-            {/* Barras para valores por banco */}
-            {bancosToShow.map(banco => (
-              <Bar 
-                key={banco}
-                yAxisId="right"
-                dataKey={`${banco}_valor`}
-                name={banco}
-                fill={getBancoColor(banco)}
-                opacity={0.8}
+        <div className="h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={enrichedData} 
+              margin={{ top: 5, right: 10, left: 5, bottom: 35 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+              <XAxis 
+                dataKey="periodo" 
+                stroke="#6b7280"
+                fontSize={9}
+                angle={-45}
+                textAnchor="end"
+                height={50}
+                tick={{ fontSize: 9 }}
               />
-            ))}
-            
-            {/* Línea para acumulado total */}
-            <Line 
-              yAxisId="left"
-              type="monotone" 
-              dataKey="acumulado" 
-              stroke="#DC2626"
-              strokeWidth={3}
-              name="Acumulado Total"
-              dot={{ fill: "#DC2626", strokeWidth: 2, r: 4 }}
-              connectNulls={false}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+              <YAxis 
+                yAxisId="left"
+                stroke="#6b7280"
+                fontSize={9}
+                width={50}
+                tickFormatter={formatAxisValue}
+                tick={{ fontSize: 9 }}
+              />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                stroke="#6b7280"
+                fontSize={9}
+                width={50}
+                tickFormatter={formatAxisValue}
+                tick={{ fontSize: 9 }}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ fontSize: '10px' }} iconSize={10} />
+              
+              {bancosToShow.map(banco => (
+                <Bar 
+                  key={banco}
+                  yAxisId="right"
+                  dataKey={`${banco}_valor`}
+                  name={banco}
+                  fill={getBancoColor(banco)}
+                  opacity={0.8}
+                />
+              ))}
+              
+              <Line 
+                yAxisId="left"
+                type="monotone" 
+                dataKey="acumulado" 
+                stroke="#DC2626"
+                strokeWidth={2}
+                name="Acumulado"
+                dot={{ fill: "#DC2626", strokeWidth: 1, r: 2 }}
+                connectNulls={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
+
+      {/* Gráficas en Cuadrícula 2x2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Total Asignado por Banco */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`p-1.5 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
+              <Building2 className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              Total Asignado por Banco
+            </h3>
+          </div>
+
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={totalesPorBanco} margin={{ top: 5, right: 10, left: 5, bottom: 35 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                <XAxis 
+                  dataKey="banco" 
+                  stroke="#6b7280"
+                  fontSize={9}
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
+                  tick={{ fontSize: 9 }}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={9}
+                  width={50}
+                  tickFormatter={formatAxisValue}
+                  tick={{ fontSize: 9 }}
+                />
+                <Tooltip 
+                  formatter={(value: any) => formatNumber(value, 'currency')}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '11px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '10px' }} iconSize={10} />
+                <Bar dataKey="planeado" fill="#3B82F6" name="Adjudicado" />
+                <Bar dataKey="real" fill="#10B981" name="Desembolsado" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Consolidado Mensual */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`p-1.5 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
+              <Calendar className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              Consolidado Mensual
+            </h3>
+          </div>
+
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={consolidadoMensual} margin={{ top: 5, right: 10, left: 5, bottom: 35 }}>
+                <defs>
+                  <linearGradient id="colorPlaneado" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                <XAxis 
+                  dataKey="mes" 
+                  stroke="#6b7280"
+                  fontSize={9}
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
+                  tick={{ fontSize: 9 }}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={9}
+                  width={50}
+                  tickFormatter={formatAxisValue}
+                  tick={{ fontSize: 9 }}
+                />
+                <Tooltip 
+                  formatter={(value: any) => formatNumber(value, 'currency')}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '11px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '10px' }} iconSize={10} />
+                <Area 
+                  type="monotone" 
+                  dataKey="planeado" 
+                  stroke="#3B82F6" 
+                  fillOpacity={1} 
+                  fill="url(#colorPlaneado)" 
+                  name="Adjudicado"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="real" 
+                  stroke="#10B981" 
+                  fillOpacity={1} 
+                  fill="url(#colorReal)" 
+                  name="Desembolsado"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Top 10 Organismos */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`p-1.5 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              Top 10 Organismos
+            </h3>
+          </div>
+
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={analisisOrganismos} 
+                layout="vertical"
+                margin={{ top: 5, right: 10, left: 80, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                <XAxis 
+                  type="number"
+                  stroke="#6b7280"
+                  fontSize={9}
+                  tickFormatter={formatAxisValue}
+                  tick={{ fontSize: 9 }}
+                />
+                <YAxis 
+                  type="category"
+                  dataKey="organismo"
+                  stroke="#6b7280"
+                  fontSize={8}
+                  width={75}
+                  tick={{ fontSize: 8 }}
+                />
+                <Tooltip 
+                  formatter={(value: any) => formatNumber(value, 'currency')}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '11px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '10px' }} iconSize={10} />
+                <Bar dataKey="planeado" fill="#3B82F6" name="Adjudicado" />
+                <Bar dataKey="real" fill="#10B981" name="Desembolsado" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Cuarta gráfica: Distribución por Banco (Pie Chart) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`p-1.5 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
+              <Building2 className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              Distribución por Banco
+            </h3>
+          </div>
+
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={totalesPorBanco}
+                  dataKey="planeado"
+                  nameKey="banco"
+                  cx="45%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={2}
+                  label={({ percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
+                  labelLine={{ stroke: '#6b7280', strokeWidth: 1 }}
+                  labelStyle={{ 
+                    fontSize: '11px', 
+                    fontWeight: 'bold',
+                    fill: '#1f2937'
+                  }}
+                >
+                  {totalesPorBanco.map((entry, index) => {
+                    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316']
+                    return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                  })}
+                </Pie>
+                <Tooltip 
+                  formatter={(value: any, name: string) => [formatNumber(value, 'currency'), name]}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    padding: '8px 12px'
+                  }}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '10px' }} 
+                  iconSize={10}
+                  layout="vertical"
+                  align="right"
+                  verticalAlign="middle"
+                  formatter={(value, entry: any) => {
+                    const item = totalesPorBanco.find(b => b.banco === value)
+                    return item ? `${value} (${((item.planeado / totalesPorBanco.reduce((s, b) => s + b.planeado, 0)) * 100).toFixed(1)}%)` : value
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
       </div>
-    </motion.div>
+
+
+    </div>
   )
 }
 
