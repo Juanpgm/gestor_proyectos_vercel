@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 // Función auxiliar para reintentar peticiones con backoff exponencial
 async function fetchWithRetry(
@@ -56,15 +58,18 @@ export async function GET(request: NextRequest) {
     
     console.log(`🌐 Conectando al backend: ${apiBaseUrl}`)
     
-    // Hacer petición al backend real
-    const backendUrl = `${apiBaseUrl}/emprestito/proyecciones-sin-proceso`
+    // Hacer petición al backend real con timestamp para evitar cache
+    const backendUrl = `${apiBaseUrl}/emprestito/proyecciones-sin-proceso?_nocache=${Date.now()}`
     
     const response = await fetchWithRetry(backendUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
       },
+      cache: 'no-store',
       // Timeout de 45 segundos
       signal: AbortSignal.timeout(45000)
     }, 3, 2000)
@@ -93,7 +98,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(backendData, {
       status: 200,
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'CDN-Cache-Control': 'no-cache',
+        'Vercel-CDN-Cache-Control': 'no-cache',
         'Content-Type': 'application/json',
       }
     })
