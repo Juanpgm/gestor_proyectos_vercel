@@ -86,7 +86,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
   const [searchTerm, setSearchTerm] = useState('')
   const [columnFilters, setColumnFilters] = useState<ColumnFilter>({})
   const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'item', direction: 'asc' }) // Ordenar por item por defecto
   
   // Estados para modal de agregar proceso
   const [showAgregarProcesoModal, setShowAgregarProcesoModal] = useState(false)
