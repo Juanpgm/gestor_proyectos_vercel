@@ -66,6 +66,9 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
   const [selectedBancos, setSelectedBancos] = React.useState<Set<string>>(new Set())
   const [isInitialized, setIsInitialized] = React.useState(false)
 
+  // Estado para filtro de meses (permite múltiples selecciones)
+  const [selectedMeses, setSelectedMeses] = React.useState<Set<string>>(new Set())
+
   // Fetch data from API
   React.useEffect(() => {
     const fetchData = async () => {
@@ -101,6 +104,33 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
     if (!data || data.length === 0) return []
     return Array.from(new Set(data.map(row => row.banco))).sort()
   }, [data])
+
+  // Obtener meses únicos ordenados cronológicamente
+  const mesesDisponibles = React.useMemo(() => {
+    if (!data || data.length === 0) return []
+    
+    const mesMap: Record<string, number> = {
+      'ene-25': 1, 'feb-25': 2, 'mar-25': 3, 'abr-25': 4, 'may-25': 5, 'jun-25': 6,
+      'jul-25': 7, 'ago-25': 8, 'sep-25': 9, 'oct-25': 10, 'nov-25': 11, 'dic-25': 12,
+      'ene-26': 13, 'feb-26': 14, 'mar-26': 15, 'abr-26': 16, 'may-26': 17, 'jun-26': 18,
+      'jul-26': 19, 'ago-26': 20, 'sep-26': 21, 'oct-26': 22, 'nov-26': 23, 'dic-26': 24,
+      'ene-27': 25, 'feb-27': 26, 'mar-27': 27, 'abr-27': 28, 'may-27': 29, 'jun-27': 30,
+      'jul-27': 31, 'ago-27': 32, 'sep-27': 33, 'oct-27': 34, 'nov-27': 35, 'dic-27': 36
+    }
+    
+    const meses = Array.from(new Set(data.map(row => row.mes)))
+      .filter(Boolean)
+      .sort((a, b) => (mesMap[a] || 999) - (mesMap[b] || 999))
+    
+    return meses
+  }, [data])
+
+  // Inicializar mes actual (el más reciente disponible)
+  React.useEffect(() => {
+    if (mesesDisponibles.length > 0 && selectedMeses.size === 0) {
+      setSelectedMeses(new Set([mesesDisponibles[mesesDisponibles.length - 1]]))
+    }
+  }, [mesesDisponibles, selectedMeses.size])
 
   // Inicializar bancos seleccionados cuando cambien los bancos disponibles
   React.useEffect(() => {
@@ -918,6 +948,296 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         </motion.div>
       </div>
 
+      {/* Separador para Análisis Detallado */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9 }}
+        className="relative my-8"
+      >
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+          <div className="w-full border-t-2 border-gray-300 dark:border-gray-600"></div>
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-gray-50 dark:bg-gray-900 px-6 py-2 text-lg font-semibold text-gray-900 dark:text-white rounded-full border-2 border-gray-300 dark:border-gray-600 shadow-sm">
+            Análisis Detallado de Desembolsos
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Selector de Meses Múltiple */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.0 }}
+        className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Seleccionar Meses:
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedMeses(new Set(mesesDisponibles))}
+              className="px-3 py-1.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-md transition-colors"
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setSelectedMeses(new Set())}
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+            >
+              Limpiar
+            </button>
+          </div>
+        </div>
+        
+        <div className="mt-3 flex flex-wrap gap-2">
+          {mesesDisponibles.map(mes => (
+            <button
+              key={mes}
+              onClick={() => {
+                const newSelected = new Set(selectedMeses)
+                if (newSelected.has(mes)) {
+                  newSelected.delete(mes)
+                } else {
+                  newSelected.add(mes)
+                }
+                setSelectedMeses(newSelected)
+              }}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                selectedMeses.has(mes)
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              {mes}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Gráfico de Barras por Organismo */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.05 }}
+        className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
+            <Building2 className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Desembolsos por Organismo
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Comparación de organismos en los meses seleccionados
+            </p>
+          </div>
+        </div>
+
+        <div className="h-96">
+          {(() => {
+            const filteredData = data.filter(record => 
+              (!selectedBancos.size || selectedBancos.has(record.banco)) &&
+              selectedMeses.has(record.mes) &&
+              (record.desembolso || 0) > 0
+            )
+
+            // Agrupar por organismo
+            const porOrganismo: Record<string, number> = {}
+            filteredData.forEach(record => {
+              const org = record.organismo || 'Sin clasificar'
+              porOrganismo[org] = (porOrganismo[org] || 0) + (record.desembolso || 0)
+            })
+
+            const chartData = Object.entries(porOrganismo)
+              .map(([organismo, total]) => ({ organismo, total }))
+              .sort((a, b) => b.total - a.total)
+              .slice(0, 15) // Top 15
+
+            if (chartData.length === 0) {
+              return (
+                <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                  <div className="text-center">
+                    <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No hay datos para los meses seleccionados</p>
+                  </div>
+                </div>
+              )
+            }
+
+            return (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
+                  <XAxis 
+                    type="number" 
+                    tickFormatter={formatAxisValue}
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                  />
+                  <YAxis 
+                    type="category" 
+                    dataKey="organismo" 
+                    width={150}
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                  />
+                  <Tooltip
+                    formatter={(value: any) => formatNumber(value, 'currency')}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <Bar dataKey="total" fill="#0D9488" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          })()}
+        </div>
+      </motion.div>
+
+      {/* Tabla Principal: Organismo → Proyectos → Desembolso */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.1 }}
+        className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
+            <Calendar className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Detalle de Desembolsos por Organismo
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Organismo → Proyectos → Desembolso
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Organismo
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Mes
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  BP Proyecto
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Descripción
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Desembolso
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {(() => {
+                const filteredData = data.filter(record => 
+                  (!selectedBancos.size || selectedBancos.has(record.banco)) &&
+                  selectedMeses.has(record.mes) &&
+                  (record.desembolso || 0) > 0
+                )
+
+                // Agrupar por organismo
+                const porOrganismo: Record<string, FlujoCajaRecord[]> = {}
+                
+                filteredData.forEach(record => {
+                  const org = record.organismo || 'Sin clasificar'
+                  if (!porOrganismo[org]) {
+                    porOrganismo[org] = []
+                  }
+                  porOrganismo[org].push(record)
+                })
+
+                // Ordenar organismos por total descendente
+                const organismosOrdenados = Object.entries(porOrganismo)
+                  .map(([org, records]) => ({
+                    org,
+                    records,
+                    total: records.reduce((sum, r) => sum + (r.desembolso || 0), 0)
+                  }))
+                  .sort((a, b) => b.total - a.total)
+
+                const rows: JSX.Element[] = []
+                let globalIndex = 0
+
+                if (organismosOrdenados.length === 0) {
+                  rows.push(
+                    <tr key="no-data">
+                      <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No hay datos disponibles para los meses seleccionados
+                      </td>
+                    </tr>
+                  )
+                }
+
+                organismosOrdenados.forEach(({ org, records, total }) => {
+                  // Fila de total del organismo
+                  rows.push(
+                    <tr key={`org-${org}`} className="bg-blue-50 dark:bg-blue-900/20 font-medium">
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                        {org}
+                      </td>
+                      <td colSpan={3} className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                        {records.length} proyectos
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
+                        {formatNumber(total, 'currency')}
+                      </td>
+                    </tr>
+                  )
+
+                  // Ordenar proyectos por desembolso descendente
+                  const proyectosOrdenados = records.sort((a, b) => 
+                    (b.desembolso || 0) - (a.desembolso || 0)
+                  )
+
+                  // Filas de detalle de proyectos
+                  proyectosOrdenados.forEach((record) => {
+                    rows.push(
+                      <tr key={`${globalIndex++}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 pl-8">
+                          ↳
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                          {record.mes}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-mono font-medium text-gray-900 dark:text-white">
+                          {record.bp_proyecto || 'N/A'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate">
+                          {record.descripcion_bp || 'Sin descripción'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
+                          {formatNumber(record.desembolso || 0, 'currency')}
+                        </td>
+                      </tr>
+                    )
+                  })
+                })
+
+                return rows
+              })()}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
 
     </div>
   )
