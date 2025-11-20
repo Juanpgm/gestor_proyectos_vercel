@@ -100,6 +100,19 @@ export async function GET(request: NextRequest) {
       timestamp: backendData.timestamp
     })
     
+    // Log de debugging para producción
+    if (backendData.data && backendData.data.length > 0) {
+      const sample = backendData.data[0]
+      console.log(`🔍 Muestra de datos - Item ${sample.item}:`, {
+        valor_proyectado: sample.valor_proyectado,
+        tipo: typeof sample.valor_proyectado,
+        nombre: sample.nombre_resumido_proceso || 'N/A'
+      })
+      
+      const conValor = backendData.data.filter((p: any) => p.valor_proyectado > 0).length
+      console.log(`📊 Registros con valor_proyectado > 0: ${conValor} de ${backendData.data.length}`)
+    }
+    
     // Verificar que la respuesta tenga el formato esperado
     if (!backendData.success) {
       throw new Error(`Error en respuesta del backend: ${backendData.error || 'Respuesta sin éxito'}`)

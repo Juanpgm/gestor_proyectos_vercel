@@ -87,6 +87,15 @@ export async function GET(request: NextRequest) {
       timestamp: backendData.timestamp
     })
     
+    // Log de debugging para producción
+    if (backendData.data && backendData.data.length > 0) {
+      const sample = backendData.data[0]
+      console.log(`🔍 Muestra sin-proceso - Item ${sample.item}:`, {
+        valor_proyectado: sample.valor_proyectado,
+        tipo: typeof sample.valor_proyectado
+      })
+    }
+    
     // Verificar que la respuesta tenga el formato esperado
     if (!backendData.success) {
       throw new Error(`Error en respuesta del backend: ${backendData.error || 'Respuesta sin éxito'}`)

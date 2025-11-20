@@ -14,6 +14,7 @@ El campo `valor_proyectado` está llegando con valor `0` para **todos los 143 re
 ## 🧪 Pruebas Realizadas
 
 ### Test 1: Backend Railway (Directo)
+
 ```
 Endpoint: https://gestorproyectoapi-production.up.railway.app/emprestito/leer-tabla-proyecciones
 Registros: 143
@@ -23,6 +24,7 @@ Con valor_proyectado null/undefined: 0
 ```
 
 ### Test 2: Proxy Vercel (Local)
+
 ```
 Endpoint: /api/emprestito/leer-tabla-proyecciones
 Registros: 143
@@ -31,6 +33,7 @@ Con valor_proyectado = 0: 143
 ```
 
 ### Test 3: Endpoint proyecciones-sin-proceso
+
 ```
 Endpoint: /emprestito/proyecciones-sin-proceso
 Registros: 8
@@ -43,11 +46,13 @@ Todos los valores: 0
 ## ✅ Verificaciones Completadas
 
 - ✅ **Frontend**: El código de `ProyeccionesEmprestito.tsx` está correcto
+
   - `formatValue()` funciona correctamente con tipo `'currency'`
   - La columna `valor_proyectado` está visible en la configuración
   - No hay transformaciones que eliminen o modifiquen el valor
 
 - ✅ **Proxy API**: Los routes en `/api/emprestito/` están correctos
+
   - No hay mapeos ni filtros que alteren `valor_proyectado`
   - `NextResponse.json()` preserva todos los campos
   - Cache está deshabilitado correctamente
@@ -66,14 +71,17 @@ Todos los valores: 0
 **Posibles causas:**
 
 1. **Google Sheet tiene valores en 0**
+
    - La columna de valores proyectados podría estar vacía o en cero
    - Verificar manualmente el Sheet
 
 2. **Nombre de columna incorrecto**
+
    - El backend busca una columna con nombre específico
    - Si el nombre cambió en el Sheet, no lee los datos
 
 3. **Mapeo de columnas incorrecto en backend**
+
    - El código Python del backend puede tener un mapeo erróneo
    - Necesita revisar el archivo que lee el Google Sheet
 
@@ -98,6 +106,7 @@ Verificar:
 ### 2. Revisar Mapeo de Columnas en Backend
 
 El backend necesita mapear correctamente:
+
 ```python
 # Ejemplo de mapeo esperado
 {
@@ -107,6 +116,7 @@ El backend necesita mapear correctamente:
 ```
 
 Posibles nombres de columna en el Sheet:
+
 - "Valor Proyectado"
 - "Valor_Proyectado"
 - "ValorProyectado"
@@ -131,6 +141,7 @@ En el backend FastAPI (Railway), verificar:
 ### 4. Logs del Backend
 
 Agregar logging para debug:
+
 ```python
 logger.info(f"Valor leído del Sheet: {valor_raw}")
 logger.info(f"Valor convertido: {valor_proyectado}")
@@ -155,10 +166,12 @@ logger.info(f"Tipo: {type(valor_proyectado)}")
 ## 🎯 Próximos Pasos
 
 1. **INMEDIATO**: Verificar Google Sheet manualmente
+
    - Identificar si hay valores > 0
    - Anotar nombre exacto de la columna
 
 2. **BACKEND**: Revisar código de lectura de Google Sheets
+
    - Archivo Python que procesa el Sheet
    - Función que mapea las columnas
    - Lógica de conversión de tipos
@@ -189,8 +202,8 @@ logger.info(f"Tipo: {type(valor_proyectado)}")
       "item": "139",
       "referencia_proceso": "ABC-123",
       "nombre_resumido_proceso": "Nombre del proceso",
-      "valor_proyectado": 150000000,  // ← Debe ser > 0 para algunos registros
-      "nombre_organismo_reducido": "Organismo",
+      "valor_proyectado": 150000000, // ← Debe ser > 0 para algunos registros
+      "nombre_organismo_reducido": "Organismo"
       // ... otros campos
     }
   ],
@@ -199,6 +212,7 @@ logger.info(f"Tipo: {type(valor_proyectado)}")
 ```
 
 ### Formato de valor_proyectado:
+
 - **Tipo**: `number` (integer o float)
 - **Rango**: 0 - 999,999,999,999 (billones)
 - **Decimales**: Aceptados pero no requeridos
