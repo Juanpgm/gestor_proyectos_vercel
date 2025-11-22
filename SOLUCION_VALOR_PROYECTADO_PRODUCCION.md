@@ -78,13 +78,16 @@ Después de los pasos anteriores, verifica:
 
 ```javascript
 // En la consola del browser (producción)
-fetch('/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=' + Date.now())
-  .then(r => r.json())
-  .then(data => {
-    const conValor = data.data.filter(p => p.valor_proyectado > 0).length
-    console.log('Registros con valor > 0:', conValor)
-    console.log('Sample:', data.data[0])
-  })
+fetch(
+  "/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=" +
+    Date.now()
+)
+  .then((r) => r.json())
+  .then((data) => {
+    const conValor = data.data.filter((p) => p.valor_proyectado > 0).length;
+    console.log("Registros con valor > 0:", conValor);
+    console.log("Sample:", data.data[0]);
+  });
 ```
 
 ---
@@ -94,10 +97,12 @@ fetch('/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=' + Da
 ### Si Aún No Funciona
 
 1. **Verificar logs de producción en Vercel**:
+
    - Deployments > [último deployment] > **Function Logs**
    - Buscar errores o warnings
 
 2. **Verificar que el backend Railway esté respondiendo correctamente**:
+
    ```bash
    node test-produccion-vs-local.js
    ```
@@ -125,18 +130,23 @@ fetch('/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=' + Da
 Agregamos logs en los API routes para debugging:
 
 **`leer-tabla-proyecciones/route.ts`**:
+
 ```typescript
 // Log de debugging para producción
 if (backendData.data && backendData.data.length > 0) {
-  const sample = backendData.data[0]
+  const sample = backendData.data[0];
   console.log(`🔍 Muestra de datos - Item ${sample.item}:`, {
     valor_proyectado: sample.valor_proyectado,
     tipo: typeof sample.valor_proyectado,
-    nombre: sample.nombre_resumido_proceso || 'N/A'
-  })
-  
-  const conValor = backendData.data.filter((p: any) => p.valor_proyectado > 0).length
-  console.log(`📊 Registros con valor_proyectado > 0: ${conValor} de ${backendData.data.length}`)
+    nombre: sample.nombre_resumido_proceso || "N/A",
+  });
+
+  const conValor = backendData.data.filter(
+    (p: any) => p.valor_proyectado > 0
+  ).length;
+  console.log(
+    `📊 Registros con valor_proyectado > 0: ${conValor} de ${backendData.data.length}`
+  );
 }
 ```
 
@@ -145,6 +155,7 @@ if (backendData.data && backendData.data.length > 0) {
 ### Cache Prevention
 
 Ya teníamos:
+
 - `export const dynamic = 'force-dynamic'`
 - `export const revalidate = 0`
 - `export const fetchCache = 'force-no-store'`

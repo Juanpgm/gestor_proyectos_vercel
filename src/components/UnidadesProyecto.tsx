@@ -17,7 +17,9 @@ import {
   MapPin,
   Clock,
   FileText,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  Award
 } from 'lucide-react';
 import { CSS_UTILS } from '@/lib/design-system';
 import dynamic from 'next/dynamic';
@@ -33,6 +35,7 @@ import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
 // Tipos
 import { type FilterParams } from '@/services/unidades-proyecto.service';
 import { type AttributeData } from '@/hooks/useUnidadesProyecto';
+import { formatDate, formatDateRange } from '@/types/unidades-proyecto';
 
 
 // Estados de vista
@@ -253,6 +256,23 @@ const ProjectDetailsModal: React.FC<{
                 </div>
               </div>
 
+              {/* Clase UP - NUEVO CAMPO */}
+              {item.clase_up && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-teal-100 dark:bg-teal-900/40 rounded-lg">
+                      <Layers className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Clase de UP</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                        {item.clase_up}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Año */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
                 <div className="flex items-start gap-3">
@@ -371,6 +391,16 @@ const ProjectDetailsModal: React.FC<{
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Período</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">{projectDuration.dateRange}</p>
                 </div>
+                {/* Fecha de Inauguración - NUEVO CAMPO */}
+                {item.fecha_inauguracion && (
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Award className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400">Fecha de Inauguración</p>
+                    </div>
+                    <p className="text-sm font-bold text-purple-900 dark:text-purple-100">{formatDate(item.fecha_inauguracion)}</p>
+                  </div>
+                )}
               </div>
             </div>
 
