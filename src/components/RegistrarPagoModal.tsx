@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, DollarSign, Calendar, FileText, Building, Save, AlertCircle } from 'lucide-react'
+import FileUploadZone from './FileUploadZone'
 
 interface RegistrarPagoModalProps {
   isOpen: boolean
@@ -29,6 +30,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
     nombre_centro_gestor: rpcData.nombre_centro_gestor || ''
   })
 
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -48,6 +50,11 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
     setError(null)
 
     try {
+      // Validar que se hayan cargado archivos
+      if (uploadedFiles.length === 0) {
+        throw new Error('Debes cargar al menos un documento de soporte')
+      }
+
       // Validaciones
       if (!formData.numero_rpc.trim()) {
         throw new Error('El número de RPC es obligatorio')
@@ -128,6 +135,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
       referencia_contrato: rpcData.referencia_contrato || '',
       nombre_centro_gestor: rpcData.nombre_centro_gestor || ''
     })
+    setUploadedFiles([])
     setError(null)
     setSuccess(false)
   }
@@ -308,6 +316,19 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-60"
                       />
                     </div>
+                  </div>
+
+                  {/* File Upload Section */}
+                  <div className="pt-2">
+                    <FileUploadZone
+                      onFilesSelected={setUploadedFiles}
+                      acceptedTypes=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                      maxFiles={5}
+                      maxSizeMB={10}
+                      label="Documentos de Soporte"
+                      description="Arrastra archivos aquí o haz clic para explorar"
+                      required={true}
+                    />
                   </div>
 
                   {/* Info Note */}

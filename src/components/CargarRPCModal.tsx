@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Upload, AlertCircle, CheckCircle, Plus, Trash2 } from 'lucide-react'
+import FileUploadZone from './FileUploadZone'
 
 interface ContratoData {
   referencia_contrato?: string
@@ -71,6 +72,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
 
   const [cdps, setCdps] = useState<CDP[]>([])
   const [pagosProgramados, setPagosProgramados] = useState<PagoProgramado[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -93,6 +95,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
       })
       setCdps([])
       setPagosProgramados([])
+      setUploadedFiles([])
     }
   }, [isOpen, contratoData])
 
@@ -141,6 +144,11 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
     setSuccess(false)
 
     try {
+      // Validar que se hayan cargado archivos
+      if (uploadedFiles.length === 0) {
+        throw new Error('Debes cargar al menos un documento de soporte')
+      }
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
       if (!apiUrl) {
         throw new Error('URL de API no configurada')
@@ -227,6 +235,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
         })
         setCdps([])
         setPagosProgramados([])
+        setUploadedFiles([])
         setSuccess(false)
       }, 2000)
 
@@ -514,6 +523,19 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Sección: Cargar Archivos */}
+              <div>
+                <FileUploadZone
+                  onFilesSelected={setUploadedFiles}
+                  acceptedTypes=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                  maxFiles={5}
+                  maxSizeMB={10}
+                  label="Documentos de Soporte"
+                  description="Arrastra archivos aquí o haz clic para explorar"
+                  required={true}
+                />
               </div>
 
               {/* Sección: Información Adicional (Opcional) */}
