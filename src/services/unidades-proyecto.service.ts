@@ -37,6 +37,7 @@ const AttributeSchema = z.object({
   estado: z.string(),
   tipo_intervencion: z.string(),
   tipo_equipamiento: z.string().optional(),
+  clase_up: z.string().optional(),
   nombre_centro_gestor: z.string(),
   comuna_corregimiento: z.string(),
   barrio_vereda: z.string(),
