@@ -94,7 +94,7 @@ const ProjectDetailsModal: React.FC<{
     }).format(amount);
   };
 
-  const calculateProjectDuration = (fechaInicio: string, fechaFin: string) => {
+  const calculateProjectDuration = (fechaInicio: string | null | undefined, fechaFin: string | null | undefined) => {
     if (!fechaInicio || !fechaFin) {
       return {
         duration: 'N/A',
