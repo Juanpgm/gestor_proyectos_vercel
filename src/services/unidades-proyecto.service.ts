@@ -45,6 +45,8 @@ const AttributeSchema = z.object({
   avance_obra: z.number(),
   fecha_inicio: z.string(),
   fecha_fin: z.string(),
+  fecha_inauguracion: z.string().optional(),
+  duracion_proyecto: z.string().optional(),
   descripcion_intervencion: z.string(),
   fuente_financiacion: z.string(),
   ano: z.number()

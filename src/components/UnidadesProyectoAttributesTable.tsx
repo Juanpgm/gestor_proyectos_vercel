@@ -141,7 +141,7 @@ const calculateProjectDuration = (fechaInicio: string, fechaFin: string): {
 };
 
 // Función para formatear fechas
-const formatDate = (dateString: string): string => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
