@@ -23,6 +23,7 @@ export interface UnidadProyecto {
   clase_obra?: string | null
   tipo_equipamiento?: string | null
   tipo_intervencion?: string | null
+  frente_activo?: string | null
 
   // Ubicación
   direccion?: string | null
@@ -114,6 +115,7 @@ export interface UnidadesProyectoFilters {
   tipo_equipamiento?: string | string[]
   tipo_intervencion?: string | string[]
   estado?: string | string[]
+  frente_activo?: string | string[]
 
   // Filtros de ubicación
   comuna_corregimiento?: string | string[]
@@ -161,6 +163,7 @@ export interface FiltersState {
   tipoEquipamiento: string[]
   tipoIntervencion: string[]
   estado: string[]
+  frenteActivo: string[]
   comunaCorregimiento: string[]
   barrioVereda: string[]
   nombreCentroGestor: string[]

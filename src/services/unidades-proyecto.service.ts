@@ -38,6 +38,7 @@ const AttributeSchema = z.object({
   tipo_intervencion: z.string(),
   tipo_equipamiento: z.string().optional(),
   clase_up: z.string().optional(),
+  frente_activo: z.string().optional(),
   nombre_centro_gestor: z.string(),
   comuna_corregimiento: z.string(),
   barrio_vereda: z.string(),
@@ -56,6 +57,7 @@ const FilterSchema = z.object({
   estados: z.array(z.string()),
   tipos_intervencion: z.array(z.string()),
   tipos_equipamiento: z.array(z.string()),
+  frentes_activos: z.array(z.string()),
   centros_gestores: z.array(z.string()),
   comunas: z.array(z.string()), // La API devuelve 'comunas' no 'comunas_corregimientos'
   barrios_veredas: z.array(z.string()),
@@ -73,6 +75,7 @@ export interface FilterParams {
   estado?: string;
   tipo_intervencion?: string;
   tipo_equipamiento?: string;
+  frente_activo?: string;
   centro_gestor?: string;
   comuna_corregimiento?: string;
   barrio_vereda?: string;
@@ -83,6 +86,7 @@ export interface FilterParams {
   estado_multiple?: string[];
   tipo_intervencion_multiple?: string[];
   tipo_equipamiento_multiple?: string[];
+  frente_activo_multiple?: string[];
   centro_gestor_multiple?: string[];
   comuna_corregimiento_multiple?: string[];
   barrio_vereda_multiple?: string[];
@@ -347,6 +351,8 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           estado: properties.estado || '',
           tipo_intervencion: properties.tipo_intervencion || '',
           tipo_equipamiento: properties.tipo_equipamiento || undefined,
+          clase_up: properties.clase_up || undefined,
+          frente_activo: properties.frente_activo || undefined,
           nombre_centro_gestor: properties.nombre_centro_gestor || '',
           comuna_corregimiento: properties.comuna_corregimiento || '',
           barrio_vereda: properties.barrio_vereda || '',
@@ -354,6 +360,8 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           avance_obra: parseFloat(properties.avance_obra) || 0,
           fecha_inicio: properties.fecha_inicio || '',
           fecha_fin: properties.fecha_fin || '',
+          fecha_inauguracion: properties.fecha_inauguracion || undefined,
+          duracion_proyecto: properties.duracion_proyecto || undefined,
           descripcion_intervencion: properties.descripcion_intervencion || '',
           fuente_financiacion: properties.fuente_financiacion || '',
           ano: parseInt(properties.ano) || 0
@@ -463,6 +471,7 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
     estados: extractUniqueValues(data, 'estado'),
     tipos_intervencion: extractUniqueValues(data, 'tipo_intervencion'),
     tipos_equipamiento: extractUniqueValues(data, 'tipo_equipamiento'),
+    frentes_activos: extractUniqueValues(data, 'frente_activo'),
     centros_gestores: extractUniqueValues(data, 'nombre_centro_gestor'),
     comunas: extractUniqueValues(data, 'comuna_corregimiento'), // Mapear comuna_corregimiento a comunas
     barrios_veredas: extractUniqueValues(data, 'barrio_vereda'),
@@ -475,6 +484,7 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
     estados: filters.estados.length,
     tipos_intervencion: filters.tipos_intervencion.length,
     tipos_equipamiento: filters.tipos_equipamiento.length,
+    frentes_activos: filters.frentes_activos.length,
     centros_gestores: filters.centros_gestores.length,
     comunas: filters.comunas.length,
     barrios_veredas: filters.barrios_veredas.length,
@@ -533,6 +543,8 @@ export const filterAttributeData = (
                 return multipleValues.includes(item.tipo_intervencion);
               case 'tipo_equipamiento':
                 return multipleValues.includes(item.tipo_equipamiento);
+              case 'frente_activo':
+                return multipleValues.includes(item.frente_activo);
               case 'centro_gestor':
                 return multipleValues.includes(item.nombre_centro_gestor);
               case 'comuna_corregimiento':
@@ -555,6 +567,8 @@ export const filterAttributeData = (
                 return item.tipo_intervencion === value;
               case 'tipo_equipamiento':
                 return item.tipo_equipamiento === value;
+              case 'frente_activo':
+                return item.frente_activo === value;
               case 'centro_gestor':
                 return item.nombre_centro_gestor === value;
               case 'comuna_corregimiento':

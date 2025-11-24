@@ -240,6 +240,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         item.estado.toLowerCase().includes(term) ||
         item.tipo_intervencion.toLowerCase().includes(term) ||
         (item.tipo_equipamiento && item.tipo_equipamiento.toLowerCase().includes(term)) ||
+        (item.frente_activo && item.frente_activo.toLowerCase().includes(term)) ||
         item.nombre_centro_gestor.toLowerCase().includes(term) ||
         item.barrio_vereda.toLowerCase().includes(term) ||
         item.comuna_corregimiento.toLowerCase().includes(term) ||
@@ -426,6 +427,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         estado: true,
         tipo_equipamiento: false,
         tipo_intervencion: false,
+        frente_activo: false,
         clase_up: false,
         avance_obra: true,
         presupuesto_base: true,
@@ -449,6 +451,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         estado: true,
         tipo_intervencion: true,
         tipo_equipamiento: true,
+        frente_activo: true,
         clase_up: true,
         avance_obra: true,
         presupuesto_base: true,
@@ -664,6 +667,13 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     label="Equipamiento" 
                     sortKey="tipo_equipamiento" 
                     icon={<Building2 className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.frente_activo && (
+                  <ColumnHeader 
+                    label="Frente Activo" 
+                    sortKey="frente_activo" 
+                    icon={<Target className="w-3 h-3" />} 
                   />
                 )}
                 {visibleColumns.clase_up && (
@@ -987,6 +997,13 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="leading-tight break-words whitespace-normal">
                         {item.tipo_equipamiento || 'N/A'}
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.frente_activo && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      <div className="leading-tight break-words whitespace-normal">
+                        {item.frente_activo || 'N/A'}
                       </div>
                     </td>
                   )}

@@ -283,6 +283,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     estados: string[];
     tipos_intervencion: string[];
     tipos_equipamiento: string[];
+    frentes_activos: string[];
     centros_gestores: string[];
     comunas_corregimientos: string[];
     barrios_veredas: string[];
@@ -292,6 +293,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     estados: [],
     tipos_intervencion: [],
     tipos_equipamiento: [],
+    frentes_activos: [],
     centros_gestores: [],
     comunas_corregimientos: [],
     barrios_veredas: [],
@@ -318,6 +320,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     // Mapear las claves de filtros múltiples a las claves del FilterParams
     const mappedKey = key === 'estados' ? 'estado' :
                      key === 'tipos_intervencion' ? 'tipo_intervencion' :
+                     key === 'frentes_activos' ? 'frente_activo' :
                      key === 'centros_gestores' ? 'centro_gestor' :
                      key === 'comunas_corregimientos' ? 'comuna_corregimiento' :
                      key === 'barrios_veredas' ? 'barrio_vereda' :
@@ -371,6 +374,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       estados: [],
       tipos_intervencion: [],
       tipos_equipamiento: [],
+      frentes_activos: [],
       centros_gestores: [],
       comunas_corregimientos: [],
       barrios_veredas: [],
@@ -390,6 +394,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
         estados: [],
         tipos_intervencion: [],
         tipos_equipamiento: [],
+        frentes_activos: [],
         centros_gestores: [],
         comunas_corregimientos: [],
         barrios_veredas: [],
@@ -518,6 +523,19 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             onMultiChange={(values) => handleMultiFilterChange('tipos_equipamiento', values)}
           />
 
+          {/* Frente activo */}
+          <EnhancedFilterSelect
+            label="Frente Activo"
+            value={filters.frente_activo}
+            onChange={(value) => handleFilterChange('frente_activo', value)}
+            options={filterData?.frentes_activos || []}
+            placeholder="Todos los frentes"
+            disabled={isLoading}
+            multiSelect={isMultiMode}
+            selectedItems={multiFilters.frentes_activos}
+            onMultiChange={(values) => handleMultiFilterChange('frentes_activos', values)}
+          />
+
           {/* Centro gestor */}
           <EnhancedFilterSelect
             label="Centro Gestor"
@@ -596,6 +614,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                   estados: 'Estados',
                   tipos_intervencion: 'Tipos',
                   tipos_equipamiento: 'Equipamientos',
+                  frentes_activos: 'Frentes',
                   centros_gestores: 'Centros',
                   comunas_corregimientos: 'Comunas',
                   barrios_veredas: 'Barrios',
@@ -636,6 +655,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
               <span>Estados: {filterData.estados.length}</span>
               <span>Tipos: {filterData.tipos_intervencion.length}</span>
               <span>Equipamientos: {filterData.tipos_equipamiento.length}</span>
+              <span>Frentes: {filterData.frentes_activos.length}</span>
               <span>Centros: {filterData.centros_gestores.length}</span>
               <span>Comunas: {filterData.comunas.length}</span>
               <span>Barrios: {filterData.barrios_veredas.length}</span>

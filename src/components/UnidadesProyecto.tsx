@@ -454,6 +454,7 @@ const CompactMetrics: React.FC<{
     byType: Record<string, number>;
     avgProgress: number;
     totalBudget: number;
+    activeFronts: number;
   };
 }> = ({ metrics }) => {
   const formatCurrency = (amount: number, compact: boolean = false): string => {
@@ -473,10 +474,14 @@ const CompactMetrics: React.FC<{
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
       <div className="text-center">
         <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.total}</div>
         <div className="text-xs text-gray-600 dark:text-gray-400">Total Intervenciones</div>
+      </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.activeFronts || 0}</div>
+        <div className="text-xs text-gray-600 dark:text-gray-400">Frentes de Obra Activos</div>
       </div>
       <div className="text-center">
         <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.avgProgress.toFixed(1)}%</div>

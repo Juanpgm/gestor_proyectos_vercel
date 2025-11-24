@@ -3,7 +3,7 @@
  * Implementa programación funcional con estado inmutable y manejo de errores robusto
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   fetchGeometryData, 
   fetchAttributeData, 
@@ -51,6 +51,7 @@ export interface UseUnidadesProyectoResult {
     byType: Record<string, number>;
     avgProgress: number;
     totalBudget: number;
+    activeFronts: number;
   };
   
   // Acciones
@@ -90,6 +91,7 @@ export const useUnidadesProyecto = (
   const [state, setState] = useState<UnidadesProyectoState>(createInitialState);
   const [filters, setFiltersState] = useState<FilterParams>(initialFilters);
   const [searchTerm, setSearchTermState] = useState<string>('');
+  const [isLoadingRef, setIsLoadingRef] = useState(false); // Flag para prevenir cargas simultáneas
 
   // Función para actualizar el estado de manera inmutable
   const updateState = useCallback((updates: Partial<UnidadesProyectoState>) => {
@@ -98,6 +100,13 @@ export const useUnidadesProyecto = (
 
   // Función para obtener todos los datos
   const fetchAllData = useCallback(async (currentFilters: FilterParams = {}) => {
+    // Prevenir cargas simultáneas
+    if (isLoadingRef) {
+      console.log('⏭️ fetchAllData: Skipping - already loading');
+      return;
+    }
+
+    setIsLoadingRef(true);
     updateState({ loading: true, error: null });
 
     try {
@@ -139,14 +148,16 @@ export const useUnidadesProyecto = (
         loading: false,
         lastUpdate: new Date()
       });
+      setIsLoadingRef(false);
     } catch (error) {
       console.error('❌ fetchAllData: Fatal error:', error);
       updateState({
         loading: false,
         error: error instanceof Error ? error.message : 'Error desconocido al cargar datos'
       });
+      setIsLoadingRef(false);
     }
-  }, [enableLocalFiltering, updateState]);
+  }, [enableLocalFiltering, updateState, isLoadingRef]);
 
   // Función pública para refrescar datos (fuerza recarga completa sin cache)
   const refetch = useCallback(() => {
@@ -158,6 +169,14 @@ export const useUnidadesProyecto = (
   // Funciones de filtrado
   const setFilters = useCallback((newFilters: FilterParams) => {
     console.log('🎯 setFilters: Setting new filters:', newFilters);
+    
+    // Verificar si los filtros realmente cambiaron
+    const filtersChanged = JSON.stringify(filters) !== JSON.stringify(newFilters);
+    if (!filtersChanged) {
+      console.log('⏭️ setFilters: Filters unchanged, skipping update');
+      return;
+    }
+    
     setFiltersState(newFilters);
     
     // IMPORTANTE: Siempre recargar geometría con filtros del servidor
@@ -180,6 +199,14 @@ export const useUnidadesProyecto = (
 
   const clearFilters = useCallback(() => {
     console.log('🧹 Limpiando todos los filtros...');
+    
+    // Verificar si ya hay filtros vacíos
+    const alreadyEmpty = Object.keys(filters).length === 0 && searchTerm === '';
+    if (alreadyEmpty) {
+      console.log('⏭️ clearFilters: Filters already empty, skipping reload');
+      return;
+    }
+    
     setFiltersState({});
     setSearchTermState('');
     
@@ -197,7 +224,7 @@ export const useUnidadesProyecto = (
           console.error('❌ Error reloading geometry:', error);
         });
     }
-  }, [enableLocalFiltering, fetchAllData, updateState]);
+  }, [enableLocalFiltering, fetchAllData, updateState, filters, searchTerm]);
 
   const setSearchTerm = useCallback((term: string) => {
     setSearchTermState(term);
@@ -272,6 +299,9 @@ export const useUnidadesProyecto = (
 
     const totalBudget = data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
 
+    // Contar frentes activos
+    const activeFronts = data.filter(item => item.frente_activo === 'Frente activo').length;
+
     // Debug logging
     console.log('🔍 Debug avgProgress calculation:', {
       totalItems: data.length,
@@ -298,12 +328,20 @@ export const useUnidadesProyecto = (
       byStatus,
       byType,
       avgProgress: Math.round(avgProgress * 10) / 10, // Redondear a 1 decimal (ya viene en escala 0-100 desde el servicio)
-      totalBudget
+      totalBudget,
+      activeFronts
     };
   }, [filteredData]);
 
   // Efecto para cargar datos iniciales
+  const hasInitialized = useRef(false);
   useEffect(() => {
+    if (hasInitialized.current) {
+      console.log('⏭️ Initial load: Already initialized, skipping');
+      return;
+    }
+    console.log('🚀 Initial load: Loading data for first time');
+    hasInitialized.current = true;
     fetchAllData(initialFilters);
   }, []); // Solo ejecutar una vez al montar
 
@@ -312,11 +350,12 @@ export const useUnidadesProyecto = (
     if (!autoRefresh) return;
 
     const interval = setInterval(() => {
+      console.log('🔄 Auto-refresh: Reloading data...');
       fetchAllData(filters);
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]); // Solo dependencias estables
+  }, [autoRefresh, refreshInterval, fetchAllData]); // fetchAllData ya tiene filters en su closure
 
   // Resultado del hook
   return {

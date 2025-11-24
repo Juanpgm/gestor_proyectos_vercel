@@ -39,6 +39,7 @@ type ColoringType =
   | 'estado' 
   | 'tipo_intervencion' 
   | 'tipo_equipamiento'
+  | 'frente_activo'
   | 'avance_obra' 
   | 'nombre_centro_gestor' 
   | 'presupuesto_base'
@@ -385,6 +386,9 @@ const ColoringControl: React.FC<{
     if (hasUniqueValues('tipo_equipamiento')) {
       options.push({ value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' });
     }
+    if (hasUniqueValues('frente_activo')) {
+      options.push({ value: 'frente_activo', label: 'Frente Activo' });
+    }
     if (hasUniqueValues('avance_obra')) {
       options.push({ value: 'avance_obra', label: 'Avance de Obra' });
     }
@@ -672,6 +676,9 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
             break;
           case 'tipo_equipamiento':
             field = 'tipo_equipamiento';
+            break;
+          case 'frente_activo':
+            field = 'frente_activo';
             break;
           case 'comuna_corregimiento':
             field = 'comuna_corregimiento';
