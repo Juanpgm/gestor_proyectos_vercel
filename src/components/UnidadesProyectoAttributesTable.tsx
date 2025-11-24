@@ -211,6 +211,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     tipo_intervencion: false,
     tipo_equipamiento: false,
     clase_up: false, // ⬅️ NUEVA COLUMNA
+    frente_activo: false, // ⬅️ NUEVA COLUMNA
     avance_obra: true,
     presupuesto_base: true,
     nombre_centro_gestor: true, // Mostrar por defecto ya que el usuario lo necesita completo
