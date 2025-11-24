@@ -50,7 +50,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
     setError(null)
 
     try {
-      // Validar que se hayan cargado archivos
+      // Validar que haya al menos un documento
       if (uploadedFiles.length === 0) {
         throw new Error('Debes cargar al menos un documento de soporte')
       }
@@ -75,29 +75,39 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
       if (!apiUrl) throw new Error('URL de API no configurada')
 
-      // Preparar datos para el POST como application/x-www-form-urlencoded
-      const formBody = new URLSearchParams()
-      formBody.append('numero_rpc', formData.numero_rpc.trim())
-      formBody.append('valor_pago', formData.valor_pago.toString())
-      formBody.append('fecha_transaccion', formData.fecha_transaccion)
-      formBody.append('referencia_contrato', formData.referencia_contrato.trim())
-      formBody.append('nombre_centro_gestor', formData.nombre_centro_gestor.trim())
+      // Preparar datos para el POST como multipart/form-data (para incluir archivos)
+      const formDataToSend = new FormData()
+      formDataToSend.append('numero_rpc', formData.numero_rpc.trim())
+      formDataToSend.append('valor_pago', formData.valor_pago.toString())
+      formDataToSend.append('fecha_transaccion', formData.fecha_transaccion)
+      formDataToSend.append('referencia_contrato', formData.referencia_contrato.trim())
+      formDataToSend.append('nombre_centro_gestor', formData.nombre_centro_gestor.trim())
+
+      // Agregar archivos de documentos (nombre del campo según API: 'documentos')
+      uploadedFiles.forEach((file, index) => {
+        formDataToSend.append('documentos', file)
+        console.log(`Documento ${index + 1}:`, file.name, file.size, file.type)
+      })
 
       console.log('Enviando datos:', {
         numero_rpc: formData.numero_rpc.trim(),
         valor_pago: formData.valor_pago,
         fecha_transaccion: formData.fecha_transaccion,
         referencia_contrato: formData.referencia_contrato.trim(),
-        nombre_centro_gestor: formData.nombre_centro_gestor.trim()
+        nombre_centro_gestor: formData.nombre_centro_gestor.trim(),
+        archivos_count: uploadedFiles.length
       })
+
+      console.log('Enviando request a:', `${apiUrl}/emprestito/cargar-pago`)
 
       const response = await fetch(`${apiUrl}/emprestito/cargar-pago`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: formBody.toString()
+        // NO incluir Content-Type header - el navegador lo establecerá automáticamente con el boundary correcto
+        body: formDataToSend
       })
+
+      console.log('Response status:', response.status)
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
 
       const data = await response.json()
 
@@ -326,7 +336,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                       maxFiles={5}
                       maxSizeMB={10}
                       label="Documentos de Soporte"
-                      description="Arrastra archivos aquí o haz clic para explorar"
+                      description="Arrastra archivos aquí o haz clic para explorar (Obligatorio)"
                       required={true}
                     />
                   </div>
@@ -339,8 +349,9 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                         <p className="font-medium mb-1">Información importante:</p>
                         <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400">
                           <li>Los campos <strong>Número RPC, Referencia Contrato y Centro Gestor</strong> están prellenados y bloqueados</li>
-                          <li>El campo <strong>fecha_registro</strong> se genera automáticamente</li>
+                          <li>El campo <strong>fecha_registro</strong> se genera automáticamente en el servidor</li>
                           <li>El <strong>valor_pago</strong> debe ser un número positivo mayor a 0</li>
+                          <li>Debes cargar al menos <strong>un documento de soporte</strong></li>
                           <li>Todos los campos marcados con * son obligatorios</li>
                         </ul>
                       </div>

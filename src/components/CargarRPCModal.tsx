@@ -63,7 +63,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
     descripcion_rpc: '',
     fecha_contabilizacion: '',
     fecha_impresion: '',
-    estado_liberacion: '',
+    estado_liberacion: 'Contabilizado',
     bp: '',
     valor_rpc: '',
     nombre_centro_gestor: '',
@@ -87,11 +87,11 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
         descripcion_rpc: '',
         fecha_contabilizacion: '',
         fecha_impresion: '',
-        estado_liberacion: '',
+        estado_liberacion: 'Contabilizado',
         bp: '',
         valor_rpc: '',
         nombre_centro_gestor: contratoData.nombre_centro_gestor || '',
-        referencia_contrato: contratoData.referencia_contrato || contratoData.numero_contrato || ''
+        referencia_contrato: contratoData.referencia_contrato || ''
       })
       setCdps([])
       setPagosProgramados([])
@@ -144,7 +144,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
     setSuccess(false)
 
     try {
-      // Validar que se hayan cargado archivos
+      // Validar que haya al menos un documento
       if (uploadedFiles.length === 0) {
         throw new Error('Debes cargar al menos un documento de soporte')
       }
@@ -154,8 +154,8 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
         throw new Error('URL de API no configurada')
       }
 
-      // Preparar los datos para enviar
-      const dataToSend = new URLSearchParams()
+      // Preparar los datos para enviar con FormData (multipart/form-data)
+      const dataToSend = new FormData()
       
       // Campos obligatorios
       dataToSend.append('numero_rpc', formData.numero_rpc)
@@ -170,16 +170,18 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
       dataToSend.append('nombre_centro_gestor', formData.nombre_centro_gestor)
       dataToSend.append('referencia_contrato', formData.referencia_contrato)
       
-      // CDPs asociados (convertir a array JSON)
+      // CDPs asociados (puede ser string separado por comas o JSON array)
       if (cdps.length > 0) {
         const cdpsValidos = cdps.filter(cdp => cdp.numero.trim())
         if (cdpsValidos.length > 0) {
           const cdpsArray = cdpsValidos.map(cdp => cdp.numero)
+          // Enviar como JSON array string según la API
           dataToSend.append('cdp_asociados', JSON.stringify(cdpsArray))
+          console.log('CDPs a enviar:', cdpsArray)
         }
       }
       
-      // Programación PAC (convertir a objeto JSON)
+      // Programación PAC (objeto JSON en formato string)
       if (pagosProgramados.length > 0) {
         const pagosValidos = pagosProgramados.filter(p => p.mes && p.anio && p.valor)
         if (pagosValidos.length > 0) {
@@ -189,18 +191,33 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
             programacionObj[key] = pago.valor
           })
           dataToSend.append('programacion_pac', JSON.stringify(programacionObj))
+          console.log('Programación PAC a enviar:', programacionObj)
         }
       }
 
-      const response = await fetch(`${apiUrl}/emprestito/cargar-rpc`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: dataToSend.toString()
+      // Agregar archivos de documentos
+      uploadedFiles.forEach((file, index) => {
+        dataToSend.append('documentos', file)
+        console.log(`Documento ${index + 1}:`, file.name, file.size, file.type)
       })
 
+      // Log completo de datos a enviar
+      console.log('Datos completos enviados al endpoint /emprestito/cargar-rpc:')
+      console.log('Total archivos:', uploadedFiles.length)
+
+      console.log('Enviando request a:', `${apiUrl}/emprestito/cargar-rpc`)
+      
+      const response = await fetch(`${apiUrl}/emprestito/cargar-rpc`, {
+        method: 'POST',
+        // NO incluir Content-Type header - el navegador lo establece automáticamente con boundary
+        body: dataToSend
+      })
+
+      console.log('Response status:', response.status)
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+      
       const result = await response.json()
+      console.log('Response data:', result)
 
       if (!response.ok) {
         if (response.status === 409) {
@@ -227,7 +244,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
           descripcion_rpc: '',
           fecha_contabilizacion: '',
           fecha_impresion: '',
-          estado_liberacion: '',
+          estado_liberacion: 'Contabilizado',
           bp: '',
           valor_rpc: '',
           nombre_centro_gestor: '',
@@ -351,10 +368,15 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
                       required
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
-                      <option value="">Seleccione...</option>
+                      <option value="Contabilizado">Contabilizado</option>
                       <option value="Liberado">Liberado</option>
                       <option value="No Liberado">No Liberado</option>
                       <option value="Parcialmente Liberado">Parcialmente Liberado</option>
+                      <option value="Bloqueado">Bloqueado</option>
+                      <option value="Pendiente de Liberación">Pendiente de Liberación</option>
+                      <option value="En Proceso de Liberación">En Proceso de Liberación</option>
+                      <option value="Anulado">Anulado</option>
+                      <option value="Suspendido">Suspendido</option>
                     </select>
                   </div>
 
@@ -532,8 +554,8 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
                   acceptedTypes=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                   maxFiles={5}
                   maxSizeMB={10}
-                  label="Documentos de Soporte"
-                  description="Arrastra archivos aquí o haz clic para explorar"
+                  label="Documentos de Soporte *"
+                  description="Arrastra archivos aquí o haz clic para explorar (Obligatorio)"
                   required={true}
                 />
               </div>
