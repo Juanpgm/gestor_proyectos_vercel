@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gestionar Usuarios</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #1a202c;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        h2 {
+            color: #2d3748;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            font-size: 20px;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 24px;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            gap: 6px;
+        }
+        .badge.success { background: #48bb78; color: white; }
+        .badge.error { background: #f56565; color: white; }
+        .badge.warning { background: #ed8936; color: white; }
+        .badge.info { background: #4299e1; color: white; }
+        .badge.purple { background: #9f7aea; color: white; }
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 12px 0;
+        }
+        .test-item {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+            background: #f7fafc;
+        }
+        .test-item.pass {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+        .test-item.fail {
+            border-color: #f56565;
+            background: #fff5f5;
+        }
+        .test-item h3 {
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+        .test-item p {
+            font-size: 14px;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.secondary {
+            background: #718096;
+        }
+        button.secondary:hover {
+            background: #4a5568;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .info-item {
+            background: #f7fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .info-item label {
+            display: block;
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .info-item value {
+            display: block;
+            font-size: 15px;
+            color: #2d3748;
+            font-weight: 500;
+        }
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>
+                <svg class="icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                </svg>
+                Diagnóstico: Gestionar Usuarios
+            </h1>
+            <p class="subtitle">Verificación completa del módulo de administración</p>
+            
+            <div class="actions">
+                <button onclick="runDiagnostic()">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    Ejecutar Diagnóstico
+                </button>
+                <button onclick="testBackendLogin()" class="secondary">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    Test Login Backend
+                </button>
+                <button onclick="clearAndReload()" class="secondary">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Limpiar y Recargar
+                </button>
+            </div>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function runDiagnostic() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="card"><h2>⏳ Ejecutando diagnóstico...</h2></div>';
+
+            const tests = [];
+
+            // TEST 1: Verificar sesión en localStorage
+            const localSession = localStorage.getItem('auth_session');
+            const sessionSession = sessionStorage.getItem('auth_session');
+            const sessionData = localSession || sessionSession;
+
+            if (!sessionData) {
+                tests.push({
+                    name: '1. Sesión en Storage',
+                    pass: false,
+                    message: 'No hay sesión guardada. Debes iniciar sesión primero.',
+                    details: 'No se encontró auth_session en localStorage ni sessionStorage'
+                });
+            } else {
+                try {
+                    const parsed = JSON.parse(sessionData);
+                    const hasUser = !!parsed.user;
+                    const hasRoles = parsed.user?.roles && parsed.user.roles.length > 0;
+                    const isSuperAdmin = parsed.user?.roles?.includes('super_admin');
+
+                    tests.push({
+                        name: '1. Sesión en Storage',
+                        pass: hasUser && hasRoles,
+                        message: hasRoles ? '✓ Sesión válida con roles' : '✗ Sesión sin roles',
+                        details: `Usuario: ${parsed.user?.email}\nRoles: ${JSON.stringify(parsed.user?.roles)}\nPermisos: ${parsed.user?.permissions?.length || 0}`
+                    });
+
+                    tests.push({
+                        name: '2. Rol Super Admin',
+                        pass: isSuperAdmin,
+                        message: isSuperAdmin ? '✓ Usuario es super_admin' : '✗ Usuario NO es super_admin',
+                        details: `Roles actuales: ${parsed.user?.roles?.join(', ') || 'ninguno'}`
+                    });
+                } catch (e) {
+                    tests.push({
+                        name: '1. Sesión en Storage',
+                        pass: false,
+                        message: '✗ Error al parsear sesión',
+                        details: e.message
+                    });
+                }
+            }
+
+            // TEST 3: Verificar módulo en sidebar
+            tests.push({
+                name: '3. Verificar Sidebar',
+                pass: null,
+                message: 'Abre el sidebar y verifica si aparece "Gestionar Usuarios"',
+                details: 'Busca el ícono de usuarios cerca del final del menú'
+            });
+
+            // TEST 4: Verificar acceso a la página
+            try {
+                const response = await fetch('/admin/usuarios');
+                tests.push({
+                    name: '4. Acceso a /admin/usuarios',
+                    pass: response.ok,
+                    message: response.ok ? '✓ Página accesible' : '✗ Página no accesible',
+                    details: `Status: ${response.status} ${response.statusText}`
+                });
+            } catch (e) {
+                tests.push({
+                    name: '4. Acceso a /admin/usuarios',
+                    pass: false,
+                    message: '✗ Error al acceder',
+                    details: e.message
+                });
+            }
+
+            // TEST 5: Verificar endpoint del backend
+            try {
+                const response = await fetch('/api/proxy/admin/users?page=1&limit=5');
+                const data = await response.json();
+                tests.push({
+                    name: '5. Backend API /admin/users',
+                    pass: response.ok && data.users,
+                    message: response.ok ? `✓ Backend responde (${data.users?.length || 0} usuarios)` : '✗ Backend no responde',
+                    details: response.ok ? JSON.stringify(data, null, 2) : `Status: ${response.status}`
+                });
+            } catch (e) {
+                tests.push({
+                    name: '5. Backend API /admin/users',
+                    pass: false,
+                    message: '✗ Error al consultar backend',
+                    details: e.message
+                });
+            }
+
+            // Renderizar resultados
+            renderResults(tests);
+        }
+
+        function renderResults(tests) {
+            const passing = tests.filter(t => t.pass === true).length;
+            const failing = tests.filter(t => t.pass === false).length;
+            const pending = tests.filter(t => t.pass === null).length;
+
+            let html = `
+                <div class="card">
+                    <h2>📊 Resultados del Diagnóstico</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Tests Pasados</label>
+                            <value class="badge success">${passing} ✓</value>
+                        </div>
+                        <div class="info-item">
+                            <label>Tests Fallidos</label>
+                            <value class="badge error">${failing} ✗</value>
+                        </div>
+                        <div class="info-item">
+                            <label>Pendientes</label>
+                            <value class="badge warning">${pending} ⏳</value>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            tests.forEach(test => {
+                const className = test.pass === true ? 'pass' : (test.pass === false ? 'fail' : 'pending');
+                html += `
+                    <div class="card">
+                        <div class="test-item ${className}">
+                            <h3>${test.name}</h3>
+                            <p><strong>${test.message}</strong></p>
+                            ${test.details ? `<pre>${test.details}</pre>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Recomendaciones
+            if (failing > 0 || pending > 0) {
+                html += `
+                    <div class="card">
+                        <h2>💡 Recomendaciones</h2>
+                `;
+
+                if (tests[0] && !tests[0].pass) {
+                    html += `<div class="test-item fail">
+                        <h3>1. Iniciar Sesión</h3>
+                        <p>Debes iniciar sesión con un usuario super_admin</p>
+                        <div class="actions"><button onclick="window.location.href='/'">Ir al Login</button></div>
+                    </div>`;
+                }
+
+                if (tests[1] && !tests[1].pass) {
+                    html += `<div class="test-item fail">
+                        <h3>2. Usuario sin rol super_admin</h3>
+                        <p>Tu usuario no tiene el rol super_admin asignado. Usa el botón "Test Login Backend" para verificar qué roles devuelve el servidor.</p>
+                    </div>`;
+                }
+
+                html += `</div>`;
+            }
+
+            document.getElementById('results').innerHTML = html;
+        }
+
+        async function testBackendLogin() {
+            const email = prompt('Email:');
+            if (!email) return;
+
+            const password = prompt('Password:');
+            if (!password) return;
+
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="card"><h2>⏳ Probando login...</h2></div>';
+
+            try {
+                const response = await fetch('/api/proxy/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                let html = `<div class="card"><h2>📡 Respuesta del Backend</h2>`;
+
+                if (response.ok && data.user) {
+                    const roles = data.user.roles || data.user.firestore_data?.roles || data.user.custom_claims?.roles || [];
+                    const isSuperAdmin = roles.includes('super_admin');
+
+                    html += `
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Email</label>
+                                <value>${data.user.email}</value>
+                            </div>
+                            <div class="info-item">
+                                <label>Nombre</label>
+                                <value>${data.user.display_name || data.user.firestore_data?.full_name || 'N/A'}</value>
+                            </div>
+                            <div class="info-item">
+                                <label>Roles</label>
+                                <value>${roles.join(', ') || 'Ninguno'}</value>
+                            </div>
+                            <div class="info-item">
+                                <label>Es Super Admin</label>
+                                <value class="badge ${isSuperAdmin ? 'success' : 'error'}">${isSuperAdmin ? 'SÍ ✓' : 'NO ✗'}</value>
+                            </div>
+                        </div>
+                        <h3>Respuesta Completa:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+
+                    if (!isSuperAdmin) {
+                        html += `
+                            <div class="test-item fail">
+                                <h3>⚠️ Problema Identificado</h3>
+                                <p>El backend está respondiendo pero el usuario NO tiene el rol super_admin.</p>
+                                <p><strong>Solución:</strong> Necesitas que un super_admin te asigne ese rol, o verificar en la base de datos de Firebase/Firestore que tu usuario tenga roles: ["super_admin"]</p>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="test-item pass">
+                                <h3>✓ Usuario Válido</h3>
+                                <p>El backend confirma que eres super_admin. Si el módulo no aparece, cierra sesión y vuelve a entrar para refrescar la sesión.</p>
+                                <div class="actions">
+                                    <button onclick="clearAndReload()">Limpiar Sesión y Recargar</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    html += `
+                        <div class="test-item fail">
+                            <h3>✗ Login Fallido</h3>
+                            <p>${data.error || data.message || 'Error desconocido'}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+                results.innerHTML = html;
+
+            } catch (e) {
+                results.innerHTML = `
+                    <div class="card">
+                        <div class="test-item fail">
+                            <h3>✗ Error de Conexión</h3>
+                            <p>${e.message}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function clearAndReload() {
+            if (confirm('Esto cerrará tu sesión y recargará la página. ¿Continuar?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.reload();
+            }
+        }
+
+        // Auto-ejecutar al cargar
+        window.onload = runDiagnostic;
+    </script>
+</body>
+</html>

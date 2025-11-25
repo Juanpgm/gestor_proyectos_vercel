@@ -1,8 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Home, FileText, ChevronRight, TrendingUp, DollarSign } from 'lucide-react'
+import { X, Home, FileText, ChevronRight, TrendingUp, DollarSign, Users } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
 interface SidebarProps {
   isOpen: boolean
@@ -15,9 +16,24 @@ const Sidebar: React.FC<SidebarProps> = ({
   isOpen, 
   onClose, 
   activeSection, 
-  onSectionChange 
+  onSectionChange
 }) => {
-  const menuItems = [
+  const { isSuperAdmin, state, signOut, getHighestRole, hasRole } = useAuth()
+  
+  // Debug: Mostrar información del usuario y roles en consola
+  useEffect(() => {
+    if (state.isAuthenticated && state.user) {
+      console.log('👤 Usuario actual:', {
+        email: state.user.email,
+        roles: state.user.roles,
+        permissions: state.user.permissions,
+        isSuperAdmin: isSuperAdmin(),
+        highestRole: getHighestRole()
+      })
+    }
+  }, [state.isAuthenticated, state.user, isSuperAdmin, getHighestRole])
+  
+  const baseMenuItems = [
     {
       id: 'dashboard',
       label: 'Dashboard Principal',
@@ -50,6 +66,31 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   ]
 
+  // Agregar "Gestionar Usuarios" solo para super_admin
+  const shouldShowUserManagement = isSuperAdmin()
+  
+  // Debug log para ver si debe mostrar el módulo
+  useEffect(() => {
+    console.log('🔍 Sidebar - Validación de módulo Gestionar Usuarios:', {
+      shouldShow: shouldShowUserManagement,
+      isSuperAdmin: isSuperAdmin(),
+      userRoles: state.user?.roles,
+      totalMenuItems: shouldShowUserManagement ? baseMenuItems.length + 1 : baseMenuItems.length
+    })
+  }, [shouldShowUserManagement, state.user?.roles])
+  
+  const menuItems = shouldShowUserManagement
+    ? [
+        ...baseMenuItems,
+        {
+          id: 'gestionar-usuarios',
+          label: 'Gestionar Usuarios',
+          icon: Users,
+          description: 'Administración de usuarios y roles'
+        }
+      ]
+    : baseMenuItems
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -74,13 +115,20 @@ const Sidebar: React.FC<SidebarProps> = ({
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <div>
+              <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                   Navegación
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Sistema de Gestión
                 </p>
+                {state.user && state.user.roles && state.user.roles.length > 0 && (
+                  <div className="mt-2">
+                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200">
+                      {getHighestRole()}
+                    </span>
+                  </div>
+                )}
               </div>
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 90 }}
@@ -92,8 +140,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               </motion.button>
             </div>
 
-            {/* Menu Items */}
-            <div className="flex-1 p-4 space-y-2">
+            {/* Menu Items - Con scroll */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {menuItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeSection === item.id

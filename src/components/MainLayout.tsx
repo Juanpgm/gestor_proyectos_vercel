@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import GestionProcesos from '@/components/GestionProcesos'
@@ -13,6 +14,7 @@ interface MainLayoutProps {
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
 
@@ -21,7 +23,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   }
 
   const handleSectionChange = (section: string) => {
-    setActiveSection(section)
+    // Si es gestionar-usuarios, navegar a la ruta dedicada
+    if (section === 'gestionar-usuarios') {
+      router.push('/admin/usuarios')
+    } else {
+      setActiveSection(section)
+    }
   }
 
   const handleNavigateHome = () => {

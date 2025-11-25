@@ -91,16 +91,75 @@ class AuthService {
 
   // Convertir respuesta de API a nuestro tipo User
   private mapApiUser(apiUser: any): User {
-    return {
+    // Extraer roles desde diferentes ubicaciones posibles
+    // ORDEN DE PRIORIDAD: firestore_data > roles directos > custom_claims
+    let roles = apiUser.roles || []
+    if (!roles || roles.length === 0) {
+      roles = apiUser.firestore_data?.roles || []
+    }
+    if (!roles || roles.length === 0) {
+      roles = apiUser.custom_claims?.roles || []
+    }
+    
+    // Extraer permisos
+    let permissions = apiUser.permissions || []
+    if (!permissions || permissions.length === 0) {
+      permissions = apiUser.firestore_data?.permissions || []
+    }
+    if (!permissions || permissions.length === 0) {
+      permissions = apiUser.custom_claims?.permissions || []
+    }
+    
+    // Extraer centro_gestor desde firestore_data o custom_claims
+    const centro_gestor_assigned = 
+      apiUser.centro_gestor_assigned || 
+      apiUser.firestore_data?.nombre_centro_gestor ||
+      apiUser.custom_claims?.centro_gestor || 
+      null
+    
+    // Extraer is_active desde firestore_data
+    const is_active = apiUser.firestore_data?.is_active !== undefined 
+      ? apiUser.firestore_data.is_active 
+      : (apiUser.is_active !== undefined ? apiUser.is_active : true)
+    
+    // Extraer teléfono
+    const phone = apiUser.phone || apiUser.phone_number || apiUser.firestore_data?.cellphone || apiUser.cellphone || null
+    
+    console.log('🔄 Mapping API user:', {
+      email: apiUser.email,
+      rolesFound: roles,
+      rolesSource: roles.length > 0 ? (apiUser.firestore_data?.roles ? 'firestore_data' : (apiUser.roles ? 'direct' : 'custom_claims')) : 'none',
+      permissionsFound: permissions,
+      hasCustomClaims: !!apiUser.custom_claims,
+      hasFirestoreData: !!apiUser.firestore_data,
+      apiUserKeys: Object.keys(apiUser)
+    })
+    
+    const mappedUser = {
       uid: apiUser.uid || apiUser.id,
       email: apiUser.email,
-      displayName: apiUser.display_name || apiUser.name || apiUser.displayName || apiUser.fullname,
+      displayName: apiUser.display_name || apiUser.firestore_data?.full_name || apiUser.firestore_data?.fullname || apiUser.name || apiUser.displayName,
       photoURL: apiUser.photoURL || apiUser.photo_url,
-      emailVerified: apiUser.emailVerified || apiUser.email_verified || false,
+      emailVerified: apiUser.email_verified || apiUser.emailVerified || false,
       provider: apiUser.provider || 'email',
-      createdAt: apiUser.created_at || apiUser.createdAt || (apiUser.custom_claims?.created_at),
-      lastLoginAt: apiUser.last_login_at || apiUser.lastLoginAt || apiUser.last_sign_in
+      createdAt: apiUser.created_at || apiUser.createdAt || apiUser.firestore_data?.created_at || (apiUser.custom_claims?.created_at),
+      lastLoginAt: apiUser.last_login_at || apiUser.lastLoginAt || apiUser.firestore_data?.last_login || apiUser.last_sign_in,
+      // Roles y permisos extraídos de firestore_data
+      roles: roles,
+      permissions: permissions,
+      centro_gestor_assigned: centro_gestor_assigned,
+      is_active: is_active,
+      phone: phone
     }
+    
+    console.log('✅ User mapped successfully:', {
+      email: mappedUser.email,
+      roles: mappedUser.roles,
+      permissions: mappedUser.permissions,
+      isSuperAdmin: mappedUser.roles.includes('super_admin')
+    })
+    
+    return mappedUser
   }
 
   // Login con email y contraseña usando API
@@ -142,7 +201,14 @@ class AuthService {
         throw new Error('Error de comunicación con el servidor - respuesta inválida')
       }
 
-      console.log('📄 Response data:', { success: data?.success, hasUser: !!data?.user })
+      console.log('📄 Response data:', { 
+        success: data?.success, 
+        hasUser: !!data?.user,
+        userEmail: data?.user?.email,
+        userRoles: data?.user?.roles,
+        customClaims: data?.user?.custom_claims,
+        fullUser: data?.user
+      })
 
       if (!response.ok) {
         // Manejar diferentes tipos de respuestas de error de la API
@@ -410,6 +476,15 @@ class AuthService {
 
   // Guardar sesión en localStorage/sessionStorage
   private saveSession(user: User, remember: boolean): void {
+    console.log('💾 Guardando sesión:', {
+      email: user.email,
+      roles: user.roles,
+      rolesLength: user.roles?.length,
+      permissions: user.permissions,
+      remember,
+      storageType: remember ? 'localStorage' : 'sessionStorage'
+    })
+    
     const storage = remember ? localStorage : sessionStorage
     const sessionData = {
       user,
@@ -418,6 +493,17 @@ class AuthService {
     }
     
     storage.setItem('auth_session', JSON.stringify(sessionData))
+    
+    // Verificar que se guardó correctamente
+    const saved = storage.getItem('auth_session')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      console.log('✅ Sesión guardada correctamente:', {
+        email: parsed.user?.email,
+        roles: parsed.user?.roles,
+        rolesLength: parsed.user?.roles?.length
+      })
+    }
     
     // Limpiar del otro storage
     const otherStorage = remember ? sessionStorage : localStorage
@@ -431,11 +517,31 @@ class AuthService {
       if (!data) return null
 
       const parsed = JSON.parse(data)
+      
+      // Validar que la sesión tenga roles
+      const hasRoles = parsed.user?.roles && Array.isArray(parsed.user.roles) && parsed.user.roles.length > 0
+      
+      console.log('📖 Leyendo sesión guardada:', {
+        email: parsed.user?.email,
+        roles: parsed.user?.roles,
+        rolesLength: parsed.user?.roles?.length,
+        hasRoles: hasRoles,
+        isValidSession: hasRoles
+      })
+      
+      // Si la sesión no tiene roles o roles es undefined, invalidarla
+      if (!hasRoles) {
+        console.warn('⚠️ Sesión sin roles detectada - Se requiere nuevo login para actualizar roles')
+        // NO limpiamos la sesión automáticamente para no desloguear al usuario
+        // Pero marcamos que necesita actualización
+      }
+      
       return {
         user: parsed.user,
         remember: parsed.remember || false
       }
     } catch (error) {
+      console.error('❌ Error leyendo sesión:', error)
       this.clearSession()
       return null
     }
