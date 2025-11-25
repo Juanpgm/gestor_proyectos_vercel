@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Home, FileText, ChevronRight, TrendingUp, DollarSign, Users } from 'lucide-react'
+import { X, Home, FileText, ChevronRight, TrendingUp, DollarSign, Users, ClipboardCheck } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 interface SidebarProps {
@@ -63,6 +63,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       label: 'Gestión de Pagos',
       icon: DollarSign,
       description: 'Gestión de RPCs y pagos de empréstito'
+    },
+    {
+      id: 'gestionar-unidades-proyecto',
+      label: 'Gestionar Unidades de Proyecto',
+      icon: ClipboardCheck,
+      description: 'Control de calidad de unidades de proyecto'
     }
   ]
 

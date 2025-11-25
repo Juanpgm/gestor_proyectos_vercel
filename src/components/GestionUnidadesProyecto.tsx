@@ -1,0 +1,674 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import {
+  Search,
+  RefreshCw,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  BarChart3,
+  Building2,
+  FileText,
+  CheckCircle2,
+  ClipboardList,
+  History,
+  Database,
+  TrendingUp,
+  Filter,
+  FilterX
+} from 'lucide-react'
+import { SummaryView, RecordsView, StatsView } from './QualityControlViews'
+import { ChangelogView, ByCentroGestorView, MetadataView } from './QualityControlViewsExtended'
+import { MultiSelect } from './MultiSelect'
+
+// Interfaces específicas para cada endpoint
+interface SummaryData {
+  id: string
+  report_id: string
+  report_timestamp: string
+  global_quality_score: number
+  error_rate: number
+  total_records_validated: number
+  records_with_issues: number
+  records_without_issues: number
+  total_issues_found: number
+  system_status: string
+  requires_immediate_action: boolean
+  severity_distribution: { [key: string]: number }
+  dimension_distribution: { [key: string]: number }
+  top_quality_centros: Array<{ nombre: string; quality_score: number; error_rate: number; issues: number }>
+  top_problematic_centros: Array<{ nombre: string; quality_score: number; error_rate: number; issues: number }>
+  recommendations: Array<{ category: string; priority: string; recommendation: string }>
+}
+
+interface RecordData {
+  id: string
+  upid: string
+  nombre_up: string
+  nombre_centro_gestor: string
+  total_issues: number
+  max_severity: string
+  priority: string
+  issues: Array<{
+    rule_id: string
+    rule_name: string
+    dimension: string
+    severity: string
+    field_name: string
+    current_value: any
+    expected_value: any
+    suggestion: string
+    details: string
+  }>
+  affected_fields: string[]
+  severity_counts: { [key: string]: number }
+  dimension_counts: { [key: string]: number }
+}
+
+interface ChangelogData {
+  id: string
+  upid: string
+  document_id: string
+  action: string
+  timestamp: string
+  old_report_id: string
+  new_report_id: string
+  changes: { [key: string]: { old: any; new: any } }
+}
+
+interface CentroGestorData {
+  id: string
+  nombre_centro_gestor: string
+  total_records: number
+  records_with_issues: number
+  records_without_issues: number
+  total_issues: number
+  quality_score: number
+  error_rate: number
+  status: string
+  requires_attention: boolean
+  severity_counts: { [key: string]: number }
+  dimension_counts: { [key: string]: number }
+  top_violated_rules: Array<{ rule_id: string; count: number }>
+  top_problematic_fields: Array<{ field: string; count: number }>
+  affected_records_sample: string[]
+}
+
+interface MetadataData {
+  id: string
+  report_id: string
+  version: string
+  generated_at: string
+  counts: {
+    total_records: number
+    total_centros: number
+    total_issues: number
+    records_with_issues: number
+    centros_require_attention: number
+  }
+  filters: {
+    centros_gestores: string[]
+    severities: string[]
+    priorities: string[]
+    dimensions: string[]
+    statuses: string[]
+  }
+  colors: any
+  charts: any
+}
+
+interface StatsData {
+  success: boolean
+  data: {
+    [key: string]: {
+      collection: string
+      count: number
+    }
+  }
+  timestamp: string
+}
+
+interface ApiResponse {
+  success: boolean
+  data: any[]
+  count: number
+  message?: string
+  error?: string
+}
+
+interface GestionUnidadesProyectoProps {
+  onNavigateHome: () => void
+}
+
+type TabType = 
+  | 'summary' 
+  | 'records' 
+  | 'changelog' 
+  | 'by-centro-gestor' 
+  | 'metadata' 
+  | 'stats'
+
+const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNavigateHome }) => {
+  // Estado para tabs
+  const [activeTab, setActiveTab] = useState<TabType>('summary')
+  
+  // Estado para paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(50)
+  
+  // Estados para datos
+  const [data, setData] = useState<any[]>([])
+  const [filteredData, setFilteredData] = useState<any[]>([])
+  
+  // Estados para UI
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Estados para filtros avanzados
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCentrosGestores, setSelectedCentrosGestores] = useState<string[]>([])
+  const [selectedSeverities, setSelectedSeverities] = useState<string[]>([])
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([])
+  
+  // Listas de opciones disponibles
+  const [availableCentrosGestores, setAvailableCentrosGestores] = useState<string[]>([])
+  const [availableSeverities, setAvailableSeverities] = useState<string[]>([])
+  const [availablePriorities, setAvailablePriorities] = useState<string[]>([])
+  
+  const [showFilters, setShowFilters] = useState(true)
+
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gestorproyectoapi-production.up.railway.app'
+
+  // Definición de tabs - quality-control endpoints de la API
+  const tabs = [
+    {
+      id: 'summary' as TabType,
+      label: 'Resumen',
+      icon: CheckCircle2,
+      endpoint: '/unidades-proyecto/quality-control/summary',
+      description: 'Resumen general de control de calidad'
+    },
+    {
+      id: 'records' as TabType,
+      label: 'Registros',
+      icon: ClipboardList,
+      endpoint: '/unidades-proyecto/quality-control/records',
+      description: 'Todos los registros de control de calidad'
+    },
+    {
+      id: 'changelog' as TabType,
+      label: 'Historial',
+      icon: History,
+      endpoint: '/unidades-proyecto/quality-control/changelog',
+      description: 'Historial de cambios en control de calidad'
+    },
+    {
+      id: 'by-centro-gestor' as TabType,
+      label: 'Por Centro Gestor',
+      icon: Building2,
+      endpoint: '/unidades-proyecto/quality-control/by-centro-gestor',
+      description: 'Control de calidad agrupado por centro gestor'
+    },
+    {
+      id: 'metadata' as TabType,
+      label: 'Metadatos',
+      icon: Database,
+      endpoint: '/unidades-proyecto/quality-control/metadata',
+      description: 'Metadatos de control de calidad'
+    },
+    {
+      id: 'stats' as TabType,
+      label: 'Estadísticas',
+      icon: TrendingUp,
+      endpoint: '/unidades-proyecto/quality-control/stats',
+      description: 'Estadísticas de control de calidad'
+    }
+  ]
+
+  // Cargar datos al montar o cambiar tab
+  useEffect(() => {
+    loadData()
+  }, [activeTab])
+
+  // Aplicar filtros cuando cambian los criterios
+  useEffect(() => {
+    applyFilters()
+  }, [data, searchTerm, selectedCentrosGestores, selectedSeverities, selectedPriorities])
+
+  // Función para cargar datos según el tab activo
+  const loadData = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const currentTab = tabs.find(t => t.id === activeTab)
+      if (!currentTab) {
+        throw new Error('Tab no válido')
+      }
+
+      const url = `${API_BASE_URL}${currentTab.endpoint}`
+      console.log('🔵 Cargando datos desde:', url)
+
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+
+      const result: any = await response.json()
+      console.log('📊 Respuesta recibida:', result)
+
+      // El endpoint stats tiene una estructura diferente
+      if (activeTab === 'stats') {
+        setData(result) // Guardar el objeto completo para stats
+      } else if (result.success && Array.isArray(result.data)) {
+        setData(result.data)
+        
+        // Extraer valores únicos para los filtros
+        const centroGestorSet = new Set(
+          result.data
+            .map((item: any) => item.nombre_centro_gestor || item.centro_gestor)
+            .filter(Boolean)
+        )
+        const centros = Array.from(centroGestorSet) as string[]
+        setAvailableCentrosGestores(centros.sort())
+        
+        // Extraer severidades únicas
+        const severitiesSet = new Set(
+          result.data
+            .map((item: any) => item.max_severity || item.severity)
+            .filter(Boolean)
+        )
+        const severities = Array.from(severitiesSet) as string[]
+        setAvailableSeverities(severities.sort())
+        
+        // Extraer prioridades únicas
+        const prioritiesSet = new Set(
+          result.data
+            .map((item: any) => item.priority)
+            .filter(Boolean)
+        )
+        const priorities = Array.from(prioritiesSet) as string[]
+        setAvailablePriorities(priorities.sort())
+      } else {
+        throw new Error(result.message || 'No se pudieron cargar los datos')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
+      console.error('❌ Error cargando datos:', errorMessage)
+      setError(`Error al cargar datos: ${errorMessage}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Aplicar filtros y paginación
+  const applyFilters = () => {
+    // Si data no es un array (como en stats), no filtrar
+    if (!Array.isArray(data)) {
+      setFilteredData([])
+      return
+    }
+
+    let filtered = [...data]
+
+    // Filtro por centros gestores (selección múltiple)
+    if (selectedCentrosGestores.length > 0) {
+      filtered = filtered.filter(item => 
+        selectedCentrosGestores.includes(item.nombre_centro_gestor) || 
+        selectedCentrosGestores.includes(item.centro_gestor)
+      )
+    }
+
+    // Filtro por severidad (selección múltiple)
+    if (selectedSeverities.length > 0) {
+      filtered = filtered.filter(item => 
+        selectedSeverities.includes(item.max_severity) || 
+        selectedSeverities.includes(item.severity)
+      )
+    }
+
+    // Filtro por prioridad (selección múltiple)
+    if (selectedPriorities.length > 0) {
+      filtered = filtered.filter(item => 
+        selectedPriorities.includes(item.priority)
+      )
+    }
+
+    // Filtro por búsqueda de texto
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(item =>
+        Object.values(item).some(value =>
+          String(value).toLowerCase().includes(term)
+        )
+      )
+    }
+
+    setFilteredData(filtered)
+    setCurrentPage(1) // Reset page cuando cambian los filtros
+  }
+
+  // Calcular datos paginados
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedData = filteredData.slice(startIndex, endIndex)
+
+  // Funciones de navegación de paginación
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
+
+  return (
+    <div className="h-full w-full flex flex-col bg-slate-50 dark:bg-slate-900">
+      {/* Header - Compacto */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onNavigateHome}
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              aria-label="Volver"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+                Gestionar Unidades de Proyecto
+              </h1>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Control de Calidad de Unidades de Proyecto
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            >
+              {showFilters ? <FilterX className="w-4 h-4" /> : <Filter className="w-4 h-4" />}
+              Filtros
+              {(selectedCentrosGestores.length + selectedSeverities.length + selectedPriorities.length + (searchTerm ? 1 : 0)) > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-semibold">
+                  {selectedCentrosGestores.length + selectedSeverities.length + selectedPriorities.length + (searchTerm ? 1 : 0)}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={loadData}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Actualizar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Panel de Filtros - Collapsible */}
+      {showFilters && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-4 flex-shrink-0"
+        >
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar en registros..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Multi-Select Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <MultiSelect
+                label="Centro Gestor"
+                options={availableCentrosGestores}
+                selected={selectedCentrosGestores}
+                onChange={setSelectedCentrosGestores}
+                placeholder="Todos los centros"
+              />
+              <MultiSelect
+                label="Severidad"
+                options={availableSeverities}
+                selected={selectedSeverities}
+                onChange={setSelectedSeverities}
+                placeholder="Todas las severidades"
+              />
+              <MultiSelect
+                label="Prioridad"
+                options={availablePriorities}
+                selected={selectedPriorities}
+                onChange={setSelectedPriorities}
+                placeholder="Todas las prioridades"
+              />
+            </div>
+
+            {/* Clear All Filters Button */}
+            {(selectedCentrosGestores.length + selectedSeverities.length + selectedPriorities.length + (searchTerm ? 1 : 0)) > 0 && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    setSelectedCentrosGestores([])
+                    setSelectedSeverities([])
+                    setSelectedPriorities([])
+                    setSearchTerm('')
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                >
+                  <FilterX className="w-4 h-4" />
+                  Limpiar todos los filtros
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Tabs - Compactos */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 flex-shrink-0">
+        <div className="flex gap-1 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Contenido Principal - Usa TODO el espacio disponible */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="h-full flex flex-col p-4"
+        >
+          {/* Error Message */}
+          {error && (
+            <div className="mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex-shrink-0">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-red-900 dark:text-red-100">
+                    Error al cargar datos
+                  </h3>
+                  <p className="text-xs text-red-700 dark:text-red-300 mt-1">{error}</p>
+                  <button
+                    onClick={loadData}
+                    className="mt-2 text-xs px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex-1 flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg">
+              <div className="text-center">
+                <RefreshCw className="w-10 h-10 text-blue-600 dark:text-blue-400 animate-spin mx-auto mb-3" />
+                <p className="text-sm text-slate-600 dark:text-slate-400">Cargando datos...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && !error && (
+            <div className="flex-1 overflow-auto">
+              {activeTab === 'summary' && data.length > 0 && (
+                <SummaryView data={data[0]} />
+              )}
+
+              {activeTab === 'records' && (
+                <RecordsView records={filteredData.slice(startIndex, endIndex)} />
+              )}
+
+              {activeTab === 'changelog' && (
+                <ChangelogView changes={filteredData} />
+              )}
+
+              {activeTab === 'by-centro-gestor' && (
+                <ByCentroGestorView centros={filteredData} />
+              )}
+
+              {activeTab === 'metadata' && (
+                <MetadataView metadata={data} />
+              )}
+
+              {activeTab === 'stats' && (
+                <StatsView data={data} />
+              )}
+
+              {/* Paginación solo para records */}
+              {activeTab === 'records' && filteredData.length > itemsPerPage && (
+                <div className="mt-4 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                      Mostrando <span className="font-semibold text-slate-900 dark:text-white">{startIndex + 1}</span> a{' '}
+                      <span className="font-semibold text-slate-900 dark:text-white">{Math.min(endIndex, filteredData.length)}</span> de{' '}
+                      <span className="font-semibold text-slate-900 dark:text-white">{filteredData.length}</span> registros
+                    </div>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value))
+                        setCurrentPage(1)
+                      }}
+                      className="px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                    >
+                      <option value={10}>10 por página</option>
+                      <option value={25}>25 por página</option>
+                      <option value={50}>50 por página</option>
+                      <option value={100}>100 por página</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={goToPreviousPage}
+                      disabled={currentPage === 1}
+                      className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Página anterior"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                        let pageNumber: number
+                        if (totalPages <= 7) {
+                          pageNumber = i + 1
+                        } else if (currentPage <= 4) {
+                          pageNumber = i + 1
+                        } else if (currentPage >= totalPages - 3) {
+                          pageNumber = totalPages - 6 + i
+                        } else {
+                          pageNumber = currentPage - 3 + i
+                        }
+
+                        return (
+                          <button
+                            key={pageNumber}
+                            onClick={() => goToPage(pageNumber)}
+                            className={`min-w-[28px] h-7 px-2 text-xs font-medium rounded transition-colors ${
+                              currentPage === pageNumber
+                                ? 'bg-blue-600 text-white'
+                                : 'hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            {pageNumber}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <button
+                      onClick={goToNextPage}
+                      disabled={currentPage === totalPages}
+                      className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Página siguiente"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
+      </div>
+    </div>
+  )
+}
+
+export default GestionUnidadesProyecto
