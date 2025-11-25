@@ -31,46 +31,87 @@ class AdminService {
 
   /**
    * Listar todos los usuarios del sistema
-   * Endpoint: GET /admin/users
+   * Endpoint: GET /auth/admin/users (con autenticación y filtros completos)
    */
   async listUsers(params: ListUsersParams = {}): Promise<ListUsersResponse> {
     try {
       const queryParams = new URLSearchParams()
       
-      if (params.page) queryParams.append('page', params.page.toString())
+      // Usar offset en lugar de page para el endpoint /auth/admin/users
+      const offset = params.page ? (params.page - 1) * (params.limit || 100) : 0
+      
       if (params.limit) queryParams.append('limit', params.limit.toString())
-      if (params.role) queryParams.append('role', params.role)
-      if (params.centro_gestor) queryParams.append('centro_gestor', params.centro_gestor)
-      if (params.is_active !== undefined) queryParams.append('is_active', params.is_active.toString())
-      if (params.search) queryParams.append('search', params.search)
+      if (offset > 0) queryParams.append('offset', offset.toString())
+      
+      // Nota: El endpoint /auth/admin/users usa limit y offset, no page
+      // Los filtros adicionales (role, centro_gestor, is_active, search) 
+      // no están en el OpenAPI pero pueden estar implementados
 
-      const url = `${this.baseUrl}/users${queryParams.toString() ? '?' + queryParams.toString() : ''}`
+      const url = `/auth/admin/users${queryParams.toString() ? '?' + queryParams.toString() : ''}`
+      console.log('📋 Obteniendo usuarios:', { url, params })
+      
       const response = await apiClient.get<any>(url)
-
+      
+      // El backend puede retornar los usuarios en response.users o response.data
+      const users = response.users || response.data || []
+      
+      console.log('📊 Respuesta de usuarios:', {
+        success: response.success,
+        count: users.length,
+        total: response.total,
+        tipoRespuesta: response.users ? 'response.users' : response.data ? 'response.data' : 'response directo',
+        primerUsuario: users[0] ? {
+          uid: users[0].uid,
+          email: users[0].email,
+          full_name: users[0].full_name,
+          phone_number: users[0].phone_number,
+          centro_gestor_assigned: users[0].centro_gestor_assigned,
+          roles: users[0].roles,
+          camposDisponibles: Object.keys(users[0])
+        } : null
+      })
+      const total = response.total || users.length
+      const limit = params.limit || 100
+      
       return {
-        success: response.success || true,
-        users: response.users || response.data || [],
-        total: response.total || 0,
-        page: response.page || params.page || 1,
-        total_pages: response.total_pages || 1,
-        count: response.count || response.users?.length || 0
+        success: response.success !== false,
+        users: users,
+        total: total,
+        page: params.page || 1,
+        total_pages: Math.ceil(total / limit),
+        count: users.length
       }
     } catch (error) {
-      console.error('Error listing users:', error)
+      console.error('❌ Error listing users:', error)
       throw error
     }
   }
 
   /**
    * Obtener un usuario específico por UID
-   * Endpoint: GET /auth/user/{uid}
+   * Endpoint: GET /auth/admin/users/{uid}
    */
   async getUser(uid: string): Promise<AdminUser> {
     try {
+      console.log('👤 Obteniendo usuario:', uid)
       const response = await apiClient.get<any>(`/auth/admin/users/${uid}`)
-      return response.user || response.data || response
+      
+      const user = response.user || response.data || response
+      
+      console.log('📄 Datos del usuario recibidos:', {
+        uid: user.uid,
+        email: user.email,
+        full_name: user.full_name,
+        phone_number: user.phone_number,
+        centro_gestor_assigned: user.centro_gestor_assigned,
+        roles: user.roles,
+        is_active: user.is_active,
+        camposDisponibles: Object.keys(user)
+      })
+      
+      return user
     } catch (error) {
-      console.error(`Error getting user ${uid}:`, error)
+      console.error(`❌ Error getting user ${uid}:`, error)
       throw error
     }
   }
@@ -104,17 +145,36 @@ class AdminService {
    */
   async updateUser(uid: string, request: UpdateUserRequest): Promise<UpdateUserResponse> {
     try {
+      console.log('🔄 Actualizando usuario:', {
+        uid,
+        endpoint: `/auth/admin/users/${uid}`,
+        datos: request
+      })
+      
       const response = await apiClient.put<any>(
         `/auth/admin/users/${uid}`,
         request
       )
+      
+      console.log('✅ Respuesta del backend:', {
+        success: response.success,
+        message: response.message,
+        user: response.user,
+        fullResponse: response
+      })
+      
       return {
         success: response.success || true,
         message: response.message || 'Usuario actualizado exitosamente',
         user: response.user || response.data
       }
-    } catch (error) {
-      console.error(`Error updating user ${uid}:`, error)
+    } catch (error: any) {
+      console.error('❌ Error actualizando usuario:', {
+        uid,
+        error: error.message,
+        status: error.status,
+        response: error.response
+      })
       throw error
     }
   }

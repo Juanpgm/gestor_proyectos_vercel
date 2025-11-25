@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limpiar Sesión y Re-Login</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 30px 0;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 18px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+    }
+    .btn-danger:hover {
+      box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+    }
+    .btn-success:hover {
+      box-shadow: 0 6px 20px rgba(79, 172, 254, 0.6);
+    }
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    .info-box h3 {
+      margin-top: 0;
+      color: #667eea;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      font-weight: 500;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .code-block {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    .checklist li {
+      padding: 12px;
+      margin: 8px 0;
+      background: #f8f9fa;
+      border-radius: 6px;
+      position: relative;
+      padding-left: 40px;
+    }
+    .checklist li:before {
+      content: "✓";
+      position: absolute;
+      left: 12px;
+      color: #4CAF50;
+      font-weight: bold;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 Limpiar Sesión y Re-Login</h1>
+    
+    <div class="info-box">
+      <h3>¿Por qué necesitas hacer esto?</h3>
+      <p>Cuando los roles de un usuario se actualizan en Firebase, el token JWT actual no incluye esos cambios. Necesitas cerrar sesión y volver a iniciar para obtener un nuevo token con los roles actualizados.</p>
+    </div>
+
+    <div class="button-container">
+      <button onclick="clearAll()">
+        🧹 Limpiar Todo (Sesión + Consola + Cookies)
+      </button>
+      
+      <button class="btn-danger" onclick="clearSessionOnly()">
+        🗑️ Solo Limpiar Sesión
+      </button>
+      
+      <button class="btn-success" onclick="checkCurrentSession()">
+        🔍 Verificar Sesión Actual
+      </button>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="info-box">
+      <h3>Proceso Automático:</h3>
+      <ul class="checklist">
+        <li>Cierra sesión de Firebase Auth</li>
+        <li>Limpia localStorage y sessionStorage</li>
+        <li>Limpia cookies relacionadas</li>
+        <li>Limpia la consola del navegador</li>
+        <li>Redirige al login automáticamente</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <h3>Después de hacer re-login:</h3>
+      <ul class="checklist">
+        <li>El nuevo token incluirá el rol super_admin</li>
+        <li>Podrás asignar roles a otros usuarios</li>
+        <li>El error 403 desaparecerá</li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module">
+    function showStatus(message, type = 'success') {
+      const statusDiv = document.getElementById('status');
+      statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+    }
+
+    window.clearAll = async function() {
+      try {
+        showStatus('⏳ Limpiando sesión...', 'warning');
+        
+        // 1. Cerrar sesión de Firebase Auth si existe
+        try {
+          const { auth, signOutWIF } = await import('@/lib/firebase');
+          if (auth?.currentUser) {
+            await signOutWIF();
+            console.log('✅ Firebase Auth: Sesión cerrada');
+          }
+        } catch (e) {
+          console.log('⚠️ Firebase Auth no disponible o ya cerrada');
+        }
+
+        // 2. Limpiar localStorage
+        localStorage.removeItem('auth_session');
+        localStorage.clear();
+        console.log('✅ localStorage limpiado');
+
+        // 3. Limpiar sessionStorage
+        sessionStorage.removeItem('auth_session');
+        sessionStorage.clear();
+        console.log('✅ sessionStorage limpiado');
+
+        // 4. Limpiar cookies
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        console.log('✅ Cookies limpiadas');
+
+        // 5. Limpiar consola
+        console.clear();
+
+        showStatus('✅ Sesión limpiada completamente. Redirigiendo al login...', 'success');
+
+        // 6. Esperar 1 segundo y redirigir
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1000);
+
+      } catch (error) {
+        showStatus(`❌ Error al limpiar sesión: ${error.message}`, 'error');
+        console.error('Error:', error);
+      }
+    };
+
+    window.clearSessionOnly = function() {
+      try {
+        showStatus('⏳ Limpiando solo datos de sesión...', 'warning');
+
+        // Limpiar solo datos de autenticación
+        localStorage.removeItem('auth_session');
+        sessionStorage.removeItem('auth_session');
+        
+        showStatus('✅ Datos de sesión limpiados. Puedes cerrar esta página y hacer login nuevamente.', 'success');
+        
+        console.log('✅ Sesión limpiada (sin redirigir)');
+      } catch (error) {
+        showStatus(`❌ Error: ${error.message}`, 'error');
+      }
+    };
+
+    window.checkCurrentSession = function() {
+      try {
+        const session = localStorage.getItem('auth_session');
+        
+        if (!session) {
+          showStatus('ℹ️ No hay sesión activa', 'warning');
+          return;
+        }
+
+        const parsed = JSON.parse(session);
+        const user = parsed.user;
+
+        const info = `
+          <div class="code-block">
+Email: ${user?.email || 'N/A'}
+UID: ${user?.uid || 'N/A'}
+Roles: ${JSON.stringify(user?.roles || [])}
+Permisos: ${JSON.stringify(user?.permissions || [])}
+Tiene Token: ${user?.idToken ? 'Sí' : 'No'}
+          </div>
+          ${user?.roles?.includes('super_admin') ? 
+            '<p style="color: #155724; font-weight: bold;">✅ Usuario tiene rol super_admin en localStorage</p>' : 
+            '<p style="color: #721c24; font-weight: bold;">❌ Usuario NO tiene rol super_admin</p>'
+          }
+          <p style="color: #856404;">⚠️ Nota: Esto es lo que está en localStorage. El token JWT podría tener roles diferentes.</p>
+        `;
+
+        showStatus(info, 'success');
+
+        // También verificar el token
+        if (user?.idToken) {
+          try {
+            const payload = JSON.parse(atob(user.idToken.split('.')[1]));
+            console.log('📋 Roles en el TOKEN JWT:', payload.roles);
+            console.log('🎫 Token claims completos:', payload);
+            
+            const tokenHasSuperAdmin = payload.roles?.includes('super_admin');
+            if (tokenHasSuperAdmin) {
+              console.log('✅ El token JWT SÍ incluye super_admin');
+            } else {
+              console.log('❌ El token JWT NO incluye super_admin');
+              console.log('🔄 SOLUCIÓN: Cierra sesión y vuelve a iniciar para obtener nuevo token');
+            }
+          } catch (e) {
+            console.log('⚠️ No se pudo decodificar el token');
+          }
+        }
+
+      } catch (error) {
+        showStatus(`❌ Error al verificar sesión: ${error.message}`, 'error');
+      }
+    };
+
+    // Mostrar instrucciones al cargar
+    window.addEventListener('load', () => {
+      console.log('%c🔄 Utilidad de Limpieza de Sesión', 'font-size: 20px; font-weight: bold; color: #667eea;');
+      console.log('');
+      console.log('Usa los botones en la página o ejecuta desde aquí:');
+      console.log('- clearAll()           → Limpia todo y redirige al login');
+      console.log('- clearSessionOnly()   → Solo limpia la sesión');
+      console.log('- checkCurrentSession() → Verifica la sesión actual');
+      console.log('');
+    });
+  </script>
+</body>
+</html>

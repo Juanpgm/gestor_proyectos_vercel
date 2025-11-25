@@ -1,18 +1,17 @@
-import { initializeApp, FirebaseOptions } from 'firebase/app'
 import { 
-  getAuth, 
+  signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
   User as FirebaseUser,
-  signOut
+  signOut as firebaseSignOut
 } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 import { AuthConfig, LoginCredentials, RegisterCredentials, User } from '@/types/auth'
-import { API_CONFIG, FIREBASE_CONFIG, AUTH_CONFIG } from '@/config/app'
+import { AUTH_CONFIG } from '@/config/app'
 
 class AuthService {
   private static instance: AuthService
-  private auth: any = null
   private googleProvider: GoogleAuthProvider | null = null
   private config: AuthConfig | null = null
   private isInitialized = false
@@ -58,31 +57,27 @@ class AuthService {
         }
       }
 
-      // Firebase solo si hay credenciales
+      // Firebase ya está inicializado en lib/firebase.ts
+      // Solo inicializar Google Provider
       if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'fake-key-for-development') {
         try {
-          const app = initializeApp({
-            projectId: this.config.projectId,
-            authDomain: this.config.authDomain,
-            apiKey: this.config.apiKey,
-          })
-          this.auth = getAuth(app)
           this.googleProvider = new GoogleAuthProvider()
         } catch (error) {
-          console.warn('Firebase disabled:', error)
+          console.warn('Google provider disabled:', error)
         }
       }
 
       this.isInitialized = true
+      console.log('✅ AuthService initialized')
     } catch (error) {
-      console.error('Auth init error:', error)
+      console.error('❌ Auth init error:', error)
     }
   }
 
 
 
   getAuth() {
-    return this.auth
+    return auth
   }
 
   getConfig(): AuthConfig | null {
@@ -90,7 +85,7 @@ class AuthService {
   }
 
   // Convertir respuesta de API a nuestro tipo User
-  private mapApiUser(apiUser: any): User {
+  private mapApiUser(apiUser: any, idToken?: string): User {
     // Extraer roles desde diferentes ubicaciones posibles
     // ORDEN DE PRIORIDAD: firestore_data > roles directos > custom_claims
     let roles = apiUser.roles || []
@@ -149,7 +144,9 @@ class AuthService {
       permissions: permissions,
       centro_gestor_assigned: centro_gestor_assigned,
       is_active: is_active,
-      phone: phone
+      phone: phone,
+      // Token de autenticación (puede venir de la API o ser pasado explícitamente)
+      idToken: idToken || apiUser.id_token || apiUser.idToken || null
     }
     
     console.log('✅ User mapped successfully:', {
@@ -162,121 +159,133 @@ class AuthService {
     return mappedUser
   }
 
-  // Login con email y contraseña usando API
+  // Login con email y contraseña usando Firebase Auth SDK
   async signInWithEmail({ email, password, remember = true }: LoginCredentials): Promise<User> {
     try {
-      console.log('🔐 Attempting login with email:', email)
-      console.log('🌐 Window hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server-side')
-      console.log('🌐 NODE_ENV:', process.env.NODE_ENV)
-      console.log('🌐 APP_ENV:', process.env.NEXT_PUBLIC_APP_ENV)
+      console.log('🔐 Attempting login with Firebase Auth SDK:', email)
       
-      // Agregar timeout y manejo robusto de errores de red
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 segundos timeout
+      // PASO 1: Autenticar con Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      console.log('✅ Firebase authentication successful')
+
+      // PASO 2: Obtener ID token
+      const idToken = await userCredential.user.getIdToken()
+      console.log('✅ ID token obtained:', idToken.substring(0, 20) + '...')
+
+      // PASO 3: Validar con backend y obtener roles/permisos
+      const apiUrl = this.getApiUrl()
+      console.log('🌐 Validating session with backend:', apiUrl)
+      
+      const response = await fetch(`${apiUrl}/auth/validate-session`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Validation failed')
+      }
+
+      const backendData = await response.json()
+      console.log('✅ Backend validation successful:', {
+        roles: backendData.user?.roles,
+        permissions: backendData.user?.permissions
+      })
+
+      // PASO 4: Mapear usuario con roles y permisos del backend
+      const user = this.mapApiUser(backendData.user, idToken)
+      
+      // Guardar sesión localmente
+      this.saveSession(user, remember)
+      
+      console.log('✅ Login complete:', {
+        email: user.email,
+        roles: user.roles,
+        hasToken: !!user.idToken
+      })
+      
+      return user
+    } catch (error: any) {
+      console.error('❌ Login error:', error)
+      
+      // Mapear errores de Firebase a mensajes en español
+      const errorMessages: Record<string, string> = {
+        'auth/invalid-email': 'Correo electrónico inválido',
+        'auth/user-disabled': 'Usuario deshabilitado',
+        'auth/user-not-found': 'Usuario no encontrado',
+        'auth/wrong-password': 'Contraseña incorrecta',
+        'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
+        'auth/network-request-failed': 'Error de conexión',
+        'auth/invalid-credential': 'Credenciales inválidas',
+        'auth/api-key-not-valid': '🔧 Firebase API key inválida. Ver PROBLEMA_PANEL_ADMIN.md para configurar'
+      }
+
+      throw new Error(
+        errorMessages[error.code] || error.message || 'Error de autenticación'
+      )
+    }
+  }
+
+  // Autenticación con WIF (Workload Identity Federation)
+  private async signInWithEmailFallback({ email, password, remember = true }: LoginCredentials): Promise<User> {
+    try {
+      console.log('🔐 WIF: Iniciando autenticación automática...')
       
       const apiUrl = this.getApiUrl()
-      console.log('🌐 Using API URL:', apiUrl)
-      
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
-        signal: controller.signal
-      })
-
-      clearTimeout(timeoutId)
-
-      console.log('📡 Response status:', response.status)
-      console.log('📡 Response ok:', response.ok)
-
-      // Manejar respuesta
-      let data
-      try {
-        data = await response.json()
-      } catch (parseError) {
-        console.error('❌ Failed to parse response as JSON:', parseError)
-        throw new Error('Error de comunicación con el servidor - respuesta inválida')
-      }
-
-      console.log('📄 Response data:', { 
-        success: data?.success, 
-        hasUser: !!data?.user,
-        userEmail: data?.user?.email,
-        userRoles: data?.user?.roles,
-        customClaims: data?.user?.custom_claims,
-        fullUser: data?.user
+        body: JSON.stringify({ email, password })
       })
 
       if (!response.ok) {
-        // Manejar diferentes tipos de respuestas de error de la API
-        let errorMessage = 'Error al iniciar sesión'
-        
-        if (response.status === 500) {
-          // Error interno del servidor - mensaje más informativo
-          errorMessage = 'Error interno del servidor. Su usuario puede tener problemas de configuración. Contacte al administrador del sistema.'
-        } else if (response.status === 401) {
-          // Error de autenticación
-          errorMessage = data.error || data.message || 'Credenciales inválidas'
-        } else if (response.status === 422 && data.detail && Array.isArray(data.detail)) {
-          // Error de validación (422) - Extraer el primer mensaje de validación
-          const firstError = data.detail[0]
-          errorMessage = firstError?.msg || 'Error de validación'
-        } else if (response.status === 0 || !response.status) {
-          errorMessage = 'Error de conexión con el servidor. Verifique su conexión a internet.'
-        } else if (data.error) {
-          // Error estándar con campo 'error'
-          errorMessage = data.error
-        } else if (data.detail && typeof data.detail === 'string') {
-          // Error con campo 'detail' como string
-          errorMessage = data.detail
-        } else if (data.message) {
-          // Error con campo 'message'
-          errorMessage = data.message
-        }
-        
-        console.error('❌ Login failed:', errorMessage)
-        throw new Error(errorMessage)
+        const error = await response.json()
+        throw new Error(error.message || error.error || 'Login failed')
       }
 
-      // Verificar si el login fue exitoso
-      if (data.success === false) {
-        // Manejar tanto data.error como data.message
-        const errorMessage = data.error || data.message || 'Credenciales inválidas'
-        throw new Error(errorMessage)
-      }
+      const data = await response.json()
       
-      // Si no hay campo success pero tampoco hay user, es un error
-      if (!data.user && data.success !== true) {
-        const errorMessage = data.error || data.message || 'No se pudo autenticar el usuario'
-        throw new Error(errorMessage)
+      if (!data.success || !data.user) {
+        throw new Error(data.message || 'Login failed')
       }
 
-      const user = this.mapApiUser(data.user)
+      // WIF: El backend retorna custom_token que se convierte automáticamente a id_token
+      const customToken = data.custom_token
+      let idToken: string | null = null
+
+      if (customToken && auth) {
+        // WIF: Autenticación automática con renovación de token
+        try {
+          console.log('🔄 WIF: Convirtiendo custom_token a id_token (automático)...')
+          const { authenticateWithWIF } = await import('@/lib/firebase')
+          idToken = await authenticateWithWIF(customToken)
+          console.log('✅ WIF: Token obtenido y configurado automáticamente')
+        } catch (conversionError: any) {
+          console.error('❌ WIF: Error en autenticación automática:', conversionError.message)
+          throw new Error('No se pudo autenticar con Firebase. Verifica la configuración.')
+        }
+      } else if (!auth) {
+        throw new Error('Firebase no está configurado correctamente')
+      } else {
+        throw new Error('El backend no retornó un custom_token válido')
+      }
+
+      const user = this.mapApiUser(data.user, idToken)
       
       // Guardar sesión localmente
       this.saveSession(user, remember)
       
-      console.log('✅ Login successful for:', user.email)
+      console.log('✅ WIF: Login exitoso con autenticación automática:', user.email)
       return user
-    } catch (error) {
-      console.error('❌ Login error:', error)
-      
-      // Manejar errores específicos de red
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new Error('Tiempo de espera agotado. Verifique su conexión a internet.')
-        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
-          throw new Error('Error de conexión. Verifique su conexión a internet y que el servidor esté disponible.')
-        } else if (error.message?.includes('NetworkError') || error.message?.includes('network')) {
-          throw new Error('Error de red. Verifique su conexión a internet.')
-        }
-        throw error
-      }
-      
-      throw new Error('Error desconocido durante el login')
+    } catch (error: any) {
+      console.error('❌ WIF: Error en login:', error)
+      throw error
     }
   }
 
@@ -340,7 +349,9 @@ class AuthService {
         throw new Error(errorMessage)
       }
 
-      const user = this.mapApiUser(userData)
+      // Extraer el token de la respuesta si está disponible
+      const idToken = data.id_token || data.idToken || data.token || userData?.id_token
+      const user = this.mapApiUser(userData, idToken)
       
       // Guardar sesión localmente después del registro exitoso
       this.saveSession(user, true)
@@ -352,73 +363,65 @@ class AuthService {
     }
   }
 
-  // Login con Google usando API
+  // Login con Google usando Firebase Auth SDK
   async signInWithGoogle(remember: boolean = true): Promise<User> {
     try {
-      if (!this.auth || !this.googleProvider) {
+      if (!this.googleProvider) {
         throw new Error('Google Authentication no está disponible. Verifica la configuración de Firebase.')
       }
 
-      console.log('Iniciando Google Auth...')
+      console.log('🔐 Iniciando Google Auth con Firebase...')
 
-      // Obtener credential de Google usando Firebase
-      const result = await signInWithPopup(this.auth, this.googleProvider)
-      console.log('Google popup completed:', result.user?.email)
+      // PASO 1: Autenticar con Google usando Firebase
+      const result = await signInWithPopup(auth, this.googleProvider)
+      console.log('✅ Google popup completed:', result.user?.email)
       
-      // Obtener el token de ID directamente del usuario
+      // PASO 2: Obtener ID token
       const idToken = await result.user.getIdToken()
-      
-      if (!idToken) {
-        throw new Error('No se pudo obtener el token de Google')
-      }
+      console.log('✅ ID token obtained')
 
-      console.log('Token obtenido, enviando a API...')
-
-      // Enviar token a nuestra API
+      // PASO 3: Validar con backend y obtener roles/permisos
       const apiUrl = this.getApiUrl()
-      console.log('🌐 Using API URL for Google:', apiUrl)
+      console.log('🌐 Validating session with backend:', apiUrl)
       
-      const response = await fetch(`${apiUrl}/auth/google`, {
+      const response = await fetch(`${apiUrl}/auth/validate-session`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          google_token: idToken 
-        })
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json'
+        }
       })
 
-      const data = await response.json()
-      console.log('API response:', data)
-
       if (!response.ok) {
-        throw new Error(data.detail || 'Error al autenticar con Google')
+        const error = await response.json()
+        throw new Error(error.message || 'Validation failed')
       }
 
-      if (!data.success) {
-        throw new Error(data.message || 'Error en la autenticación con Google')
-      }
+      const backendData = await response.json()
+      console.log('✅ Backend validation successful')
 
-      const user = this.mapApiUser(data.user)
+      // PASO 4: Mapear usuario con roles y permisos del backend
+      const user = this.mapApiUser(backendData.user, idToken)
       
       // Guardar sesión localmente
       this.saveSession(user, remember)
       
-      console.log('Google Auth successful for:', user.email)
+      console.log('✅ Google Auth complete for:', user.email)
       return user
     } catch (error: any) {
-      console.error('Google login error:', error)
+      console.error('❌ Google login error:', error)
       
       // Manejar errores específicos de Google Auth
-      if (error.code === 'auth/popup-closed-by-user') {
-        throw new Error('Autenticación cancelada por el usuario')
-      } else if (error.code === 'auth/popup-blocked') {
-        throw new Error('Popup bloqueado por el navegador. Permite popups para este sitio.')
-      } else if (error.code === 'auth/network-request-failed') {
-        throw new Error('Error de conexión. Verifica tu conexión a internet.')
+      const errorMessages: Record<string, string> = {
+        'auth/popup-closed-by-user': 'Autenticación cancelada por el usuario',
+        'auth/popup-blocked': 'Popup bloqueado por el navegador. Permite popups para este sitio.',
+        'auth/network-request-failed': 'Error de conexión. Verifica tu conexión a internet.',
+        'auth/cancelled-popup-request': 'Autenticación cancelada'
       }
       
-      throw error
+      throw new Error(
+        errorMessages[error.code] || error.message || 'Error con Google Auth'
+      )
     }
   }
 
@@ -460,15 +463,17 @@ class AuthService {
   // Cerrar sesión
   async signOut(): Promise<void> {
     try {
-      // Cerrar sesión en Firebase si está activa
-      if (this.auth?.currentUser) {
-        await signOut(this.auth)
+      // WIF: Cerrar sesión en Firebase (limpia automáticamente tokens)
+      if (auth.currentUser) {
+        const { signOutWIF } = await import('@/lib/firebase')
+        await signOutWIF()
+        console.log('✅ WIF: Sesión cerrada automáticamente')
       }
       
       // Limpiar sesión local
       this.clearSession()
     } catch (error) {
-      console.error('Sign out error:', error)
+      console.error('❌ WIF: Error cerrando sesión:', error)
       // Limpiar sesión local aunque haya error
       this.clearSession()
     }
@@ -481,6 +486,7 @@ class AuthService {
       roles: user.roles,
       rolesLength: user.roles?.length,
       permissions: user.permissions,
+      hasToken: !!user.idToken,
       remember,
       storageType: remember ? 'localStorage' : 'sessionStorage'
     })

@@ -13,17 +13,40 @@ interface PermissionViewerProps {
 }
 
 export default function PermissionViewer({ user, onClose }: PermissionViewerProps) {
+  console.log('🔍 PermissionViewer - Usuario:', {
+    uid: user.uid,
+    email: user.email,
+    roles: user.roles,
+    permissions: user.permissions,
+    temporary_permissions: user.temporary_permissions
+  })
+
   // Combinar permisos de roles + permisos temporales activos
   const temporaryPermissionsActive = (user.temporary_permissions || []).filter(
     tp => new Date(tp.expires_at) > new Date()
   )
 
+  // Obtener permisos desde los roles si user.permissions está vacío
+  const permissionsFromRoles = user.roles?.flatMap(roleId => {
+    const roleInfo = getRoleInfo(roleId)
+    return roleInfo.permissions || []
+  }) || []
+
   const allPermissions = Array.from(
     new Set([
       ...(user.permissions || []), 
+      ...permissionsFromRoles,
       ...temporaryPermissionsActive.map(tp => tp.permission)
     ])
   )
+
+  console.log('📊 Permisos calculados:', {
+    fromUser: user.permissions?.length || 0,
+    fromRoles: permissionsFromRoles.length,
+    temporary: temporaryPermissionsActive.length,
+    total: allPermissions.length,
+    permisos: allPermissions
+  })
 
   return (
     <AnimatePresence>
@@ -130,21 +153,30 @@ export default function PermissionViewer({ user, onClose }: PermissionViewerProp
                   Permisos Efectivos ({allPermissions.length})
                 </h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto p-2">
-                {allPermissions.sort().map((permission, idx) => (
-                  <div
-                    key={idx}
-                    className="px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                      <span className="text-sm font-mono text-green-900 dark:text-green-100">
-                        {permission}
-                      </span>
+              {allPermissions.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-96 overflow-y-auto p-2">
+                  {allPermissions.sort().map((permission, idx) => (
+                    <div
+                      key={idx}
+                      className="px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span className="text-sm font-mono text-green-900 dark:text-green-100">
+                          {permission}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Key className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500 dark:text-gray-400">
+                    No hay permisos asignados. Asigna roles para otorgar permisos.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Permisos Temporales */}

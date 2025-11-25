@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Permisos - WIF</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-left: 4px solid #2196F3;
+      border-radius: 4px;
+    }
+    .error {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    .success {
+      border-left-color: #4CAF50;
+      background: #e8f5e9;
+    }
+    .warning {
+      border-left-color: #ff9800;
+      background: #fff3e0;
+    }
+    pre {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .btn-secondary {
+      background: #2196F3;
+    }
+    .btn-secondary:hover {
+      background: #0b7dda;
+    }
+    .token-info {
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Diagnóstico de Permisos WIF</h1>
+    
+    <div class="section">
+      <h2>📋 Información del Usuario</h2>
+      <div id="user-info">
+        <button onclick="checkUserInfo()">Verificar Usuario</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔥 Firebase Auth</h2>
+      <div id="firebase-info">
+        <button onclick="checkFirebaseAuth()">Verificar Firebase Auth</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🎫 Token Claims</h2>
+      <div id="token-claims">
+        <button onclick="checkTokenClaims()">Decodificar Token</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔐 Test de Permisos</h2>
+      <div id="permissions-test">
+        <button onclick="testAdminEndpoint()">Probar Endpoint Admin</button>
+        <button class="btn-secondary" onclick="testTokenRenewal()">Renovar Token</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📊 Resultado</h2>
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    window.checkUserInfo = function() {
+      const div = document.getElementById('user-info');
+      
+      try {
+        const authSession = localStorage.getItem('auth_session');
+        if (!authSession) {
+          div.innerHTML = '<div class="error"><strong>❌ No hay sesión</strong><p>No se encontró información de usuario en localStorage</p></div>';
+          return;
+        }
+
+        const session = JSON.parse(authSession);
+        const user = session.user;
+
+        div.innerHTML = `
+          <div class="success">
+            <strong>✅ Sesión encontrada</strong>
+            <pre>${JSON.stringify({
+              email: user?.email,
+              uid: user?.uid,
+              roles: user?.roles,
+              permissions: user?.permissions,
+              hasToken: !!user?.idToken
+            }, null, 2)}</pre>
+          </div>
+        `;
+      } catch (error) {
+        div.innerHTML = `<div class="error"><strong>❌ Error:</strong> ${error.message}</div>`;
+      }
+    };
+
+    window.checkFirebaseAuth = async function() {
+      const div = document.getElementById('firebase-info');
+      
+      try {
+        // Usar fetch API para verificar Firebase Auth desde el backend
+        const response = await fetch('/api/check-firebase-auth');
+        
+        if (!response.ok) {
+          div.innerHTML = '<div class="warning"><strong>⚠️ No se puede verificar Firebase Auth directamente desde el navegador</strong><p>Verificando desde el localStorage...</p></div>';
+          
+          // Verificar desde localStorage como alternativa
+          const session = JSON.parse(localStorage.getItem('auth_session'));
+          if (session && session.user) {
+            div.innerHTML = `
+              <div class="success">
+                <strong>✅ Sesión activa detectada</strong>
+                <pre>${JSON.stringify({
+                  uid: session.user.uid,
+                  email: session.user.email,
+                  hasToken: !!session.user.idToken,
+                  tokenLength: session.user.idToken?.length || 0
+                }, null, 2)}</pre>
+                <p><small>Nota: Para verificar Firebase Auth completo, usa la consola del navegador</small></p>
+              </div>
+            `;
+          } else {
+            div.innerHTML = '<div class="error"><strong>❌ No hay sesión activa</strong></div>';
+          }
+          return;
+        }
+
+        const data = await response.json();
+        div.innerHTML = `
+          <div class="success">
+            <strong>✅ Usuario autenticado en Firebase</strong>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          </div>
+        `;
+      } catch (error) {
+        div.innerHTML = `<div class="error"><strong>❌ Error:</strong> ${error.message}</div>`;
+      }
+    };
+
+    window.checkTokenClaims = async function() {
+      const div = document.getElementById('token-claims');
+      
+      try {
+        // Obtener token desde localStorage
+        const session = JSON.parse(localStorage.getItem('auth_session'));
+        const token = session?.user?.idToken;
+
+        if (!token) {
+          div.innerHTML = '<div class="error"><strong>❌ No hay token</strong><p>No se pudo obtener el ID token de la sesión</p></div>';
+          return;
+        }
+
+        // Decodificar token JWT
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+          div.innerHTML = '<div class="error"><strong>❌ Token inválido</strong><p>El token no tiene el formato correcto</p></div>';
+          return;
+        }
+
+        const payload = JSON.parse(atob(parts[1]));
+        
+        // Verificar si tiene roles y permisos
+        const hasRoles = payload.roles && payload.roles.length > 0;
+        const hasPermissions = payload.permissions && payload.permissions.length > 0;
+        const isSuperAdmin = payload.roles?.includes('super_admin');
+
+        const resultClass = isSuperAdmin ? 'success' : 'warning';
+        const resultIcon = isSuperAdmin ? '✅' : '⚠️';
+
+        div.innerHTML = `
+          <div class="${resultClass}">
+            <strong>${resultIcon} Token decodificado</strong>
+            <pre>${JSON.stringify({
+              sub: payload.sub,
+              email: payload.email,
+              roles: payload.roles,
+              permissions: payload.permissions,
+              exp: new Date(payload.exp * 1000).toLocaleString(),
+              iat: new Date(payload.iat * 1000).toLocaleString(),
+              timeUntilExpiry: Math.round((payload.exp * 1000 - Date.now()) / 60000) + ' minutos'
+            }, null, 2)}</pre>
+            ${!isSuperAdmin ? '<p><strong>⚠️ PROBLEMA:</strong> No tienes el rol "super_admin". Solo super_admin puede gestionar usuarios.</p>' : '<p><strong>✅ CORRECTO:</strong> Tienes el rol "super_admin". Deberías poder gestionar usuarios.</p>'}
+          </div>
+          <div class="token-info">
+            <p><strong>Token completo (primeros 100 caracteres):</strong></p>
+            <pre>${token.substring(0, 100)}...</pre>
+          </div>
+        `;
+      } catch (error) {
+        div.innerHTML = `<div class="error"><strong>❌ Error:</strong> ${error.message}<br><small>Asegúrate de haber iniciado sesión</small></div>`;
+      }
+    };
+
+    window.testAdminEndpoint = async function() {
+      const div = document.getElementById('permissions-test');
+      
+      try {
+        div.innerHTML = '<div>⏳ Probando endpoint admin...</div>';
+
+        // Obtener token desde localStorage
+        const session = JSON.parse(localStorage.getItem('auth_session'));
+        const token = session?.user?.idToken;
+
+        if (!token) {
+          div.innerHTML = '<div class="error"><strong>❌ No hay token</strong><p>Inicia sesión primero</p></div>';
+          return;
+        }
+
+        const response = await fetch('/api/proxy/admin/users?page=1&limit=5', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          div.innerHTML = `
+            <div class="success">
+              <strong>✅ Endpoint admin funciona</strong>
+              <p>Se obtuvieron ${data.users?.length || 0} usuarios</p>
+              <pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>
+            </div>
+          `;
+        } else {
+          div.innerHTML = `
+            <div class="error">
+              <strong>❌ Error ${response.status} - ${response.statusText}</strong>
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+              ${response.status === 403 ? '<p><strong>🚨 Causa más probable:</strong> El token no incluye el rol super_admin en sus claims. Cierra sesión y vuelve a iniciar.</p>' : ''}
+              ${response.status === 401 ? '<p><strong>🚨 Causa:</strong> Token inválido o expirado. Cierra sesión y vuelve a iniciar.</p>' : ''}
+            </div>
+          `;
+        }
+      } catch (error) {
+        div.innerHTML = `<div class="error"><strong>❌ Error:</strong> ${error.message}</div>`;
+      }
+    };
+
+    window.testTokenRenewal = async function() {
+      const div = document.getElementById('permissions-test');
+      
+      try {
+        div.innerHTML = '<div>⏳ Cerrando y renovando sesión...</div>';
+
+        // Mostrar instrucciones para renovar token
+        div.innerHTML = `
+          <div class="warning">
+            <strong>🔄 Para renovar el token:</strong>
+            <ol style="text-align: left; margin-left: 20px;">
+              <li>Cierra sesión en la aplicación (botón Logout)</li>
+              <li>Vuelve a iniciar sesión</li>
+              <li>El nuevo token incluirá los roles actualizados</li>
+            </ol>
+            <p><strong>O ejecuta esto en la consola del navegador:</strong></p>
+            <pre style="text-align: left; background: #263238; color: #aed581; padding: 10px; border-radius: 4px;">
+// Forzar renovación de token
+const { auth } = await import('@/lib/firebase');
+if (auth.currentUser) {
+  const newToken = await auth.currentUser.getIdToken(true);
+  console.log('Token renovado:', newToken.substring(0, 50) + '...');
+  
+  // Actualizar en localStorage
+  const session = JSON.parse(localStorage.getItem('auth_session'));
+  session.user.idToken = newToken;
+  localStorage.setItem('auth_session', JSON.stringify(session));
+  console.log('✅ Token actualizado en localStorage');
+  
+  // Recargar página
+  location.reload();
+} else {
+  console.log('❌ No hay usuario autenticado');
+}
+            </pre>
+          </div>
+        `;
+      } catch (error) {
+        div.innerHTML = `<div class="error"><strong>❌ Error:</strong> ${error.message}</div>`;
+      }
+    };
+
+    // Auto-ejecutar al cargar
+    window.addEventListener('load', () => {
+      checkUserInfo();
+      checkFirebaseAuth();
+      checkTokenClaims();
+    });
+  </script>
+</body>
+</html>

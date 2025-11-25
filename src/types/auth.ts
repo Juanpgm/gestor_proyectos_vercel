@@ -15,6 +15,8 @@ export interface User {
   centro_gestor_assigned?: string | null
   is_active?: boolean
   phone?: string | null
+  // Token de autenticación de Firebase
+  idToken?: string | null
 }
 
 export interface AuthState {
