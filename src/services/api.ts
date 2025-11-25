@@ -74,20 +74,25 @@ export class ApiClient {
         
         // Get auth token and add to headers (now async)
         const token = await this.getAuthToken();
-        const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
         
         if (!token) {
           console.warn('⚠️ No authentication token available for request');
         }
         
+        // Build headers object properly to avoid TypeScript errors
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(options.headers as Record<string, string> || {}),
+        };
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         const response = await fetchWithErrorHandling<T>(url, {
           ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...authHeaders,
-            ...options.headers,
-          },
+          headers,
         }, this.timeout);
 
         console.log(`✅ API Request successful: ${url}`);
