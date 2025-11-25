@@ -12,9 +12,9 @@ const firebaseConfig = {
 };
 
 // Verificar que las variables de entorno estén configuradas (solo warnings, no errores)
-const hasRealConfig = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
-                      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN && 
-                      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const hasRealConfig = !!(process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
+                         process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN && 
+                         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
 
 if (!hasRealConfig && typeof window !== 'undefined') {
   console.warn('⚠️ Firebase configuration is using dummy values. Authentication will not work.');
