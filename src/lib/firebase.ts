@@ -3,39 +3,50 @@ import { getAuth, Auth, signInWithCustomToken } from 'firebase/auth';
 
 // Configuración de Firebase desde variables de entorno
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'dummy-key',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dummy-domain.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'dummy-project',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'dummy-bucket.appspot.com',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:123456789:web:abc123'
 };
 
-// Verificar que las variables de entorno estén configuradas
-if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
-  console.error('❌ Firebase configuration is missing. Please check your .env.local file.');
-  console.error('Required variables:');
-  console.error('- NEXT_PUBLIC_FIREBASE_API_KEY:', !!firebaseConfig.apiKey);
-  console.error('- NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:', !!firebaseConfig.authDomain);
-  console.error('- NEXT_PUBLIC_FIREBASE_PROJECT_ID:', !!firebaseConfig.projectId);
-  console.error('');
-  console.error('🔧 See INSTRUCCIONES_FIREBASE.md for setup instructions.');
+// Verificar que las variables de entorno estén configuradas (solo warnings, no errores)
+const hasRealConfig = process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
+                      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN && 
+                      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+if (!hasRealConfig && typeof window !== 'undefined') {
+  console.warn('⚠️ Firebase configuration is using dummy values. Authentication will not work.');
+  console.warn('Please configure Firebase environment variables in Vercel.');
 }
 
-let app: FirebaseApp;
-let auth: Auth;
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
 
 try {
-  // Intentar obtener la app existente o crear una nueva
-  app = getApp();
-} catch (error) {
-  // Si no existe, inicializar Firebase
-  app = initializeApp(firebaseConfig);
-  console.log('✅ Firebase initialized with WIF support');
-}
+  // Solo inicializar Firebase si tenemos configuración real
+  if (hasRealConfig) {
+    try {
+      // Intentar obtener la app existente o crear una nueva
+      app = getApp();
+    } catch (error) {
+      // Si no existe, inicializar Firebase
+      app = initializeApp(firebaseConfig);
+      if (typeof window !== 'undefined') {
+        console.log('✅ Firebase initialized with WIF support');
+      }
+    }
 
-// Obtener instancia de Auth
-auth = getAuth(app);
+    // Obtener instancia de Auth
+    auth = getAuth(app);
+  }
+} catch (error) {
+  // Silenciar errores durante el build
+  if (typeof window !== 'undefined') {
+    console.error('Error initializing Firebase:', error);
+  }
+}
 
 /**
  * Workload Identity Federation (WIF) - Autenticación Automática
@@ -54,8 +65,8 @@ auth = getAuth(app);
  * @returns Promise<string> - ID token de Firebase para usar en API calls
  */
 export async function authenticateWithWIF(customToken: string): Promise<string> {
-  if (!auth) {
-    throw new Error('Firebase Auth no está inicializado');
+  if (!auth || !hasRealConfig) {
+    throw new Error('Firebase Auth no está configurado. Por favor, configura las variables de entorno de Firebase.');
   }
 
   try {
@@ -94,6 +105,10 @@ export async function authenticateWithWIF(customToken: string): Promise<string> 
  * @returns Promise<string | null> - ID token actual o null si no hay usuario autenticado
  */
 export async function getCurrentIdToken(forceRefresh: boolean = false): Promise<string | null> {
+  if (!auth || !hasRealConfig) {
+    return null;
+  }
+  
   try {
     const user = auth?.currentUser;
     if (!user) {
@@ -114,7 +129,7 @@ export async function getCurrentIdToken(forceRefresh: boolean = false): Promise<
  * Parte del sistema WIF para validación de sesión
  */
 export function isAuthenticated(): boolean {
-  return !!auth?.currentUser;
+  return !!auth?.currentUser && hasRealConfig;
 }
 
 /**
@@ -122,11 +137,14 @@ export function isAuthenticated(): boolean {
  * Limpia completamente la sesión WIF
  */
 export async function signOutWIF(): Promise<void> {
+  if (!auth || !hasRealConfig) {
+    console.warn('Firebase Auth no está configurado');
+    return;
+  }
+  
   try {
-    if (auth) {
-      await auth.signOut();
-      console.log('✅ WIF: Sesión cerrada correctamente');
-    }
+    await auth.signOut();
+    console.log('✅ WIF: Sesión cerrada correctamente');
   } catch (error) {
     console.error('❌ WIF: Error cerrando sesión:', error);
     throw error;
