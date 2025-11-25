@@ -6,6 +6,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
  * Obtener el token actual del usuario autenticado
  */
 async function getCurrentIdToken(): Promise<string | null> {
+  if (!auth) return null;
+  
   const user = auth.currentUser;
   if (!user) return null;
   
@@ -21,6 +23,8 @@ async function getCurrentIdToken(): Promise<string | null> {
  * Renovar el token (forzar refresh)
  */
 export async function refreshIdToken(): Promise<string | null> {
+  if (!auth) return null;
+  
   const user = auth.currentUser;
   if (!user) return null;
   
