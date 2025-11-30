@@ -474,7 +474,7 @@ class AuthService {
   async signOut(): Promise<void> {
     try {
       // WIF: Cerrar sesión en Firebase (limpia automáticamente tokens)
-      if (auth.currentUser) {
+      if (auth?.currentUser) {
         const { signOutWIF } = await import('@/lib/firebase')
         await signOutWIF()
         console.log('✅ WIF: Sesión cerrada automáticamente')
