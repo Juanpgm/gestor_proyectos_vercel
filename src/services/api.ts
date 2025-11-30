@@ -63,7 +63,7 @@ export class ApiClient {
     useRetry: boolean = true
   ): Promise<T> {
     const url = `${this.baseUrl}/${endpoint.replace(/^\//, '')}`;
-    
+
     let lastError: Error = new Error('Unknown error occurred');
     let attempt = 0;
     const maxAttempts = useRetry ? this.retryConfig.maxRetries + 1 : 1;
@@ -71,25 +71,25 @@ export class ApiClient {
     while (attempt < maxAttempts) {
       try {
         console.log(`🌐 API Request (attempt ${attempt + 1}/${maxAttempts}): ${url}`);
-        
+
         // Get auth token and add to headers (now async)
         const token = await this.getAuthToken();
-        
+
         if (!token) {
           console.warn('⚠️ No authentication token available for request');
         }
-        
+
         // Build headers object properly to avoid TypeScript errors
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           ...(options.headers as Record<string, string> || {}),
         };
-        
+
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
-        
+
         const response = await fetchWithErrorHandling<T>(url, {
           ...options,
           headers,

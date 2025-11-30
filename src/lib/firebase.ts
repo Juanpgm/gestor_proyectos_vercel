@@ -12,9 +12,9 @@ const firebaseConfig = {
 };
 
 // Verificar que las variables de entorno estén configuradas (solo warnings, no errores)
-const hasRealConfig = !!(process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
-                         process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN && 
-                         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+const hasRealConfig = !!(process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
+  process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN &&
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
 
 if (!hasRealConfig && typeof window !== 'undefined') {
   console.warn('⚠️ Firebase configuration is using dummy values. Authentication will not work.');
@@ -71,21 +71,21 @@ export async function authenticateWithWIF(customToken: string): Promise<string> 
 
   try {
     console.log('🔐 WIF: Iniciando autenticación automática...');
-    
+
     // Usar signInWithCustomToken para autenticación automática (WIF)
     const userCredential = await signInWithCustomToken(auth, customToken);
-    
+
     // Obtener el ID token automáticamente
     const idToken = await userCredential.user.getIdToken();
-    
+
     console.log('✅ WIF: Autenticación exitosa');
     console.log('👤 Usuario autenticado:', userCredential.user.uid);
-    
+
     // El token se renueva automáticamente por Firebase Auth
     return idToken;
   } catch (error: any) {
     console.error('❌ WIF: Error en autenticación automática:', error);
-    
+
     // Proporcionar mensajes de error específicos
     if (error.code === 'auth/invalid-custom-token') {
       throw new Error('Token de autenticación inválido. Por favor, inicia sesión nuevamente.');
@@ -108,7 +108,7 @@ export async function getCurrentIdToken(forceRefresh: boolean = false): Promise<
   if (!auth || !hasRealConfig) {
     return null;
   }
-  
+
   try {
     const user = auth?.currentUser;
     if (!user) {
@@ -141,7 +141,7 @@ export async function signOutWIF(): Promise<void> {
     console.warn('Firebase Auth no está configurado');
     return;
   }
-  
+
   try {
     await auth.signOut();
     console.log('✅ WIF: Sesión cerrada correctamente');

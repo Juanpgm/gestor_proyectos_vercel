@@ -7,10 +7,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
  */
 async function getCurrentIdToken(): Promise<string | null> {
   if (!auth) return null;
-  
+
   const user = auth.currentUser;
   if (!user) return null;
-  
+
   try {
     return await user.getIdToken();
   } catch (error) {
@@ -24,10 +24,10 @@ async function getCurrentIdToken(): Promise<string | null> {
  */
 export async function refreshIdToken(): Promise<string | null> {
   if (!auth) return null;
-  
+
   const user = auth.currentUser;
   if (!user) return null;
-  
+
   try {
     return await user.getIdToken(true); // true = force refresh
   } catch (error) {
@@ -45,7 +45,7 @@ export class ApiClient {
    */
   static async get<T>(endpoint: string): Promise<T> {
     const idToken = await getCurrentIdToken();
-    
+
     if (!idToken) {
       throw new Error('No authentication token available');
     }
@@ -71,7 +71,7 @@ export class ApiClient {
    */
   static async post<T>(endpoint: string, data?: any): Promise<T> {
     const idToken = await getCurrentIdToken();
-    
+
     if (!idToken) {
       throw new Error('No authentication token available');
     }
@@ -98,7 +98,7 @@ export class ApiClient {
    */
   static async put<T>(endpoint: string, data: any): Promise<T> {
     const idToken = await getCurrentIdToken();
-    
+
     if (!idToken) {
       throw new Error('No authentication token available');
     }
@@ -125,7 +125,7 @@ export class ApiClient {
    */
   static async delete<T>(endpoint: string): Promise<T> {
     const idToken = await getCurrentIdToken();
-    
+
     if (!idToken) {
       throw new Error('No authentication token available');
     }
@@ -151,7 +151,7 @@ export class ApiClient {
    */
   static async patch<T>(endpoint: string, data: any): Promise<T> {
     const idToken = await getCurrentIdToken();
-    
+
     if (!idToken) {
       throw new Error('No authentication token available');
     }
@@ -178,7 +178,7 @@ export class ApiClient {
    */
   static async uploadFile<T>(endpoint: string, formData: FormData): Promise<T> {
     const idToken = await getCurrentIdToken();
-    
+
     if (!idToken) {
       throw new Error('No authentication token available');
     }
@@ -209,7 +209,7 @@ export async function makeAuthenticatedRequest(
   options: RequestInit = {}
 ): Promise<Response> {
   const idToken = await getCurrentIdToken();
-  
+
   if (!idToken) {
     throw new Error('No authentication token available');
   }

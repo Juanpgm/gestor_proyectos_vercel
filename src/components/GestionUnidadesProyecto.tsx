@@ -25,6 +25,49 @@ import { ChangelogView, ByCentroGestorView, MetadataView } from './QualityContro
 import { MultiSelect } from './MultiSelect'
 
 // Interfaces específicas para cada endpoint
+interface ChangeMetric {
+  previous: number
+  value: number
+  change: number
+  change_percentage: number
+  trend: 'improving' | 'stable' | 'worsening'
+}
+
+interface SeverityChange {
+  previous: number
+  value: number
+  change: number
+  change_percentage: number
+  trend: 'improving' | 'stable' | 'worsening'
+}
+
+interface ComparisonWithPrevious {
+  has_previous: boolean
+  previous_timestamp: string
+  previous_report_id: string
+  changes: {
+    quality_score: ChangeMetric
+    total_issues: ChangeMetric
+    records_with_issues: ChangeMetric
+    error_rate: ChangeMetric
+    total_records: ChangeMetric
+    centros_require_attention: ChangeMetric
+  }
+  severity_changes: {
+    CRITICAL: SeverityChange
+    HIGH: SeverityChange
+    MEDIUM: SeverityChange
+    LOW: SeverityChange
+    INFO?: SeverityChange
+  }
+}
+
+interface TrendsCount {
+  improving: number
+  stable: number
+  worsening: number
+}
+
 interface SummaryData {
   id: string
   report_id: string
@@ -42,6 +85,11 @@ interface SummaryData {
   top_quality_centros: Array<{ nombre: string; quality_score: number; error_rate: number; issues: number }>
   top_problematic_centros: Array<{ nombre: string; quality_score: number; error_rate: number; issues: number }>
   recommendations: Array<{ category: string; priority: string; recommendation: string }>
+  comparison_with_previous?: ComparisonWithPrevious
+  // Campos adicionales de tendencia (vienen a nivel raíz de la respuesta)
+  overall_trend?: 'improving' | 'stable' | 'worsening'
+  trends_count?: TrendsCount
+  has_comparison_data?: boolean
 }
 
 interface RecordData {
@@ -264,6 +312,17 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       // El endpoint stats tiene una estructura diferente
       if (activeTab === 'stats') {
         setData(result) // Guardar el objeto completo para stats
+      } else if (activeTab === 'summary' && result.success && result.data) {
+        // El endpoint summary devuelve data como objeto, no array
+        // Incluir campos adicionales de tendencia que vienen a nivel raíz
+        const summaryData = {
+          ...result.data,
+          overall_trend: result.overall_trend,
+          trends_summary: result.trends_summary,
+          trends_count: result.trends_count,
+          has_comparison_data: result.has_comparison_data
+        }
+        setData([summaryData]) // Envolver en array para mantener consistencia
       } else if (result.success && Array.isArray(result.data)) {
         setData(result.data)
         
