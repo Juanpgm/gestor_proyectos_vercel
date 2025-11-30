@@ -164,6 +164,11 @@ class AuthService {
     try {
       console.log('🔐 Attempting login with Firebase Auth SDK:', email)
       
+      // Verificar que auth esté disponible
+      if (!auth) {
+        throw new Error('Firebase Auth no está inicializado. Verifique la configuración de Firebase.')
+      }
+      
       // PASO 1: Autenticar con Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       console.log('✅ Firebase authentication successful')
@@ -368,6 +373,11 @@ class AuthService {
     try {
       if (!this.googleProvider) {
         throw new Error('Google Authentication no está disponible. Verifica la configuración de Firebase.')
+      }
+
+      // Verificar que auth esté disponible
+      if (!auth) {
+        throw new Error('Firebase Auth no está inicializado. Verifique la configuración de Firebase.')
       }
 
       console.log('🔐 Iniciando Google Auth con Firebase...')
