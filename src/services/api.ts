@@ -36,6 +36,25 @@ export class ApiClient {
   }
 
   /**
+   * Get authentication token using WIF (Workload Identity Federation)
+   * El token se renueva automáticamente si está próximo a expirar
+   */
+  private async getAuthToken(): Promise<string | null> {
+    try {
+      // Importar dinámicamente para evitar problemas en SSR
+      if (typeof window !== 'undefined') {
+        const { getCurrentIdToken } = await import('@/lib/firebase');
+        const token = await getCurrentIdToken();
+        return token;
+      }
+      return null;
+    } catch (error) {
+      console.error('❌ WIF: Error obteniendo token de autenticación:', error);
+      return null;
+    }
+  }
+
+  /**
    * Make API request with retry logic
    */
   async request<T>(
@@ -44,7 +63,7 @@ export class ApiClient {
     useRetry: boolean = true
   ): Promise<T> {
     const url = `${this.baseUrl}/${endpoint.replace(/^\//, '')}`;
-    
+
     let lastError: Error = new Error('Unknown error occurred');
     let attempt = 0;
     const maxAttempts = useRetry ? this.retryConfig.maxRetries + 1 : 1;
@@ -52,14 +71,28 @@ export class ApiClient {
     while (attempt < maxAttempts) {
       try {
         console.log(`🌐 API Request (attempt ${attempt + 1}/${maxAttempts}): ${url}`);
-        
+
+        // Get auth token and add to headers (now async)
+        const token = await this.getAuthToken();
+
+        if (!token) {
+          console.warn('⚠️ No authentication token available for request');
+        }
+
+        // Build headers object properly to avoid TypeScript errors
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(options.headers as Record<string, string> || {}),
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetchWithErrorHandling<T>(url, {
           ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...options.headers,
-          },
+          headers,
         }, this.timeout);
 
         console.log(`✅ API Request successful: ${url}`);
@@ -70,6 +103,15 @@ export class ApiClient {
         attempt++;
 
         console.error(`❌ API Request failed (attempt ${attempt}/${maxAttempts}): ${url}`, error);
+
+        // Proporcionar mejor contexto de error para problemas de autenticación
+        if (error.status === 401) {
+          console.error('❌ Error de autenticación: Token inválido o expirado');
+          lastError = new Error('Error de autenticación. Por favor, inicia sesión nuevamente.');
+        } else if (error.status === 403) {
+          console.error('❌ Error de autorización: No tienes permisos suficientes');
+          lastError = new Error('No tienes permisos para realizar esta acción.');
+        }
 
         // Don't retry on certain errors
         if (

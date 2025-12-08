@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Carga de Documentos a S3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px;
+        }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-info { color: #17a2b8; }
+        .log-warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test de Carga de Documentos a S3</h1>
+        
+        <h2>Test 1: Cargar RPC con Documentos</h2>
+        <div class="form-group">
+            <label>Documentos (múltiples archivos permitidos)</label>
+            <input type="file" id="rpc-files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+        </div>
+        <button onclick="testCargarRPC()">🚀 Test Cargar RPC</button>
+        <button onclick="testCargarRPCSinDocs()">📄 Test RPC sin Documentos</button>
+        
+        <h2 style="margin-top: 40px;">Test 2: Cargar Pago con Documentos</h2>
+        <div class="form-group">
+            <label>Documentos (múltiples archivos permitidos)</label>
+            <input type="file" id="pago-files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+        </div>
+        <button onclick="testCargarPago()">🚀 Test Cargar Pago</button>
+        <button onclick="testCargarPagoSinDocs()">📄 Test Pago sin Documentos</button>
+        
+        <div id="result" class="result"></div>
+        
+        <h3 style="margin-top: 30px;">📋 Log de Actividad</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://gestorproyectoapi-production.up.railway.app';
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function showResult(message, isSuccess) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.textContent = message;
+            resultDiv.style.display = 'block';
+        }
+        
+        async function testCargarRPC() {
+            log('🚀 Iniciando test de carga de RPC con documentos...', 'info');
+            
+            const fileInput = document.getElementById('rpc-files');
+            const files = fileInput.files;
+            
+            try {
+                const formData = new FormData();
+                
+                // Campos obligatorios
+                const timestamp = Date.now();
+                formData.append('numero_rpc', `RPC-TEST-${timestamp}`);
+                formData.append('beneficiario_id', '890123456');
+                formData.append('beneficiario_nombre', 'Proveedor Test Browser S.A.S.');
+                formData.append('descripcion_rpc', 'Test de carga de documentos desde navegador');
+                formData.append('fecha_contabilizacion', '2024-11-24');
+                formData.append('fecha_impresion', '2024-11-24');
+                formData.append('estado_liberacion', 'Contabilizado');
+                formData.append('bp', `BP-TEST-${timestamp}`);
+                formData.append('valor_rpc', '5000000');
+                formData.append('nombre_centro_gestor', 'Centro Gestor Test Browser');
+                formData.append('referencia_contrato', `CONT-TEST-${timestamp}`);
+                
+                log(`📎 Agregando ${files.length} archivo(s)...`, 'info');
+                
+                // Agregar archivos
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('documentos', files[i]);
+                    log(`   - ${files[i].name} (${files[i].size} bytes, ${files[i].type})`, 'info');
+                }
+                
+                log('📤 Enviando request a /emprestito/cargar-rpc...', 'info');
+                
+                const response = await fetch(`${API_URL}/emprestito/cargar-rpc`, {
+                    method: 'POST',
+                    body: formData
+                    // NO incluir Content-Type - el navegador lo establece automáticamente
+                });
+                
+                log(`📊 Status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const result = await response.json();
+                log(`📋 Response: ${JSON.stringify(result, null, 2)}`, 'info');
+                
+                if (result.success) {
+                    log('✅ RPC cargado exitosamente', 'success');
+                    
+                    if (result.data?.documentos_urls && result.data.documentos_urls.length > 0) {
+                        log(`📎 ${result.data.documentos_urls.length} documento(s) subido(s) a S3:`, 'success');
+                        result.data.documentos_urls.forEach((url, i) => {
+                            log(`   ${i + 1}. ${url}`, 'success');
+                        });
+                        showResult(`✅ RPC cargado exitosamente con ${result.data.documentos_urls.length} documento(s) en S3`, true);
+                    } else {
+                        log('⚠️ WARNING: No se recibieron URLs de documentos en S3', 'warning');
+                        showResult('⚠️ RPC cargado pero sin URLs de documentos en la respuesta', false);
+                    }
+                } else {
+                    log(`❌ Error: ${result.error}`, 'error');
+                    showResult(`❌ Error: ${result.error}`, false);
+                }
+                
+            } catch (error) {
+                log(`❌ Error en test: ${error.message}`, 'error');
+                showResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testCargarRPCSinDocs() {
+            log('🚀 Iniciando test de carga de RPC SIN documentos...', 'info');
+            
+            try {
+                const formData = new FormData();
+                
+                const timestamp = Date.now();
+                formData.append('numero_rpc', `RPC-TEST-NO-DOCS-${timestamp}`);
+                formData.append('beneficiario_id', '890123456');
+                formData.append('beneficiario_nombre', 'Proveedor Test Browser S.A.S.');
+                formData.append('descripcion_rpc', 'Test sin documentos desde navegador');
+                formData.append('fecha_contabilizacion', '2024-11-24');
+                formData.append('fecha_impresion', '2024-11-24');
+                formData.append('estado_liberacion', 'Contabilizado');
+                formData.append('bp', `BP-TEST-${timestamp}`);
+                formData.append('valor_rpc', '3000000');
+                formData.append('nombre_centro_gestor', 'Centro Gestor Test Browser');
+                formData.append('referencia_contrato', `CONT-TEST-${timestamp}`);
+                
+                log('📤 Enviando request sin documentos...', 'info');
+                
+                const response = await fetch(`${API_URL}/emprestito/cargar-rpc`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                log(`📊 Status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const result = await response.json();
+                log(`📋 Response: ${JSON.stringify(result, null, 2)}`, 'info');
+                
+                if (result.success) {
+                    log('✅ RPC sin documentos cargado exitosamente', 'success');
+                    showResult('✅ RPC cargado exitosamente sin documentos', true);
+                } else {
+                    log(`❌ Error: ${result.error}`, 'error');
+                    showResult(`❌ Error: ${result.error}`, false);
+                }
+                
+            } catch (error) {
+                log(`❌ Error en test: ${error.message}`, 'error');
+                showResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testCargarPago() {
+            log('🚀 Iniciando test de carga de Pago con documentos...', 'info');
+            
+            const fileInput = document.getElementById('pago-files');
+            const files = fileInput.files;
+            
+            try {
+                const formData = new FormData();
+                
+                const timestamp = Date.now();
+                formData.append('numero_rpc', `RPC-TEST-PAGO-${timestamp}`);
+                formData.append('valor_pago', '1500000');
+                formData.append('fecha_transaccion', '2024-11-24');
+                formData.append('referencia_contrato', `CONT-TEST-${timestamp}`);
+                formData.append('nombre_centro_gestor', 'Centro Gestor Test Browser');
+                
+                log(`📎 Agregando ${files.length} archivo(s)...`, 'info');
+                
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('documentos', files[i]);
+                    log(`   - ${files[i].name} (${files[i].size} bytes, ${files[i].type})`, 'info');
+                }
+                
+                log('📤 Enviando request a /emprestito/cargar-pago...', 'info');
+                
+                const response = await fetch(`${API_URL}/emprestito/cargar-pago`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                log(`📊 Status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const result = await response.json();
+                log(`📋 Response: ${JSON.stringify(result, null, 2)}`, 'info');
+                
+                if (result.success) {
+                    log('✅ Pago registrado exitosamente', 'success');
+                    
+                    if (result.data?.documentos_urls && result.data.documentos_urls.length > 0) {
+                        log(`📎 ${result.data.documentos_urls.length} documento(s) subido(s) a S3:`, 'success');
+                        result.data.documentos_urls.forEach((url, i) => {
+                            log(`   ${i + 1}. ${url}`, 'success');
+                        });
+                        showResult(`✅ Pago registrado exitosamente con ${result.data.documentos_urls.length} documento(s) en S3`, true);
+                    } else {
+                        log('⚠️ WARNING: No se recibieron URLs de documentos en S3', 'warning');
+                        showResult('⚠️ Pago registrado pero sin URLs de documentos en la respuesta', false);
+                    }
+                } else {
+                    log(`❌ Error: ${result.error}`, 'error');
+                    showResult(`❌ Error: ${result.error}`, false);
+                }
+                
+            } catch (error) {
+                log(`❌ Error en test: ${error.message}`, 'error');
+                showResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testCargarPagoSinDocs() {
+            log('🚀 Iniciando test de carga de Pago SIN documentos...', 'info');
+            
+            try {
+                const formData = new FormData();
+                
+                const timestamp = Date.now();
+                formData.append('numero_rpc', `RPC-TEST-PAGO-NO-DOCS-${timestamp}`);
+                formData.append('valor_pago', '800000');
+                formData.append('fecha_transaccion', '2024-11-24');
+                formData.append('referencia_contrato', `CONT-TEST-${timestamp}`);
+                formData.append('nombre_centro_gestor', 'Centro Gestor Test Browser');
+                
+                log('📤 Enviando request sin documentos...', 'info');
+                
+                const response = await fetch(`${API_URL}/emprestito/cargar-pago`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                log(`📊 Status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const result = await response.json();
+                log(`📋 Response: ${JSON.stringify(result, null, 2)}`, 'info');
+                
+                if (result.success) {
+                    log('✅ Pago sin documentos registrado exitosamente', 'success');
+                    showResult('✅ Pago registrado exitosamente sin documentos', true);
+                } else {
+                    log(`❌ Error: ${result.error}`, 'error');
+                    showResult(`❌ Error: ${result.error}`, false);
+                }
+                
+            } catch (error) {
+                log(`❌ Error en test: ${error.message}`, 'error');
+                showResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        log('✅ Página de test cargada. Selecciona archivos y haz clic en los botones de test.', 'info');
+    </script>
+</body>
+</html>

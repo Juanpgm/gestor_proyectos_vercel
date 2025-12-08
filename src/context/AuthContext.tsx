@@ -30,6 +30,12 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isLoading: action.payload
       }
     case 'SET_USER':
+      console.log('📦 AuthReducer SET_USER:', {
+        hasUser: !!action.payload,
+        email: action.payload?.email,
+        roles: action.payload?.roles,
+        rolesLength: action.payload?.roles?.length
+      })
       return {
         ...state,
         user: action.payload,
@@ -67,6 +73,11 @@ interface AuthContextType {
   signOut: () => Promise<void>
   clearError: () => void
   validateSession: () => Promise<void>
+  // Helpers para roles y permisos
+  hasRole: (role: string) => boolean
+  hasPermission: (permission: string) => boolean
+  getHighestRole: () => string | null
+  isSuperAdmin: () => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -81,16 +92,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Inicialización simplificada
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       try {
-        // Solo verificar sesión almacenada
+        dispatch({ type: 'SET_LOADING', payload: true })
+        
+        // Verificar sesión almacenada
         const storedSession = authService.getStoredSession()
-        dispatch({ type: 'SET_USER', payload: storedSession?.user || null })
+        
+        if (storedSession?.user) {
+          // Verificar si la sesión tiene roles
+          const hasRoles = storedSession.user.roles && storedSession.user.roles.length > 0
+          
+          if (!hasRoles) {
+            console.warn('⚠️ Sesión antigua sin roles detectada - Actualizando desde backend...')
+            
+            // Intentar actualizar sesión desde el backend
+            try {
+              const updatedUser = await authService.validateSession()
+              if (updatedUser && updatedUser.roles && updatedUser.roles.length > 0) {
+                console.log('✅ Sesión actualizada con roles desde backend:', updatedUser.roles)
+                dispatch({ type: 'SET_USER', payload: updatedUser })
+                return
+              }
+            } catch (error) {
+              console.error('❌ Error actualizando sesión:', error)
+            }
+            
+            // Si llegamos aquí, no pudimos actualizar los roles
+            console.error('❌ No se pudieron obtener roles - Cerrando sesión')
+            await authService.signOut()
+            dispatch({ type: 'SIGN_OUT' })
+            return
+          }
+          
+          // Sesión válida con roles
+          dispatch({ type: 'SET_USER', payload: storedSession.user })
+        }
         
         // Inicializar servicio sin bloquear
-        authService.initialize()
+        await authService.initialize()
       } catch (error) {
         console.error('Auth init error:', error)
+        dispatch({ type: 'SET_LOADING', payload: false })
       }
     }
 
@@ -102,6 +145,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       dispatch({ type: 'CLEAR_ERROR' })
       const user = await authService.signInWithEmail({ email, password, remember })
+      
+      console.log('🎯 AuthContext - User received from authService:', {
+        email: user.email,
+        roles: user.roles,
+        permissions: user.permissions,
+        hasRoles: user.roles && user.roles.length > 0
+      })
+      
       dispatch({ type: 'SET_USER', payload: user })
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Error al iniciar sesión' })
@@ -156,11 +207,64 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const validateSession = async () => {
     try {
-      const storedSession = authService.getStoredSession()
-      dispatch({ type: 'SET_USER', payload: storedSession?.user || null })
+      dispatch({ type: 'SET_LOADING', payload: true })
+      // Intentar validar con el backend para obtener roles actualizados
+      const user = await authService.validateSession()
+      if (user) {
+        dispatch({ type: 'SET_USER', payload: user })
+      } else {
+        // Si falla, usar sesión almacenada
+        const storedSession = authService.getStoredSession()
+        dispatch({ type: 'SET_USER', payload: storedSession?.user || null })
+      }
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: 'Error validando sesión' })
     }
+  }
+
+  // Helper: Verificar si el usuario tiene un rol específico
+  const hasRole = (role: string): boolean => {
+    return state.user?.roles?.includes(role) || false
+  }
+
+  // Helper: Verificar si el usuario tiene un permiso específico
+  const hasPermission = (permission: string): boolean => {
+    return state.user?.permissions?.includes(permission) || false
+  }
+
+  // Helper: Obtener el rol con mayor jerarquía del usuario
+  const getHighestRole = (): string | null => {
+    const roles = state.user?.roles || []
+    if (roles.length === 0) return null
+    
+    // Orden jerárquico de roles (de mayor a menor)
+    const roleHierarchy = [
+      'super_admin',
+      'admin',
+      'gestor_master',
+      'gestor',
+      'consultor_master',
+      'consultor',
+      'publico'
+    ]
+    
+    for (const role of roleHierarchy) {
+      if (roles.includes(role)) return role
+    }
+    
+    return roles[0] // Devolver el primero si no coincide ninguno
+  }
+
+  // Helper: Verificar si es super admin
+  const isSuperAdmin = (): boolean => {
+    const result = hasRole('super_admin')
+    console.log('🔐 isSuperAdmin() called:', {
+      result,
+      userRoles: state.user?.roles,
+      hasUser: !!state.user,
+      isAuthenticated: state.isAuthenticated
+    })
+    return result
   }
 
   const contextValue: AuthContextType = {
@@ -170,7 +274,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signInWithGoogle,
     signOut,
     clearError,
-    validateSession
+    validateSession,
+    hasRole,
+    hasPermission,
+    getHighestRole,
+    isSuperAdmin
   }
 
   return (

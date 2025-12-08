@@ -3170,7 +3170,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <div style={{ minWidth: '800px', height: '480px' }}>
+                  <div style={{ minWidth: '1200px', height: '500px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={analysisByCentroGestor
@@ -3206,7 +3206,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             }
                           })
                           .sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)}
-                        margin={{ top: 30, right: 20, left: 20, bottom: 60 }}
+                        margin={{ top: 30, right: 20, left: 20, bottom: 100 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" opacity={0.5} />
 
@@ -3218,10 +3218,11 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             const lines: string[] = []
                             let currentLine = ''
 
-                            // Dividir el texto en líneas sin límite de caracteres estricto
+                            // Dividir texto inteligentemente en múltiples líneas
                             words.forEach(word => {
-                              if ((currentLine + ' ' + word).length <= 30) {
-                                currentLine += (currentLine ? ' ' : '') + word
+                              const testLine = currentLine ? `${currentLine} ${word}` : word
+                              if (testLine.length <= 20) {
+                                currentLine = testLine
                               } else {
                                 if (currentLine) lines.push(currentLine)
                                 currentLine = word
@@ -3229,17 +3230,17 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             })
                             if (currentLine) lines.push(currentLine)
 
-                            // Mostrar todas las líneas necesarias sin truncar
                             return (
                               <g transform={`translate(${x},${y})`}>
                                 {lines.map((line, i) => (
                                   <text
                                     key={i}
                                     x={0}
-                                    y={i * 11 + 5}
+                                    y={5 + (i * 13)}
                                     textAnchor="middle"
-                                    fill="#4B5563"
-                                    fontSize="10"
+                                    fill="#374151"
+                                    fontSize="11"
+                                    fontWeight="500"
                                   >
                                     {line}
                                   </text>
@@ -3247,7 +3248,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                               </g>
                             )
                           }}
-                          height={55}
+                          height={90}
                           interval={0}
                         />
 

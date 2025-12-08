@@ -1,0 +1,107 @@
+╔═══════════════════════════════════════════════════════════════╗
+║  🔄 LIMPIAR SESIÓN Y RE-LOGIN - Código para Consola          ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Opción 1: Usar página web
+═══════════════════════════════
+Ir a: http://localhost:3000/clear-session.html
+Hacer clic en "Limpiar Todo"
+
+
+Opción 2: Código para consola del navegador
+═══════════════════════════════════════════
+Abre la consola del navegador (F12) y pega este código:
+
+╔═══════════════════════════════════════════════════════════════╗
+║  COPIAR DESDE AQUÍ ↓                                          ║
+╚═══════════════════════════════════════════════════════════════╝
+
+(async function() {
+  console.clear();
+  console.log('%c🔄 LIMPIEZA COMPLETA DE SESIÓN', 'font-size: 20px; font-weight: bold; color: #667eea;');
+  console.log('');
+  
+  try {
+    // 1. Cerrar Firebase Auth
+    console.log('1️⃣ Cerrando sesión de Firebase Auth...');
+    try {
+      const firebaseModule = await import('/src/app/lib/firebase');
+      const auth = firebaseModule.auth;
+      if (auth?.currentUser) {
+        await auth.signOut();
+        console.log('   ✅ Firebase Auth cerrado');
+      } else {
+        console.log('   ⚠️ No hay sesión activa en Firebase');
+      }
+    } catch (e) {
+      console.log('   ⚠️ Firebase Auth no disponible');
+    }
+    
+    // 2. Limpiar localStorage
+    console.log('2️⃣ Limpiando localStorage...');
+    const authSession = localStorage.getItem('auth_session');
+    if (authSession) {
+      const session = JSON.parse(authSession);
+      console.log('   📋 Usuario:', session.user?.email);
+      console.log('   📋 Roles:', session.user?.roles);
+    }
+    localStorage.clear();
+    console.log('   ✅ localStorage limpiado');
+    
+    // 3. Limpiar sessionStorage
+    console.log('3️⃣ Limpiando sessionStorage...');
+    sessionStorage.clear();
+    console.log('   ✅ sessionStorage limpiado');
+    
+    // 4. Limpiar cookies
+    console.log('4️⃣ Limpiando cookies...');
+    document.cookie.split(";").forEach(c => {
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    console.log('   ✅ Cookies limpiadas');
+    
+    // 5. Limpiar consola (opcional)
+    console.log('5️⃣ Limpiando consola en 3 segundos...');
+    console.log('');
+    console.log('✅ LIMPIEZA COMPLETA');
+    console.log('🔄 Redirigiendo al login...');
+    
+    setTimeout(() => {
+      console.clear();
+      window.location.href = '/login';
+    }, 3000);
+    
+  } catch (error) {
+    console.error('❌ Error:', error);
+  }
+})();
+
+╔═══════════════════════════════════════════════════════════════╗
+║  COPIAR HASTA AQUÍ ↑                                          ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+Opción 3: Solo limpiar sesión (sin redirigir)
+═════════════════════════════════════════════
+
+localStorage.removeItem('auth_session');
+sessionStorage.removeItem('auth_session');
+console.clear();
+console.log('✅ Sesión limpiada. Ahora ve a /login manualmente');
+
+
+Opción 4: Verificar token actual
+════════════════════════════════
+
+const session = JSON.parse(localStorage.getItem('auth_session'));
+if (session?.user?.idToken) {
+  const payload = JSON.parse(atob(session.user.idToken.split('.')[1]));
+  console.log('Roles en token:', payload.roles);
+  console.log('¿Tiene super_admin?', payload.roles?.includes('super_admin'));
+  console.log('Token expira en:', Math.round((payload.exp * 1000 - Date.now()) / 60000), 'minutos');
+} else {
+  console.log('No hay token');
+}
+
+
+═══════════════════════════════════════════════════════════════

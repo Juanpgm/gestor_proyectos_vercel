@@ -141,7 +141,7 @@ const calculateProjectDuration = (fechaInicio: string, fechaFin: string): {
 };
 
 // Función para formatear fechas
-const formatDate = (dateString: string): string => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
@@ -210,12 +210,17 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     estado: true,
     tipo_intervencion: false,
     tipo_equipamiento: false,
+    clase_up: false, // ⬅️ NUEVA COLUMNA
+    frente_activo: false, // ⬅️ NUEVA COLUMNA
     avance_obra: true,
     presupuesto_base: true,
     nombre_centro_gestor: true, // Mostrar por defecto ya que el usuario lo necesita completo
     ubicacion: true, // Nueva columna unificada de barrio y comuna
     fuente_financiacion: false,
     duracion_proyecto: false, // Nueva columna combinada de fechas
+    fecha_inicio: false, // ⬅️ NUEVA COLUMNA
+    fecha_fin: false, // ⬅️ NUEVA COLUMNA
+    fecha_inauguracion: false, // ⬅️ NUEVA COLUMNA
     ano: false,
     descripcion_intervencion: false,
     acciones: true // Nueva columna de acciones
@@ -236,6 +241,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         item.estado.toLowerCase().includes(term) ||
         item.tipo_intervencion.toLowerCase().includes(term) ||
         (item.tipo_equipamiento && item.tipo_equipamiento.toLowerCase().includes(term)) ||
+        (item.frente_activo && item.frente_activo.toLowerCase().includes(term)) ||
         item.nombre_centro_gestor.toLowerCase().includes(term) ||
         item.barrio_vereda.toLowerCase().includes(term) ||
         item.comuna_corregimiento.toLowerCase().includes(term) ||
@@ -421,13 +427,18 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         identificador: false,
         estado: true,
         tipo_equipamiento: false,
+        tipo_intervencion: false,
+        frente_activo: false,
+        clase_up: false,
         avance_obra: true,
         presupuesto_base: true,
         ubicacion: true,
-        tipo_intervencion: false,
         nombre_centro_gestor: true, // Mantener visible incluso en vista compacta
         fuente_financiacion: false,
         duracion_proyecto: false,
+        fecha_inicio: false,
+        fecha_fin: false,
+        fecha_inauguracion: false,
         ano: false,
         descripcion_intervencion: false,
         acciones: true
@@ -441,12 +452,17 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         estado: true,
         tipo_intervencion: true,
         tipo_equipamiento: true,
+        frente_activo: true,
+        clase_up: true,
         avance_obra: true,
         presupuesto_base: true,
         nombre_centro_gestor: true,
         ubicacion: true,
         fuente_financiacion: true,
         duracion_proyecto: true,
+        fecha_inicio: false,
+        fecha_fin: false,
+        fecha_inauguracion: false,
         ano: true,
         descripcion_intervencion: true, // Incluir descripción en vista completa
         acciones: true
@@ -654,6 +670,20 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<Building2 className="w-3 h-3" />} 
                   />
                 )}
+                {visibleColumns.frente_activo && (
+                  <ColumnHeader 
+                    label="Frente Activo" 
+                    sortKey="frente_activo" 
+                    icon={<Target className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.clase_up && (
+                  <ColumnHeader 
+                    label="Clase UP" 
+                    sortKey="clase_up" 
+                    icon={<Target className="w-3 h-3" />} 
+                  />
+                )}
                 {visibleColumns.nombre_centro_gestor && (
                   <ColumnHeader 
                     label="Centro Gestor" 
@@ -673,6 +703,27 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     label="Duración" 
                     sortKey="fecha_inicio" 
                     icon={<Calendar className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.fecha_inicio && (
+                  <ColumnHeader 
+                    label="Fecha Inicio" 
+                    sortKey="fecha_inicio" 
+                    icon={<Calendar className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.fecha_fin && (
+                  <ColumnHeader 
+                    label="Fecha Fin" 
+                    sortKey="fecha_fin" 
+                    icon={<Clock className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.fecha_inauguracion && (
+                  <ColumnHeader 
+                    label="Fecha Inauguración" 
+                    sortKey="fecha_inauguracion" 
+                    icon={<Target className="w-3 h-3" />} 
                   />
                 )}
                 {visibleColumns.acciones && (
@@ -950,6 +1001,20 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       </div>
                     </td>
                   )}
+                  {visibleColumns.frente_activo && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      <div className="leading-tight break-words whitespace-normal">
+                        {item.frente_activo || 'N/A'}
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.clase_up && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      <div className="leading-tight break-words whitespace-normal">
+                        {item.clase_up || 'N/A'}
+                      </div>
+                    </td>
+                  )}
                   {visibleColumns.nombre_centro_gestor && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="flex items-start space-x-2">
@@ -993,6 +1058,30 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                           </div>
                         );
                       })()}
+                    </td>
+                  )}
+                  {visibleColumns.fecha_inicio && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="w-3 h-3 text-blue-500" />
+                        <span>{formatDate(item.fecha_inicio)}</span>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.fecha_fin && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-3 h-3 text-orange-500" />
+                        <span>{formatDate(item.fecha_fin)}</span>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.fecha_inauguracion && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <Target className="w-3 h-3 text-purple-500" />
+                        <span>{formatDate(item.fecha_inauguracion)}</span>
+                      </div>
                     </td>
                   )}
                   {visibleColumns.acciones && (

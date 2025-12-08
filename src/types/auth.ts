@@ -9,6 +9,14 @@ export interface User {
   emailVerified?: boolean
   createdAt?: string
   lastLoginAt?: string
+  // Campos de administración y roles
+  roles?: string[]
+  permissions?: string[]
+  centro_gestor_assigned?: string | null
+  is_active?: boolean
+  phone?: string | null
+  // Token de autenticación de Firebase
+  idToken?: string | null
 }
 
 export interface AuthState {

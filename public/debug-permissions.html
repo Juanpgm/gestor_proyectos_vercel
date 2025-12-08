@@ -1,0 +1,40 @@
+// Script para diagnosticar permisos del usuario
+console.log('=== DIAGNÓSTICO DE PERMISOS ===\n');
+
+// Verificar sesión en localStorage
+const authSession = localStorage.getItem('auth_session');
+if (authSession) {
+  const session = JSON.parse(authSession);
+  console.log('📋 Usuario actual:');
+  console.log('- Email:', session.user?.email);
+  console.log('- UID:', session.user?.uid);
+  console.log('- Roles:', session.user?.roles);
+  console.log('- Permisos:', session.user?.permissions);
+  console.log('- Tiene token:', !!session.user?.idToken);
+  console.log('\n');
+} else {
+  console.log('❌ No hay sesión en localStorage\n');
+}
+
+// Verificar Firebase Auth
+import { auth } from './src/lib/firebase';
+const currentUser = auth?.currentUser;
+if (currentUser) {
+  console.log('🔥 Firebase Auth:');
+  console.log('- UID:', currentUser.uid);
+  console.log('- Email:', currentUser.email);
+  
+  // Obtener token y decodificarlo
+  currentUser.getIdToken().then(token => {
+    console.log('- Token presente:', !!token);
+    
+    // Decodificar token (solo la parte del payload)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    console.log('- Claims del token:', payload);
+    console.log('\n');
+    console.log('⚠️ NOTA: Si no ves roles/permisos en el token,');
+    console.log('el backend no puede autorizar las operaciones de admin.');
+  });
+} else {
+  console.log('❌ No hay usuario en Firebase Auth\n');
+}

@@ -29,13 +29,16 @@ export interface AttributeData {
   estado: string;
   tipo_intervencion: string;
   tipo_equipamiento?: string;
+  clase_up?: string;  // ⬅️ NUEVO CAMPO
+  clase_obra?: string;
   nombre_centro_gestor: string;
   comuna_corregimiento: string;
   barrio_vereda: string;
   presupuesto_base: number;
   avance_obra: number;
-  fecha_inicio: string;
-  fecha_fin: string;
+  fecha_inicio?: string | null;  // ⬅️ Campo solicitado
+  fecha_fin?: string | null;  // ⬅️ Campo solicitado
+  fecha_inauguracion?: string | null;  // ⬅️ NUEVO CAMPO
   descripcion_intervencion: string;
   fuente_financiacion: string;
   ano: number;
@@ -111,13 +114,17 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
               nombre_up: feature.properties.nombre_up || '',
               estado: feature.properties.estado || '',
               tipo_intervencion: feature.properties.tipo_intervencion || '',
+              tipo_equipamiento: feature.properties.tipo_equipamiento || '',
+              clase_up: feature.properties.clase_up || null,  // ⬅️ NUEVO
+              clase_obra: feature.properties.clase_obra || '',
               nombre_centro_gestor: feature.properties.nombre_centro_gestor || '',
               comuna_corregimiento: feature.properties.comuna_corregimiento || '',
               barrio_vereda: feature.properties.barrio_vereda || '',
               presupuesto_base: parseFloat(feature.properties.presupuesto_base) || 0,
               avance_obra: (parseFloat(feature.properties.avance_obra) || 0) * 100,
-              fecha_inicio: feature.properties.fecha_inicio || '',
-              fecha_fin: feature.properties.fecha_fin || '',
+              fecha_inicio: feature.properties.fecha_inicio || null,  // ⬅️ Campo solicitado
+              fecha_fin: feature.properties.fecha_fin || null,  // ⬅️ Campo solicitado
+              fecha_inauguracion: feature.properties.fecha_inauguracion || null,  // ⬅️ NUEVO
               descripcion_intervencion: feature.properties.descripcion_intervencion || '',
               fuente_financiacion: feature.properties.fuente_financiacion || '',
               ano: parseInt(feature.properties.ano) || 0,

@@ -39,6 +39,7 @@ type ColoringType =
   | 'estado' 
   | 'tipo_intervencion' 
   | 'tipo_equipamiento'
+  | 'frente_activo'
   | 'avance_obra' 
   | 'nombre_centro_gestor' 
   | 'presupuesto_base'
@@ -357,19 +358,55 @@ const ColoringControl: React.FC<{
   coloringType: ColoringType;
   onColoringChange: (type: ColoringType) => void;
   legend: Array<{ color: string; label: string; count?: number }>;
-}> = ({ coloringType, onColoringChange, legend }) => {
+  availableData: AttributeData[]; // Datos disponibles para determinar opciones
+}> = ({ coloringType, onColoringChange, legend, availableData }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const coloringOptions: Array<{ value: ColoringType; label: string }> = [
-    { value: 'estado', label: 'Estado' },
-    { value: 'tipo_intervencion', label: 'Tipo de Intervención' },
-    { value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' },
-    { value: 'avance_obra', label: 'Avance de Obra' },
-    { value: 'nombre_centro_gestor', label: 'Centro Gestor' },
-    { value: 'presupuesto_base', label: 'Presupuesto Base' },
-    { value: 'comuna_corregimiento', label: 'Comuna/Corregimiento' },
-    { value: 'barrio_vereda', label: 'Barrio/Vereda' }
-  ];
+  // Generar opciones dinámicamente basadas en valores únicos de los datos
+  const coloringOptions = useMemo(() => {
+    // Función helper para extraer valores únicos
+    const hasUniqueValues = (field: keyof AttributeData): boolean => {
+      const uniqueValues = new Set(
+        availableData
+          .map(item => item[field])
+          .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
+      );
+      return uniqueValues.size > 0;
+    };
+
+    const options: Array<{ value: ColoringType; label: string }> = [];
+
+    // Siempre incluir estas opciones base si tienen datos
+    if (hasUniqueValues('estado')) {
+      options.push({ value: 'estado', label: 'Estado' });
+    }
+    if (hasUniqueValues('tipo_intervencion')) {
+      options.push({ value: 'tipo_intervencion', label: 'Tipo de Intervención' });
+    }
+    if (hasUniqueValues('tipo_equipamiento')) {
+      options.push({ value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' });
+    }
+    if (hasUniqueValues('frente_activo')) {
+      options.push({ value: 'frente_activo', label: 'Frente Activo' });
+    }
+    if (hasUniqueValues('avance_obra')) {
+      options.push({ value: 'avance_obra', label: 'Avance de Obra' });
+    }
+    if (hasUniqueValues('nombre_centro_gestor')) {
+      options.push({ value: 'nombre_centro_gestor', label: 'Centro Gestor' });
+    }
+    if (hasUniqueValues('presupuesto_base')) {
+      options.push({ value: 'presupuesto_base', label: 'Presupuesto Base' });
+    }
+    if (hasUniqueValues('comuna_corregimiento')) {
+      options.push({ value: 'comuna_corregimiento', label: 'Comuna/Corregimiento' });
+    }
+    if (hasUniqueValues('barrio_vereda')) {
+      options.push({ value: 'barrio_vereda', label: 'Barrio/Vereda' });
+    }
+
+    return options;
+  }, [availableData]);
 
   return (
     <div className="absolute top-4 right-4 z-[1000] space-y-2">
@@ -640,6 +677,9 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
           case 'tipo_equipamiento':
             field = 'tipo_equipamiento';
             break;
+          case 'frente_activo':
+            field = 'frente_activo';
+            break;
           case 'comuna_corregimiento':
             field = 'comuna_corregimiento';
             break;
@@ -751,6 +791,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
         coloringType={coloringType}
         onColoringChange={setColoringType}
         legend={legend}
+        availableData={filteredData}
       />
 
       {/* Control de capas base */}

@@ -1,0 +1,39 @@
+# ⚠️ ACCIÓN REQUERIDA: Configurar Firebase
+
+El panel de Gestionar Usuarios NO funcionará hasta que configures las credenciales de Firebase.
+
+## 🚨 Problema Actual
+- Backend retorna 'custom_token' que debe convertirse a 'id_token'
+- Para convertirlo se necesita Firebase Auth SDK con credenciales válidas
+- Las credenciales actuales son placeholders inválidos
+
+## ✅ Solución
+
+### Paso 1: Obtener Credenciales Reales de Firebase
+1. Ve a: https://console.firebase.google.com/
+2. Selecciona el proyecto: unidad-cumplimiento-aa245
+3. Settings (⚙️) → Project settings → General
+4. Scroll hasta 'Your apps' → Selecciona la Web app
+5. Copia los valores de configuración
+
+### Paso 2: Actualizar .env.local
+Reemplaza estas líneas en .env.local:
+
+NEXT_PUBLIC_FIREBASE_API_KEY=<Pegar apiKey aquí>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=unidad-cumplimiento-aa245.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=unidad-cumplimiento-aa245
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=unidad-cumplimiento-aa245.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=<Pegar messagingSenderId aquí>
+NEXT_PUBLIC_FIREBASE_APP_ID=<Pegar appId aquí>
+
+### Paso 3: Reiniciar Servidor
+npm run dev
+
+## 📝 Sin Firebase NO funcionan:
+- ❌ Asignar roles a usuarios
+- ❌ Actualizar información de usuarios
+- ❌ Cambiar estado de usuarios
+- ❌ Todas las operaciones de administración
+
+Esto es porque el backend valida tokens de Firebase en endpoints protegidos.
+

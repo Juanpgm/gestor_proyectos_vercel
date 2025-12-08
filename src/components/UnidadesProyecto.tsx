@@ -17,7 +17,9 @@ import {
   MapPin,
   Clock,
   FileText,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  Award
 } from 'lucide-react';
 import { CSS_UTILS } from '@/lib/design-system';
 import dynamic from 'next/dynamic';
@@ -33,6 +35,7 @@ import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
 // Tipos
 import { type FilterParams } from '@/services/unidades-proyecto.service';
 import { type AttributeData } from '@/hooks/useUnidadesProyecto';
+import { formatDate, formatDateRange } from '@/types/unidades-proyecto';
 
 
 // Estados de vista
@@ -91,7 +94,7 @@ const ProjectDetailsModal: React.FC<{
     }).format(amount);
   };
 
-  const calculateProjectDuration = (fechaInicio: string, fechaFin: string) => {
+  const calculateProjectDuration = (fechaInicio: string | null | undefined, fechaFin: string | null | undefined) => {
     if (!fechaInicio || !fechaFin) {
       return {
         duration: 'N/A',
@@ -253,6 +256,23 @@ const ProjectDetailsModal: React.FC<{
                 </div>
               </div>
 
+              {/* Clase UP - NUEVO CAMPO */}
+              {item.clase_up && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-teal-100 dark:bg-teal-900/40 rounded-lg">
+                      <Layers className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Clase de UP</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                        {item.clase_up}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Año */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
                 <div className="flex items-start gap-3">
@@ -371,6 +391,16 @@ const ProjectDetailsModal: React.FC<{
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Período</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">{projectDuration.dateRange}</p>
                 </div>
+                {/* Fecha de Inauguración - NUEVO CAMPO */}
+                {item.fecha_inauguracion && (
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Award className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400">Fecha de Inauguración</p>
+                    </div>
+                    <p className="text-sm font-bold text-purple-900 dark:text-purple-100">{formatDate(item.fecha_inauguracion)}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -424,6 +454,7 @@ const CompactMetrics: React.FC<{
     byType: Record<string, number>;
     avgProgress: number;
     totalBudget: number;
+    activeFronts: number;
   };
 }> = ({ metrics }) => {
   const formatCurrency = (amount: number, compact: boolean = false): string => {
@@ -443,10 +474,14 @@ const CompactMetrics: React.FC<{
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
       <div className="text-center">
         <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.total}</div>
         <div className="text-xs text-gray-600 dark:text-gray-400">Total Intervenciones</div>
+      </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.activeFronts || 0}</div>
+        <div className="text-xs text-gray-600 dark:text-gray-400">Frentes de Obra Activos</div>
       </div>
       <div className="text-center">
         <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.avgProgress.toFixed(1)}%</div>

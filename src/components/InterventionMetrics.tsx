@@ -13,6 +13,10 @@ interface UnidadProyecto {
   budget: number;
   tipoIntervencion?: string;
   claseObra?: string;
+  clase_up?: string | null;  // ⬅️ NUEVO CAMPO
+  fecha_inicio?: string | null;  // ⬅️ Campo solicitado
+  fecha_fin?: string | null;  // ⬅️ Campo solicitado
+  fecha_inauguracion?: string | null;  // ⬅️ NUEVO CAMPO
   [key: string]: any;
 }
 
