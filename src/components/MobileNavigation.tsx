@@ -176,7 +176,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 flex items-center justify-center p-4"
+              style={{ zIndex: 9999 }}
               onClick={() => setIsOpen(false)}
             >
               {/* Backdrop */}
@@ -189,6 +190,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 exit={{ scale: 0.9, opacity: 0 }}
                 transition={{ type: "spring", damping: 20 }}
                 className={`${CSS_UTILS.card} w-full max-w-md relative`}
+                style={{ zIndex: 10000 }}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
