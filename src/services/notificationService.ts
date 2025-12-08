@@ -72,11 +72,11 @@ class NotificationService {
   /**
    * Crear una nueva notificación
    */
-  create(notification: Omit<AppNotification, 'id' | 'timestamp' | 'read'>): AppNotification {
+  create(notification: Omit<AppNotification, 'id' | 'read'> | Omit<AppNotification, 'id' | 'timestamp' | 'read'>): AppNotification {
     const newNotification: AppNotification = {
       ...notification,
       id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date(),
+      timestamp: 'timestamp' in notification ? notification.timestamp : new Date(),
       read: false
     };
 
@@ -241,6 +241,21 @@ class NotificationService {
   }
 
   /**
+   * Obtener notificaciones no leídas de los últimos N días
+   */
+  getRecentUnreadCount(days: number = 5): number {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    return this.notifications.filter(n => 
+      !n.read && 
+      n.timestamp >= startDate
+    ).length;
+  }
+
+  /**
    * Obtener notificaciones del día actual
    */
   getTodayNotifications(includeRead: boolean = false): AppNotification[] {
@@ -253,6 +268,21 @@ class NotificationService {
     return this.notifications.filter(n => {
       const isToday = n.timestamp >= today && n.timestamp < tomorrow;
       return includeRead ? isToday : isToday && !n.read;
+    });
+  }
+
+  /**
+   * Obtener notificaciones de los últimos N días
+   */
+  getRecentNotifications(days: number = 5, includeRead: boolean = false): AppNotification[] {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setHours(0, 0, 0, 0);
+
+    return this.notifications.filter(n => {
+      const isRecent = n.timestamp >= startDate;
+      return includeRead ? isRecent : isRecent && !n.read;
     });
   }
 

@@ -6,7 +6,7 @@ import { Bell, Settings, User, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { UserProfile } from '@/components/AuthWrapper'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
-import { useTodayNotificationCount } from '@/hooks/useNotifications'
+import { useRecentNotificationCount } from '@/hooks/useNotifications'
 import NotificationPanel from '@/components/NotificationPanel'
 
 interface HeaderProps {
@@ -15,7 +15,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { theme, setTheme } = useTheme()
-  const unreadCount = useTodayNotificationCount() // Ahora muestra solo las notificaciones de hoy
+  const unreadCount = useRecentNotificationCount(5) // Mostrar notificaciones de los últimos 5 días
   const [showNotifications, setShowNotifications] = useState(false)
 
   const toggleTheme = () => {

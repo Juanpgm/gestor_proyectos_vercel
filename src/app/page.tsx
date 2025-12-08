@@ -15,6 +15,7 @@ import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
 import { useContratos, useContratosMetrics, type Contrato } from '@/hooks/useContratos'
 import { useEmprestito, useEmprestitoMetrics } from '@/hooks/useEmprestito'
+import { useEmprestitoAutoNotifications } from '@/hooks/useEmprestitoNotifications'
 import { useFlujoCaja } from '@/hooks/useFlujoCaja'
 import { useProcesos, useProcesosMetrics, type Proceso } from '@/hooks/useProcesos'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
@@ -56,6 +57,12 @@ function DashboardContent() {
   const flujoCajaState = useFlujoCaja()
   const procesosState = useProcesos()
   const procesosMetrics = useProcesosMetrics(procesosState.data.procesos)
+
+  // Hook para notificaciones automáticas de empréstito
+  useEmprestitoAutoNotifications({
+    contratos: emprestitoState.data.contratos,
+    enabled: true // Cambiar a false para desactivar notificaciones automáticas
+  })
 
   // Función para manejar cambios en BPIN filtrados desde Empréstito
   const handleFilteredBpinsChange = (bpins: number[] | undefined) => {
