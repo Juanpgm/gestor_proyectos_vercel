@@ -16,6 +16,7 @@ import { useProductos, type Producto } from '@/hooks/useProductos'
 import { useContratos, useContratosMetrics, type Contrato } from '@/hooks/useContratos'
 import { useEmprestito, useEmprestitoMetrics } from '@/hooks/useEmprestito'
 import { useEmprestitoAutoNotifications } from '@/hooks/useEmprestitoNotifications'
+import { useAllAutoNotifications } from '@/hooks/useAutoNotifications'
 import { useFlujoCaja } from '@/hooks/useFlujoCaja'
 import { useProcesos, useProcesosMetrics, type Proceso } from '@/hooks/useProcesos'
 import { useDashboard, useDashboardFilters } from '@/context/DashboardContext'
@@ -60,7 +61,16 @@ function DashboardContent() {
 
   // Hook para notificaciones automáticas de empréstito
   useEmprestitoAutoNotifications({
+    reportes: emprestitoState.data.contratos, // Los contratos son los reportes
     contratos: emprestitoState.data.contratos,
+    enabled: true // Cambiar a false para desactivar notificaciones automáticas
+  })
+
+  // Hook para notificaciones automáticas de todos los módulos
+  useAllAutoNotifications({
+    proyectos: proyectos,
+    contratos: contratosState.data.contratos,
+    actividades: actividadesState.actividades,
     enabled: true // Cambiar a false para desactivar notificaciones automáticas
   })
 

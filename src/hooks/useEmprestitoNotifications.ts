@@ -16,13 +16,15 @@ import {
 } from '@/utils/autoNotifications';
 
 interface ReporteContrato {
-  referencia_contrato: string;
-  nombre_contrato?: string;
-  avance_fisico?: number;
-  avance_financiero?: number;
-  fecha_reporte?: string;
-  valor_ejecutado?: number;
-  valor_contrato?: number;
+  referencia_del_contrato?: string;
+  id_contrato?: string;
+  descripcion_del_proceso?: string;
+  proveedor_adjudicado?: string;
+  valor_del_contrato?: number;
+  valor_pagado?: number;
+  valor_facturado?: number;
+  fecha_de_firma?: string;
+  fecha_de_fin_del_contrato?: string;
 }
 
 /**
@@ -41,8 +43,9 @@ export function useEmprestitoNotifications(
     // En la primera carga, solo guardar el estado inicial
     if (initialLoadRef.current) {
       reportes.forEach(reporte => {
-        if (reporte.referencia_contrato) {
-          previousReportesRef.current.set(reporte.referencia_contrato, { ...reporte });
+        const key = reporte.referencia_del_contrato || reporte.id_contrato;
+        if (key) {
+          previousReportesRef.current.set(key, { ...reporte });
         }
       });
       initialLoadRef.current = false;
@@ -54,94 +57,116 @@ export function useEmprestitoNotifications(
     let cambiosDetectados = 0;
 
     reportes.forEach(reporte => {
-      if (!reporte.referencia_contrato) return;
+      const key = reporte.referencia_del_contrato || reporte.id_contrato;
+      if (!key) return;
 
-      currentReportes.set(reporte.referencia_contrato, reporte);
-      const previous = previousReportesRef.current.get(reporte.referencia_contrato);
+      currentReportes.set(key, reporte);
+      const previous = previousReportesRef.current.get(key);
 
-      // NUEVO REPORTE
+      // NUEVO REPORTE/CONTRATO
       if (!previous) {
-        console.log(`🆕 Nuevo reporte detectado: ${reporte.referencia_contrato}`);
+        console.log(`🆕 Nuevo contrato detectado: ${key}`);
         cambiosDetectados++;
         notifyNewEmprestitoReport({
-          referencia_contrato: reporte.referencia_contrato,
-          nombre_contrato: reporte.nombre_contrato,
-          avance_fisico: reporte.avance_fisico,
-          avance_financiero: reporte.avance_financiero,
-          fecha_reporte: reporte.fecha_reporte || new Date().toISOString()
+          referencia_contrato: key,
+          nombre_contrato: reporte.descripcion_del_proceso,
+          avance_fisico: reporte.valor_facturado && reporte.valor_del_contrato 
+            ? (reporte.valor_facturado / reporte.valor_del_contrato) * 100 
+            : 0,
+          avance_financiero: reporte.valor_pagado && reporte.valor_del_contrato
+            ? (reporte.valor_pagado / reporte.valor_del_contrato) * 100
+            : 0,
+          fecha_reporte: reporte.fecha_de_firma || new Date().toISOString()
         });
 
         // Verificar si el avance es muy bajo
-        if (reporte.avance_fisico !== undefined && reporte.avance_fisico < 30) {
+        const avanceFisico = reporte.valor_facturado && reporte.valor_del_contrato 
+          ? (reporte.valor_facturado / reporte.valor_del_contrato) * 100 
+          : 0;
+          
+        if (avanceFisico < 30 && avanceFisico > 0) {
           notifyLowProgress({
-            referencia_contrato: reporte.referencia_contrato,
-            nombre_contrato: reporte.nombre_contrato,
-            avance_fisico: reporte.avance_fisico
+            referencia_contrato: key,
+            nombre_contrato: reporte.descripcion_del_proceso,
+            avance_fisico: avanceFisico
           });
         }
       }
-      // REPORTE ACTUALIZADO
+      // CONTRATO ACTUALIZADO
       else {
         const cambios: any = {};
         let hasChanges = false;
 
-        // Detectar cambios en avance físico
+        // Detectar cambios en valor pagado (avance financiero)
         if (
-          previous.avance_fisico !== undefined &&
-          reporte.avance_fisico !== undefined &&
-          Math.abs(previous.avance_fisico - reporte.avance_fisico) > 0.1
+          previous.valor_pagado !== undefined &&
+          reporte.valor_pagado !== undefined &&
+          Math.abs(previous.valor_pagado - reporte.valor_pagado) > 1000 // Cambios mayores a 1000
         ) {
-          cambios.avance_fisico = {
-            old: previous.avance_fisico,
-            new: reporte.avance_fisico
+          cambios.valor_pagado = {
+            old: previous.valor_pagado,
+            new: reporte.valor_pagado
           };
           hasChanges = true;
         }
 
-        // Detectar cambios en avance financiero
+        // Detectar cambios en valor facturado
         if (
-          previous.avance_financiero !== undefined &&
-          reporte.avance_financiero !== undefined &&
-          Math.abs(previous.avance_financiero - reporte.avance_financiero) > 0.1
+          previous.valor_facturado !== undefined &&
+          reporte.valor_facturado !== undefined &&
+          Math.abs(previous.valor_facturado - reporte.valor_facturado) > 1000
         ) {
-          cambios.avance_financiero = {
-            old: previous.avance_financiero,
-            new: reporte.avance_financiero
+          cambios.valor_facturado = {
+            old: previous.valor_facturado,
+            new: reporte.valor_facturado
           };
           hasChanges = true;
         }
 
         // Notificar si hubo cambios significativos
         if (hasChanges) {
-          console.log(`🔄 Cambios detectados en ${reporte.referencia_contrato}:`, cambios);
+          console.log(`🔄 Cambios detectados en ${key}:`, cambios);
           cambiosDetectados++;
           notifyEmprestitoReportUpdate({
-            referencia_contrato: reporte.referencia_contrato,
-            nombre_contrato: reporte.nombre_contrato,
+            referencia_contrato: key,
+            nombre_contrato: reporte.descripcion_del_proceso,
             cambios
           });
         }
 
-        // Alertas especiales
-        if (reporte.avance_fisico !== undefined && reporte.avance_fisico < 30) {
-          notifyLowProgress({
-            referencia_contrato: reporte.referencia_contrato,
-            nombre_contrato: reporte.nombre_contrato,
-            avance_fisico: reporte.avance_fisico
-          });
+        // Calcular avance actual
+        const avanceFisico = reporte.valor_facturado && reporte.valor_del_contrato 
+          ? (reporte.valor_facturado / reporte.valor_del_contrato) * 100 
+          : 0;
+
+        // Alertas especiales - solo si el avance es bajo
+        if (avanceFisico < 30 && avanceFisico > 0) {
+          const previousAvance = previous.valor_facturado && previous.valor_del_contrato
+            ? (previous.valor_facturado / previous.valor_del_contrato) * 100
+            : 0;
+          
+          // Solo notificar si no había alerta antes
+          if (previousAvance >= 30) {
+            notifyLowProgress({
+              referencia_contrato: key,
+              nombre_contrato: reporte.descripcion_del_proceso,
+              avance_fisico: avanceFisico
+            });
+          }
         }
 
-        // Notificar hitos alcanzados
-        if (
-          reporte.avance_fisico !== undefined &&
-          previous.avance_fisico !== undefined
-        ) {
+        // Notificar hitos alcanzados basados en avance
+        const previousAvance = previous.valor_facturado && previous.valor_del_contrato
+          ? (previous.valor_facturado / previous.valor_del_contrato) * 100
+          : 0;
+        
+        if (previousAvance > 0 && avanceFisico > 0) {
           const hitos = [25, 50, 75, 100];
           hitos.forEach(hito => {
-            if (previous.avance_fisico! < hito && reporte.avance_fisico! >= hito) {
+            if (previousAvance < hito && avanceFisico >= hito) {
               notifyProjectMilestone({
-                bpin: reporte.referencia_contrato,
-                nombre: reporte.nombre_contrato || reporte.referencia_contrato,
+                bpin: key,
+                nombre: reporte.descripcion_del_proceso || key,
                 hito: `${hito}% de ejecución`,
                 porcentaje_avance: hito
               });
@@ -152,26 +177,26 @@ export function useEmprestitoNotifications(
 
       // Notificar si el presupuesto está alto
       if (
-        reporte.valor_ejecutado !== undefined &&
-        reporte.valor_contrato !== undefined &&
-        reporte.valor_contrato > 0
+        reporte.valor_pagado !== undefined &&
+        reporte.valor_del_contrato !== undefined &&
+        reporte.valor_del_contrato > 0
       ) {
-        const porcentajeEjecutado = (reporte.valor_ejecutado / reporte.valor_contrato) * 100;
+        const porcentajeEjecutado = (reporte.valor_pagado / reporte.valor_del_contrato) * 100;
         
         if (porcentajeEjecutado > 85) {
-          const previous = previousReportesRef.current.get(reporte.referencia_contrato);
-          const previousPorcentaje = previous?.valor_ejecutado && previous?.valor_contrato
-            ? (previous.valor_ejecutado / previous.valor_contrato) * 100
+          const previous = previousReportesRef.current.get(key);
+          const previousPorcentaje = previous?.valor_pagado && previous?.valor_del_contrato
+            ? (previous.valor_pagado / previous.valor_del_contrato) * 100
             : 0;
 
           // Solo notificar si cruzó el umbral del 85%
           if (previousPorcentaje <= 85) {
             notifyBudgetUpdate({
-              proyecto_id: reporte.referencia_contrato,
-              nombre_proyecto: reporte.nombre_contrato,
+              proyecto_id: key,
+              nombre_proyecto: reporte.descripcion_del_proceso,
               porcentaje_ejecutado: porcentajeEjecutado,
-              monto_ejecutado: reporte.valor_ejecutado,
-              monto_total: reporte.valor_contrato
+              monto_ejecutado: reporte.valor_pagado,
+              monto_total: reporte.valor_del_contrato
             });
           }
         }

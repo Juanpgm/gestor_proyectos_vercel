@@ -421,3 +421,84 @@ export const NotificationHelpers = {
       }
     })
 };
+
+// Funciones de debug para la consola del navegador
+if (typeof window !== 'undefined') {
+  (window as any).debugNotifications = {
+    getAll: () => notificationService.getAll(),
+    getRecent: (days: number = 5) => notificationService.getRecentNotifications(days, true),
+    getStats: () => notificationService.getStats(),
+    clear: () => {
+      notificationService.deleteAll();
+      console.log('✅ Todas las notificaciones han sido eliminadas');
+    },
+    reset: () => {
+      // Crear notificaciones de ejemplo para testing
+      notificationService.deleteAll();
+      
+      const now = new Date();
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const twoDaysAgo = new Date(now);
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      
+      // Notificaciones de empréstito
+      NotificationHelpers.newContract('CT-2024-001', 'contract_1', 500000000);
+      NotificationHelpers.deadlineWarning('Contrato Infraestructura Vial', 5, 'Contrato');
+      NotificationHelpers.budgetUpdate('Proyecto Centro Cultural', 450000000, 520000000);
+      
+      // Notificaciones de proyectos
+      NotificationHelpers.newProject('Nuevo Parque Recreativo', 'PRY-001');
+      NotificationHelpers.statusChange('Remodelación Plaza', 'En ejecución', 'Completado', 'proyecto');
+      
+      // Notificaciones de actividades
+      NotificationHelpers.newActivity('Diseño arquitectónico', 'ACT-001');
+      NotificationHelpers.newActivity('Estudio de suelos', 'ACT-002');
+      
+      console.log('✅ Notificaciones de ejemplo creadas');
+      console.log('📊 Usa debugNotifications.getAll() para verlas');
+    },
+    config: {
+      get: () => {
+        const stored = localStorage.getItem('auto_notifications_config');
+        return stored ? JSON.parse(stored) : null;
+      },
+      enable: () => {
+        localStorage.setItem('auto_notifications_config', JSON.stringify({
+          enabled: true,
+          types: {
+            reportes: true,
+            contratos: true,
+            proyectos: true,
+            actividades: true,
+            presupuesto: true
+          }
+        }));
+        console.log('✅ Notificaciones automáticas activadas');
+      },
+      disable: () => {
+        localStorage.setItem('auto_notifications_config', JSON.stringify({
+          enabled: false,
+          types: {
+            reportes: false,
+            contratos: false,
+            proyectos: false,
+            actividades: false,
+            presupuesto: false
+          }
+        }));
+        console.log('❌ Notificaciones automáticas desactivadas');
+      }
+    }
+  };
+  
+  console.log('🔔 Sistema de notificaciones disponible');
+  console.log('📝 Usa debugNotifications en la consola para:');
+  console.log('  - debugNotifications.getAll() - Ver todas las notificaciones');
+  console.log('  - debugNotifications.getRecent(5) - Ver notificaciones de últimos 5 días');
+  console.log('  - debugNotifications.getStats() - Ver estadísticas');
+  console.log('  - debugNotifications.clear() - Limpiar todas las notificaciones');
+  console.log('  - debugNotifications.reset() - Crear notificaciones de ejemplo');
+  console.log('  - debugNotifications.config.enable() - Activar notificaciones automáticas');
+  console.log('  - debugNotifications.config.disable() - Desactivar notificaciones automáticas');
+}
