@@ -908,13 +908,24 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
                   innerRadius={60}
                   outerRadius={100}
                   paddingAngle={2}
-                  label={({ percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
-                  labelLine={{ stroke: '#6b7280', strokeWidth: 1 }}
-                  labelStyle={{ 
-                    fontSize: '11px', 
-                    fontWeight: 'bold',
-                    fill: '#1f2937'
+                  label={(props) => {
+                    const { percent, x, y } = props;
+                    if (percent < 0.05) return null;
+                    return (
+                      <text
+                        x={x}
+                        y={y}
+                        fill="#1f2937"
+                        fontSize="11px"
+                        fontWeight="bold"
+                        textAnchor={x > 200 ? 'start' : 'end'}
+                        dominantBaseline="central"
+                      >
+                        {`${(percent * 100).toFixed(0)}%`}
+                      </text>
+                    );
                   }}
+                  labelLine={{ stroke: '#6b7280', strokeWidth: 1 }}
                 >
                   {totalesPorBanco.map((entry, index) => {
                     const colors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316']
