@@ -525,18 +525,26 @@ export const filterAttributeData = (
         }
       }
       
-      // Filtros específicos
-      const matchesFilters = Object.entries(filters).every(([key, value]) => {
-        if (!value || value === '' || key === 'searchTerm') return true;
-        
+      // Filtros específicos - primero recopilar todos los filtros únicos (tanto simples como múltiples)
+      const allFilterKeys = new Set<string>();
+      Object.keys(filters).forEach(key => {
+        if (key === 'searchTerm') return;
+        if (key.endsWith('_multiple')) {
+          allFilterKeys.add(key.replace('_multiple', ''));
+        } else {
+          allFilterKeys.add(key);
+        }
+      });
+
+      const matchesFilters = Array.from(allFilterKeys).every(baseKey => {
         try {
-          // Verificar si existe un filtro múltiple para esta clave
-          const multipleKey = `${key}_multiple`;
+          const multipleKey = `${baseKey}_multiple`;
           const multipleValues = (filters as any)[multipleKey];
+          const singleValue = (filters as any)[baseKey];
           
+          // Si hay filtros múltiples, usarlos (tienen prioridad sobre el filtro singular)
           if (multipleValues && Array.isArray(multipleValues) && multipleValues.length > 0) {
-            // Si hay filtros múltiples, usar esos en lugar del filtro singular
-            switch (key) {
+            switch (baseKey) {
               case 'estado':
                 return multipleValues.includes(item.estado);
               case 'tipo_intervencion':
@@ -558,33 +566,38 @@ export const filterAttributeData = (
               default:
                 return true;
             }
-          } else {
-            // Usar filtro singular como antes
-            switch (key) {
+          }
+          
+          // Si no hay filtros múltiples pero hay un valor singular, usarlo
+          if (singleValue && singleValue !== '') {
+            switch (baseKey) {
               case 'estado':
-                return item.estado === value;
+                return item.estado === singleValue;
               case 'tipo_intervencion':
-                return item.tipo_intervencion === value;
+                return item.tipo_intervencion === singleValue;
               case 'tipo_equipamiento':
-                return item.tipo_equipamiento === value;
+                return item.tipo_equipamiento === singleValue;
               case 'frente_activo':
-                return item.frente_activo === value;
+                return item.frente_activo === singleValue;
               case 'centro_gestor':
-                return item.nombre_centro_gestor === value;
+                return item.nombre_centro_gestor === singleValue;
               case 'comuna_corregimiento':
-                return item.comuna_corregimiento === value;
+                return item.comuna_corregimiento === singleValue;
               case 'barrio_vereda':
-                return item.barrio_vereda === value;
+                return item.barrio_vereda === singleValue;
               case 'fuente_financiacion':
-                return item.fuente_financiacion === value;
+                return item.fuente_financiacion === singleValue;
               case 'ano':
-                return String(item.ano).replace('.0', '') === String(value).replace('.0', '');
+                return String(item.ano).replace('.0', '') === String(singleValue).replace('.0', '');
               default:
                 return true;
             }
           }
+          
+          // Si no hay ni filtros múltiples ni valor singular, no filtrar por este campo
+          return true;
         } catch (filterError) {
-          console.warn(`⚠️ Filter error for ${key}:`, filterError);
+          console.warn(`⚠️ Filter error for ${baseKey}:`, filterError);
           return true; // En caso de error, no filtrar este item
         }
       });
