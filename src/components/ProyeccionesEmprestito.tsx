@@ -493,29 +493,46 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     return (value < 0 ? '-' : '') + formatted + suffix
   }
 
-  // Función para obtener estadísticas de resumen
-  const getStats = () => {
-    const totalProyecciones = proyecciones.length
-    const totalValorProyectado = proyecciones.reduce((sum, p) => sum + (Number(p.valor_proyectado) || 0), 0)
-    const organismos = new Set(proyecciones.map(p => p.nombre_organismo_reducido).filter(Boolean)).size
-    const bancos = new Set(proyecciones.map(p => p.nombre_banco).filter(Boolean)).size
+  // Calcular stats basadas en datos filtrados usando useMemo
+  const stats = useMemo(() => {
+    // Usar datos FILTRADOS para las estadísticas
+    const datosParaStats = filteredProyecciones
+    const totalProyecciones = proyecciones.length // Total sin filtros para comparación
+    
+    // Separar proyecciones con y sin contrato (de los datos filtrados)
+    const proyeccionesConContrato = datosParaStats.filter(p => !p.sin_proceso && p.referencia_proceso)
+    const proyeccionesSinContrato = datosParaStats.filter(p => p.sin_proceso || !p.referencia_proceso)
+    
+    // Valores totales separados
+    const totalValorProyectado = datosParaStats.reduce((sum, p) => sum + (Number(p.valor_proyectado) || 0), 0)
+    const valorConContrato = proyeccionesConContrato.reduce((sum, p) => sum + (Number(p.valor_proyectado) || 0), 0)
+    const valorSinContrato = proyeccionesSinContrato.reduce((sum, p) => sum + (Number(p.valor_proyectado) || 0), 0)
+    
+    const organismos = new Set(proyeccionesConContrato.map(p => p.nombre_organismo_reducido).filter(Boolean)).size
+    const bancos = new Set(proyeccionesConContrato.map(p => p.nombre_banco).filter(Boolean)).size
     
     // Nuevas estadísticas para proyecciones con y sin proceso
-    const conProceso = proyecciones.filter(p => !p.sin_proceso).length
-    const sinProceso = proyecciones.filter(p => p.sin_proceso).length
+    const conProceso = proyeccionesConContrato.length
+    const sinProceso = proyeccionesSinContrato.length
+    
+    // Estadísticas adicionales para proyecciones sin contrato
+    const organismosSinContrato = new Set(proyeccionesSinContrato.map(p => p.nombre_organismo_reducido).filter(Boolean)).size
+    const bancosSinContrato = new Set(proyeccionesSinContrato.map(p => p.nombre_banco).filter(Boolean)).size
 
     return {
       totalProyecciones,
       totalValorProyectado,
+      valorConContrato,
+      valorSinContrato,
       organismos,
       bancos,
       conProceso,
       sinProceso,
-      filteredCount: filteredProyecciones.length
+      organismosSinContrato,
+      bancosSinContrato,
+      filteredCount: datosParaStats.length
     }
-  }
-
-  const stats = getStats()
+  }, [filteredProyecciones, proyecciones])
 
   // Configuración de columnas
   const columns: Column[] = [
@@ -591,82 +608,98 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         </div>
       </motion.div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Diseño en 2 Columnas */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
       >
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
+        {/* Columna Izquierda: Con Proceso */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Con Proceso</h3>
+            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+              {stats.conProceso} registros
+            </span>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Valor Total</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white" title={formatValue(stats.valorConContrato, 'currency')}>
+                {formatCompactCurrency(stats.valorConContrato)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Organismos</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.organismos}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Bancos</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.bancos}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Columna Derecha: Sin Proceso */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sin Proceso</h3>
+            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+              {stats.sinProceso} registros
+            </span>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Valor Total</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white" title={formatValue(stats.valorSinContrato, 'currency')}>
+                {formatCompactCurrency(stats.valorSinContrato)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Organismos</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.organismosSinContrato}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Bancos</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.bancosSinContrato}</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Resumen General */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Total Proyecciones</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Total Proyecciones</span>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
                 {stats.filteredCount}
                 {stats.filteredCount !== stats.totalProyecciones && (
-                  <span className="text-sm text-gray-500 ml-1">/ {stats.totalProyecciones}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 ml-1 font-normal">de {stats.totalProyecciones}</span>
                 )}
               </p>
             </div>
-            <FileText className="w-8 h-8 text-indigo-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
+            <div className="h-8 w-px bg-gray-300 dark:bg-gray-600"></div>
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Total</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white" title={formatValue(stats.totalValorProyectado, 'currency')}>
+              <span className="text-xs text-gray-600 dark:text-gray-400">Valor Total</span>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white" title={formatValue(stats.totalValorProyectado, 'currency')}>
                 {formatCompactCurrency(stats.totalValorProyectado)}
               </p>
             </div>
-            <DollarSign className="w-8 h-8 text-green-500" />
           </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Organismos</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.organismos}</p>
-            </div>
-            <Building className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Bancos</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.bancos}</p>
-            </div>
-            <Building className="w-8 h-8 text-teal-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Con Proceso</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.conProceso}</p>
-            </div>
-            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Sin Proceso</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.sinProceso}</p>
-            </div>
-            <div className="w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-            </div>
-          </div>
+          {(searchTerm || Object.values(columnFilters).some(f => f?.length > 0)) && (
+            <span className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center gap-1">
+              <Filter className="w-3 h-3" />
+              Filtros activos
+            </span>
+          )}
         </div>
       </motion.div>
 
