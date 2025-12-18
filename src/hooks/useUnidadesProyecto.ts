@@ -31,7 +31,8 @@ export interface AttributeData {
   tipo_equipamiento?: string;
   clase_up?: string;  // ⬅️ NUEVO CAMPO
   clase_obra?: string;
-  nombre_centro_gestor: string;
+  nombre_centro_gestor?: string;  // ⬅️ Opcional porque no existe en la API
+  n_intervenciones?: number;  // ⬅️ Número de intervenciones por unidad de proyecto
   comuna_corregimiento: string;
   barrio_vereda: string;
   presupuesto_base: number;

@@ -46,7 +46,8 @@ export interface UseUnidadesProyectoResult {
   
   // Métricas derivadas
   metrics: {
-    total: number;
+    total: number; // Total de intervenciones (suma de n_intervenciones)
+    totalUnidadesProyecto: number; // Total de unidades de proyecto (número de registros)
     byStatus: Record<string, number>;
     byType: Record<string, number>;
     avgProgress: number;
@@ -299,8 +300,22 @@ export const useUnidadesProyecto = (
 
     const totalBudget = data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
 
+    // Sumar total de intervenciones (suma de n_intervenciones)
+    const totalIntervenciones = data.reduce((sum, item) => sum + (item.n_intervenciones || 0), 0);
+    
+    // Total de unidades de proyecto (número de registros)
+    const totalUnidadesProyecto = data.length;
+
     // Contar frentes activos
     const activeFronts = data.filter(item => item.frente_activo === 'Frente activo').length;
+
+    // Debug logging de intervenciones
+    console.log('🔢 Debug totalIntervenciones calculation:', {
+      totalUnidadesProyecto,
+      totalIntervenciones,
+      sampleNIntervenciones: data.slice(0, 5).map(item => ({ upid: item.upid, n_intervenciones: item.n_intervenciones })),
+      allNIntervenciones: data.map(item => item.n_intervenciones || 0).slice(0, 10)
+    });
 
     // Debug logging
     console.log('🔍 Debug avgProgress calculation:', {
@@ -324,7 +339,8 @@ export const useUnidadesProyecto = (
     });
 
     return {
-      total: data.length,
+      total: totalIntervenciones, // Total de intervenciones (suma de n_intervenciones)
+      totalUnidadesProyecto, // Total de unidades de proyecto (número de registros)
       byStatus,
       byType,
       avgProgress: Math.round(avgProgress * 10) / 10, // Redondear a 1 decimal (ya viene en escala 0-100 desde el servicio)

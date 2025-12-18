@@ -200,8 +200,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   } | null>(null);
   const [viewMode, setViewMode] = useState<'compact' | 'complete'>('complete');
   
-  // Estado para controlar la expansión del grupo de monumentos
+  // Estado para controlar la expansión de grupos
+  const [isSubsidiosExpanded, setIsSubsidiosExpanded] = useState(false);
   const [isMonumentosExpanded, setIsMonumentosExpanded] = useState(false);
+  const [isBanderasExpanded, setIsBanderasExpanded] = useState(false);
   
   const [visibleColumns, setVisibleColumns] = useState({
     upid: true,
@@ -242,7 +244,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         item.tipo_intervencion.toLowerCase().includes(term) ||
         (item.tipo_equipamiento && item.tipo_equipamiento.toLowerCase().includes(term)) ||
         (item.frente_activo && item.frente_activo.toLowerCase().includes(term)) ||
-        item.nombre_centro_gestor.toLowerCase().includes(term) ||
+        (item.nombre_centro_gestor && item.nombre_centro_gestor.toLowerCase().includes(term)) ||
         item.barrio_vereda.toLowerCase().includes(term) ||
         item.comuna_corregimiento.toLowerCase().includes(term) ||
         item.fuente_financiacion.toLowerCase().includes(term) ||
@@ -251,29 +253,64 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       );
     }
 
-    // Separar monumentos del resto de datos
-    const monumentos = filtered.filter(item => 
-      item.nombre_up.toLowerCase().includes('monumentos')
-    );
-    const noMonumentos = filtered.filter(item => 
-      !item.nombre_up.toLowerCase().includes('monumentos')
-    );
-
-    // Crear grupo de monumentos si hay elementos
-    const monumentosGroup: MonumentosGroupData | null = monumentos.length > 0 ? {
-      id: 'monumentos-culturales',
-      nombre: 'Monumentos Culturales de la Ciudad',
-      count: monumentos.length,
-      items: monumentos,
-      presupuesto_total: monumentos.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0),
-      avance_promedio: monumentos.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / monumentos.length,
+    // Función auxiliar para crear grupo
+    const createGroup = (id: string, nombre: string, items: AttributeData[]): MonumentosGroupData => ({
+      id,
+      nombre,
+      count: items.length,
+      items,
+      presupuesto_total: items.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0),
+      avance_promedio: items.length > 0 ? items.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / items.length : 0,
       isGroup: true as const
-    } : null;
+    });
+
+    // Separar grupos especiales del resto de datos
+    const subsidios = filtered.filter(item => 
+      item.clase_up && item.clase_up.toLowerCase() === 'subsidios'
+    );
+    
+    const monumentos = filtered.filter(item => {
+      const nombreLower = (item.nombre_up || '').toLowerCase();
+      const detalleLower = (item.nombre_up_detalle || '').toLowerCase();
+      return nombreLower.includes('monumentos') || detalleLower.includes('monumentos');
+    });
+    
+    const banderas = filtered.filter(item => {
+      const nombreLower = (item.nombre_up || '').toLowerCase();
+      const detalleLower = (item.nombre_up_detalle || '').toLowerCase();
+      return nombreLower.includes('banderas') || detalleLower.includes('banderas');
+    });
+
+    // Datos que no pertenecen a ningún grupo
+    const noAgrupados = filtered.filter(item => {
+      const nombreLower = (item.nombre_up || '').toLowerCase();
+      const detalleLower = (item.nombre_up_detalle || '').toLowerCase();
+      const claseUpLower = (item.clase_up || '').toLowerCase();
+      
+      const esSubsidio = claseUpLower === 'subsidios';
+      const esMonumento = nombreLower.includes('monumentos') || detalleLower.includes('monumentos');
+      const esBandera = nombreLower.includes('banderas') || detalleLower.includes('banderas');
+      
+      return !esSubsidio && !esMonumento && !esBandera;
+    });
+
+    // Crear grupos
+    const subsidiosGroup: MonumentosGroupData | null = subsidios.length > 0 
+      ? createGroup('subsidios-grupo', '💰 Subsidios Municipales', subsidios) 
+      : null;
+      
+    const monumentosGroup: MonumentosGroupData | null = monumentos.length > 0 
+      ? createGroup('monumentos-culturales', '🏛️ Monumentos Culturales', monumentos) 
+      : null;
+      
+    const banderasGroup: MonumentosGroupData | null = banderas.length > 0 
+      ? createGroup('banderas-grupo', '🚩 Banderas', banderas) 
+      : null;
 
     // Ordenar datos no agrupados
-    let sortedNoMonumentos = noMonumentos;
+    let sortedNoAgrupados = noAgrupados;
     if (sortConfig) {
-      sortedNoMonumentos = [...noMonumentos].sort((a, b) => {
+      sortedNoAgrupados = [...noAgrupados].sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
         
@@ -292,38 +329,31 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       });
     }
 
-    // Crear la lista final para mostrar
-    let finalData: TableRowData[] = [...sortedNoMonumentos];
+    // Crear la lista final para mostrar: primero los datos individuales, luego los grupos colapsados
+    let finalData: TableRowData[] = [...sortedNoAgrupados];
     
-    // Agregar el grupo de monumentos AL FINAL si existe
-    if (monumentosGroup) {
-      // Si está expandido, agregar los monumentos individuales al final
-      if (isMonumentosExpanded) {
-        let sortedMonumentos = monumentos;
-        if (sortConfig) {
-          sortedMonumentos = [...monumentos].sort((a, b) => {
-            const aValue = a[sortConfig.key];
-            const bValue = b[sortConfig.key];
-            
-            if (typeof aValue === 'number' && typeof bValue === 'number') {
-              return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-            }
-            
-            const aStr = String(aValue).toLowerCase();
-            const bStr = String(bValue).toLowerCase();
-            
-            if (sortConfig.direction === 'asc') {
-              return aStr < bStr ? -1 : aStr > bStr ? 1 : 0;
-            } else {
-              return aStr > bStr ? -1 : aStr < bStr ? 1 : 0;
-            }
-          });
-        }
-        // Grupo + monumentos individuales al final
-        finalData = [...sortedNoMonumentos, monumentosGroup, ...sortedMonumentos];
+    // Agregar grupos AL FINAL para reducir ruido visual
+    if (subsidiosGroup) {
+      if (isSubsidiosExpanded) {
+        finalData.push(...subsidios);
       } else {
-        // Solo mostrar el grupo colapsado al final
-        finalData = [...sortedNoMonumentos, monumentosGroup];
+        finalData.push(subsidiosGroup);
+      }
+    }
+    
+    if (monumentosGroup) {
+      if (isMonumentosExpanded) {
+        finalData.push(...monumentos);
+      } else {
+        finalData.push(monumentosGroup);
+      }
+    }
+    
+    if (banderasGroup) {
+      if (isBanderasExpanded) {
+        finalData.push(...banderas);
+      } else {
+        finalData.push(banderasGroup);
       }
     }
 
@@ -343,11 +373,20 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   }, [data, searchTerm, sortConfig, currentPage, itemsPerPage, isMonumentosExpanded]);
 
   // Función para manejar la expansión del grupo de monumentos
+  // Funciones para manejar la expansión de cada grupo
+  const handleToggleSubsidios = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setIsSubsidiosExpanded(!isSubsidiosExpanded);
+  };
+  
   const handleToggleMonumentos = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
+    if (e) e.stopPropagation();
     setIsMonumentosExpanded(!isMonumentosExpanded);
+  };
+  
+  const handleToggleBanderas = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setIsBanderasExpanded(!isBanderasExpanded);
   };
 
   // Manejar ordenamiento
@@ -752,20 +791,38 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedData.map((row: TableRowData, index: number) => {
-                // Si es un grupo de monumentos, renderizar fila especial
+                // Si es un grupo, renderizar fila especial
                 if (isGroupRow(row)) {
+                  // Determinar el tipo de grupo y su configuración basándose en el ID exacto
+                  let groupConfig;
+                  if (row.id === 'subsidios-grupo') {
+                    groupConfig = { handler: handleToggleSubsidios, expanded: isSubsidiosExpanded, color: 'green', emoji: '💰' };
+                  } else if (row.id === 'monumentos-culturales') {
+                    groupConfig = { handler: handleToggleMonumentos, expanded: isMonumentosExpanded, color: 'purple', emoji: '🏛️' };
+                  } else if (row.id === 'banderas-grupo') {
+                    groupConfig = { handler: handleToggleBanderas, expanded: isBanderasExpanded, color: 'blue', emoji: '🚩' };
+                  } else {
+                    // Fallback por si acaso
+                    groupConfig = { handler: () => {}, expanded: false, color: 'gray', emoji: '📁' };
+                  }
+                    
+                  const borderColor = `border-${groupConfig.color}-500`;
+                  const bgFrom = `from-${groupConfig.color}-50`;
+                  const bgTo = `to-${groupConfig.color}-100`;
+                  const textColor = `text-${groupConfig.color}-600`;
+                  
                   return (
                     <motion.tr
                       key={row.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.01 }}
-                      onClick={() => handleToggleMonumentos()}
-                      className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all duration-200 cursor-pointer border-l-4 border-purple-500"
+                      onClick={() => groupConfig.handler()}
+                      className={`bg-gradient-to-r ${bgFrom} ${bgTo} dark:from-${groupConfig.color}-900/20 dark:to-${groupConfig.color}-900/20 hover:from-${groupConfig.color}-100 hover:to-${groupConfig.color}-200 dark:hover:from-${groupConfig.color}-900/30 dark:hover:to-${groupConfig.color}-900/30 transition-all duration-200 cursor-pointer border-l-4 ${borderColor}`}
                       style={{ height: 'auto' }}
                     >
                       {visibleColumns.upid && (
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-purple-600 dark:text-purple-400">
+                        <td className={`px-3 py-4 whitespace-nowrap text-sm font-medium ${textColor} dark:${textColor}`}>
                           <div className="flex items-center space-x-2">
                             <Building2 className="w-4 h-4" />
                             <span>GRUPO</span>
@@ -776,18 +833,18 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                         <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                           <div className="flex items-center space-x-3">
                             <div className="flex-shrink-0">
-                              {isMonumentosExpanded ? (
-                                <ChevronDown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              {groupConfig.expanded ? (
+                                <ChevronDown className={`w-5 h-5 ${textColor} dark:${textColor}`} />
                               ) : (
-                                <ChevronRight className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                <ChevronRight className={`w-5 h-5 ${textColor} dark:${textColor}`} />
                               )}
                             </div>
                             <div className="space-y-1">
-                              <div className="font-bold text-purple-900 dark:text-purple-200 leading-tight break-words whitespace-normal">
-                                {row.nombre}
+                              <div className={`font-bold text-${groupConfig.color}-900 dark:text-${groupConfig.color}-200 leading-tight break-words whitespace-normal`}>
+                                {groupConfig.emoji} {row.nombre}
                               </div>
-                              <div className="text-xs text-purple-600 dark:text-purple-400 leading-tight break-words whitespace-normal">
-                                {row.count} monumentos agrupados • Click para {isMonumentosExpanded ? 'colapsar' : 'expandir'}
+                              <div className={`text-xs ${textColor} dark:${textColor} leading-tight break-words whitespace-normal`}>
+                                {row.count} elementos agrupados • Click para {groupConfig.expanded ? 'colapsar' : 'expandir'}
                               </div>
                             </div>
                           </div>
@@ -815,7 +872,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                         </td>
                       )}
                       {visibleColumns.presupuesto_base && (
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-bold text-purple-600 dark:text-purple-400">
+                        <td className={`px-3 py-4 whitespace-nowrap text-sm font-bold ${textColor} dark:${textColor}`}>
                           <div className="flex items-center space-x-1">
                             <DollarSign className="w-3 h-3" />
                             <span>{formatCurrency(row.presupuesto_total || 0)}</span>
@@ -835,7 +892,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       )}
                       {visibleColumns.estado && (
                         <td className="px-3 py-4 text-sm">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-${groupConfig.color}-100 text-${groupConfig.color}-800 dark:bg-${groupConfig.color}-900 dark:text-${groupConfig.color}-200`}>
                             <Building2 className="w-3 h-3 mr-1" />
                             Grupo ({row.count})
                           </span>
@@ -843,7 +900,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       )}
                       {visibleColumns.tipo_intervencion && (
                         <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
-                          <div className="text-xs">Monumentos culturales</div>
+                          <div className="text-xs">{row.nombre}</div>
                         </td>
                       )}
                       {visibleColumns.nombre_centro_gestor && (

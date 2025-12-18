@@ -36,15 +36,10 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    // Unwrap the FastAPI response structure to return direct array
-    let actualData = data;
-    if (data?.success === true && Array.isArray(data.data)) {
-      actualData = data.data;
-    }
+    // Mantener la estructura completa de la respuesta para que el servicio pueda procesarla
+    console.log(`✅ [attributes] Loaded ${data.data ? data.data.length : 0} records`);
     
-    console.log(`✅ [attributes] Loaded ${Array.isArray(actualData) ? actualData.length : 0} records`);
-    
-    const attributesResponse = NextResponse.json(actualData);
+    const attributesResponse = NextResponse.json(data);
     attributesResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     attributesResponse.headers.set('Pragma', 'no-cache');
     attributesResponse.headers.set('Expires', '0');

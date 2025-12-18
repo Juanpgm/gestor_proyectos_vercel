@@ -228,7 +228,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   
   const [showFilters, setShowFilters] = useState(true)
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gestorproyectoapi-production.up.railway.app'
+  const API_BASE_URL = '/api/proxy' // Usar el proxy de Next.js para evitar CORS
 
   // Definición de tabs - quality-control endpoints de la API
   const tabs = [
@@ -276,16 +276,6 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     }
   ]
 
-  // Cargar datos al montar o cambiar tab
-  useEffect(() => {
-    loadData()
-  }, [activeTab])
-
-  // Aplicar filtros cuando cambian los criterios
-  useEffect(() => {
-    applyFilters()
-  }, [data, searchTerm, selectedCentrosGestores, selectedSeverities, selectedPriorities])
-
   // Función para cargar datos según el tab activo
   const loadData = async () => {
     setLoading(true)
@@ -300,58 +290,85 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       const url = `${API_BASE_URL}${currentTab.endpoint}`
       console.log('🔵 Cargando datos desde:', url)
 
-      const response = await fetch(url)
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
 
       const result: any = await response.json()
-      console.log('📊 Respuesta recibida:', result)
+      console.log('📊 Respuesta recibida para', activeTab, ':', result)
 
-      // El endpoint stats tiene una estructura diferente
+      // Manejar diferentes estructuras según el endpoint
       if (activeTab === 'stats') {
-        setData(result) // Guardar el objeto completo para stats
-      } else if (activeTab === 'summary' && result.success && result.data) {
-        // El endpoint summary devuelve data como objeto, no array
-        // Incluir campos adicionales de tendencia que vienen a nivel raíz
-        const summaryData = {
-          ...result.data,
-          overall_trend: result.overall_trend,
-          trends_summary: result.trends_summary,
-          trends_count: result.trends_count,
-          has_comparison_data: result.has_comparison_data
+        // Stats devuelve un objeto directo (no wrapped en success/data)
+        console.log('✅ Cargando datos de stats')
+        setData(result)
+      } else if (activeTab === 'summary') {
+        // Summary devuelve {success, data, trends_summary, etc}
+        if (result.success && result.data) {
+          const summaryData = {
+            ...result.data,
+            overall_trend: result.overall_trend,
+            trends_summary: result.trends_summary,
+            trends_count: result.trends_count,
+            has_comparison_data: result.has_comparison_data
+          }
+          console.log('✅ Datos de summary procesados:', summaryData)
+          setData([summaryData]) // Envolver en array para mantener consistencia
+        } else {
+          throw new Error(result.message || 'No se recibieron datos de summary')
         }
-        setData([summaryData]) // Envolver en array para mantener consistencia
-      } else if (result.success && Array.isArray(result.data)) {
-        setData(result.data)
+      } else if (activeTab === 'metadata') {
+        // Metadata puede devolver un objeto o array
+        if (result.success) {
+          const metadataArray = Array.isArray(result.data) ? result.data : [result.data]
+          console.log('✅ Cargando metadata:', metadataArray.length, 'registros')
+          setData(metadataArray)
+        } else {
+          throw new Error(result.message || 'No se recibieron datos de metadata')
+        }
+      } else if (result.success && result.data) {
+        // Otros endpoints (records, changelog, by-centro-gestor) devuelven arrays
+        const dataArray = Array.isArray(result.data) ? result.data : []
+        console.log('✅ Cargando datos:', dataArray.length, 'registros')
+        setData(dataArray)
         
-        // Extraer valores únicos para los filtros
-        const centroGestorSet = new Set(
-          result.data
-            .map((item: any) => item.nombre_centro_gestor || item.centro_gestor)
-            .filter(Boolean)
-        )
-        const centros = Array.from(centroGestorSet) as string[]
-        setAvailableCentrosGestores(centros.sort())
-        
-        // Extraer severidades únicas
-        const severitiesSet = new Set(
-          result.data
-            .map((item: any) => item.max_severity || item.severity)
-            .filter(Boolean)
-        )
-        const severities = Array.from(severitiesSet) as string[]
-        setAvailableSeverities(severities.sort())
-        
-        // Extraer prioridades únicas
-        const prioritiesSet = new Set(
-          result.data
-            .map((item: any) => item.priority)
-            .filter(Boolean)
-        )
-        const priorities = Array.from(prioritiesSet) as string[]
-        setAvailablePriorities(priorities.sort())
+        // Extraer valores únicos para los filtros solo si hay datos
+        if (dataArray.length > 0) {
+          // Extraer centros gestores únicos
+          const centroGestorSet = new Set(
+            dataArray
+              .map((item: any) => item.nombre_centro_gestor || item.centro_gestor)
+              .filter(Boolean)
+          )
+          const centros = Array.from(centroGestorSet) as string[]
+          setAvailableCentrosGestores(centros.sort())
+          
+          // Extraer severidades únicas
+          const severitiesSet = new Set(
+            dataArray
+              .map((item: any) => item.max_severity || item.severity)
+              .filter(Boolean)
+          )
+          const severities = Array.from(severitiesSet) as string[]
+          setAvailableSeverities(severities.sort())
+          
+          // Extraer prioridades únicas
+          const prioritiesSet = new Set(
+            dataArray
+              .map((item: any) => item.priority)
+              .filter(Boolean)
+          )
+          const priorities = Array.from(prioritiesSet) as string[]
+          setAvailablePriorities(priorities.sort())
+        }
       } else {
         throw new Error(result.message || 'No se pudieron cargar los datos')
       }
@@ -364,10 +381,10 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     }
   }
 
-  // Aplicar filtros y paginación
-  const applyFilters = () => {
-    // Si data no es un array (como en stats), no filtrar
-    if (!Array.isArray(data)) {
+  // Aplicar filtros cuando cambien los datos o filtros seleccionados
+  useEffect(() => {
+    // Si data no es un array o está vacío, no filtrar
+    if (!Array.isArray(data) || data.length === 0) {
       setFilteredData([])
       return
     }
@@ -408,28 +425,20 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     }
 
     setFilteredData(filtered)
-    setCurrentPage(1) // Reset page cuando cambian los filtros
-  }
+  }, [data, selectedCentrosGestores, selectedSeverities, selectedPriorities, searchTerm])
 
-  // Calcular datos paginados
+  // Cargar datos cuando cambie el tab activo
+  useEffect(() => {
+    loadData()
+  }, [activeTab])
+
+  // Calcular paginación
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const paginatedData = filteredData.slice(startIndex, endIndex)
 
-  // Funciones de navegación de paginación
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
-    }
-  }
-
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
-    }
-  }
-
+  // Función para cambiar de página
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page)
@@ -523,18 +532,18 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
                 placeholder="Todos los centros"
               />
               <MultiSelect
-                label="Severidad"
+                label="Estado"
                 options={availableSeverities}
                 selected={selectedSeverities}
                 onChange={setSelectedSeverities}
-                placeholder="Todas las severidades"
+                placeholder="Todos los estados"
               />
               <MultiSelect
-                label="Prioridad"
+                label="Tipo de Intervención"
                 options={availablePriorities}
                 selected={selectedPriorities}
                 onChange={setSelectedPriorities}
-                placeholder="Todas las prioridades"
+                placeholder="Todos los tipos"
               />
             </div>
 
@@ -559,15 +568,18 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
         </motion.div>
       )}
 
-      {/* Tabs - Compactos */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 flex-shrink-0">
-        <div className="flex gap-1 overflow-x-auto">
+      {/* Tabs - Horizontal Scroll en móvil */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="flex overflow-x-auto scrollbar-hide px-4">
           {tabs.map((tab) => {
             const Icon = tab.icon
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id)
+                  setCurrentPage(1)
+                }}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600 dark:text-blue-400'
@@ -624,28 +636,76 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
           {/* Content */}
           {!loading && !error && (
             <div className="flex-1 overflow-auto">
-              {activeTab === 'summary' && data.length > 0 && (
-                <SummaryView data={data[0]} />
+              {activeTab === 'summary' && (
+                <>
+                  {Array.isArray(data) && data.length > 0 ? (
+                    <SummaryView data={data[0]} />
+                  ) : (
+                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                      No hay datos de resumen disponibles
+                    </div>
+                  )}
+                </>
               )}
 
               {activeTab === 'records' && (
-                <RecordsView records={filteredData.slice(startIndex, endIndex)} />
+                <>
+                  {paginatedData.length > 0 ? (
+                    <RecordsView records={paginatedData} />
+                  ) : (
+                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                      No se encontraron registros
+                    </div>
+                  )}
+                </>
               )}
 
               {activeTab === 'changelog' && (
-                <ChangelogView changes={filteredData} />
+                <>
+                  {filteredData.length > 0 ? (
+                    <ChangelogView changes={filteredData} />
+                  ) : (
+                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                      No hay cambios registrados
+                    </div>
+                  )}
+                </>
               )}
 
               {activeTab === 'by-centro-gestor' && (
-                <ByCentroGestorView centros={filteredData} />
+                <>
+                  {filteredData.length > 0 ? (
+                    <ByCentroGestorView centros={filteredData} />
+                  ) : (
+                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                      No hay datos por centro gestor
+                    </div>
+                  )}
+                </>
               )}
 
               {activeTab === 'metadata' && (
-                <MetadataView metadata={data} />
+                <>
+                  {(Array.isArray(data) && data.length > 0) || (typeof data === 'object' && data !== null) ? (
+                    <MetadataView metadata={data} />
+                  ) : (
+                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                      No hay metadatos disponibles
+                    </div>
+                  )}
+                </>
               )}
 
               {activeTab === 'stats' && (
-                <StatsView data={data} />
+                <>
+                  {data && typeof data === 'object' ? (
+                    <StatsView data={data} />
+                  ) : (
+                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                      No hay estadísticas disponibles
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Paginación solo para records */}
@@ -674,7 +734,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={goToPreviousPage}
+                      onClick={() => goToPage(currentPage - 1)}
                       disabled={currentPage === 1}
                       className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       aria-label="Página anterior"
@@ -712,7 +772,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
                     </div>
 
                     <button
-                      onClick={goToNextPage}
+                      onClick={() => goToPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
                       className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       aria-label="Página siguiente"

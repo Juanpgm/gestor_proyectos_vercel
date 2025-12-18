@@ -34,12 +34,13 @@ const AttributeSchema = z.object({
   nombre_up: z.string(),
   nombre_up_detalle: z.string().optional(),
   identificador: z.string().optional(),
+  n_intervenciones: z.number().optional(),
   estado: z.string(),
   tipo_intervencion: z.string(),
   tipo_equipamiento: z.string().optional(),
   clase_up: z.string().optional(),
   frente_activo: z.string().optional(),
-  nombre_centro_gestor: z.string(),
+  nombre_centro_gestor: z.string().optional(),
   comuna_corregimiento: z.string(),
   barrio_vereda: z.string(),
   presupuesto_base: z.number(),
@@ -343,28 +344,46 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
       try {
         const properties = item.properties || item;
         
+        // La nueva estructura tiene intervenciones como array
+        // Extraer datos de la primera intervención si existe
+        const intervenciones = properties.intervenciones || [];
+        const primeraIntervencion = intervenciones.length > 0 ? intervenciones[0] : {};
+        
+        // El campo nombre_centro_gestor no existe en la nueva estructura de la API
+        // Usar un valor por defecto o dejarlo undefined
+        const centroGestor = properties.nombre_centro_gestor || 
+                           primeraIntervencion.nombre_centro_gestor ||
+                           undefined;
+        
+        // Log first item for debugging
+        if (index === 0) {
+          console.log('🔍 First item n_intervenciones:', properties.n_intervenciones, 'type:', typeof properties.n_intervenciones);
+        }
+        
         const validatedItem = AttributeSchema.parse({
           upid: properties.upid || '',
           nombre_up: properties.nombre_up || '',
           nombre_up_detalle: properties.nombre_up_detalle || undefined,
           identificador: properties.identificador || undefined,
-          estado: properties.estado || '',
-          tipo_intervencion: properties.tipo_intervencion || '',
+          n_intervenciones: parseInt(properties.n_intervenciones) || 0,
+          // Campos que vienen de la intervención
+          estado: primeraIntervencion.estado || properties.estado || 'Sin estado',
+          tipo_intervencion: primeraIntervencion.tipo_intervencion || properties.tipo_intervencion || 'Sin especificar',
           tipo_equipamiento: properties.tipo_equipamiento || undefined,
           clase_up: properties.clase_up || undefined,
-          frente_activo: properties.frente_activo || undefined,
-          nombre_centro_gestor: properties.nombre_centro_gestor || '',
+          frente_activo: primeraIntervencion.frente_activo || properties.frente_activo || undefined,
+          nombre_centro_gestor: centroGestor,
           comuna_corregimiento: properties.comuna_corregimiento || '',
           barrio_vereda: properties.barrio_vereda || '',
-          presupuesto_base: parseFloat(properties.presupuesto_base) || 0,
-          avance_obra: parseFloat(properties.avance_obra) || 0,
-          fecha_inicio: properties.fecha_inicio || '',
-          fecha_fin: properties.fecha_fin || '',
-          fecha_inauguracion: properties.fecha_inauguracion || undefined,
-          duracion_proyecto: properties.duracion_proyecto || undefined,
-          descripcion_intervencion: properties.descripcion_intervencion || '',
-          fuente_financiacion: properties.fuente_financiacion || '',
-          ano: parseInt(properties.ano) || 0
+          presupuesto_base: parseFloat(primeraIntervencion.presupuesto_base || properties.presupuesto_base || 0),
+          avance_obra: parseFloat(primeraIntervencion.avance_obra || properties.avance_obra || 0),
+          fecha_inicio: primeraIntervencion.fecha_inicio || properties.fecha_inicio || '',
+          fecha_fin: primeraIntervencion.fecha_fin || properties.fecha_fin || '',
+          fecha_inauguracion: primeraIntervencion.fecha_inauguracion || properties.fecha_inauguracion || undefined,
+          duracion_proyecto: primeraIntervencion.duracion_proyecto || properties.duracion_proyecto || undefined,
+          descripcion_intervencion: primeraIntervencion.descripcion_intervencion || properties.descripcion_intervencion || '',
+          fuente_financiacion: primeraIntervencion.fuente_financiacion || properties.fuente_financiacion || '',
+          ano: parseInt(primeraIntervencion.ano || properties.ano || 0)
         });
         
         validatedData.push(validatedItem);
@@ -375,10 +394,22 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
       }
     });
     
-    // Debug presupuestos en fetchAttributeData
+    // Debug presupuestos y n_intervenciones en fetchAttributeData
     const totalPresupuestos = validatedData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+    const itemsConPresupuesto = validatedData.filter(item => (item.presupuesto_base || 0) > 0);
+    const totalIntervenciones = validatedData.reduce((sum, item) => sum + (item.n_intervenciones || 0), 0);
     console.log(`✅ fetchAttributeData: Processed ${dataArray.length} items, validated ${validatedData.length} items`);
+    console.log(`🔢 fetchAttributeData: Total intervenciones (suma n_intervenciones) = ${totalIntervenciones}`);
+    console.log(`📊 fetchAttributeData: Sample n_intervenciones:`, validatedData.slice(0, 5).map(i => ({ upid: i.upid, n_intervenciones: i.n_intervenciones })));
     console.log(`💰 fetchAttributeData: Total presupuestos sum = ${totalPresupuestos.toLocaleString()}`);
+    console.log(`💰 fetchAttributeData: Items con presupuesto > 0: ${itemsConPresupuesto.length}`);
+    if (itemsConPresupuesto.length > 0) {
+      console.log(`💰 fetchAttributeData: Muestra de presupuestos:`, itemsConPresupuesto.slice(0, 3).map(i => ({
+        upid: i.upid,
+        presupuesto: i.presupuesto_base,
+        estado: i.estado
+      })));
+    }
     
     return validatedData;
   } catch (error) {
