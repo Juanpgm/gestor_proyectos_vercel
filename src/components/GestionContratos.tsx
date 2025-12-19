@@ -44,6 +44,12 @@ interface RPC {
   cdp_asociados?: string[]
   programacion_pac?: {[key: string]: string}
   nombre_centro_gestor?: string
+  documentos_s3?: Array<{
+    s3_url: string
+    filename: string
+    content_type: string
+    size: number
+  }>
   fecha_creacion?: string
   fecha_actualizacion?: string
   estado?: string
@@ -112,6 +118,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   const [editingData, setEditingData] = useState<ContratoEmprestito | null>(null)
   const [showCargarRPCModal, setShowCargarRPCModal] = useState(false)
   const [selectedContratoForRPC, setSelectedContratoForRPC] = useState<ContratoEmprestito | null>(null)
+  const [showPDFPreviewModal, setShowPDFPreviewModal] = useState(false)
+  const [previewPDFUrl, setPreviewPDFUrl] = useState<string | null>(null)
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [columnSearchTerm, setColumnSearchTerm] = useState('')
   const [columnOrder, setColumnOrder] = useState<string[]>([])
@@ -283,6 +291,41 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   const tieneRPCCargado = (contrato: ContratoEmprestito): boolean => {
     const referenciaContrato = contrato.referencia_contrato || contrato.numero_contrato
     return rpcs.some(rpc => rpc.referencia_contrato === referenciaContrato)
+  }
+
+  // Función para obtener el RPC de un contrato
+  const obtenerRPCDeContrato = (contrato: ContratoEmprestito): RPC | null => {
+    const referenciaContrato = contrato.referencia_contrato || contrato.numero_contrato
+    return rpcs.find(rpc => rpc.referencia_contrato === referenciaContrato) || null
+  }
+
+  // Función para verificar si el RPC tiene documentos PDF
+  const tienePDFDisponible = (contrato: ContratoEmprestito): boolean => {
+    const rpc = obtenerRPCDeContrato(contrato)
+    return !!(rpc && rpc.documentos_s3 && rpc.documentos_s3.length > 0)
+  }
+
+  // Función para abrir preview del PDF
+  const handlePreviewPDF = (contrato: ContratoEmprestito) => {
+    const rpc = obtenerRPCDeContrato(contrato)
+    if (rpc && rpc.documentos_s3 && rpc.documentos_s3.length > 0) {
+      // Tomar el primer documento PDF
+      const pdfDoc = rpc.documentos_s3.find(doc => 
+        doc.content_type === 'application/pdf'
+      ) || rpc.documentos_s3[0]
+      
+      // FIX TEMPORAL: Corregir la región de S3 de us-east-1 a us-east-2
+      let fixedUrl = pdfDoc.s3_url
+      if (fixedUrl.includes('.s3.us-east-1.amazonaws.com')) {
+        fixedUrl = fixedUrl.replace('.s3.us-east-1.amazonaws.com', '.s3.us-east-2.amazonaws.com')
+      }
+      if (fixedUrl.includes('.s3.amazonaws.com')) {
+        fixedUrl = fixedUrl.replace('.s3.amazonaws.com', '.s3.us-east-2.amazonaws.com')
+      }
+      
+      setPreviewPDFUrl(fixedUrl)
+      setShowPDFPreviewModal(true)
+    }
   }
 
   useEffect(() => {
@@ -1293,6 +1336,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                           <Edit2 className="w-4 h-4" />
                         </button>
                       )}
+                      
+                      {/* Botón para cargar/editar RPC */}
                       <button
                         onClick={() => {
                           setSelectedContratoForRPC(contrato)
@@ -1311,6 +1356,17 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                           <Upload className="w-4 h-4" />
                         )}
                       </button>
+
+                      {/* Botón para previsualizar PDF (solo si tiene documentos) */}
+                      {tienePDFDisponible(contrato) && (
+                        <button
+                          onClick={() => handlePreviewPDF(contrato)}
+                          className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
+                          title="Previsualizar documento RPC"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </motion.tr>
@@ -1377,7 +1433,70 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           fetchRPCs()
         }}
         contratoData={selectedContratoForRPC}
+        rpcExistente={selectedContratoForRPC ? obtenerRPCDeContrato(selectedContratoForRPC) : null}
       />
+
+      {/* Modal de Previsualización de PDF */}
+      <AnimatePresence>
+        {showPDFPreviewModal && previewPDFUrl && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <FileText className="w-6 h-6 text-white" />
+                  <h2 className="text-xl font-bold text-white">Documento RPC</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPDFPreviewModal(false)
+                    setPreviewPDFUrl(null)
+                  }}
+                  className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* PDF Viewer */}
+              <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
+                <iframe
+                  src={previewPDFUrl}
+                  className="w-full h-full border-0"
+                  title="Vista previa del documento RPC"
+                />
+              </div>
+
+              {/* Footer con botones */}
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <a
+                  href={previewPDFUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Abrir en Nueva Pestaña</span>
+                </a>
+                <button
+                  onClick={() => {
+                    setShowPDFPreviewModal(false)
+                    setPreviewPDFUrl(null)
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -6,6 +6,8 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { DashboardProvider } from '@/context/DashboardContext';
 import { AuthProvider } from '@/context/AuthContext';
 import AuthWrapper from '@/components/AuthWrapper';
+import NotificationInitializer from '@/components/NotificationInitializer';
+import '@/utils/debugNotifications'; // Debug helper
 
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
@@ -40,6 +42,7 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeProvider>
             <DashboardProvider>
+              <NotificationInitializer />
               <AuthWrapper>
                 {children}
               </AuthWrapper>

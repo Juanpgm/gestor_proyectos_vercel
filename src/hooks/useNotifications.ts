@@ -165,6 +165,36 @@ export function useTodayNotificationCount() {
 }
 
 /**
+ * Hook para obtener el conteo de notificaciones no leídas de los últimos N días
+ * Por defecto muestra las notificaciones de los últimos 5 días
+ */
+export function useRecentNotificationCount(days: number = 5) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = () => {
+      const recentCount = notificationService.getRecentUnreadCount(days);
+      setCount(recentCount);
+    };
+
+    updateCount();
+    
+    // Actualizar cada vez que cambian las notificaciones
+    const unsubscribe = notificationService.subscribe(updateCount);
+
+    // Actualizar cada minuto para refrescar el conteo
+    const interval = setInterval(updateCount, 60000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
+  }, [days]);
+
+  return count;
+}
+
+/**
  * Hook para obtener las notificaciones del día actual
  */
 export function useTodayNotifications(includeRead: boolean = false) {
