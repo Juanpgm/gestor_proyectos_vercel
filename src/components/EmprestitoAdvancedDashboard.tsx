@@ -1414,6 +1414,7 @@ interface AnalysisByCentroGestor {
   centroGestor: string
   totalContratos: number
   valorAsignadoBanco: number // Suma de valores adjudicados de contratos por centro gestor
+  valorAsignadoProyecciones: number // Suma de valores proyectados (con y sin proceso) por centro gestor
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
   valorPagado: number        // Calculado desde pagos (suma de pagos por contrato)
@@ -1488,6 +1489,7 @@ const useEmprestitoRealData = () => {
   const [bancosEmprestito, setBancosEmprestito] = useState<BancoEmprestito[]>([])
   const [emprestitoBancos, setEmprestitoBancos] = useState<any[]>([]) // Para /emprestito_bancos_all
   const [pagos, setPagos] = useState<PagoEmprestito[]>([])
+  const [proyecciones, setProyecciones] = useState<any[]>([])
   const [filteredData, setFilteredData] = useState<ContratoEmprestito[]>([])
   const [yearlySummary, setYearlySummary] = useState<YearlySummary>({})
 
@@ -1644,6 +1646,31 @@ const useEmprestitoRealData = () => {
         })
         console.log('✅ Pagos recibidos:', pagosData)
 
+        // Obtener proyecciones de empréstito
+        console.log('📡 Solicitando proyecciones de empréstito...')
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+        const timestamp = new Date().getTime()
+        const proyeccionesResponse = await fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        }).catch((err) => {
+          console.warn('⚠️ Error en leer-tabla-proyecciones, usando array vacío:', err)
+          return null
+        })
+
+        let proyeccionesArray: any[] = []
+        if (proyeccionesResponse && proyeccionesResponse.ok) {
+          const proyeccionesData = await proyeccionesResponse.json()
+          if (proyeccionesData.success && proyeccionesData.data) {
+            proyeccionesArray = proyeccionesData.data
+          }
+        }
+        console.log('✅ Proyecciones recibidas:', proyeccionesArray.length)
+
         const contratosArray = contratosData.data || []
         const reportesArray = reportesData.data || []
         const bancosArray = bancosData.data || []
@@ -1654,6 +1681,7 @@ const useEmprestitoRealData = () => {
         setBancosEmprestito(bancosArray)
         setEmprestitoBancos(bancosArray) // Usar los mismos datos de bancosEmprestito que tienen valor_asignado_banco
         setPagos(pagosArray)
+        setProyecciones(proyeccionesArray)
         setFilteredData(contratosArray)
         setYearlySummary(calculateYearlySummary(contratosArray, reportesArray, bancosArray))
 
@@ -1662,8 +1690,14 @@ const useEmprestitoRealData = () => {
           reportes: reportesArray.length,
           bancos: bancosArray.length,
           pagos: pagosArray.length,
+          proyecciones: proyeccionesArray.length,
           bancosConValores: bancosArray.filter((b: any) => b.valor_asignado_banco).length
         })
+
+        console.log('🔍 VERIFICAR PROYECCIONES - Muestra:', proyeccionesArray.slice(0, 2).map((p: any) => ({
+          organismo: p.nombre_organismo_reducido,
+          valor: p.valor_proyectado
+        })))
 
         // Debug: Mostrar algunos datos de bancos para verificar estructura
         console.log('📊 Muestra de datos de bancos (bancos_emprestito_all):', bancosArray.slice(0, 3))
@@ -1704,6 +1738,17 @@ const useEmprestitoRealData = () => {
 
     fetchData()
   }, [calculateYearlySummary])
+
+  // Debug: Monitorear cambios en proyecciones
+  useEffect(() => {
+    console.log('🔍 Estado proyecciones actualizado:', {
+      total: proyecciones.length,
+      muestra: proyecciones.slice(0, 2).map((p: any) => ({
+        organismo: p.nombre_organismo_reducido,
+        valor: p.valor_proyectado
+      }))
+    })
+  }, [proyecciones])
 
   // Aplicar filtros
   useEffect(() => {
@@ -1867,6 +1912,7 @@ const useEmprestitoRealData = () => {
           centroGestor: centro,
           totalContratos: 0,
           valorAsignadoBanco: 0, // Será la suma de valorAdjudicado por centro gestor
+          valorAsignadoProyecciones: 0, // Se calculará desde proyecciones
           valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,      // Calculado desde reportes
           valorPagado: 0,         // Calculado desde pagos
@@ -1949,8 +1995,79 @@ const useEmprestitoRealData = () => {
       )
     })
 
+    // Calcular valorAsignadoProyecciones por centro gestor desde proyecciones
+    // Agrupar proyecciones por centro gestor (nombre_organismo_reducido)
+    
+    // Mapeo de nombres abreviados en proyecciones a nombres oficiales de centros gestores
+    const mapeoNombresOrganismos: Record<string, string> = {
+      'Bienes': 'Unidad Administrativa Especial de Gestión de Bienes y Servicios',
+      'Bienestar Social': 'Secretaría de Bienestar Social',
+      'DATIC': 'Departamento Administrativo de Tecnologías de la Información y las Comunicaciones',
+      'Deportes': 'Secretaría del Deporte y la Recreación',
+      'Desarrollo Económico': 'Secretaría de Desarrollo Económico',
+      'Educación': 'Secretaría de Educación',
+      'Infraestructura': 'Secretaría de Infraestructura',
+      'MOVILIDAD': 'Secretaría de Movilidad',
+      'Movilidad': 'Secretaría de Movilidad',
+      'PLANEACION': 'Departamento Administrativo de Planeación Municipal',
+      'Planeacion': 'Departamento Administrativo de Planeación Municipal',
+      'Planeación': 'Departamento Administrativo de Planeación Municipal',
+      'Participación': 'Secretaría de Desarrollo Territorial y Participación Ciudadana',
+      'Riesgos': 'Secretaría de Gestión del Riesgo de Emergencias y Desastres',
+      'Salud': 'Secretaría de Salud Pública',
+      'Seguridad': 'Secretaría de Seguridad y Justicia',
+      'Vivienda': 'Secretaría de Vivienda Social y Hábitat',
+      'cultura': 'Secretaría de Cultura',
+      'Cultura': 'Secretaría de Cultura'
+    }
+    
+    const proyeccionesPorCentro = new Map<string, number>()
+    
+    console.log('🔍 DEBUG: Total proyecciones recibidas:', proyecciones.length)
+    console.log('🔍 DEBUG: Muestra de proyecciones:', proyecciones.slice(0, 3))
+    
+    proyecciones.forEach((proyeccion: any) => {
+      // El centro gestor está en nombre_organismo_reducido
+      let centroProyeccion = proyeccion.nombre_organismo_reducido || 'Sin definir'
+      const valorProyectado = Number(proyeccion.valor_proyectado) || 0
+      
+      // Aplicar mapeo si existe
+      if (mapeoNombresOrganismos[centroProyeccion]) {
+        centroProyeccion = mapeoNombresOrganismos[centroProyeccion]
+        console.log(`🔄 Mapeo aplicado: "${proyeccion.nombre_organismo_reducido}" → "${centroProyeccion}"`)
+      }
+      
+      if (valorProyectado > 0) {
+        const valorActual = proyeccionesPorCentro.get(centroProyeccion) || 0
+        proyeccionesPorCentro.set(centroProyeccion, valorActual + valorProyectado)
+      }
+    })
+
+    console.log('🔍 DEBUG: Proyecciones agrupadas por organismo (después del mapeo):', Array.from(proyeccionesPorCentro.entries()).slice(0, 5))
+    console.log('🔍 DEBUG: Centros gestores en contratos:', Array.from(centroMap.keys()).slice(0, 5))
+
+    // Asignar valores de proyecciones a cada centro gestor
+    centroMap.forEach(analysis => {
+      // Buscar coincidencia exacta (ahora con nombres mapeados)
+      const valorProyecciones = proyeccionesPorCentro.get(analysis.centroGestor) || 0
+      analysis.valorAsignadoProyecciones = valorProyecciones
+      
+      if (valorProyecciones > 0) {
+        console.log(`✅ Valor asignado a "${analysis.centroGestor}": $${valorProyecciones.toLocaleString()}`)
+      }
+    })
+
+    // Debug: Mostrar valores de proyecciones calculados
+    console.log('📊 Valores Asignados desde Proyecciones por Centro Gestor:', 
+      Array.from(centroMap.values()).map(c => ({
+        centro: c.centroGestor,
+        valorProyecciones: c.valorAsignadoProyecciones,
+        valorAdjudicado: c.valorAdjudicado
+      }))
+    )
+
     return Array.from(centroMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
-  }, [filteredData, reportes, pagos])
+  }, [filteredData, reportes, pagos, proyecciones])
 
   // Análisis por banco para el gráfico (solo bancos con contratos asignados)
   const analysisByBankForChart = useMemo((): AnalysisByBank[] => {
@@ -2390,7 +2507,15 @@ const CentroGestorBarChart: React.FC<{
   // Mostrar todos los centros gestores
   const chartData = data
 
+  // Debug: Verificar datos recibidos
+  console.log('📊 DEBUG CentroGestorBarChart - Datos recibidos:', chartData.map(d => ({
+    centro: d.centroGestor,
+    valorAsignadoProyecciones: d.valorAsignadoProyecciones,
+    valorAdjudicado: d.valorAdjudicado
+  })))
+
   const metrics = [
+    { key: 'valorAsignadoProyecciones', label: 'Valor Asignado (Proyecciones)', color: '#F59E0B' },
     { key: 'valorAdjudicado', label: 'Valor Adjudicado', color: '#3B82F6' },
     { key: 'valorEjecutado', label: 'Ejecución Financiera', color: '#10B981' },
     { key: 'valorPagado', label: 'Pagos', color: '#8B5CF6' }
@@ -2425,7 +2550,7 @@ const CentroGestorBarChart: React.FC<{
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 30, right: 10, left: 10, bottom: 60 }}
+              margin={{ top: 40, right: 10, left: 10, bottom: 60 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" opacity={0.5} />
 
@@ -2493,85 +2618,100 @@ const CentroGestorBarChart: React.FC<{
                 formatter={(value: any) => formatNumber(value, 'currency')}
                 labelFormatter={(label) => `${label}`}
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px',
-                  fontSize: '12px'
+                  backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                  border: '2px solid #E5E7EB',
+                  borderRadius: '12px',
+                  fontSize: '13px',
+                  padding: '12px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                }}
+                labelStyle={{
+                  fontWeight: 'bold',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  color: '#1F2937'
+                }}
+                itemStyle={{
+                  padding: '4px 0',
+                  fontSize: '13px'
                 }}
               />
 
-              {metrics.map(metric => (
+              {metrics.map((metric, metricIndex) => (
                 <Bar
                   key={metric.key}
                   dataKey={metric.key}
                   fill={metric.color}
                   radius={[4, 4, 0, 0]}
-                  label={({ x, y, width, value, index }: any) => {
-                    if (!value || value === 0) return <g />
+                >
+                  <LabelList
+                    dataKey={metric.key}
+                    content={({ x, y, width, height, value, index }: any) => {
+                      if (!value || value === 0) return null
 
-                    // Separar valor numérico y notación
-                    let numericValue = ''
-                    let notation = ''
+                      // Formato del valor
+                      let formattedValue = ''
+                      if (value >= 1000000000000) {
+                        formattedValue = `$${(value / 1000000000000).toFixed(1)}B`
+                      } else if (value >= 1000000000) {
+                        formattedValue = `$${(value / 1000000000).toFixed(1)}MM`
+                      } else if (value >= 1000000) {
+                        formattedValue = `$${(value / 1000000).toFixed(1)}M`
+                      } else if (value >= 1000) {
+                        formattedValue = `$${(value / 1000).toFixed(0)}K`
+                      } else {
+                        formattedValue = `$${value}`
+                      }
 
-                    if (value >= 1000000000000) { // Billones
-                      numericValue = `$${(value / 1000000000000).toFixed(1)}`
-                      notation = 'Bill'
-                    } else if (value >= 1000000000) { // Miles de millones
-                      numericValue = `$${(value / 1000000000).toFixed(1)}`
-                      notation = 'Mil M'
-                    } else if (value >= 2000000) { // Millones (plural)
-                      numericValue = `$${(value / 1000000).toFixed(1)}`
-                      notation = 'Mill'
-                    } else if (value >= 1000000) { // Millón (singular)
-                      numericValue = `$${(value / 1000000).toFixed(1)}`
-                      notation = 'Millón'
-                    } else if (value >= 1000) { // Miles
-                      numericValue = `$${(value / 1000).toFixed(0)}`
-                      notation = 'Mil'
-                    } else {
-                      numericValue = `$${value}`
-                      notation = ''
-                    }
-
-                    const labelHeight = notation ? 32 : 24
-
-                    return (
-                      <g>
-                        <rect
-                          x={x}
-                          y={y - labelHeight - 5}
-                          width={width}
-                          height={labelHeight}
-                          fill={metric.color}
-                          opacity="0.95"
-                          rx="4"
-                        />
-                        <text
-                          x={x + width / 2}
-                          y={y - (notation ? 20 : 12)}
-                          fill="white"
-                          textAnchor="middle"
-                          fontSize="10"
-                          fontWeight="700"
-                        >
-                          {numericValue}
-                        </text>
-                        {notation && (
+                      // Determinar posición: dentro si hay espacio, fuera si no
+                      const hasSpace = height >= 50
+                      
+                      if (hasSpace) {
+                        // Etiqueta DENTRO de la barra
+                        return (
                           <text
                             x={x + width / 2}
-                            y={y - 8}
+                            y={y + height / 2}
                             fill="white"
                             textAnchor="middle"
-                            fontSize="8"
-                            fontWeight="600"
+                            dominantBaseline="middle"
+                            fontSize="10"
+                            fontWeight="700"
+                            transform={`rotate(-90 ${x + width / 2} ${y + height / 2})`}
+                            style={{ 
+                              textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                              pointerEvents: 'none'
+                            }}
                           >
-                            {notation}
+                            {formattedValue}
                           </text>
-                        )}
-                      </g>
-                    )
-                  }}
-                />
+                        )
+                      } else {
+                        // Etiqueta ENCIMA de la barra (vertical)
+                        // Offset muy pequeño, solo para separar del borde de la barra
+                        const labelY = y - 8
+                        
+                        return (
+                          <text
+                            x={x + width / 2}
+                            y={labelY}
+                            fill={metric.color}
+                            textAnchor="start"
+                            dominantBaseline="middle"
+                            fontSize="10"
+                            fontWeight="700"
+                            transform={`rotate(-90 ${x + width / 2} ${labelY})`}
+                            style={{ 
+                              pointerEvents: 'none'
+                            }}
+                          >
+                            {formattedValue}
+                          </text>
+                        )
+                      }
+                    }}
+                  />
+                </Bar>
               ))}
             </BarChart>
           </ResponsiveContainer>
