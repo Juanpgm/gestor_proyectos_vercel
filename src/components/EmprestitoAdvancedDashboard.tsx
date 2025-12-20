@@ -829,7 +829,7 @@ const WeeklyProgressChart: React.FC<{
       </div>
 
       <div className="overflow-x-auto flex-1">
-        <div style={{ height: '100%', width: '100%', minWidth: '600px' }}>
+        <div style={{ height: '100%', width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={timeSeriesData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -1603,95 +1603,90 @@ const useEmprestitoRealData = () => {
         setLoading(true)
         setError(null)
 
-        console.log('🔄 Iniciando carga de datos de Empréstito...')
+        console.log('🔄 Iniciando carga PARALELA de datos de Empréstito...')
+        const startTime = performance.now()
 
-        // Obtener contratos con timeout extendido
-        console.log('📡 Solicitando contratos_emprestito_all...')
-        const contratosData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/contratos_emprestito_all',
-          {},
-          120000 // 2 minutos de timeout
-        )
-        console.log('✅ Contratos recibidos:', contratosData)
+        // OPTIMIZACIÓN: Cargar todos los datos EN PARALELO con Promise.allSettled
+        const [contratosResult, reportesResult, bancosResult, pagosResult, proyeccionesResult] = await Promise.allSettled([
+          // 1. Contratos (timeout reducido a 30s)
+          fetchWithErrorHandling<any>(
+            'https://gestorproyectoapi-production.up.railway.app/contratos_emprestito_all',
+            {},
+            30000 // 30 segundos
+          ),
+          // 2. Reportes
+          fetchWithErrorHandling<any>(
+            'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
+            {},
+            30000 // 30 segundos
+          ),
+          // 3. Bancos
+          fetchWithErrorHandling<any>(
+            'https://gestorproyectoapi-production.up.railway.app/bancos_emprestito_all',
+            {},
+            30000 // 30 segundos
+          ),
+          // 4. Pagos
+          fetchPagosEmprestito(),
+          // 5. Proyecciones
+          (async () => {
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+            const timestamp = new Date().getTime()
+            const response = await fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+              },
+              signal: AbortSignal.timeout(30000) // 30 segundos
+            })
+            if (!response.ok) throw new Error('Error fetching proyecciones')
+            return response.json()
+          })()
+        ])
 
-        // Obtener reportes del endpoint correcto
-        console.log('📡 Solicitando reportes_contratos...')
-        const reportesData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
-          {},
-          120000 // 2 minutos de timeout
-        ).catch((err) => {
-          console.warn('⚠️ Error en reportes_contratos, usando array vacío:', err)
-          return { data: [] }
-        })
-        console.log('✅ Reportes recibidos:', reportesData)
+        // Extraer datos de los resultados
+        const contratosData = contratosResult.status === 'fulfilled' ? contratosResult.value : { data: [] }
+        const reportesData = reportesResult.status === 'fulfilled' ? reportesResult.value : { data: [] }
+        const bancosData = bancosResult.status === 'fulfilled' ? bancosResult.value : { data: [] }
+        const pagosData = pagosResult.status === 'fulfilled' ? pagosResult.value : { success: true, data: [], count: 0, collection: '', timestamp: '', message: '' }
+        const proyeccionesData = proyeccionesResult.status === 'fulfilled' ? proyeccionesResult.value : { success: false, data: [] }
 
-        // Obtener datos de bancos empréstito
-        console.log('📡 Solicitando bancos_emprestito_all...')
-        const bancosData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/bancos_emprestito_all',
-          {},
-          120000 // 2 minutos de timeout
-        ).catch((err) => {
-          console.warn('⚠️ Error en bancos_emprestito_all, usando array vacío:', err)
-          return { data: [] }
-        })
-        console.log('✅ Bancos recibidos:', bancosData)
+        // Log de errores si los hay
+        if (contratosResult.status === 'rejected') console.warn('⚠️ Error en contratos:', contratosResult.reason)
+        if (reportesResult.status === 'rejected') console.warn('⚠️ Error en reportes:', reportesResult.reason)
+        if (bancosResult.status === 'rejected') console.warn('⚠️ Error en bancos:', bancosResult.reason)
+        if (pagosResult.status === 'rejected') console.warn('⚠️ Error en pagos:', pagosResult.reason)
+        if (proyeccionesResult.status === 'rejected') console.warn('⚠️ Error en proyecciones:', proyeccionesResult.reason)
 
-        // Obtener pagos de empréstito
-        console.log('📡 Solicitando contratos_pagos_all...')
-        const pagosData = await fetchPagosEmprestito().catch((err) => {
-          console.warn('⚠️ Error en contratos_pagos_all, usando array vacío:', err)
-          return { success: true, data: [], count: 0, collection: '', timestamp: '', message: '' }
-        })
-        console.log('✅ Pagos recibidos:', pagosData)
-
-        // Obtener proyecciones de empréstito
-        console.log('📡 Solicitando proyecciones de empréstito...')
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-        const timestamp = new Date().getTime()
-        const proyeccionesResponse = await fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          }
-        }).catch((err) => {
-          console.warn('⚠️ Error en leer-tabla-proyecciones, usando array vacío:', err)
-          return null
-        })
-
-        let proyeccionesArray: any[] = []
-        if (proyeccionesResponse && proyeccionesResponse.ok) {
-          const proyeccionesData = await proyeccionesResponse.json()
-          if (proyeccionesData.success && proyeccionesData.data) {
-            proyeccionesArray = proyeccionesData.data
-          }
-        }
-        console.log('✅ Proyecciones recibidas:', proyeccionesArray.length)
-
+        // Extraer arrays de datos
         const contratosArray = contratosData.data || []
         const reportesArray = reportesData.data || []
         const bancosArray = bancosData.data || []
         const pagosArray = pagosData.data || []
+        const proyeccionesArray = proyeccionesData.success && proyeccionesData.data ? proyeccionesData.data : []
+        
+        const endTime = performance.now()
+        const loadTime = ((endTime - startTime) / 1000).toFixed(2)
 
         setContratos(contratosArray)
         setReportes(reportesArray)
         setBancosEmprestito(bancosArray)
-        setEmprestitoBancos(bancosArray) // Usar los mismos datos de bancosEmprestito que tienen valor_asignado_banco
+        setEmprestitoBancos(bancosArray)
         setPagos(pagosArray)
         setProyecciones(proyeccionesArray)
         setFilteredData(contratosArray)
         setYearlySummary(calculateYearlySummary(contratosArray, reportesArray, bancosArray))
 
-        console.log('✅ Datos cargados:', {
+        console.log(`✅ Datos cargados en ${loadTime}s (carga paralela):`, {
           contratos: contratosArray.length,
           reportes: reportesArray.length,
           bancos: bancosArray.length,
           pagos: pagosArray.length,
           proyecciones: proyeccionesArray.length,
-          bancosConValores: bancosArray.filter((b: any) => b.valor_asignado_banco).length
+          bancosConValores: bancosArray.filter((b: any) => b.valor_asignado_banco).length,
+          tiempoCarga: `${loadTime}s`
         })
 
         console.log('🔍 VERIFICAR PROYECCIONES - Muestra:', proyeccionesArray.slice(0, 2).map((p: any) => ({
@@ -2333,7 +2328,7 @@ const BankBarChart: React.FC<{
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full max-w-full overflow-hidden"
     >
       <div className="flex items-center gap-3 mb-2">
         <BarChart3 className="w-6 h-6 text-blue-600" />
@@ -2354,7 +2349,7 @@ const BankBarChart: React.FC<{
 
       {/* Gráfico con scroll horizontal */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div style={{ minWidth: `${Math.max(800, chartData.length * 85)}px`, height: '550px' }}>
+        <div style={{ minWidth: `${Math.max(400, chartData.length * 60)}px`, height: '550px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
@@ -2525,7 +2520,7 @@ const CentroGestorBarChart: React.FC<{
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full max-w-full overflow-hidden"
     >
       <div className="flex items-center gap-3 mb-2">
         <Building2 className="w-6 h-6 text-green-600" />
@@ -2546,7 +2541,7 @@ const CentroGestorBarChart: React.FC<{
 
       {/* Gráfico con scroll horizontal */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-        <div style={{ minWidth: `${Math.max(800, chartData.length * 120)}px`, height: '550px' }}>
+        <div style={{ minWidth: `${Math.max(400, chartData.length * 80)}px`, height: '550px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
@@ -2738,7 +2733,7 @@ const FinancialAnalysisToggle: React.FC<{
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 w-full"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 w-full max-w-full overflow-hidden"
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
@@ -3184,10 +3179,10 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex relative w-full">
+    <div className="flex relative w-full max-w-full overflow-hidden">
       {/* Contenido principal */}
       <div
-        className="flex-1 space-y-3 sm:space-y-4 p-4 sm:p-6 transition-all duration-300"
+        className="flex-1 space-y-3 sm:space-y-4 transition-all duration-300 min-w-0"
         style={{ marginRight: showFilters ? '320px' : '0' }}
       >
         {/* Título del Dashboard */}
@@ -3204,7 +3199,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 w-full"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 w-full max-w-full overflow-hidden"
         >
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -3310,7 +3305,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <div style={{ minWidth: '1200px', height: '500px' }}>
+                  <div style={{ minWidth: '600px', height: '500px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={analysisByCentroGestor
@@ -3538,13 +3533,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
           </div>
 
           {/* Tabla Responsiva Mejorada */}
-          <div className="overflow-x-auto -mx-6 px-6">
-            <div className="min-w-full inline-block align-middle">
-              <table className="w-full min-w-[1200px] table-fixed">
+          <div className="overflow-x-auto">
+            <table className="w-full" style={{ tableLayout: 'auto' }}>
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     {columnSettings.proceso && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[300px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '150px', width: '20%' }}>
                         <div className="flex items-center gap-2">
                           <div>
                             <div>Proceso / Centro Gestor</div>
@@ -3561,7 +3555,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.banco && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '70px', width: '7%' }}>
                         <div className="flex items-center gap-2">
                           <span>Banco</span>
                           <button onClick={() => handleSort('banco')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3575,7 +3569,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.estado && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '70px', width: '6%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <span>Estado</span>
                           <button onClick={() => handleSort('estado')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3589,7 +3583,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.valor && (
-                      <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[130px]">
+                      <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '10%' }}>
                         <div className="flex items-center justify-end gap-2">
                           <span>Valor Contrato</span>
                           <button onClick={() => handleSort('valor_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3603,7 +3597,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.avance && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[160px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '9%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <div>
                             <div>Avance Ejecución</div>
@@ -3620,12 +3614,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.observaciones && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[200px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '150px', width: '15%' }}>
                         Observaciones / Alertas
                       </th>
                     )}
                     {columnSettings.tipo && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '70px', width: '6%' }}>
                         <div className="flex items-center gap-2">
                           <span>Tipo Contrato</span>
                           <button onClick={() => handleSort('tipo_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3639,7 +3633,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.modalidad && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[140px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '110px', width: '10%' }}>
                         <div className="flex items-center gap-2">
                           <span>Modalidad</span>
                           <button onClick={() => handleSort('modalidad_contratacion')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3653,7 +3647,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.sector && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '8%' }}>
                         <div className="flex items-center gap-2">
                           <span>Sector</span>
                           <button onClick={() => handleSort('sector')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3667,7 +3661,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.categoria && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '8%' }}>
                         <div className="flex items-center gap-2">
                           <span>Categoría</span>
                           <button onClick={() => handleSort('codigo_categoria')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3681,7 +3675,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.supervisor && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[140px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '110px', width: '10%' }}>
                         <div className="flex items-center gap-2">
                           <span>Supervisor</span>
                           <button onClick={() => handleSort('supervisor')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3695,7 +3689,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.fechaInicio && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[110px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '80px', width: '8%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <span>Fecha Inicio</span>
                           <button onClick={() => handleSort('fecha_firma_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3709,7 +3703,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.fechaFin && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[110px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '80px', width: '8%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <span>Fecha Fin</span>
                           <button onClick={() => handleSort('fecha_fin_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3723,7 +3717,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.diasTranscurridos && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '90px', width: '8%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <div>
                             <div>Días</div>
@@ -3740,7 +3734,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.diasRestantes && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '75px', width: '6%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <div>
                             <div>Días</div>
@@ -3757,7 +3751,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.detalle && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[80px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '60px', width: '5%' }}>
                         Detalle
                       </th>
                     )}
@@ -3779,32 +3773,29 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         {columnSettings.proceso && (
-                          <td className="py-3 px-2 text-sm w-[300px]">
-                            <div className="space-y-1 overflow-hidden">
-                              <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight truncate"
-                                title={contrato.nombre_resumido_proceso || 'Sin proceso'}>
+                          <td className="py-3 px-2 text-sm align-top">
+                            <div className="space-y-1">
+                              <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight break-words">
                                 {contrato.nombre_resumido_proceso || 'Sin proceso'}
                               </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight whitespace-normal break-words"
-                                title={contrato.nombre_centro_gestor || 'Sin centro gestor'}>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight break-words">
                                 {contrato.nombre_centro_gestor || 'Sin centro gestor'}
                               </div>
-                              <div className="text-xs text-blue-600 dark:text-blue-400 font-mono truncate"
-                                title={contrato.referencia_contrato || 'Sin referencia'}>
+                              <div className="text-xs text-blue-600 dark:text-blue-400 font-mono break-all">
                                 {contrato.referencia_contrato || 'Sin referencia'}
                               </div>
                             </div>
                           </td>
                         )}
                         {columnSettings.banco && (
-                          <td className="py-3 px-2 text-sm text-gray-700 dark:text-gray-300 w-[120px]">
+                          <td className="py-3 px-2 text-sm text-left text-gray-700 dark:text-gray-300">
                             <div className="truncate text-xs" title={contrato.banco || 'No especificado'}>
                               {contrato.banco || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.estado && (
-                          <td className="py-3 px-2 text-center w-[100px]">
+                          <td className="py-3 px-2 text-center">
                             <span className={`px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${contrato.estado_contrato === 'En ejecución'
                                 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                                 : contrato.estado_contrato === 'Aprobado'
@@ -3816,14 +3807,14 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.valor && (
-                          <td className="py-3 px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[130px]">
+                          <td className="py-3 px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300">
                             <div className="truncate text-xs" title={formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}>
                               {formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}
                             </div>
                           </td>
                         )}
                         {columnSettings.avance && (
-                          <td className="py-3 px-2 w-[160px]">
+                          <td className="py-3 px-2 text-center">
                             <div className="space-y-2">
                               {/* Progress bar para Avance Financiero - más compacto */}
                               <div>
@@ -3871,7 +3862,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.observaciones && (
-                          <td className="py-3 px-2 text-sm text-gray-600 dark:text-gray-400 w-[200px]">
+                          <td className="py-3 px-2 text-sm text-gray-600 dark:text-gray-400">
                             <div className="text-xs break-words overflow-hidden" style={{ maxHeight: '4rem' }}>
                               {(() => {
                                 const observaciones = []
@@ -3930,42 +3921,42 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.tipo && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[120px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate" title={(contrato as any).tipo_contrato || (contrato as any).tipo_de_contrato || 'N/A'}>
                               {(contrato as any).tipo_contrato || (contrato as any).tipo_de_contrato || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.modalidad && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[140px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate" title={(contrato as any).modalidad_contratacion || (contrato as any).modalidad_de_selecci_n || 'N/A'}>
                               {(contrato as any).modalidad_contratacion || (contrato as any).modalidad_de_selecci_n || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.sector && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[120px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate" title={contrato.sector || 'N/A'}>
                               {contrato.sector || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.categoria && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[120px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate font-mono" title={(contrato as any).codigo_categoria_principal || (contrato as any).codigo_secop || 'N/A'}>
                               {(contrato as any).codigo_categoria_principal || (contrato as any).codigo_secop || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.supervisor && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[140px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate" title={(contrato as any).nombre_supervisor || 'N/A'}>
                               {(contrato as any).nombre_supervisor || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.fechaInicio && (
-                          <td className="py-3 px-2 text-center text-xs text-gray-700 dark:text-gray-300 w-[110px]">
+                          <td className="py-3 px-2 text-center text-xs text-gray-700 dark:text-gray-300">
                             {contrato.fecha_inicio_contrato ? new Date(contrato.fecha_inicio_contrato).toLocaleDateString('es-CO', {
                               year: 'numeric',
                               month: 'short',
@@ -3974,7 +3965,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.fechaFin && (
-                          <td className="py-3 px-2 text-center text-xs text-gray-700 dark:text-gray-300 w-[110px]">
+                          <td className="py-3 px-2 text-center text-xs text-gray-700 dark:text-gray-300">
                             {contrato.fecha_fin_contrato ? new Date(contrato.fecha_fin_contrato).toLocaleDateString('es-CO', {
                               year: 'numeric',
                               month: 'short',
@@ -3983,7 +3974,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.diasTranscurridos && (
-                          <td className="py-3 px-2 text-center text-xs w-[100px]">
+                          <td className="py-3 px-2 text-center text-xs">
                             {(() => {
                               if (!contrato.fecha_inicio_contrato) return <span className="text-gray-400">N/A</span>
                               const inicio = new Date(contrato.fecha_inicio_contrato)
@@ -3998,7 +3989,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.diasRestantes && (
-                          <td className="py-3 px-2 text-center text-xs w-[100px]">
+                          <td className="py-3 px-2 text-center text-xs">
                             {(() => {
                               if (!contrato.fecha_fin_contrato) return <span className="text-gray-400">N/A</span>
                               const fin = new Date(contrato.fecha_fin_contrato)
@@ -4018,7 +4009,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.detalle && (
-                          <td className="py-3 px-2 text-center w-[80px]">
+                          <td className="py-3 px-2 text-center">
                             <button
                               onClick={() => handleOpenModal(contrato)}
                               className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"
@@ -4033,7 +4024,6 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   })}
                 </tbody>
               </table>
-            </div>
           </div>
 
           {/* Controles de Paginación */}
