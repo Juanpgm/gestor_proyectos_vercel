@@ -2629,8 +2629,10 @@ const CentroGestorBarChart: React.FC<{
   title?: string
   maxItems?: number
 }> = ({ data, title = "Análisis por Centro Gestor", maxItems = 100 }) => {
-  // Mostrar todos los centros gestores
-  const chartData = data
+  // Mostrar todos los centros gestores, ordenados por valor asignado descendente
+  const chartData = useMemo(() => {
+    return [...data].sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco)
+  }, [data])
 
   // Debug: Verificar datos recibidos
   console.log('📊 DEBUG CentroGestorBarChart - Datos recibidos:', chartData.map(d => ({
