@@ -2700,15 +2700,9 @@ const CentroGestorBarChart: React.FC<{
                   })
                   if (currentLine) lines.push(currentLine)
 
-                  // Limitar a 2 líneas para mejor legibilidad
-                  const displayLines = lines.slice(0, 2)
-                  if (lines.length > 2) {
-                    displayLines[1] = displayLines[1].substring(0, 18) + '...'
-                  }
-
                   return (
                     <g transform={`translate(${x},${y})`}>
-                      {displayLines.map((line, i) => (
+                      {lines.map((line, i) => (
                         <text
                           key={i}
                           x={0}
@@ -2724,7 +2718,7 @@ const CentroGestorBarChart: React.FC<{
                     </g>
                   )
                 }}
-                height={60}
+                height={90}
                 interval={0}
               />
 
