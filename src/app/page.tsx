@@ -2,7 +2,7 @@
 
 import UnidadesProyecto from '@/components/UnidadesProyecto'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import MainLayout from '@/components/MainLayout'
 import StatsCards from '@/components/StatsCards'
@@ -10,7 +10,8 @@ import ProjectsTable from '@/components/ProjectsTable'
 import { DataProvider, useDataContext } from '@/context/DataContext'
 
 import MobileNavigation from '@/components/MobileNavigation'
-import EmprestitoTabs from '@/components/EmprestitoTabs'
+// Lazy load del componente EmprestitoTabs para mejorar performance
+const EmprestitoTabs = lazy(() => import('@/components/EmprestitoTabs'))
 import { useActividades, type Actividad } from '@/hooks/useActividades'
 import { useProductos, type Producto } from '@/hooks/useProductos'
 import { useContratos, useContratosMetrics, type Contrato } from '@/hooks/useContratos'
@@ -53,7 +54,8 @@ function DashboardContent() {
   const actividadesState = useActividades()
   const productosState = useProductos()
   const contratosState = useContratos()
-  const emprestitoState = useEmprestito()
+  // OPTIMIZACIÓN: Solo cargar Empréstito cuando esté activo
+  const emprestitoState = useEmprestito(activeTab === 'emprestito')
   const emprestitoMetrics = useEmprestitoMetrics(emprestitoState.data)
   const flujoCajaState = useFlujoCaja()
   const procesosState = useProcesos()
@@ -425,11 +427,22 @@ function DashboardContent() {
       case 'emprestito':
         return (
           <div className="space-y-8">
-            <EmprestitoTabs
-              flujoCajaData={flujoCajaState.data}
-              flujoCajaLoading={flujoCajaState.loading}
-              onFilteredBpinsChange={handleFilteredBpinsChange}
-            />
+            <Suspense 
+              fallback={
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Cargando módulo de Empréstito...</p>
+                  </div>
+                </div>
+              }
+            >
+              <EmprestitoTabs
+                flujoCajaData={flujoCajaState.data}
+                flujoCajaLoading={flujoCajaState.loading}
+                onFilteredBpinsChange={handleFilteredBpinsChange}
+              />
+            </Suspense>
           </div>
         )
 
@@ -473,14 +486,12 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <main className="px-4 tablet:px-tablet-padding md:px-6 py-6 tablet:py-8 md:py-8 container mx-auto">
+      <main className="px-2 sm:px-4 lg:px-6 py-4">
         {/* Navegación optimizada para todos los dispositivos */}
-        <div className="tablet-container">
-          <MobileNavigation 
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-        </div>
+        <MobileNavigation 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         {/* Contenido principal con animaciones mejoradas */}
         <motion.div
@@ -488,18 +499,9 @@ function DashboardContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="tablet-spacing"
+          className="mt-6"
         >
-          {/* Grid responsivo que se adapta a orientación de tablet */}
-          <div className="space-y-6 tablet:space-y-8">
-            {/* Contenido adaptado por orientación */}
-            <div className="ipad-landscape:grid ipad-landscape:grid-cols-12 ipad-landscape:gap-8">
-              {/* En landscape, usar todo el ancho disponible */}
-              <div className="ipad-landscape:col-span-12">
-                {renderContent()}
-              </div>
-            </div>
-          </div>
+          {renderContent()}
         </motion.div>
       </main>
     </div>

@@ -176,7 +176,7 @@ export interface EmprestitoState {
   error: string | null
 }
 
-export const useEmprestito = (): EmprestitoState => {
+export const useEmprestito = (enabled: boolean = true): EmprestitoState => {
   const [state, setState] = useState<EmprestitoState>({
     data: {
       contratos: [],
@@ -184,11 +184,16 @@ export const useEmprestito = (): EmprestitoState => {
       dimensiones: [],
       hechos: {}
     },
-    loading: true,
+    loading: enabled, // Solo loading si está enabled
     error: null
   })
 
   useEffect(() => {
+    // No cargar datos si no está enabled
+    if (!enabled) {
+      return
+    }
+
     const fetchData = async () => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
@@ -263,7 +268,7 @@ export const useEmprestito = (): EmprestitoState => {
     }
 
     fetchData()
-  }, [])
+  }, [enabled]) // Agregar enabled a las dependencias
 
   return state
 }

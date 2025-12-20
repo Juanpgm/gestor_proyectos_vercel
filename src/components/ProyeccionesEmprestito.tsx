@@ -209,15 +209,15 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
       // Procesar todas las proyecciones del endpoint principal (ahora incluye los agregados)
       const todasLasProyecciones = data.data.map((p: ProyeccionEmprestito) => {
-        // Verificar si NO tiene referencia_proceso O está en la lista de sin proceso
+        // Una proyección está "Sin Proceso" SOLO si no tiene referencia_proceso
+        // El endpoint /proyecciones-sin-proceso puede incluir registros con referencia_proceso
+        // que no existen en procesos_emprestito, pero eso no significa que estén "sin proceso"
         const sinRefProceso = !p.referencia_proceso || p.referencia_proceso.trim() === ''
-        const enListaSinProceso = idsSinProceso.has(p.id)
-        const esSinProceso = sinRefProceso || enListaSinProceso
-
+        
         return {
           ...p,
-          sin_proceso: esSinProceso,
-          estado_proceso: esSinProceso ? 'Sin Proceso' : 'Con Proceso'
+          sin_proceso: sinRefProceso,
+          estado_proceso: sinRefProceso ? 'Sin Proceso' : 'Con Proceso'
         }
       })
 

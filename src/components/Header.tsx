@@ -29,7 +29,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       transition={{ duration: 0.5 }}
       className={`${CSS_UTILS.card} shadow-lg border-b border-gray-200 dark:border-gray-700 rounded-none transition-colors duration-300`}
     >
-      <div className="container mx-auto px-4 tablet:px-6 md:px-6 py-3 tablet:py-4 md:py-4">
+      <div className="px-2 sm:px-4 lg:px-6 py-3">
         <div className="flex items-center justify-between">
           {/* Logo and Title - Optimizado para tablets */}
           <div className="flex items-center space-x-2 tablet:space-x-4 md:space-x-4 min-w-0 flex-1">

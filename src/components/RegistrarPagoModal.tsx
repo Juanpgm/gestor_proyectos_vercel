@@ -34,6 +34,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -46,15 +47,23 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Si no hay documentos, mostrar diálogo de confirmación
+    if (uploadedFiles.length === 0 && !showConfirmDialog) {
+      setShowConfirmDialog(true)
+      return
+    }
+
+    // Continuar con el registro
+    await procesarRegistroPago()
+  }
+
+  const procesarRegistroPago = async () => {
     setLoading(true)
     setError(null)
+    setShowConfirmDialog(false)
 
     try {
-      // Validar que haya al menos un documento
-      if (uploadedFiles.length === 0) {
-        throw new Error('Debes cargar al menos un documento de soporte')
-      }
-
       // Validaciones
       if (!formData.numero_rpc.trim()) {
         throw new Error('El número de RPC es obligatorio')
@@ -83,11 +92,13 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
       formDataToSend.append('referencia_contrato', formData.referencia_contrato.trim())
       formDataToSend.append('nombre_centro_gestor', formData.nombre_centro_gestor.trim())
 
-      // Agregar archivos de documentos (nombre del campo según API: 'documentos')
-      uploadedFiles.forEach((file, index) => {
-        formDataToSend.append('documentos', file)
-        console.log(`Documento ${index + 1}:`, file.name, file.size, file.type)
-      })
+      // Agregar archivos de documentos si hay (nombre del campo según API: 'documentos')
+      if (uploadedFiles.length > 0) {
+        uploadedFiles.forEach((file, index) => {
+          formDataToSend.append('documentos', file)
+          console.log(`Documento ${index + 1}:`, file.name, file.size, file.type)
+        })
+      }
 
       console.log('Enviando datos:', {
         numero_rpc: formData.numero_rpc.trim(),
@@ -148,6 +159,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
     setUploadedFiles([])
     setError(null)
     setSuccess(false)
+    setShowConfirmDialog(false)
   }
 
   const handleClose = () => {
@@ -155,6 +167,14 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
       resetForm()
       onClose()
     }
+  }
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmDialog(false)
+  }
+
+  const handleConfirmWithoutDocument = () => {
+    procesarRegistroPago()
   }
 
   return (
@@ -336,8 +356,8 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                       maxFiles={5}
                       maxSizeMB={10}
                       label="Documentos de Soporte"
-                      description="Arrastra archivos aquí o haz clic para explorar (Obligatorio)"
-                      required={true}
+                      description="Arrastra archivos aquí o haz clic para explorar (Opcional)"
+                      required={false}
                     />
                   </div>
 
@@ -351,7 +371,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                           <li>Los campos <strong>Número RPC, Referencia Contrato y Centro Gestor</strong> están prellenados y bloqueados</li>
                           <li>El campo <strong>fecha_registro</strong> se genera automáticamente en el servidor</li>
                           <li>El <strong>valor_pago</strong> debe ser un número positivo mayor a 0</li>
-                          <li>Debes cargar al menos <strong>un documento de soporte</strong></li>
+                          <li>Los <strong>documentos de soporte son opcionales</strong>, pero se recomienda cargarlos</li>
                           <li>Todos los campos marcados con * son obligatorios</li>
                         </ul>
                       </div>
@@ -390,6 +410,62 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
               )}
             </div>
           </motion.div>
+
+          {/* Confirmation Dialog */}
+          <AnimatePresence>
+            {showConfirmDialog && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-10 flex items-center justify-center p-4"
+              >
+                {/* Backdrop for dialog */}
+                <div 
+                  className="absolute inset-0 bg-black/30"
+                  onClick={handleCancelConfirmation}
+                />
+                
+                {/* Dialog */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 z-20"
+                >
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                        <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        ¿Registrar Pago sin Documento Soporte?
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        No has cargado ningún documento de soporte. Se recomienda cargar al menos un documento para respaldar este pago. ¿Deseas continuar sin documento?
+                      </p>
+                      <div className="flex items-center justify-end space-x-3">
+                        <button
+                          onClick={handleCancelConfirmation}
+                          className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleConfirmWithoutDocument}
+                          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
+                        >
+                          Sí, Continuar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </AnimatePresence>
