@@ -575,6 +575,32 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   showOnlyFocused = false,
   onItemClick
 }) => {
+  // Log para verificar datos recibidos
+  useEffect(() => {
+    const validGeometries = geometryData?.features?.filter(f => 
+      f.properties.has_valid_geometry !== false &&
+      f.geometry?.coordinates &&
+      !(f.geometry.coordinates[0] === 0 && f.geometry.coordinates[1] === 0)
+    ).length || 0;
+    
+    console.log('🗺️ UnidadesProyectoMapSimple: Received data:', {
+      geometryFeatures: geometryData?.features?.length || 0,
+      validGeometries,
+      filteredDataItems: filteredData.length,
+      hasGeometry: !!geometryData,
+      hasFocusedItem: !!focusedItem,
+      showOnlyFocused
+    });
+    
+    if (geometryData && geometryData.features) {
+      if (geometryData.features.length === 0) {
+        console.warn('⚠️ Map has 0 features to display!');
+      } else if (validGeometries === 0) {
+        console.warn('⚠️ All features have invalid coordinates [0,0] - cannot display on map!');
+      }
+    }
+  }, [geometryData, filteredData, focusedItem, showOnlyFocused]);
+  
   const [mapType, setMapType] = useState<'streets' | 'satellite'>('streets');
   const [isDark, setIsDark] = useState(false);
   const [coloringType, setColoringType] = useState<ColoringType>('estado');
@@ -904,8 +930,42 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   const defaultCenter: [number, number] = [3.4516, -76.5320];
   const defaultZoom = 11;
 
+  // Verificar si hay features con geometrías válidas
+  const validFeatures = geometryData?.features?.filter(f => 
+    f.properties.has_valid_geometry !== false &&
+    f.geometry?.coordinates &&
+    !(f.geometry.coordinates[0] === 0 && f.geometry.coordinates[1] === 0)
+  ) || [];
+  
+  const hasValidGeometries = validFeatures.length > 0;
+  const totalFeatures = geometryData?.features?.length || 0;
+
   return (
     <div className={`relative w-full h-full rounded-lg overflow-hidden ${className}`}>
+      {/* Alerta cuando no hay geometrías válidas */}
+      {totalFeatures > 0 && !hasValidGeometries && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1001] max-w-md">
+          <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 p-4 rounded shadow-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700 dark:text-yellow-200 font-medium">
+                  Sin coordenadas geográficas
+                </p>
+                <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
+                  {totalFeatures} {totalFeatures === 1 ? 'registro encontrado' : 'registros encontrados'} pero sin ubicación en el mapa. 
+                  Verifica la tabla para ver los datos.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Controles del mapa */}
       <div className="absolute top-4 left-4 z-[1000]">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-1 border border-gray-200 dark:border-gray-700">
@@ -1022,7 +1082,10 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         )}
 
         {/* Geometrías de la API - se renderizan después para quedar por encima */}
-        {geometryData && geometryData.features && (
+        {geometryData && geometryData.features && (() => {
+          console.log('🎨 Rendering GeoJSON layer with', geometryData.features.length, 'features');
+          return true;
+        })() && (
           <GeoJSON
             key={`${mapType}-${isDark}-${coloringType}-${geometryData.features.length}`}
             data={geometryData as any}

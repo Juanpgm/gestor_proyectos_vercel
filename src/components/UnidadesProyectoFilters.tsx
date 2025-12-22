@@ -312,6 +312,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   };
 
   const handleMultiFilterChange = (key: keyof typeof multiFilters, values: string[]) => {
+    console.log(`🎯 handleMultiFilterChange: key=${key}, values=`, values);
+    
     setMultiFilters(prev => ({
       ...prev,
       [key]: values
@@ -328,6 +330,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                      key === 'tipos_equipamiento' ? 'tipo_equipamiento' :
                      'ano';
     
+    console.log(`🎯 handleMultiFilterChange: mappedKey=${mappedKey}`);
+    
     // Crear un nuevo objeto de filtros con el array de valores
     const newFilters = { ...filters };
     
@@ -336,12 +340,18 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       (newFilters as any)[`${mappedKey}_multiple`] = values;
       // Mantener compatibilidad con el filtro singular usando el primer valor
       (newFilters as any)[mappedKey] = values[0];
+      console.log(`🎯 handleMultiFilterChange: Created filters:`, {
+        [`${mappedKey}_multiple`]: values,
+        [mappedKey]: values[0]
+      });
     } else {
       // Limpiar ambos filtros si no hay valores seleccionados
       delete (newFilters as any)[`${mappedKey}_multiple`];
       delete (newFilters as any)[mappedKey];
+      console.log(`🎯 handleMultiFilterChange: Cleared filters for ${mappedKey}`);
     }
     
+    console.log(`🎯 handleMultiFilterChange: Calling onFiltersChange with:`, newFilters);
     onFiltersChange(newFilters);
   };
 

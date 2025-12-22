@@ -99,7 +99,7 @@ export const useUnidadesProyecto = (
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // Función para obtener todos los datos
+  // Función para obtener todos los datos con estrategia híbrida inteligente
   const fetchAllData = useCallback(async (currentFilters: FilterParams = {}) => {
     // Prevenir cargas simultáneas
     if (isLoadingRef) {
@@ -111,12 +111,18 @@ export const useUnidadesProyecto = (
     updateState({ loading: true, error: null });
 
     try {
-      console.log('🔄 fetchAllData: Starting with filters:', currentFilters);
+      const hasFilters = Object.keys(currentFilters).length > 0;
       
-      // Determinar si usar filtros en el servidor o localmente
-      const serverFilters = enableLocalFiltering ? {} : currentFilters;
+      // ESTRATEGIA HÍBRIDA INTELIGENTE:
+      // 1. Sin filtros: cargar todo y cachear (enableLocalFiltering)
+      // 2. Con filtros simples: usar server-side
+      // 3. Con filtros múltiples: cargar todo y filtrar client-side
+      const useServerFilters = !enableLocalFiltering && hasFilters;
+      const serverFilters = useServerFilters ? currentFilters : {};
       
-      console.log('🔄 fetchAllData: Server filters:', serverFilters);
+      if (hasFilters) {
+        console.log('🔄 fetchAllData: Loading with', useServerFilters ? 'SERVER-SIDE' : 'CLIENT-SIDE', 'filtering');
+      }
 
       const [geometry, attributes, filterOptions] = await Promise.all([
         fetchGeometryData(serverFilters).catch((error) => {
@@ -136,11 +142,12 @@ export const useUnidadesProyecto = (
       // Generar filtros desde datos si no se obtuvieron del servidor
       const finalFilterData = filterOptions || (attributes.length > 0 ? generateFiltersFromData(attributes) : null);
 
-      console.log('✅ fetchAllData: Data loaded successfully', {
-        geometry: geometry ? 'loaded' : 'failed',
-        attributes: `${attributes.length} items`,
-        filters: finalFilterData ? 'loaded' : 'failed'
-      });
+      if (hasFilters) {
+        console.log('✅ Data loaded:', {
+          geometry: geometry?.features?.length || 0,
+          attributes: attributes.length
+        });
+      }
 
       updateState({
         geometryData: geometry,
@@ -169,7 +176,8 @@ export const useUnidadesProyecto = (
 
   // Funciones de filtrado
   const setFilters = useCallback((newFilters: FilterParams) => {
-    console.log('🎯 setFilters: Setting new filters:', newFilters);
+    console.log('🎯 setFilters: Setting new filters:', JSON.stringify(newFilters, null, 2));
+    console.log('🎯 setFilters: centro_gestor_multiple =', (newFilters as any).centro_gestor_multiple);
     
     // Verificar si los filtros realmente cambiaron
     const filtersChanged = JSON.stringify(filters) !== JSON.stringify(newFilters);
@@ -178,25 +186,22 @@ export const useUnidadesProyecto = (
       return;
     }
     
+    console.log('🎯 setFilters: Filters changed, updating state...');
+    console.log('🎯 setFilters: enableLocalFiltering =', enableLocalFiltering);
+    
     setFiltersState(newFilters);
     
-    // IMPORTANTE: Siempre recargar geometría con filtros del servidor
-    // El filtrado local solo se usa para attributes, pero geometry debe venir filtrada del servidor
+    // Si el filtrado local está activado, NO recargar datos del servidor
+    // Los datos ya están cargados y el filtrado se hace localmente
     if (!enableLocalFiltering) {
-      // Modo sin filtrado local: recargar todo
+      // Modo sin filtrado local: recargar todo con filtros del servidor
+      console.log('🎯 setFilters: Fetching ALL data with server filters');
       fetchAllData(newFilters);
     } else {
-      // Modo con filtrado local: solo recargar geometry, attributes se filtran localmente
-      fetchGeometryData(newFilters)
-        .then(geometry => {
-          console.log('✅ Geometry reloaded with filters:', geometry ? `${geometry.features?.length || 0} features` : 'null');
-          updateState({ geometryData: geometry });
-        })
-        .catch(error => {
-          console.error('❌ Error reloading geometry:', error);
-        });
+      // Modo con filtrado local: solo actualizar el estado, el useMemo se encarga del filtrado
+      console.log('✅ setFilters: Local filtering enabled - no server reload needed');
     }
-  }, [enableLocalFiltering, fetchAllData, updateState]);
+  }, [filters, enableLocalFiltering, fetchAllData]);
 
   const clearFilters = useCallback(() => {
     console.log('🧹 Limpiando todos los filtros...');
@@ -241,36 +246,42 @@ export const useUnidadesProyecto = (
     
     // Si no hay filtros activos, devolver todos los datos
     if (!hasActiveFilters) {
-      console.log('📊 No filters active, returning all data:', {
-        totalData: state.attributeData.length,
-        sampleBudgets: state.attributeData.slice(0, 5).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base }))
-      });
       return state.attributeData;
     }
     
     const filtered = filterAttributeData(state.attributeData, { ...filters, searchTerm });
-    
-    // Debug filtrado
-    console.log('📊 Debug filteredData with active filters:', {
-      totalRawData: state.attributeData.length,
-      appliedFilters: { ...filters, searchTerm },
-      filteredCount: filtered.length,
-      sampleRawBudgets: state.attributeData.slice(0, 3).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base })),
-      sampleFilteredBudgets: filtered.slice(0, 3).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base }))
-    });
+    console.log('📊 Filtered:', filtered.length, 'of', state.attributeData.length);
     
     return filtered;
   }, [state.attributeData, filters, searchTerm, enableLocalFiltering]);
 
   // Geometría filtrada basada en datos filtrados
   const filteredGeometry = useMemo((): GeometryData | null => {
-    if (!state.geometryData || !state.geometryData.features) return state.geometryData;
+    if (!state.geometryData || !state.geometryData.features) {
+      console.log('⚠️ filteredGeometry: No geometry data available');
+      return state.geometryData;
+    }
+    
+    console.log('🗺️ filteredGeometry: Starting with', state.geometryData.features.length, 'total features');
+    console.log('🗺️ filteredGeometry: Filtering to match', filteredData.length, 'attribute items');
     
     const filteredUPIDs = new Set(filteredData.map(item => item.upid));
     
     const filteredFeatures = state.geometryData.features.filter(feature => 
       filteredUPIDs.has(feature.properties.upid)
     );
+
+    console.log('✅ filteredGeometry: Result =', filteredFeatures.length, 'features');
+    
+    if (filteredFeatures.length === 0 && filteredData.length > 0) {
+      console.error('❌ filteredGeometry: NO FEATURES MATCH! UPIDs do not align');
+      console.error('Sample filtered attribute UPIDs:', Array.from(filteredUPIDs).slice(0, 5));
+      console.error('Sample geometry feature UPIDs:', state.geometryData.features.slice(0, 5).map(f => f.properties.upid));
+      console.error('Checking if UPIDs are strings:', {
+        attributeType: typeof Array.from(filteredUPIDs)[0],
+        geometryType: typeof state.geometryData.features[0]?.properties.upid
+      });
+    }
 
     return {
       ...state.geometryData,

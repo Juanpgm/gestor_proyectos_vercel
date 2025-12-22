@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RefreshCw, 
@@ -522,7 +522,7 @@ const UnidadesProyecto: React.FC = () => {
     actions,
     filters
   } = useUnidadesProyecto({
-    enableLocalFiltering: true,
+    enableLocalFiltering: true, // Filtrado local - carga una vez y filtra en cliente
     autoRefresh: false,
     initialFilters: {}
   });
@@ -539,6 +539,34 @@ const UnidadesProyecto: React.FC = () => {
   //   error: dashboardError,
   //   refetch: refetchDashboard
 
+
+  // Verificar centro_gestor cuando cambian los datos
+  useEffect(() => {
+    if (state.attributeData.length > 0) {
+      const withCentro = state.attributeData.filter(item => 
+        item.nombre_centro_gestor && item.nombre_centro_gestor.trim() !== ''
+      );
+      const withoutCentro = state.attributeData.filter(item => 
+        !item.nombre_centro_gestor || item.nombre_centro_gestor.trim() === ''
+      );
+      
+      const centrosUnicos = new Set(
+        withCentro.map(item => item.nombre_centro_gestor).filter(Boolean)
+      );
+      
+      console.log('📊 Centro Gestor Verification:');
+      console.log(`  Total UPs: ${state.attributeData.length}`);
+      console.log(`  ✅ Con Centro Gestor: ${withCentro.length} (${(withCentro.length/state.attributeData.length*100).toFixed(1)}%)`);
+      console.log(`  ❌ Sin Centro Gestor: ${withoutCentro.length} (${(withoutCentro.length/state.attributeData.length*100).toFixed(1)}%)`);
+      console.log(`  📋 Centros Únicos: ${centrosUnicos.size}`);
+      
+      if (withoutCentro.length > 0) {
+        console.warn('⚠️ UPs sin Centro Gestor (muestra):', 
+          withoutCentro.slice(0, 3).map(i => ({ upid: i.upid, nombre: i.nombre_up }))
+        );
+      }
+    }
+  }, [state.attributeData]);
 
   // Handlers de eventos
   const handleFiltersChange = (newFilters: FilterParams) => {
@@ -589,16 +617,25 @@ const UnidadesProyecto: React.FC = () => {
   };
 
   // Memorizar componentes pesados
-  const memoizedMap = useMemo(() => (
-    <UnidadesProyectoMapSimple
-      geometryData={filteredGeometry}
-      filteredData={filteredData}
-      className="h-full"
-      focusedItem={focusedItem}
-      showOnlyFocused={showOnlyFocused}
-      onItemClick={handleItemFocus}
-    />
-  ), [filteredGeometry, filteredData, focusedItem, showOnlyFocused]);
+  const memoizedMap = useMemo(() => {
+    console.log('🎯 Creating memoized map with:', {
+      filteredGeometryFeatures: filteredGeometry?.features?.length || 0,
+      filteredDataCount: filteredData.length,
+      hasFocusedItem: !!focusedItem,
+      showOnlyFocused
+    });
+    
+    return (
+      <UnidadesProyectoMapSimple
+        geometryData={filteredGeometry}
+        filteredData={filteredData}
+        className="h-full"
+        focusedItem={focusedItem}
+        showOnlyFocused={showOnlyFocused}
+        onItemClick={handleItemFocus}
+      />
+    );
+  }, [filteredGeometry, filteredData, focusedItem, showOnlyFocused]);
 
   // Renderizar loading principal
   if (state.loading) {

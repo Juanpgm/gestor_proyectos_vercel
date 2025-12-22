@@ -125,31 +125,47 @@ const handleApiError = (error: unknown): never => {
 const delay = (ms: number): Promise<void> => 
   new Promise(resolve => setTimeout(resolve, ms));
 
-// Utilidad para hacer fetch con retry
+// Cache en memoria para datos inmutables (opcional)
+const memoryCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+// Utilidad para hacer fetch con retry optimizado
 const fetchWithRetry = async (
   url: string, 
   options: RequestInit = {}, 
-  attempts: number = API_CONFIG.RETRY_ATTEMPTS
+  attempts: number = API_CONFIG.RETRY_ATTEMPTS,
+  useCache: boolean = false
 ): Promise<Response> => {
+  // Verificar cache si está habilitado
+  if (useCache) {
+    const cached = memoryCache.get(url);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('💾 Using cached data for:', url.split('?')[0]);
+      return new Response(JSON.stringify(cached.data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
     
-    // Agregar timestamp único a la URL para evitar cualquier cache
-    const separator = url.includes('?') ? '&' : '?';
-    const urlWithTimestamp = `${url}${separator}_t=${Date.now()}&_r=${Math.random()}`;
+    // Solo agregar cache-busting si NO estamos usando cache
+    const finalUrl = useCache ? url : `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
     
-    const response = await fetch(urlWithTimestamp, {
+    const response = await fetch(finalUrl, {
       ...options,
       signal: controller.signal,
-      cache: 'no-store',
+      cache: useCache ? 'default' : 'no-store',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Cache-Bust': Date.now().toString(),
+        ...(useCache ? {} : {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }),
         ...options.headers
       }
     });
@@ -160,33 +176,60 @@ const fetchWithRetry = async (
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
+    // Guardar en cache si está habilitado
+    if (useCache) {
+      const data = await response.clone().json();
+      memoryCache.set(url, { data, timestamp: Date.now() });
+    }
+    
     return response;
   } catch (error) {
     if (attempts > 1) {
       await delay(API_CONFIG.RETRY_DELAY);
-      return fetchWithRetry(url, options, attempts - 1);
+      return fetchWithRetry(url, options, attempts - 1, useCache);
     }
     throw error;
   }
 };
 
-// Función para construir query string de filtros
-const buildFilterQuery = (filters: FilterParams): string => {
+// Mapeo de claves de filtros frontend a backend
+const FILTER_KEY_MAP: Record<string, string> = {
+  'centro_gestor': 'nombre_centro_gestor',
+  'centro_gestor_multiple': 'nombre_centro_gestor',
+  'comuna_corregimiento': 'comuna_corregimiento',
+  'comuna_corregimiento_multiple': 'comuna_corregimiento'
+};
+
+// Función optimizada para construir query string de filtros
+const buildFilterQuery = (filters: FilterParams, verbose: boolean = false): string => {
   const params = new URLSearchParams();
   
+  if (verbose) console.log('🔍 BuildFilterQuery: Input filters:', filters);
+  
   Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      // Manejar arrays (si llega a ser necesario en el futuro)
-      if (Array.isArray(value)) {
-        value.forEach(item => params.append(key, String(item)));
-      } else {
-        params.append(key, String(value));
-      }
+    if (value === undefined || value === null || value === '') return;
+    
+    // Determinar la clave del parámetro para la API
+    const apiKey = FILTER_KEY_MAP[key] || key.replace('_multiple', '');
+    
+    // Manejar arrays
+    if (Array.isArray(value) && value.length > 0) {
+      value.forEach(item => {
+        if (item !== null && item !== undefined && item !== '') {
+          params.append(apiKey, String(item));
+        }
+      });
+    } 
+    // Manejar valores simples
+    else if (!key.endsWith('_multiple')) {
+      params.append(apiKey, String(value));
     }
   });
   
   const queryString = params.toString();
-  console.log(`🔍 BuildFilterQuery: Built query string: ${queryString}`);
+  if (verbose && queryString) {
+    console.log(`🔍 BuildFilterQuery: ${queryString}`);
+  }
   
   return queryString;
 };
@@ -198,58 +241,31 @@ const buildFilterQuery = (filters: FilterParams): string => {
  */
 export const fetchGeometryData = async (filters: FilterParams = {}): Promise<GeometryData> => {
   try {
-    const queryString = buildFilterQuery(filters);
+    const hasFilters = Object.keys(filters).length > 0;
+    const queryString = buildFilterQuery(filters, false);
     const url = `${API_CONFIG.BASE_PATH}/geometry${queryString ? `?${queryString}` : ''}`;
     
-    console.log(`🌐 fetchGeometryData: Requesting FRESH data from ${url}`);
-    console.log(`⏰ fetchGeometryData: Timestamp ${new Date().toISOString()}`);
+    // Solo log si hay filtros aplicados
+    if (hasFilters) {
+      console.log(`🌐 fetchGeometryData: ${url.split('?')[0]} with filters`);
+    }
     
-    const response = await fetchWithRetry(url);
-    console.log(`📦 fetchGeometryData: Cache headers:`, response.headers.get('cache-control'));
+    // Usar cache para peticiones sin filtros (datos completos)
+    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
     const apiResponse = await response.json();
     
-    console.log(`📦 fetchGeometryData: Response structure:`, {
-      isGeoJSON: apiResponse.type === 'FeatureCollection',
-      hasFeatures: Array.isArray(apiResponse.features),
-      featureCount: apiResponse.features?.length || 0,
-      hasProperties: !!apiResponse.properties,
-      topLevelKeys: Object.keys(apiResponse)
-    });
-    
     // La API devuelve un GeoJSON FeatureCollection completo con metadatos en properties
-    // El proxy no desenvuelve este endpoint, así que viene completo
     let geoJsonData;
     
     if (apiResponse.type === 'FeatureCollection' && Array.isArray(apiResponse.features)) {
-      // Respuesta directa como GeoJSON FeatureCollection
-      // Extraer solo type y features para el schema, ignorar los metadatos
       geoJsonData = {
         type: apiResponse.type,
         features: apiResponse.features
       };
       
-      console.log(`📊 fetchGeometryData: Processing GeoJSON with ${apiResponse.features.length} features`);
-      
-      // Log información de metadatos si está disponible
-      if (apiResponse.properties) {
-        console.log(`📋 fetchGeometryData: Metadata:`, {
-          success: apiResponse.properties.success,
-          count: apiResponse.properties.count,
-          message: apiResponse.properties.message,
-          filters_applied: apiResponse.properties.filters_applied
-        });
-      }
-      
-      // Log de muestra de la primera feature para debugging
-      if (apiResponse.features.length > 0) {
-        const firstFeature = apiResponse.features[0];
-        console.log(`📍 fetchGeometryData: Sample feature:`, {
-          upid: firstFeature.properties?.upid,
-          geometry_type: firstFeature.geometry?.type,
-          has_coordinates: !!firstFeature.geometry?.coordinates,
-          has_valid_geometry: firstFeature.properties?.has_valid_geometry,
-          coordinates_sample: firstFeature.geometry?.coordinates?.slice(0, 2) // Solo primeras 2 coordenadas para no saturar log
-        });
+      // Log conciso solo si hay filtros
+      if (hasFilters) {
+        console.log(`📊 fetchGeometryData: ${apiResponse.features.length} features loaded`);
       }
     } else if (apiResponse.data && apiResponse.data.type === 'FeatureCollection') {
       // Respuesta envuelta en un objeto data (caso alternativo)
@@ -305,17 +321,13 @@ export const fetchGeometryData = async (filters: FilterParams = {}): Promise<Geo
  */
 export const fetchAttributeData = async (filters: FilterParams = {}): Promise<AttributeData[]> => {
   try {
-    const queryString = buildFilterQuery(filters);
+    const hasFilters = Object.keys(filters).length > 0;
+    const queryString = buildFilterQuery(filters, false);
     const url = `${API_CONFIG.BASE_PATH}/attributes${queryString ? `?${queryString}` : ''}`;
     
-    console.log(`🌐 fetchAttributeData: Requesting FRESH data from ${url}`);
-    console.log(`⏰ fetchAttributeData: Timestamp ${new Date().toISOString()}`);
-    
-    const response = await fetchWithRetry(url);
+    // Usar cache para peticiones sin filtros
+    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
     const apiResponse = await response.json();
-    
-    console.log(`📦 fetchAttributeData: Response type:`, typeof apiResponse, Array.isArray(apiResponse) ? 'array' : 'object');
-    console.log(`📦 fetchAttributeData: Cache headers:`, response.headers.get('cache-control'));
     
     // Los datos ahora vienen unwrapped desde el proxy
     let dataArray;
@@ -355,11 +367,6 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
                            primeraIntervencion.nombre_centro_gestor ||
                            undefined;
         
-        // Log first item for debugging
-        if (index === 0) {
-          console.log('🔍 First item n_intervenciones:', properties.n_intervenciones, 'type:', typeof properties.n_intervenciones);
-        }
-        
         const validatedItem = AttributeSchema.parse({
           upid: properties.upid || '',
           nombre_up: properties.nombre_up || '',
@@ -394,21 +401,9 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
       }
     });
     
-    // Debug presupuestos y n_intervenciones en fetchAttributeData
-    const totalPresupuestos = validatedData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
-    const itemsConPresupuesto = validatedData.filter(item => (item.presupuesto_base || 0) > 0);
-    const totalIntervenciones = validatedData.reduce((sum, item) => sum + (item.n_intervenciones || 0), 0);
-    console.log(`✅ fetchAttributeData: Processed ${dataArray.length} items, validated ${validatedData.length} items`);
-    console.log(`🔢 fetchAttributeData: Total intervenciones (suma n_intervenciones) = ${totalIntervenciones}`);
-    console.log(`📊 fetchAttributeData: Sample n_intervenciones:`, validatedData.slice(0, 5).map(i => ({ upid: i.upid, n_intervenciones: i.n_intervenciones })));
-    console.log(`💰 fetchAttributeData: Total presupuestos sum = ${totalPresupuestos.toLocaleString()}`);
-    console.log(`💰 fetchAttributeData: Items con presupuesto > 0: ${itemsConPresupuesto.length}`);
-    if (itemsConPresupuesto.length > 0) {
-      console.log(`💰 fetchAttributeData: Muestra de presupuestos:`, itemsConPresupuesto.slice(0, 3).map(i => ({
-        upid: i.upid,
-        presupuesto: i.presupuesto_base,
-        estado: i.estado
-      })));
+    // Log conciso del resultado
+    if (hasFilters) {
+      console.log(`✅ fetchAttributeData: ${validatedData.length} items loaded with filters`);
     }
     
     return validatedData;
@@ -534,14 +529,19 @@ export const filterAttributeData = (
   filters: FilterParams & { searchTerm?: string }
 ): AttributeData[] => {
   if (!data || data.length === 0) {
-    console.log('📊 filterAttributeData: No data to filter');
     return [];
   }
 
-  console.log('📊 filterAttributeData: Starting with', data.length, 'items');
-  console.log('📊 filterAttributeData: Applied filters:', filters);
+  // Log único al inicio con resumen de filtros
+  const activeFilters = Object.entries(filters)
+    .filter(([key, value]) => value && key !== 'searchTerm')
+    .map(([key]) => key);
+  
+  if (activeFilters.length > 0) {
+    console.log('📊 Filtering:', data.length, 'items |', activeFilters.join(', '));
+  }
 
-  return data.filter(item => {
+  const filtered = data.filter(item => {
     try {
       // Filtro de búsqueda por texto
       if (filters.searchTerm && filters.searchTerm.trim() !== '') {
@@ -585,6 +585,7 @@ export const filterAttributeData = (
               case 'frente_activo':
                 return multipleValues.includes(item.frente_activo);
               case 'centro_gestor':
+              case 'centro_gestor_multiple':
                 return multipleValues.includes(item.nombre_centro_gestor);
               case 'comuna_corregimiento':
                 return multipleValues.includes(item.comuna_corregimiento);
@@ -611,6 +612,7 @@ export const filterAttributeData = (
               case 'frente_activo':
                 return item.frente_activo === singleValue;
               case 'centro_gestor':
+              case 'centro_gestor_multiple':
                 return item.nombre_centro_gestor === singleValue;
               case 'comuna_corregimiento':
                 return item.comuna_corregimiento === singleValue;
@@ -639,6 +641,13 @@ export const filterAttributeData = (
       return true; // En caso de error, incluir el item
     }
   });
+  
+  // Log del resultado final
+  if (activeFilters.length > 0) {
+    console.log('✅ filterAttributeData:', filtered.length, 'items after filtering');
+  }
+  
+  return filtered;
 };
 
 // Exportar configuración para uso en otros lugares
