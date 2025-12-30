@@ -118,7 +118,7 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
       // Cargar centros gestores y bancos en paralelo
       const [centrosResponse, bancosResponse] = await Promise.all([
         fetch(`${apiUrl}/centros-gestores/nombres-unicos`),
-        fetch(`${apiUrl}/bancos_emprestito_all`)
+        fetch(`${apiUrl}/asignaciones-emprestito-banco-centro-gestor`)
       ])
 
       if (!centrosResponse.ok) {
@@ -143,9 +143,15 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
         throw new Error('Formato inválido de datos de centros gestores')
       }
 
-      // Procesar bancos
+      // Procesar bancos - extraer bancos únicos de las asignaciones
       if (bancosData.success && Array.isArray(bancosData.data)) {
-        setBancos(bancosData.data)
+        // Obtener bancos únicos
+        const bancosUnicos = Array.from(
+          new Set(bancosData.data.map((asig: any) => asig.banco).filter(Boolean))
+        ).map((nombreBanco: any) => ({
+          nombre_banco: nombreBanco
+        }))
+        setBancos(bancosUnicos)
       } else {
         throw new Error('Formato inválido de datos de bancos')
       }

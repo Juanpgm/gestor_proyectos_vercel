@@ -122,7 +122,7 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
 
       const [centrosResponse, bancosResponse] = await Promise.all([
         fetch(`${apiUrl}/centros-gestores/nombres-unicos`),
-        fetch(`${apiUrl}/bancos_emprestito_all`)
+        fetch(`${apiUrl}/asignaciones-emprestito-banco-centro-gestor`)
       ])
 
       if (!centrosResponse.ok) {
@@ -145,7 +145,13 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
       }
 
       if (bancosData.success && Array.isArray(bancosData.data)) {
-        setBancos(bancosData.data)
+        // Extraer bancos únicos de las asignaciones
+        const bancosUnicos = Array.from(
+          new Set(bancosData.data.map((asig: any) => asig.banco).filter(Boolean))
+        ).map((nombreBanco: any) => ({
+          nombre_banco: nombreBanco
+        }))
+        setBancos(bancosUnicos)
       }
 
     } catch (error) {
