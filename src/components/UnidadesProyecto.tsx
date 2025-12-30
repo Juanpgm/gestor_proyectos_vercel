@@ -540,6 +540,33 @@ const UnidadesProyecto: React.FC = () => {
   //   refetch: refetchDashboard
 
 
+  // 🔍 DIAGNÓSTICO: Monitorear el presupuesto total mostrado
+  useEffect(() => {
+    if (metrics.totalBudget > 0) {
+      console.log('');
+      console.log('🔍 ================================');
+      console.log('💰 PRESUPUESTO TOTAL MOSTRADO EN UI');
+      console.log('🔍 ================================');
+      console.log(`Valor mostrado: $${metrics.totalBudget.toLocaleString('es-CO')}`);
+      console.log(`Total de registros: ${filteredData.length}`);
+      console.log(`Total de registros cargados: ${state.attributeData.length}`);
+      console.log(`¿Hay filtros activos?: ${filteredData.length !== state.attributeData.length ? 'SÍ' : 'NO'}`);
+      
+      if (filteredData.length !== state.attributeData.length) {
+        const totalSinFiltros = state.attributeData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+        console.log(`💰 Presupuesto SIN filtros: $${totalSinFiltros.toLocaleString('es-CO')}`);
+        console.log(`📉 Diferencia: $${(totalSinFiltros - metrics.totalBudget).toLocaleString('es-CO')}`);
+      }
+      
+      // Mostrar muestra de presupuestos
+      console.log('📋 Muestra de presupuestos (primeros 5):');
+      filteredData.slice(0, 5).forEach((item, i) => {
+        console.log(`  ${i + 1}. ${item.nombre_up}: $${(item.presupuesto_base || 0).toLocaleString('es-CO')}`);
+      });
+      console.log('================================\n');
+    }
+  }, [metrics.totalBudget, filteredData.length, state.attributeData.length]);
+
   // Verificar centro_gestor cuando cambian los datos
   useEffect(() => {
     if (state.attributeData.length > 0) {

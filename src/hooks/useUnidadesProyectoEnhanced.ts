@@ -293,6 +293,16 @@ export const useUnidadesProyecto = (
   const metrics = useMemo(() => {
     const data = filteredData;
     
+    // 🔍 DIAGNÓSTICO: Comparar datos totales vs filtrados
+    const totalDataCount = state.attributeData.length;
+    const filteredDataCount = data.length;
+    const hasFiltersApplied = totalDataCount !== filteredDataCount;
+    
+    console.log('🔍 ========== DIAGNÓSTICO DE PRESUPUESTO ==========');
+    console.log(`📊 Datos totales cargados: ${totalDataCount}`);
+    console.log(`📊 Datos después de filtros: ${filteredDataCount}`);
+    console.log(`🎯 Filtros activos: ${hasFiltersApplied ? 'SÍ' : 'NO'}`);
+    
     const byStatus = data.reduce((acc, item) => {
       const status = item.estado || 'Sin estado';
       acc[status] = (acc[status] || 0) + 1;
@@ -310,6 +320,18 @@ export const useUnidadesProyecto = (
       : 0;
 
     const totalBudget = data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+    
+    // 🔍 DIAGNÓSTICO: Calcular presupuesto total SIN filtros
+    const totalBudgetAllData = state.attributeData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+    const budgetDifference = totalBudgetAllData - totalBudget;
+    const percentageDifference = totalBudgetAllData > 0 
+      ? ((budgetDifference / totalBudgetAllData) * 100).toFixed(2) 
+      : '0';
+    
+    console.log(`💰 Presupuesto TOTAL (sin filtros): $${totalBudgetAllData.toLocaleString('es-CO')}`);
+    console.log(`💰 Presupuesto FILTRADO: $${totalBudget.toLocaleString('es-CO')}`);
+    console.log(`📉 Diferencia: $${budgetDifference.toLocaleString('es-CO')} (${percentageDifference}%)`);
+    console.log('==================================================\n');
 
     // Sumar total de intervenciones (suma de n_intervenciones)
     const totalIntervenciones = data.reduce((sum, item) => sum + (item.n_intervenciones || 0), 0);

@@ -357,9 +357,34 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
         const properties = item.properties || item;
         
         // La nueva estructura tiene intervenciones como array
-        // Extraer datos de la primera intervención si existe
         const intervenciones = properties.intervenciones || [];
         const primeraIntervencion = intervenciones.length > 0 ? intervenciones[0] : {};
+        
+        // 💰 CORRECCIÓN: Sumar presupuestos de TODAS las intervenciones, no solo la primera
+        // Esto corrige el bug donde se perdían ~$178B al solo tomar la primera intervención
+        const presupuestoTotal = intervenciones.reduce((sum: number, interv: any) => {
+          const presupuesto = parseFloat(interv.presupuesto_base || 0);
+          return sum + presupuesto;
+        }, 0);
+        
+        // Si no hay intervenciones, usar el presupuesto a nivel de documento
+        const presupuesto_base = presupuestoTotal > 0 ? presupuestoTotal : parseFloat(properties.presupuesto_base || 0);
+        
+        // 📊 CORRECCIÓN: Calcular avance promedio ponderado por presupuesto de TODAS las intervenciones
+        // El avance debe reflejar el progreso real considerando el peso de cada intervención
+        let avance_obra = 0;
+        if (intervenciones.length > 0 && presupuestoTotal > 0) {
+          // Promedio ponderado: (suma de avance * presupuesto) / presupuesto total
+          const avancePonderado = intervenciones.reduce((sum: number, interv: any) => {
+            const avance = parseFloat(interv.avance_obra || 0);
+            const presupuesto = parseFloat(interv.presupuesto_base || 0);
+            return sum + (avance * presupuesto);
+          }, 0);
+          avance_obra = avancePonderado / presupuestoTotal;
+        } else {
+          // Sin intervenciones, usar el avance a nivel de documento
+          avance_obra = parseFloat(properties.avance_obra || 0);
+        }
         
         // El campo nombre_centro_gestor no existe en la nueva estructura de la API
         // Usar un valor por defecto o dejarlo undefined
@@ -382,8 +407,8 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           nombre_centro_gestor: centroGestor,
           comuna_corregimiento: properties.comuna_corregimiento || '',
           barrio_vereda: properties.barrio_vereda || '',
-          presupuesto_base: parseFloat(primeraIntervencion.presupuesto_base || properties.presupuesto_base || 0),
-          avance_obra: parseFloat(primeraIntervencion.avance_obra || properties.avance_obra || 0),
+          presupuesto_base: presupuesto_base,
+          avance_obra: avance_obra,
           fecha_inicio: primeraIntervencion.fecha_inicio || properties.fecha_inicio || '',
           fecha_fin: primeraIntervencion.fecha_fin || properties.fecha_fin || '',
           fecha_inauguracion: primeraIntervencion.fecha_inauguracion || properties.fecha_inauguracion || undefined,
