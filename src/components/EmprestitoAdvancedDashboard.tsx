@@ -1809,6 +1809,44 @@ const useEmprestitoRealData = () => {
     setFilteredData(filtered)
   }, [filters, contratos])
 
+  // Filtrar asignaciones según los filtros aplicados
+  const filteredAsignaciones = useMemo(() => {
+    if (!asignaciones || !Array.isArray(asignaciones)) {
+      return []
+    }
+
+    let filtered = [...asignaciones]
+
+    // Filtrar por banco
+    if (filters.banco) {
+      filtered = filtered.filter(a => a.banco?.toLowerCase().includes(filters.banco.toLowerCase()))
+    }
+
+    // Filtrar por centro gestor
+    if (filters.centroGestor) {
+      filtered = filtered.filter(a => a.nombre_centro_gestor?.toLowerCase().includes(filters.centroGestor.toLowerCase()))
+    }
+
+    // Filtrar por año
+    if (filters.ano) {
+      filtered = filtered.filter(a => a.anio?.toString() === filters.ano)
+    }
+
+    console.log('🔍 Asignaciones filtradas:', {
+      total: asignaciones.length,
+      filtradas: filtered.length,
+      filtros: filters,
+      muestra: filtered.slice(0, 3).map(a => ({
+        banco: a.banco,
+        centro: a.nombre_centro_gestor,
+        monto: a.monto_programado,
+        anio: a.anio
+      }))
+    })
+
+    return filtered
+  }, [asignaciones, filters])
+
   // Función para abrir el modal con los datos del contrato
   const handleOpenModal = (contrato: ContratoEmprestito) => {
     // Buscar todos los reportes para este contrato (para la gráfica de evolución)
@@ -1847,9 +1885,9 @@ const useEmprestitoRealData = () => {
 
   // Análisis por banco
   const analysisByBank = useMemo((): AnalysisByBank[] => {
-    // Validar que asignaciones exista
-    if (!asignaciones || !Array.isArray(asignaciones)) {
-      console.warn('⚠️ Asignaciones no disponible aún')
+    // Validar que asignaciones filtradas existan
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
+      console.warn('⚠️ Asignaciones filtradas no disponibles aún')
       return []
     }
 
@@ -1859,9 +1897,9 @@ const useEmprestitoRealData = () => {
       // Agregar otros mapeos si es necesario
     }
 
-    // PASO 1: Calcular valores asignados por banco desde asignaciones (monto_programado)
+    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_programado)
     const valoresAsignadosPorBanco = new Map<string, number>()
-    asignaciones.forEach((asignacion: any) => {
+    filteredAsignaciones.forEach((asignacion: any) => {
       let banco = asignacion.banco || 'Sin definir'
       // Normalizar nombre del banco
       if (mapeoBancosAsignaciones[banco]) {
@@ -1955,19 +1993,19 @@ const useEmprestitoRealData = () => {
       valorAdjudicado: r.valorAdjudicado
     })))
     return result
-  }, [filteredData, reportes, pagos, proyecciones, asignaciones])
+  }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones])
 
   // Análisis por centro gestor
   const analysisByCentroGestor = useMemo((): AnalysisByCentroGestor[] => {
-    // Validar que asignaciones exista
-    if (!asignaciones || !Array.isArray(asignaciones)) {
-      console.warn('⚠️ Asignaciones no disponible aún en centro gestor')
+    // Validar que asignaciones filtradas existan
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
+      console.warn('⚠️ Asignaciones filtradas no disponibles aún en centro gestor')
       return []
     }
 
-    // PASO 1: Calcular valores asignados por centro gestor desde asignaciones (monto_programado)
+    // PASO 1: Calcular valores asignados por centro gestor desde asignaciones filtradas (monto_programado)
     const valoresAsignadosPorCentro = new Map<string, number>()
-    asignaciones.forEach((asignacion: any) => {
+    filteredAsignaciones.forEach((asignacion: any) => {
       const centro = asignacion.nombre_centro_gestor || 'Sin definir'
       const monto = Number(asignacion.monto_programado) || 0
       const valorActual = valoresAsignadosPorCentro.get(centro) || 0
@@ -2176,13 +2214,13 @@ const useEmprestitoRealData = () => {
     return Array.from(centroMap.values())
       .filter(c => c.valorAsignadoBanco > 0 || c.valorAdjudicado > 0 || c.valorEjecutado > 0 || c.valorPagado > 0)
       .sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
-  }, [filteredData, reportes, pagos, proyecciones, asignaciones])
+  }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones])
 
   // Análisis por banco para el gráfico (solo bancos con contratos asignados)
   const analysisByBankForChart = useMemo((): AnalysisByBank[] => {
-    // Validar que asignaciones exista
-    if (!asignaciones || !Array.isArray(asignaciones)) {
-      console.warn('⚠️ Asignaciones no disponible aún para gráfico')
+    // Validar que asignaciones filtradas existan
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
+      console.warn('⚠️ Asignaciones filtradas no disponibles aún para gráfico')
       return []
     }
 
@@ -2192,9 +2230,9 @@ const useEmprestitoRealData = () => {
       // Agregar otros mapeos si es necesario
     }
 
-    // PASO 1: Calcular valores asignados por banco desde asignaciones (monto_programado)
+    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_programado)
     const valoresAsignadosPorBanco = new Map<string, number>()
-    asignaciones.forEach((asignacion: any) => {
+    filteredAsignaciones.forEach((asignacion: any) => {
       let banco = asignacion.banco || 'Sin definir'
       // Normalizar nombre del banco
       if (mapeoBancosAsignaciones[banco]) {
@@ -2282,7 +2320,7 @@ const useEmprestitoRealData = () => {
     return Array.from(bankMap.values())
       .filter(banco => banco.totalContratos > 0) // Solo mostrar bancos con contratos
       .sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco)
-  }, [filteredData, reportes, pagos, proyecciones, asignaciones])
+  }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones])
 
   // Cálculo correcto del avance físico total basado en los contratos
   // Usa el último reporte de cada contrato (mismo que la gráfica semanal usa para la última semana)
@@ -2428,7 +2466,7 @@ const useEmprestitoRealData = () => {
     analysisByCentroGestor,
     totalContratos: filteredData.length,
     valorTotalAsignado: filteredData.reduce((sum, c) => sum + (Number(c.valor_contrato) || 0), 0),
-    valorTotalAsignadoBanco: asignaciones.reduce((sum, asignacion) => sum + (Number(asignacion.monto_programado) || 0), 0), // Suma desde asignaciones (monto_programado)
+    valorTotalAsignadoBanco: filteredAsignaciones.reduce((sum, asignacion) => sum + (Number(asignacion.monto_programado) || 0), 0), // Suma desde asignaciones filtradas (monto_programado)
     valorTotalEjecutado, // Ahora usa el cálculo correcto basado en contratos filtrados
     valorTotalPagado, // Ahora usa el cálculo correcto basado en pagos reales
     valorTotalFisico,
