@@ -19,7 +19,6 @@ import {
   Plus,
   TrendingUp,
   Landmark,
-  Edit2,
   Upload,
   Eye,
   EyeOff,
@@ -115,7 +114,6 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
   const [showAgregarModal, setShowAgregarModal] = useState(false)
-  const [editingData, setEditingData] = useState<ContratoEmprestito | null>(null)
   const [showCargarRPCModal, setShowCargarRPCModal] = useState(false)
   const [selectedContratoForRPC, setSelectedContratoForRPC] = useState<ContratoEmprestito | null>(null)
   const [showPDFPreviewModal, setShowPDFPreviewModal] = useState(false)
@@ -350,72 +348,6 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     return 'SECOP'
   }
 
-  /**
-   * Determina si un contrato puede ser editado
-   * Solo permite edición si el contrato existe en:
-   * - Órdenes de compra TVEC: tipo_contrato = "Orden de Compra - TVEC" (12 registros)
-   * - Convenios/Transferencias: tipo = "convenio_transferencia_manual" (4 registros)
-   * 
-   * Los contratos regulares de SECOP (44 registros) NO son editables
-   */
-  const esConvenioOTransferencia = (contrato: ContratoEmprestito): boolean => {
-    // Verificar si es una orden de compra TVEC (12 registros)
-    if (contrato.tipo_contrato === 'Orden de Compra - TVEC') {
-      return true
-    }
-    
-    // Verificar si es un convenio/transferencia manual (4 registros)
-    if (contrato.tipo === 'convenio_transferencia_manual') {
-      return true
-    }
-    
-    return false
-  }
-  
-  const handleEditContrato = (contrato: ContratoEmprestito) => {
-    console.log('Editando contrato:', {
-      id: contrato.id,
-      tipo_contrato: contrato.tipo_contrato,
-      tipo: contrato.tipo,
-      referencia: contrato.referencia_contrato
-    })
-    setEditingData(contrato)
-    setShowAgregarModal(true)
-  }
-
-  const handleUpdateContrato = async (docId: string, formData: any) => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
-      // Endpoint para actualizar órdenes de compra y convenios/transferencias
-      const response = await fetch(`${apiUrl}/emprestito/modificar-convenio-transferencia`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          doc_id: docId,
-          ...formData
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `Error ${response.status}`)
-      }
-
-      await fetchContratos()
-      setEditingData(null)
-      setShowAgregarModal(false)
-    } catch (error) {
-      console.error('Error al actualizar convenio/transferencia:', error)
-      throw error
-    }
-  }
-
   const getUniqueValues = (key: string): string[] => {
     if (!Array.isArray(contratos) || contratos.length === 0) {
       return []
@@ -463,17 +395,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       return true
     })
 
-    // Ordenar: primero editables (Órdenes TVEC y Convenios), luego SECOP
-    if (!sortConfig.key) {
-      filtered.sort((a, b) => {
-        const aEditable = esConvenioOTransferencia(a)
-        const bEditable = esConvenioOTransferencia(b)
-        
-        if (aEditable && !bEditable) return -1
-        if (!aEditable && bEditable) return 1
-        return 0
-      })
-    } else if (sortConfig.key) {
+    // Aplicar ordenamiento si está configurado
+    if (sortConfig.key) {
       const sortColumn = columns.find(col => col.key === sortConfig.key);
       
       filtered.sort((a, b) => {
@@ -964,10 +887,10 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                 <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
                   {stats.ordenesTV}
                 </p>
-                <p className="text-xs text-green-600 dark:text-green-400">Editables</p>
+                <p className="text-xs text-green-600 dark:text-green-400">Solo lectura</p>
               </div>
               <div className="bg-green-500 p-2 rounded-lg">
-                <Edit2 className="w-5 h-5 text-white" />
+                <FileText className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
@@ -979,7 +902,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                 <p className="text-2xl font-bold text-orange-900 dark:text-orange-100 mt-1">
                   {stats.convenios}
                 </p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">Editables</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">Solo lectura</p>
               </div>
               <div className="bg-orange-500 p-2 rounded-lg">
                 <CheckCircle className="w-5 h-5 text-white" />
@@ -1326,17 +1249,6 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                   
                   <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700 sticky right-0 bg-white dark:bg-gray-800 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] dark:shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.3)]">
                     <div className="flex items-center space-x-2">
-                      {/* Botón de editar solo para convenios y transferencias */}
-                      {esConvenioOTransferencia(contrato) && (
-                        <button
-                          onClick={() => handleEditContrato(contrato)}
-                          className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
-                          title="Editar Convenio/Transferencia"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      
                       {/* Botón para cargar/editar RPC */}
                       <button
                         onClick={() => {
@@ -1409,16 +1321,13 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         )}
       </motion.div>
 
-      {/* Modal para agregar/editar convenio o transferencia */}
+      {/* Modal para agregar convenio o transferencia */}
       <AgregarConvenioTransferenciaModal
         isOpen={showAgregarModal}
         onClose={() => {
           setShowAgregarModal(false)
-          setEditingData(null)
         }}
         onSuccess={handleAgregarContratoSuccess}
-        editingData={editingData}
-        onEdit={handleUpdateContrato}
       />
       
       {/* Modal de Cargar RPC */}

@@ -238,6 +238,11 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
       // Preparar los datos para enviar con FormData (multipart/form-data)
       const dataToSend = new FormData()
       
+      // Si es edición, agregar el ID del documento
+      if (esEdicion && rpcExistente?.id) {
+        dataToSend.append('doc_id', rpcExistente.id)
+      }
+      
       // Campos obligatorios
       dataToSend.append('numero_rpc', formData.numero_rpc)
       dataToSend.append('beneficiario_id', formData.beneficiario_id)
@@ -301,7 +306,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
 
       // Determinar endpoint y método según modo
       const endpoint = esEdicion 
-        ? `${apiUrl}/emprestito/editar-rpc/${rpcExistente?.id}`
+        ? `${apiUrl}/emprestito/modificar-rpc`
         : `${apiUrl}/emprestito/cargar-rpc`
       
       const method = esEdicion ? 'PUT' : 'POST'
