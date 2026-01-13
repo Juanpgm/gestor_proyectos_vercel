@@ -339,8 +339,11 @@ export const useUnidadesProyecto = (
     // Total de unidades de proyecto (número de registros)
     const totalUnidadesProyecto = data.length;
 
-    // Contar frentes activos
-    const activeFronts = data.filter(item => item.frente_activo === 'Frente activo').length;
+    // Contar frentes activos a nivel de intervenciones (no de unidades de proyecto)
+    // Si una UP tiene 3 intervenciones y frente activo, cuenta como 3 frentes activos
+    const activeFronts = data
+      .filter(item => item.frente_activo === 'Frente activo')
+      .reduce((sum, item) => sum + (item.n_intervenciones || 0), 0);
 
     // Debug logging de intervenciones
     console.log('🔢 Debug totalIntervenciones calculation:', {

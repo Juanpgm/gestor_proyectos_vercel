@@ -5,11 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   TrendingUp, 
   BarChart3,
-  ChevronLeft
+  ChevronLeft,
+  FileText
 } from 'lucide-react'
 import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
 import EmprestitoAdvancedDashboard from '@/components/EmprestitoAdvancedDashboard'
 import EmprestitoFlujoCajaDashboard from '@/components/EmprestitoFlujoCajaDashboard'
+import EmprestitoAnalisisProyectosBP from '@/components/EmprestitoAnalisisProyectosBP'
 
 // Tipos para las props
 interface EmprestitoTabsProps {
@@ -35,6 +37,13 @@ const TAB_CONFIG = [
     icon: TrendingUp,
     description: 'Serie de tiempo de flujo de caja mensual por banco',
     component: 'EmprestitoTimeSeries'
+  },
+  {
+    id: 'analisis-bp',
+    label: 'Análisis detallado por Proyecto de Inversión (BP)',
+    icon: FileText,
+    description: 'Análisis detallado de proyectos de inversión por BPIN',
+    component: 'EmprestitoAnalisisProyectosBP'
   }
 ] as const
 
@@ -48,6 +57,8 @@ const TabContent: React.FC<{ activeTab: string; props: EmprestitoTabsProps }> = 
       return <EmprestitoAdvancedDashboard />
     case 'flujo-caja':
       return <EmprestitoTimeSeries />
+    case 'analisis-bp':
+      return <EmprestitoAnalisisProyectosBP />
     default:
       return null
   }

@@ -1402,7 +1402,7 @@ interface BancoEmprestito {
 interface AnalysisByBank {
   banco: string
   totalContratos: number
-  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado por banco)
+  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_asignado_pago por banco)
   valorAsignadoProyecciones: number // Valor de proyecciones (actualmente no usado, mantener para compatibilidad)
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all (valor_contrato)
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
@@ -1414,7 +1414,7 @@ interface AnalysisByBank {
 interface AnalysisByCentroGestor {
   centroGestor: string
   totalContratos: number
-  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado)
+  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_asignado_pago)
   valorAsignadoProyecciones: number // Desde /api/emprestito/leer-tabla-proyecciones (suma de valor_proyectado)
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
@@ -1664,34 +1664,92 @@ const useEmprestitoRealData = () => {
 
         // Obtener asignaciones banco-centro gestor
         console.log('📡 Solicitando asignaciones-emprestito-banco-centro-gestor...')
-        const asignacionesData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/asignaciones-emprestito-banco-centro-gestor',
-          {},
-          120000 // 2 minutos de timeout
-        ).catch((err) => {
-          console.warn('⚠️ Error en asignaciones-emprestito-banco-centro-gestor, usando array vacío:', err)
-          return { data: [] }
-        })
-        console.log('✅ Asignaciones recibidas:', asignacionesData)
+        let asignacionesData: any
+        try {
+          asignacionesData = await fetchWithErrorHandling<any>(
+            'https://gestorproyectoapi-production.up.railway.app/asignaciones-emprestito-banco-centro-gestor',
+            {},
+            120000 // 2 minutos de timeout
+          )
+          console.log('✅ Asignaciones - Respuesta completa:', JSON.stringify(asignacionesData, null, 2).substring(0, 500))
+          console.log('✅ Asignaciones - Tipo de respuesta:', typeof asignacionesData)
+          console.log('✅ Asignaciones - Es objeto:', asignacionesData && typeof asignacionesData === 'object')
+          console.log('✅ Asignaciones - success:', asignacionesData?.success)
+          console.log('✅ Asignaciones - count:', asignacionesData?.count)
+          console.log('✅ Asignaciones - data es array:', Array.isArray(asignacionesData?.data))
+          console.log('✅ Asignaciones - data length:', asignacionesData?.data?.length)
+        } catch (err: any) {
+          console.error('❌ Error capturado en asignaciones-emprestito-banco-centro-gestor:', err)
+          console.error('❌ Error tipo:', err?.type)
+          console.error('❌ Error mensaje:', err?.message)
+          asignacionesData = { success: false, data: [], error: err?.message }
+        }
 
-        // Extraer arrays de datos
+        // Extraer arrays de datos con validación
         const contratosArray = contratosData.data || []
         const reportesArray = reportesData.data || []
         const bancosArray = bancosData.data || []
         const pagosArray = pagosData.data || []
-        const asignacionesArray = asignacionesData.data || []
+        
+        // Validar y extraer asignaciones con múltiples checks
+        let asignacionesArray: any[] = []
+        if (asignacionesData) {
+          console.log('🔍 Validando estructura de asignacionesData...')
+          console.log('🔍 Claves del objeto:', Object.keys(asignacionesData))
+          
+          if (Array.isArray(asignacionesData.data)) {
+            asignacionesArray = asignacionesData.data
+            console.log('✅ asignacionesData.data es un array válido')
+          } else if (Array.isArray(asignacionesData)) {
+            // Por si el endpoint devuelve directamente el array
+            asignacionesArray = asignacionesData
+            console.log('✅ asignacionesData es directamente un array')
+          } else {
+            console.warn('⚠️ asignacionesData no tiene formato esperado:', {
+              tieneData: 'data' in asignacionesData,
+              tipoDeLaData: typeof asignacionesData.data,
+              esArray: Array.isArray(asignacionesData.data)
+            })
+          }
+        } else {
+          console.error('❌ asignacionesData es null o undefined')
+        }
+        
         const proyeccionesArray = proyeccionesData.success && proyeccionesData.data ? proyeccionesData.data : []
+        
+        console.log('📋 Arrays extraídos - Resumen:', {
+          contratos: contratosArray.length,
+          reportes: reportesArray.length,
+          bancos: bancosArray.length,
+          pagos: pagosArray.length,
+          asignaciones: asignacionesArray.length,
+          proyecciones: proyeccionesArray.length
+        })
+        
+        console.log('📋 Asignaciones extraídas:', {
+          esArray: Array.isArray(asignacionesArray),
+          longitud: asignacionesArray.length,
+          primerosElementos: asignacionesArray.slice(0, 2),
+          camposDelPrimero: asignacionesArray.length > 0 ? Object.keys(asignacionesArray[0]) : []
+        })
         
         const endTime = performance.now()
         const loadTime = ((endTime - startTime) / 1000).toFixed(2)
 
+        console.log('💾 Guardando datos en estado...')
         setContratos(contratosArray)
         setReportes(reportesArray)
         setBancosEmprestito(bancosArray)
         setEmprestitoBancos(bancosArray)
         setPagos(pagosArray)
         setProyecciones(proyeccionesArray)
+        console.log('💾 Antes de setAsignaciones:', {
+          esArray: Array.isArray(asignacionesArray),
+          longitud: asignacionesArray.length,
+          muestra: asignacionesArray.slice(0, 1)
+        })
         setAsignaciones(asignacionesArray)
+        console.log('✅ Estado de asignaciones actualizado')
         setFilteredData(contratosArray)
         setYearlySummary(calculateYearlySummary(contratosArray, reportesArray, bancosArray))
 
@@ -1706,18 +1764,22 @@ const useEmprestitoRealData = () => {
           tiempoCarga: `${loadTime}s`
         })
 
-        console.log('💰 Muestra de asignaciones:', asignacionesArray.slice(0, 3).map((a: any) => ({
+        console.log('💰 Muestra de asignaciones (todos los campos):', asignacionesArray.slice(0, 3))
+        console.log('💰 Muestra de asignaciones (campos específicos):', asignacionesArray.slice(0, 3).map((a: any) => ({
+          id: a.id,
           banco: a.banco,
           centro: a.nombre_centro_gestor,
-          monto: a.monto_programado,
-          anio: a.anio
+          bp: a.bp,
+          monto_asignado_pago: a.monto_asignado_pago,
+          anio: a.anio,
+          created_at: a.created_at
         })))
 
         // Calcular totales por banco desde asignaciones para debug
         const totalesPorBanco = new Map<string, number>()
         asignacionesArray.forEach((asig: any) => {
           const banco = asig.banco || 'Sin definir'
-          const monto = Number(asig.monto_programado) || 0
+          const monto = Number(asig.monto_asignado_pago) || 0
           totalesPorBanco.set(banco, (totalesPorBanco.get(banco) || 0) + monto)
         })
         console.log('💵 Totales por banco desde asignaciones:', Array.from(totalesPorBanco.entries()).map(([banco, total]) => ({
@@ -1725,7 +1787,7 @@ const useEmprestitoRealData = () => {
           total: total.toLocaleString('es-CO'),
           totalNumerico: total
         })))
-        console.log('💵 TOTAL GENERAL desde asignaciones:', asignacionesArray.reduce((sum: number, a: any) => sum + (Number(a.monto_programado) || 0), 0).toLocaleString('es-CO'))
+        console.log('💵 TOTAL GENERAL desde asignaciones:', asignacionesArray.reduce((sum: number, a: any) => sum + (Number(a.monto_asignado_pago) || 0), 0).toLocaleString('es-CO'))
 
         console.log('🔍 VERIFICAR PROYECCIONES - Muestra:', proyeccionesArray.slice(0, 2).map((p: any) => ({
           organismo: p.nombre_organismo_reducido,
@@ -1811,7 +1873,20 @@ const useEmprestitoRealData = () => {
 
   // Filtrar asignaciones según los filtros aplicados
   const filteredAsignaciones = useMemo(() => {
+    console.log('🔄 Calculando filteredAsignaciones...', {
+      asignacionesDisponibles: !!asignaciones,
+      esArray: Array.isArray(asignaciones),
+      longitud: asignaciones?.length || 0,
+      filtros: filters
+    })
+    
     if (!asignaciones || !Array.isArray(asignaciones)) {
+      console.warn('⚠️ Asignaciones no es un array válido:', asignaciones)
+      return []
+    }
+
+    if (asignaciones.length === 0) {
+      console.warn('⚠️ Asignaciones está vacío')
       return []
     }
 
@@ -1820,16 +1895,19 @@ const useEmprestitoRealData = () => {
     // Filtrar por banco
     if (filters.banco) {
       filtered = filtered.filter(a => a.banco?.toLowerCase().includes(filters.banco.toLowerCase()))
+      console.log(`🔍 Filtro banco "${filters.banco}" aplicado: ${filtered.length} resultados`)
     }
 
     // Filtrar por centro gestor
     if (filters.centroGestor) {
       filtered = filtered.filter(a => a.nombre_centro_gestor?.toLowerCase().includes(filters.centroGestor.toLowerCase()))
+      console.log(`🔍 Filtro centro gestor "${filters.centroGestor}" aplicado: ${filtered.length} resultados`)
     }
 
     // Filtrar por año
     if (filters.ano) {
       filtered = filtered.filter(a => a.anio?.toString() === filters.ano)
+      console.log(`🔍 Filtro año "${filters.ano}" aplicado: ${filtered.length} resultados`)
     }
 
     console.log('🔍 Asignaciones filtradas:', {
@@ -1839,7 +1917,7 @@ const useEmprestitoRealData = () => {
       muestra: filtered.slice(0, 3).map(a => ({
         banco: a.banco,
         centro: a.nombre_centro_gestor,
-        monto: a.monto_programado,
+        monto_asignado_pago: a.monto_asignado_pago,
         anio: a.anio
       }))
     })
@@ -1885,11 +1963,18 @@ const useEmprestitoRealData = () => {
 
   // Análisis por banco
   const analysisByBank = useMemo((): AnalysisByBank[] => {
+    console.log('📊 Calculando analysisByBank...')
+    
     // Validar que asignaciones filtradas existan
     if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
-      console.warn('⚠️ Asignaciones filtradas no disponibles aún')
+      console.warn('⚠️ Asignaciones filtradas no disponibles aún para analysisByBank')
       return []
     }
+
+    console.log('✅ Procesando asignaciones filtradas:', {
+      cantidad: filteredAsignaciones.length,
+      muestra: filteredAsignaciones.slice(0, 2)
+    })
 
     // Mapeo de nombres de bancos en asignaciones a nombres estándar
     const mapeoBancosAsignaciones: Record<string, string> = {
@@ -1897,7 +1982,7 @@ const useEmprestitoRealData = () => {
       // Agregar otros mapeos si es necesario
     }
 
-    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_programado)
+    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_asignado_pago)
     const valoresAsignadosPorBanco = new Map<string, number>()
     filteredAsignaciones.forEach((asignacion: any) => {
       let banco = asignacion.banco || 'Sin definir'
@@ -1905,12 +1990,12 @@ const useEmprestitoRealData = () => {
       if (mapeoBancosAsignaciones[banco]) {
         banco = mapeoBancosAsignaciones[banco]
       }
-      const monto = Number(asignacion.monto_programado) || 0
+      const monto = Number(asignacion.monto_asignado_pago) || 0
       const valorActual = valoresAsignadosPorBanco.get(banco) || 0
       valoresAsignadosPorBanco.set(banco, valorActual + monto)
     })
 
-    console.log('💰 Valores asignados por banco (desde asignaciones - monto_programado):', Array.from(valoresAsignadosPorBanco.entries()))
+    console.log('💰 Valores asignados por banco (desde asignaciones - monto_asignado_pago):', Array.from(valoresAsignadosPorBanco.entries()))
 
     const bankMap = new Map<string, AnalysisByBank>()
 
@@ -1919,7 +2004,7 @@ const useEmprestitoRealData = () => {
       bankMap.set(nombreBanco, {
         banco: nombreBanco,
         totalContratos: 0,
-        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado)
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_asignado_pago)
         valorAsignadoProyecciones: 0, // No usado actualmente
         valorAdjudicado: 0,                     // Del endpoint contratos_emprestito_all
         valorEjecutado: 0,                      // Calculado desde reportes
@@ -1952,7 +2037,7 @@ const useEmprestitoRealData = () => {
         bankMap.set(banco, {
           banco,
           totalContratos: 0,
-          valorAsignadoBanco: valoresAsignadosPorBanco.get(banco) || 0, // Desde asignaciones (monto_programado)
+          valorAsignadoBanco: valoresAsignadosPorBanco.get(banco) || 0, // Desde asignaciones (monto_asignado_pago)
           valorAsignadoProyecciones: 0, // No usado
           valorAdjudicado: 0,                     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,                      // Calculado desde reportes
@@ -2003,16 +2088,16 @@ const useEmprestitoRealData = () => {
       return []
     }
 
-    // PASO 1: Calcular valores asignados por centro gestor desde asignaciones filtradas (monto_programado)
+    // PASO 1: Calcular valores asignados por centro gestor desde asignaciones filtradas (monto_asignado_pago)
     const valoresAsignadosPorCentro = new Map<string, number>()
     filteredAsignaciones.forEach((asignacion: any) => {
       const centro = asignacion.nombre_centro_gestor || 'Sin definir'
-      const monto = Number(asignacion.monto_programado) || 0
+      const monto = Number(asignacion.monto_asignado_pago) || 0
       const valorActual = valoresAsignadosPorCentro.get(centro) || 0
       valoresAsignadosPorCentro.set(centro, valorActual + monto)
     })
 
-    console.log('💰 Valores asignados por centro gestor (desde asignaciones - monto_programado):', Array.from(valoresAsignadosPorCentro.entries()))
+    console.log('💰 Valores asignados por centro gestor (desde asignaciones - monto_asignado_pago):', Array.from(valoresAsignadosPorCentro.entries()))
 
     const centroMap = new Map<string, AnalysisByCentroGestor>()
 
@@ -2021,7 +2106,7 @@ const useEmprestitoRealData = () => {
       centroMap.set(nombreCentro, {
         centroGestor: nombreCentro,
         totalContratos: 0,
-        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado)
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_asignado_pago)
         valorAsignadoProyecciones: 0, // Se calculará desde proyecciones más adelante
         valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
         valorEjecutado: 0,      // Calculado desde reportes
@@ -2056,7 +2141,7 @@ const useEmprestitoRealData = () => {
         centroMap.set(centro, {
           centroGestor: centro,
           totalContratos: 0,
-          valorAsignadoBanco: valoresAsignadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado)
+          valorAsignadoBanco: valoresAsignadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_asignado_pago)
           valorAsignadoProyecciones: 0, // Se calculará desde proyecciones
           valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,      // Calculado desde reportes
@@ -2230,7 +2315,7 @@ const useEmprestitoRealData = () => {
       // Agregar otros mapeos si es necesario
     }
 
-    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_programado)
+    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_asignado_pago)
     const valoresAsignadosPorBanco = new Map<string, number>()
     filteredAsignaciones.forEach((asignacion: any) => {
       let banco = asignacion.banco || 'Sin definir'
@@ -2238,12 +2323,12 @@ const useEmprestitoRealData = () => {
       if (mapeoBancosAsignaciones[banco]) {
         banco = mapeoBancosAsignaciones[banco]
       }
-      const monto = Number(asignacion.monto_programado) || 0
+      const monto = Number(asignacion.monto_asignado_pago) || 0
       const valorActual = valoresAsignadosPorBanco.get(banco) || 0
       valoresAsignadosPorBanco.set(banco, valorActual + monto)
     })
 
-    console.log('📊 DEBUG: Valores asignados por banco (gráfico):', Array.from(valoresAsignadosPorBanco.entries()))
+    console.log('📊 DEBUG: Valores asignados por banco (gráfico - monto_asignado_pago):', Array.from(valoresAsignadosPorBanco.entries()))
 
     const bankMap = new Map<string, AnalysisByBank>()
 
@@ -2252,7 +2337,7 @@ const useEmprestitoRealData = () => {
       bankMap.set(nombreBanco, {
         banco: nombreBanco,
         totalContratos: 0,
-        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado)
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_asignado_pago)
         valorAsignadoProyecciones: 0, // No usado
         valorAdjudicado: 0,                // Se calculará desde contratos
         valorEjecutado: 0,                 // Se calculará desde reportes
@@ -2317,9 +2402,22 @@ const useEmprestitoRealData = () => {
     })
 
     // Filtrar para mostrar solo bancos que tienen contratos asignados, luego ordenar por valorAsignadoBanco
-    return Array.from(bankMap.values())
+    const result = Array.from(bankMap.values())
       .filter(banco => banco.totalContratos > 0) // Solo mostrar bancos con contratos
       .sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco)
+    
+    console.log('📊 analysisByBankForChart - Resultado final para gráfico:', {
+      totalBancos: result.length,
+      bancos: result.map(b => ({
+        banco: b.banco,
+        valorAsignadoBanco: b.valorAsignadoBanco,
+        valorAdjudicado: b.valorAdjudicado,
+        valorEjecutado: b.valorEjecutado,
+        valorPagado: b.valorPagado
+      }))
+    })
+    
+    return result
   }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones])
 
   // Cálculo correcto del avance físico total basado en los contratos
@@ -2451,6 +2549,25 @@ const useEmprestitoRealData = () => {
     return totalPeso > 0 ? totalPonderado / totalPeso : 0
   }, [filteredData, pagos])
 
+  // Cálculo del valorTotalAsignadoBanco con log de depuración
+  const valorTotalAsignadoBanco = useMemo(() => {
+    console.log('💰 Calculando valorTotalAsignadoBanco:', {
+      filteredAsignacionesLength: filteredAsignaciones.length,
+      muestra: filteredAsignaciones.slice(0, 3).map(a => ({
+        banco: a.banco,
+        monto_asignado_pago: a.monto_asignado_pago
+      }))
+    })
+    
+    const total = filteredAsignaciones.reduce((sum, asignacion) => {
+      const monto = Number(asignacion.monto_asignado_pago) || 0
+      return sum + monto
+    }, 0)
+    
+    console.log('💰 valorTotalAsignadoBanco calculado:', total)
+    return total
+  }, [filteredAsignaciones])
+
   return {
     loading,
     error,
@@ -2466,7 +2583,7 @@ const useEmprestitoRealData = () => {
     analysisByCentroGestor,
     totalContratos: filteredData.length,
     valorTotalAsignado: filteredData.reduce((sum, c) => sum + (Number(c.valor_contrato) || 0), 0),
-    valorTotalAsignadoBanco: filteredAsignaciones.reduce((sum, asignacion) => sum + (Number(asignacion.monto_programado) || 0), 0), // Suma desde asignaciones filtradas (monto_programado)
+    valorTotalAsignadoBanco, // Ahora usa el cálculo con logs
     valorTotalEjecutado, // Ahora usa el cálculo correcto basado en contratos filtrados
     valorTotalPagado, // Ahora usa el cálculo correcto basado en pagos reales
     valorTotalFisico,
@@ -2486,7 +2603,7 @@ const BankBarChart: React.FC<{
   const chartData = data.slice(0, maxItems)
 
   const metrics = [
-    { key: 'valorAsignadoBanco', label: 'Asignado Banco', color: '#F59E0B' },
+    { key: 'valorAsignadoBanco', label: 'Asignado Banco (Proyección Pagos)', color: '#F59E0B' },
     { key: 'valorAdjudicado', label: 'Valor Adjudicado', color: '#3B82F6' },
     { key: 'valorEjecutado', label: 'Ejecución Financiera', color: '#10B981' },
     { key: 'valorPagado', label: 'Pagos', color: '#8B5CF6' }
@@ -3534,7 +3651,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 <p className="text-sm font-bold text-green-700 dark:text-green-300">{formatNumber(valorTotalAsignado, 'currency')}</p>
               </div>
               <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
-                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">Valor Asignado Bancos</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">Asignado Banco (Proyección Pagos)</p>
                 <p className="text-sm font-bold text-orange-700 dark:text-orange-300">{formatNumber(valorTotalAsignadoBanco, 'currency')}</p>
               </div>
               <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
