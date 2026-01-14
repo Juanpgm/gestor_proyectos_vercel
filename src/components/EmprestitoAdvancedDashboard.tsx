@@ -2555,24 +2555,20 @@ const useEmprestitoRealData = () => {
 
     // PASO 2: Agregar pagos reales agrupados por año de pago
     pagos.forEach(pago => {
-      // Intentar parsear la fecha usando fecha_pago o fecha_transaccion
-      const fechaStr = pago.fecha_pago || pago.fecha_transaccion
+      // Intentar parsear la fecha usando fecha_transaccion
+      const fechaStr = pago.fecha_transaccion
       
       let fechaPago: Date | null = null
       if (fechaStr) {
-        if (typeof fechaStr === 'string') {
-          // Intentar formato ISO
-          fechaPago = new Date(fechaStr)
-          // Si es inválida, intentar otros formatos si es necesario (ej: DD/MM/YYYY)
-          if (isNaN(fechaPago.getTime())) {
-             // Intento simple para DD/MM/YYYY
-             const parts = fechaStr.split('/')
-             if (parts.length === 3) {
-               fechaPago = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
-             }
-          }
-        } else if (fechaStr instanceof Date) {
-          fechaPago = fechaStr
+        // Intentar formato ISO
+        fechaPago = new Date(fechaStr)
+        // Si es inválida, intentar otros formatos si es necesario (ej: DD/MM/YYYY)
+        if (isNaN(fechaPago.getTime())) {
+           // Intento simple para DD/MM/YYYY
+           const parts = fechaStr.split('/')
+           if (parts.length === 3) {
+             fechaPago = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
+           }
         }
       }
       
