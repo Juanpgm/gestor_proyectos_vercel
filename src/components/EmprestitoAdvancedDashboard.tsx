@@ -1403,7 +1403,8 @@ interface BancoEmprestito {
 interface AnalysisByBank {
   banco: string
   totalContratos: number
-  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_asignado_pago por banco)
+  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado_adjudicacion por banco)
+  valorPagosProyectados: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado_pago por banco)
   valorAsignadoProyecciones: number // Valor de proyecciones (actualmente no usado, mantener para compatibilidad)
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all (valor_contrato)
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
@@ -1415,7 +1416,8 @@ interface AnalysisByBank {
 interface AnalysisByCentroGestor {
   centroGestor: string
   totalContratos: number
-  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_asignado_pago)
+  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado_adjudicacion)
+  valorPagosProyectados: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado_pago)
   valorAsignadoProyecciones: number // Desde /api/emprestito/leer-tabla-proyecciones (suma de valor_proyectado)
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
@@ -1467,6 +1469,7 @@ interface YearlySummary {
     totalContratos: number
     valorTotalAsignado: number
     valorTotalAsignadoBanco: number
+    valorTotalPagosProyectados: number
     valorTotalEjecutado: number
     valorTotalPagado: number
     valorTotalFisico: number
@@ -1537,12 +1540,13 @@ const useEmprestitoRealData = () => {
     estado: '',
     sector: '',
     ano: '',
+    bp: '',
     fechaInicio: '',
     fechaFin: ''
   })
 
   // Función para calcular el resumen anual
-  const calculateYearlySummary = useCallback((allContratos: ContratoEmprestito[], allReportes: ReporteEmprestito[], allBancosEmprestito: BancoEmprestito[]) => {
+  const calculateYearlySummary = useCallback((allContratos: ContratoEmprestito[], allReportes: ReporteEmprestito[], allBancosEmprestito: BancoEmprestito[], allAsignaciones?: any[]) => {
     const yearlyData: YearlySummary = {}
 
     allContratos.forEach(contrato => {
@@ -1553,6 +1557,7 @@ const useEmprestitoRealData = () => {
           totalContratos: 0,
           valorTotalAsignado: 0,
           valorTotalAsignadoBanco: 0,
+          valorTotalPagosProyectados: 0,
           valorTotalEjecutado: 0,
           valorTotalPagado: 0,
           valorTotalFisico: 0,
@@ -1575,28 +1580,38 @@ const useEmprestitoRealData = () => {
       if (reporteContrato) {
         const avanceFinanciero = reporteContrato.avance_financiero || 0
         const avanceFisico = reporteContrato.avance_fisico || 0
-        // const porcentajePagado = (reporteContrato as any).porcentaje_pagado || 0 // No hay datos para esto actualmente
 
         yearSummary.valorTotalEjecutado += (valorContrato * avanceFinanciero) / 100
         yearSummary.valorTotalFisico += (valorContrato * avanceFisico) / 100
-        // yearSummary.valorTotalPagado += (valorContrato * porcentajePagado) / 100
       }
     })
 
-    // Calcular valorTotalAsignadoBanco por año (sumando de bancosEmprestito)
-    allBancosEmprestito.forEach(banco => {
-      // Asumiendo que banco.nombre_banco o similar puede ser usado para agrupar por año si la data lo permite
-      // Por ahora, sumaremos todo al total consolidado si no hay un campo de año en BancoEmprestito
-      // Si BancoEmprestito tuviera un campo de año, se usaría aquí.
-      // Para este ejemplo, asumimos que valor_asignado_banco es un total general o se distribuye.
-      // Si necesitamos por año, la API de bancos_emprestito_all debería proveerlo.
-      // Por simplicidad, si no hay año en el banco, lo sumamos al total general o al año del contrato.
-      // Para el resumen anual, necesitamos que el valor_asignado_banco esté asociado a un año.
-      // Si no lo está, este cálculo será menos preciso a nivel anual.
-      // Por ahora, lo dejaremos como 0 para los años individuales si no hay un campo de año en BancoEmprestito.
-      // Si la API de bancos_emprestito_all tuviera un campo 'año', lo usaríamos aquí.
-      // Por ahora, este valor se calculará de forma consolidada y no por año individualmente desde esta fuente.
-    })
+    // Calcular valorTotalAsignadoBanco y valorTotalPagosProyectados por año desde asignaciones
+    if (allAsignaciones && Array.isArray(allAsignaciones)) {
+      allAsignaciones.forEach(asignacion => {
+        const year = asignacion.anio?.toString() || 'Sin Año'
+        
+        if (!yearlyData[year]) {
+          yearlyData[year] = {
+            totalContratos: 0,
+            valorTotalAsignado: 0,
+            valorTotalAsignadoBanco: 0,
+            valorTotalPagosProyectados: 0,
+            valorTotalEjecutado: 0,
+            valorTotalPagado: 0,
+            valorTotalFisico: 0,
+            porcentajeFisicoPromedio: 0,
+            porcentajeFinancieroPromedio: 0,
+          }
+        }
+        
+        const montoAdj = Number(asignacion.monto_programado_adjudicacion) || 0
+        const montoPago = Number(asignacion.monto_programado_pago) || 0
+        
+        yearlyData[year].valorTotalAsignadoBanco += montoAdj
+        yearlyData[year].valorTotalPagosProyectados += montoPago
+      })
+    }
 
     // Recalcular promedios ponderados por año
     Object.keys(yearlyData).forEach(year => {
@@ -1782,7 +1797,7 @@ const useEmprestitoRealData = () => {
         setAsignaciones(asignacionesArray)
         console.log('✅ Estado de asignaciones actualizado')
         setFilteredData(contratosArray)
-        setYearlySummary(calculateYearlySummary(contratosArray, reportesArray, bancosArray))
+        setYearlySummary(calculateYearlySummary(contratosArray, reportesArray, bancosArray, asignacionesArray))
 
         console.log(`✅ Datos cargados en ${loadTime}s (carga paralela):`, {
           contratos: contratosArray.length,
@@ -1801,24 +1816,34 @@ const useEmprestitoRealData = () => {
           banco: a.banco,
           centro: a.nombre_centro_gestor,
           bp: a.bp,
-          monto_asignado_pago: a.monto_asignado_pago,
+          monto_programado_adjudicacion: a.monto_programado_adjudicacion,
+          monto_programado_pago: a.monto_programado_pago,
           anio: a.anio,
           created_at: a.created_at
         })))
 
         // Calcular totales por banco desde asignaciones para debug
-        const totalesPorBanco = new Map<string, number>()
+        const totalesPorBancoAdj = new Map<string, number>()
+        const totalesPorBancoPago = new Map<string, number>()
         asignacionesArray.forEach((asig: any) => {
           const banco = asig.banco || 'Sin definir'
-          const monto = Number(asig.monto_asignado_pago) || 0
-          totalesPorBanco.set(banco, (totalesPorBanco.get(banco) || 0) + monto)
+          const montoAdj = Number(asig.monto_programado_adjudicacion) || 0
+          const montoPago = Number(asig.monto_programado_pago) || 0
+          totalesPorBancoAdj.set(banco, (totalesPorBancoAdj.get(banco) || 0) + montoAdj)
+          totalesPorBancoPago.set(banco, (totalesPorBancoPago.get(banco) || 0) + montoPago)
         })
-        console.log('💵 Totales por banco desde asignaciones:', Array.from(totalesPorBanco.entries()).map(([banco, total]) => ({
+        console.log('💵 Totales adjudicación por banco desde asignaciones:', Array.from(totalesPorBancoAdj.entries()).map(([banco, total]) => ({
           banco,
           total: total.toLocaleString('es-CO'),
           totalNumerico: total
         })))
-        console.log('💵 TOTAL GENERAL desde asignaciones:', asignacionesArray.reduce((sum: number, a: any) => sum + (Number(a.monto_asignado_pago) || 0), 0).toLocaleString('es-CO'))
+        console.log('💵 Totales pagos proyectados por banco desde asignaciones:', Array.from(totalesPorBancoPago.entries()).map(([banco, total]) => ({
+          banco,
+          total: total.toLocaleString('es-CO'),
+          totalNumerico: total
+        })))
+        console.log('💵 TOTAL GENERAL adjudicación desde asignaciones:', asignacionesArray.reduce((sum: number, a: any) => sum + (Number(a.monto_programado_adjudicacion) || 0), 0).toLocaleString('es-CO'))
+        console.log('💵 TOTAL GENERAL pagos proyectados desde asignaciones:', asignacionesArray.reduce((sum: number, a: any) => sum + (Number(a.monto_programado_pago) || 0), 0).toLocaleString('es-CO'))
 
         console.log('🔍 VERIFICAR PROYECCIONES - Muestra:', proyeccionesArray.slice(0, 2).map((p: any) => ({
           organismo: p.nombre_organismo_reducido,
@@ -1892,6 +1917,9 @@ const useEmprestitoRealData = () => {
     if (filters.sector) {
       filtered = filtered.filter(c => c.sector?.toLowerCase().includes(filters.sector.toLowerCase()))
     }
+    if (filters.bp) {
+      filtered = filtered.filter(c => c.bp?.toLowerCase().includes(filters.bp.toLowerCase()))
+    }
     if (filters.ano) {
       filtered = filtered.filter(c => {
         const fechaInicio = c.fecha_inicio_contrato ? new Date(c.fecha_inicio_contrato).getFullYear().toString() : null
@@ -1935,6 +1963,12 @@ const useEmprestitoRealData = () => {
       console.log(`🔍 Filtro centro gestor "${filters.centroGestor}" aplicado: ${filtered.length} resultados`)
     }
 
+    // Filtrar por BP
+    if (filters.bp) {
+      filtered = filtered.filter(a => a.bp?.toLowerCase().includes(filters.bp.toLowerCase()))
+      console.log(`🔍 Filtro BP "${filters.bp}" aplicado: ${filtered.length} resultados`)
+    }
+
     // Filtrar por año
     if (filters.ano) {
       filtered = filtered.filter(a => a.anio?.toString() === filters.ano)
@@ -1948,7 +1982,8 @@ const useEmprestitoRealData = () => {
       muestra: filtered.slice(0, 3).map(a => ({
         banco: a.banco,
         centro: a.nombre_centro_gestor,
-        monto_asignado_pago: a.monto_asignado_pago,
+        monto_programado_adjudicacion: a.monto_programado_adjudicacion,
+        monto_programado_pago: a.monto_programado_pago,
         anio: a.anio
       }))
     })
@@ -2013,20 +2048,25 @@ const useEmprestitoRealData = () => {
       // Agregar otros mapeos si es necesario
     }
 
-    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_asignado_pago)
+    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_programado_adjudicacion y monto_programado_pago)
     const valoresAsignadosPorBanco = new Map<string, number>()
+    const valoresPagosProyectadosPorBanco = new Map<string, number>()
     filteredAsignaciones.forEach((asignacion: any) => {
       let banco = asignacion.banco || 'Sin definir'
       // Normalizar nombre del banco
       if (mapeoBancosAsignaciones[banco]) {
         banco = mapeoBancosAsignaciones[banco]
       }
-      const monto = Number(asignacion.monto_asignado_pago) || 0
-      const valorActual = valoresAsignadosPorBanco.get(banco) || 0
-      valoresAsignadosPorBanco.set(banco, valorActual + monto)
+      const montoAdjudicacion = Number(asignacion.monto_programado_adjudicacion) || 0
+      const montoPago = Number(asignacion.monto_programado_pago) || 0
+      const valorActualAdjudicacion = valoresAsignadosPorBanco.get(banco) || 0
+      const valorActualPago = valoresPagosProyectadosPorBanco.get(banco) || 0
+      valoresAsignadosPorBanco.set(banco, valorActualAdjudicacion + montoAdjudicacion)
+      valoresPagosProyectadosPorBanco.set(banco, valorActualPago + montoPago)
     })
 
-    console.log('💰 Valores asignados por banco (desde asignaciones - monto_asignado_pago):', Array.from(valoresAsignadosPorBanco.entries()))
+    console.log('💰 Valores asignados por banco (desde asignaciones - monto_programado_adjudicacion):', Array.from(valoresAsignadosPorBanco.entries()))
+    console.log('💰 Valores pagos proyectados por banco (desde asignaciones - monto_programado_pago):', Array.from(valoresPagosProyectadosPorBanco.entries()))
 
     const bankMap = new Map<string, AnalysisByBank>()
 
@@ -2035,7 +2075,8 @@ const useEmprestitoRealData = () => {
       bankMap.set(nombreBanco, {
         banco: nombreBanco,
         totalContratos: 0,
-        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_asignado_pago)
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_adjudicacion)
+        valorPagosProyectados: valoresPagosProyectadosPorBanco.get(nombreBanco) || 0, // Desde asignaciones (monto_programado_pago)
         valorAsignadoProyecciones: 0, // No usado actualmente
         valorAdjudicado: 0,                     // Del endpoint contratos_emprestito_all
         valorEjecutado: 0,                      // Calculado desde reportes
@@ -2068,7 +2109,8 @@ const useEmprestitoRealData = () => {
         bankMap.set(banco, {
           banco,
           totalContratos: 0,
-          valorAsignadoBanco: valoresAsignadosPorBanco.get(banco) || 0, // Desde asignaciones (monto_asignado_pago)
+          valorAsignadoBanco: valoresAsignadosPorBanco.get(banco) || 0, // Desde asignaciones (monto_programado_adjudicacion)
+          valorPagosProyectados: valoresPagosProyectadosPorBanco.get(banco) || 0, // Desde asignaciones (monto_programado_pago)
           valorAsignadoProyecciones: 0, // No usado
           valorAdjudicado: 0,                     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,                      // Calculado desde reportes
@@ -2121,17 +2163,20 @@ const useEmprestitoRealData = () => {
 
     // PASO 1: Calcular valores asignados por centro gestor desde asignaciones filtradas
     const valoresAsignadosPorCentro = new Map<string, number>()
+    const valoresPagosProyectadosPorCentro = new Map<string, number>()
     filteredAsignaciones.forEach((asignacion: any) => {
       const centro = asignacion.nombre_centro_gestor || 'Sin definir'
       const montoPago = Number(asignacion.monto_programado_pago) || 0
       const montoAdj = Number(asignacion.monto_programado_adjudicacion) || 0
-      const total = montoPago + montoAdj
       
-      const valorActual = valoresAsignadosPorCentro.get(centro) || 0
-      valoresAsignadosPorCentro.set(centro, valorActual + total)
+      const valorActualAdj = valoresAsignadosPorCentro.get(centro) || 0
+      const valorActualPago = valoresPagosProyectadosPorCentro.get(centro) || 0
+      valoresAsignadosPorCentro.set(centro, valorActualAdj + montoAdj)
+      valoresPagosProyectadosPorCentro.set(centro, valorActualPago + montoPago)
     })
 
-    console.log('💰 Valores asignados por centro gestor (desde asignaciones - programado):', Array.from(valoresAsignadosPorCentro.entries()))
+    console.log('💰 Valores asignados por centro gestor (desde asignaciones - monto_programado_adjudicacion):', Array.from(valoresAsignadosPorCentro.entries()))
+    console.log('💰 Valores pagos proyectados por centro gestor (desde asignaciones - monto_programado_pago):', Array.from(valoresPagosProyectadosPorCentro.entries()))
 
     const centroMap = new Map<string, AnalysisByCentroGestor>()
 
@@ -2140,7 +2185,8 @@ const useEmprestitoRealData = () => {
       centroMap.set(nombreCentro, {
         centroGestor: nombreCentro,
         totalContratos: 0,
-        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_pago + monto_programado_adjudicacion)
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_adjudicacion)
+        valorPagosProyectados: valoresPagosProyectadosPorCentro.get(nombreCentro) || 0, // Desde asignaciones (monto_programado_pago)
         valorAsignadoProyecciones: 0, // Se calculará desde proyecciones más adelante
         valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
         valorEjecutado: 0,      // Calculado desde reportes
@@ -2175,7 +2221,8 @@ const useEmprestitoRealData = () => {
         centroMap.set(centro, {
           centroGestor: centro,
           totalContratos: 0,
-          valorAsignadoBanco: valoresAsignadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado_pago + monto_programado_adjudicacion)
+          valorAsignadoBanco: valoresAsignadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado_adjudicacion)
+          valorPagosProyectados: valoresPagosProyectadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado_pago)
           valorAsignadoProyecciones: 0, // Se calculará desde proyecciones
           valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,      // Calculado desde reportes
@@ -2351,6 +2398,7 @@ const useEmprestitoRealData = () => {
 
     // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas
     const valoresAsignadosPorBanco = new Map<string, number>()
+    const valoresPagosProyectadosPorBanco = new Map<string, number>()
     filteredAsignaciones.forEach((asignacion: any) => {
       let banco = asignacion.nombre_banco || asignacion.banco || 'Sin definir'
       // Normalizar nombre del banco
@@ -2360,13 +2408,15 @@ const useEmprestitoRealData = () => {
       
       const montoPago = Number(asignacion.monto_programado_pago) || 0
       const montoAdj = Number(asignacion.monto_programado_adjudicacion) || 0
-      const total = montoPago + montoAdj
       
-      const valorActual = valoresAsignadosPorBanco.get(banco) || 0
-      valoresAsignadosPorBanco.set(banco, valorActual + total)
+      const valorActualAdj = valoresAsignadosPorBanco.get(banco) || 0
+      const valorActualPago = valoresPagosProyectadosPorBanco.get(banco) || 0
+      valoresAsignadosPorBanco.set(banco, valorActualAdj + montoAdj)
+      valoresPagosProyectadosPorBanco.set(banco, valorActualPago + montoPago)
     })
 
-    console.log('📊 DEBUG: Valores asignados por banco (gráfico - monto_asignado_pago):', Array.from(valoresAsignadosPorBanco.entries()))
+    console.log('📊 DEBUG: Valores asignados por banco (gráfico - monto_programado_adjudicacion):', Array.from(valoresAsignadosPorBanco.entries()))
+    console.log('📊 DEBUG: Valores pagos proyectados por banco (gráfico - monto_programado_pago):', Array.from(valoresPagosProyectadosPorBanco.entries()))
 
     const bankMap = new Map<string, AnalysisByBank>()
 
@@ -2375,7 +2425,8 @@ const useEmprestitoRealData = () => {
       bankMap.set(nombreBanco, {
         banco: nombreBanco,
         totalContratos: 0,
-        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_asignado_pago)
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_adjudicacion)
+        valorPagosProyectados: valoresPagosProyectadosPorBanco.get(nombreBanco) || 0, // Desde asignaciones (monto_programado_pago)
         valorAsignadoProyecciones: 0, // No usado
         valorAdjudicado: 0,                // Se calculará desde contratos
         valorEjecutado: 0,                 // Se calculará desde reportes
@@ -2767,16 +2818,26 @@ const useEmprestitoRealData = () => {
       filteredAsignacionesLength: filteredAsignaciones.length,
       muestra: filteredAsignaciones.slice(0, 3).map(a => ({
         banco: a.banco,
-        monto_asignado_pago: a.monto_asignado_pago
+        monto_programado_adjudicacion: a.monto_programado_adjudicacion,
+        monto_programado_pago: a.monto_programado_pago
       }))
     })
     
-    const total = filteredAsignaciones.reduce((sum, asignacion) => {
-      const monto = Number(asignacion.monto_asignado_pago) || 0
+    const totalAdjudicacion = filteredAsignaciones.reduce((sum, asignacion) => {
+      const monto = Number(asignacion.monto_programado_adjudicacion) || 0
       return sum + monto
     }, 0)
     
-    console.log('💰 valorTotalAsignadoBanco calculado:', total)
+    const totalPago = filteredAsignaciones.reduce((sum, asignacion) => {
+      const monto = Number(asignacion.monto_programado_pago) || 0
+      return sum + monto
+    }, 0)
+    
+    const total = totalAdjudicacion + totalPago
+    
+    console.log('💰 valorTotalAsignadoBanco (adjudicación):', totalAdjudicacion)
+    console.log('💰 valorTotalAsignadoBanco (pagos proyectados):', totalPago)
+    console.log('💰 valorTotalAsignadoBanco total calculado:', total)
     return total
   }, [filteredAsignaciones])
 
@@ -2817,7 +2878,8 @@ const BankBarChart: React.FC<{
   const chartData = data.slice(0, maxItems)
 
   const metrics = [
-    { key: 'valorAsignadoBanco', label: 'Asignado Banco (Proyección Pagos)', color: '#F59E0B' },
+    { key: 'valorAsignadoBanco', label: 'Asignado Banco (Adjudicación Programada)', color: '#F59E0B' },
+    { key: 'valorPagosProyectados', label: 'Pagos Proyectados', color: '#EC4899' },
     { key: 'valorAdjudicado', label: 'Valor Adjudicado', color: '#3B82F6' },
     { key: 'valorEjecutado', label: 'Ejecución Financiera', color: '#10B981' },
     { key: 'valorPagado', label: 'Pagos', color: '#8B5CF6' }
@@ -3011,7 +3073,8 @@ const CentroGestorBarChart: React.FC<{
   })))
 
   const metrics = [
-    { key: 'valorAsignadoBanco', label: 'Valor Asignado', color: '#F59E0B' },
+    { key: 'valorAsignadoBanco', label: 'Asignado Banco (Adjudicación Programada)', color: '#F59E0B' },
+    { key: 'valorPagosProyectados', label: 'Pagos Proyectados', color: '#EC4899' },
     { key: 'valorAdjudicado', label: 'Valor Adjudicado', color: '#3B82F6' },
     { key: 'valorEjecutado', label: 'Ejecución Financiera', color: '#10B981' },
     { key: 'valorPagado', label: 'Pagos', color: '#8B5CF6' }
@@ -3501,28 +3564,28 @@ const FinancialAnalysisToggle: React.FC<{
                contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: '8px', color: 'black' }}
             />
             <Legend verticalAlign="top"/>
-            <Bar dataKey="valorPagado" name="Pago Real" fill="#8B5CF6" barSize={50}>
+            <Bar dataKey="valorProgramadoAdjudicacion" name="Asignado Banco (Adjudicación Programada)" fill="#F59E0B" barSize={50}>
+              <LabelList 
+                dataKey="valorProgramadoAdjudicacion" 
+                position="top" 
+                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
+                style={{ fontSize: '11px', fill: '#D97706', fontWeight: 'bold' }}
+              />
+            </Bar>
+            <Bar dataKey="valorProgramadoPago" name="Pagos Proyectados" fill="#EC4899" barSize={50}>
+              <LabelList 
+                dataKey="valorProgramadoPago" 
+                position="top" 
+                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
+                style={{ fontSize: '11px', fill: '#DB2777', fontWeight: 'bold' }}
+              />
+            </Bar>
+            <Bar dataKey="valorPagado" name="Pagos Reales" fill="#8B5CF6" barSize={50}>
               <LabelList 
                 dataKey="valorPagado" 
                 position="top" 
                 formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
                 style={{ fontSize: '11px', fill: '#5B21B6', fontWeight: 'bold' }}
-              />
-            </Bar>
-            <Bar dataKey="valorProgramadoPago" name="Pago Proyectado" fill="#10B981" barSize={50}>
-              <LabelList 
-                dataKey="valorProgramadoPago" 
-                position="top" 
-                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
-                style={{ fontSize: '11px', fill: '#059669', fontWeight: 'bold' }}
-              />
-            </Bar>
-            <Bar dataKey="valorProgramadoAdjudicacion" name="Adjudicación Proyectada" fill="#3B82F6" barSize={50}>
-              <LabelList 
-                dataKey="valorProgramadoAdjudicacion" 
-                position="top" 
-                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
-                style={{ fontSize: '11px', fill: '#2563EB', fontWeight: 'bold' }}
               />
             </Bar>
           </BarChart>
@@ -3746,7 +3809,7 @@ const AdvancedFilters: React.FC<{
         </h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {/* Filtro por Banco */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -3818,11 +3881,35 @@ const AdvancedFilters: React.FC<{
             ))}
           </select>
         </div>
+
+        {/* Filtro por BP */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <FileText className="w-4 h-4 inline mr-1" />
+            BP (Proyecto)
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={filters.bp}
+              onChange={(e) => setFilters({ ...filters, bp: e.target.value })}
+              placeholder="Buscar BP..."
+              list="bp-list"
+              className="w-full px-3 py-2 pl-9 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+            />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <datalist id="bp-list">
+              {bps.map(bp => (
+                <option key={bp} value={bp} />
+              ))}
+            </datalist>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end mt-4">
         <button
-          onClick={() => setFilters({ banco: '', centroGestor: '', estado: '', sector: '', fechaInicio: '', fechaFin: '' })}
+          onClick={() => setFilters({ banco: '', centroGestor: '', estado: '', sector: '', bp: '', ano: '', fechaInicio: '', fechaFin: '' })}
           className="px-4 py-2 text-sm text-teal-600 hover:text-teal-700 font-medium"
         >
           Limpiar filtros
@@ -3919,6 +4006,11 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   const centrosGestores = useMemo(() => {
     const uniqueCentros = Array.from(new Set(contratos.map(c => c.nombre_centro_gestor).filter(Boolean)))
     return uniqueCentros.sort()
+  }, [contratos])
+
+  const bps = useMemo(() => {
+    const uniqueBPs = Array.from(new Set(contratos.map(c => c.bp).filter(Boolean)))
+    return uniqueBPs.sort()
   }, [contratos])
 
   // Función para manejar ordenamiento
@@ -5068,10 +5160,34 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   </select>
                 </div>
 
+                {/* Filtro por BP */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <FileText className="w-4 h-4 inline mr-2" />
+                    BP (Proyecto)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={filters.bp}
+                      onChange={(e) => setFilters({ ...filters, bp: e.target.value })}
+                      placeholder="Buscar BP..."
+                      list="bp-list-sidebar"
+                      className="w-full px-3 py-2 pl-9 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                    />
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <datalist id="bp-list-sidebar">
+                      {bps.map(bp => (
+                        <option key={bp} value={bp} />
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+
                 {/* Botón limpiar filtros */}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
                   <button
-                    onClick={() => setFilters({ banco: '', centroGestor: '', estado: '', sector: '', ano: '', fechaInicio: '', fechaFin: '' })}
+                    onClick={() => setFilters({ banco: '', centroGestor: '', estado: '', sector: '', bp: '', ano: '', fechaInicio: '', fechaFin: '' })}
                     className="w-full px-4 py-2 text-sm text-teal-600 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 font-medium rounded-lg transition-colors"
                   >
                     Limpiar todos los filtros
