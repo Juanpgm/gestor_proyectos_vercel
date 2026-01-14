@@ -45,6 +45,7 @@ import { CATEGORIES, formatNumber, CHART_COLORS } from '@/lib/design-system'
 import ContratosModal from './ContratosModal'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
 import { fetchPagosEmprestito, PagoEmprestito } from '@/services/pagos.service'
+import { formatCurrency } from '@/utils/formatCurrency'
 
 // Tipos para los reportes de contratos (usar la estructura existente)
 interface ReporteContratoTS extends ReporteEmprestito {
@@ -1431,6 +1432,36 @@ interface AnalysisByCentroGestor {
   }>
 }
 
+interface AnalysisByCentroGestorV2 {
+  centroGestor: string
+  valorProgramadoPago: number
+  valorProgramadoAdjudicacion: number
+  totalAsignado: number
+  bancos: Array<{ nombre: string; valor: number }>
+}
+
+interface AnalysisByYear {
+  year: number
+  valorProgramadoPago: number
+  valorProgramadoAdjudicacion: number
+  valorPagado: number
+  totalAsignado: number
+  centrosGestores: Array<{
+    nombre: string
+    valorProgramadoPago: number
+    valorProgramadoAdjudicacion: number
+    valorPagado: number
+    totalAsignado: number
+  }>
+  bancos: Array<{
+    nombre: string
+    valorProgramadoPago: number
+    valorProgramadoAdjudicacion: number
+    valorPagado: number
+    totalAsignado: number
+  }>
+}
+
 interface YearlySummary {
   [year: string]: {
     totalContratos: number
@@ -2088,16 +2119,19 @@ const useEmprestitoRealData = () => {
       return []
     }
 
-    // PASO 1: Calcular valores asignados por centro gestor desde asignaciones filtradas (monto_asignado_pago)
+    // PASO 1: Calcular valores asignados por centro gestor desde asignaciones filtradas
     const valoresAsignadosPorCentro = new Map<string, number>()
     filteredAsignaciones.forEach((asignacion: any) => {
       const centro = asignacion.nombre_centro_gestor || 'Sin definir'
-      const monto = Number(asignacion.monto_asignado_pago) || 0
+      const montoPago = Number(asignacion.monto_programado_pago) || 0
+      const montoAdj = Number(asignacion.monto_programado_adjudicacion) || 0
+      const total = montoPago + montoAdj
+      
       const valorActual = valoresAsignadosPorCentro.get(centro) || 0
-      valoresAsignadosPorCentro.set(centro, valorActual + monto)
+      valoresAsignadosPorCentro.set(centro, valorActual + total)
     })
 
-    console.log('💰 Valores asignados por centro gestor (desde asignaciones - monto_asignado_pago):', Array.from(valoresAsignadosPorCentro.entries()))
+    console.log('💰 Valores asignados por centro gestor (desde asignaciones - programado):', Array.from(valoresAsignadosPorCentro.entries()))
 
     const centroMap = new Map<string, AnalysisByCentroGestor>()
 
@@ -2106,7 +2140,7 @@ const useEmprestitoRealData = () => {
       centroMap.set(nombreCentro, {
         centroGestor: nombreCentro,
         totalContratos: 0,
-        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_asignado_pago)
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_pago + monto_programado_adjudicacion)
         valorAsignadoProyecciones: 0, // Se calculará desde proyecciones más adelante
         valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
         valorEjecutado: 0,      // Calculado desde reportes
@@ -2141,7 +2175,7 @@ const useEmprestitoRealData = () => {
         centroMap.set(centro, {
           centroGestor: centro,
           totalContratos: 0,
-          valorAsignadoBanco: valoresAsignadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_asignado_pago)
+          valorAsignadoBanco: valoresAsignadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado_pago + monto_programado_adjudicacion)
           valorAsignadoProyecciones: 0, // Se calculará desde proyecciones
           valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,      // Calculado desde reportes
@@ -2315,17 +2349,21 @@ const useEmprestitoRealData = () => {
       // Agregar otros mapeos si es necesario
     }
 
-    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_asignado_pago)
+    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas
     const valoresAsignadosPorBanco = new Map<string, number>()
     filteredAsignaciones.forEach((asignacion: any) => {
-      let banco = asignacion.banco || 'Sin definir'
+      let banco = asignacion.nombre_banco || asignacion.banco || 'Sin definir'
       // Normalizar nombre del banco
       if (mapeoBancosAsignaciones[banco]) {
         banco = mapeoBancosAsignaciones[banco]
       }
-      const monto = Number(asignacion.monto_asignado_pago) || 0
+      
+      const montoPago = Number(asignacion.monto_programado_pago) || 0
+      const montoAdj = Number(asignacion.monto_programado_adjudicacion) || 0
+      const total = montoPago + montoAdj
+      
       const valorActual = valoresAsignadosPorBanco.get(banco) || 0
-      valoresAsignadosPorBanco.set(banco, valorActual + monto)
+      valoresAsignadosPorBanco.set(banco, valorActual + total)
     })
 
     console.log('📊 DEBUG: Valores asignados por banco (gráfico - monto_asignado_pago):', Array.from(valoresAsignadosPorBanco.entries()))
@@ -2419,6 +2457,184 @@ const useEmprestitoRealData = () => {
     
     return result
   }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones])
+
+  // Análisis por Centro Gestor V2 (Datos de asignaciones)
+  const analysisByCentroGestorV2 = useMemo((): AnalysisByCentroGestorV2[] => {
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) return []
+
+    const map = new Map<string, AnalysisByCentroGestorV2>()
+
+    filteredAsignaciones.forEach((asig: any) => {
+      const centro = asig.nombre_centro_gestor || 'Sin definir'
+      const banco = asig.nombre_banco || asig.banco || 'Sin definir'
+      const pago = Number(asig.monto_programado_pago) || 0
+      const adj = Number(asig.monto_programado_adjudicacion) || 0
+      const total = pago + adj
+
+      if (!map.has(centro)) {
+        map.set(centro, {
+          centroGestor: centro,
+          valorProgramadoPago: 0,
+          valorProgramadoAdjudicacion: 0,
+          totalAsignado: 0,
+          bancos: []
+        })
+      }
+
+      const entry = map.get(centro)!
+      entry.valorProgramadoPago += pago
+      entry.valorProgramadoAdjudicacion += adj
+      entry.totalAsignado += total
+
+      // Agregar banco si no existe
+      let bancoEntry = entry.bancos.find(b => b.nombre === banco)
+      if (!bancoEntry) {
+        bancoEntry = { nombre: banco, valor: 0 }
+        entry.bancos.push(bancoEntry)
+      }
+      bancoEntry.valor += total
+    })
+
+    return Array.from(map.values()).sort((a, b) => b.totalAsignado - a.totalAsignado)
+  }, [filteredAsignaciones])
+
+  // Análisis por Año (Datos de asignaciones)
+  const analysisByYear = useMemo((): AnalysisByYear[] => {
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) return []
+
+    const map = new Map<number, AnalysisByYear>()
+
+    // PASO 1: Procesar asignaciones
+    filteredAsignaciones.forEach((asig: any) => {
+      const anio = Number(asig.anio)
+      if (!anio) return
+
+      const centro = asig.nombre_centro_gestor || 'Sin definir'
+      const banco = asig.nombre_banco || asig.banco || 'Sin definir'
+      const pago = Number(asig.monto_programado_pago) || 0
+      const adj = Number(asig.monto_programado_adjudicacion) || 0
+      const total = pago + adj
+
+      if (!map.has(anio)) {
+        map.set(anio, {
+          year: anio,
+          valorProgramadoPago: 0,
+          valorProgramadoAdjudicacion: 0,
+          valorPagado: 0,
+          totalAsignado: 0,
+          centrosGestores: [],
+          bancos: []
+        })
+      }
+
+      const entry = map.get(anio)!
+      entry.valorProgramadoPago += pago
+      entry.valorProgramadoAdjudicacion += adj
+      entry.totalAsignado += total
+
+      // Agregar o actualizar centro gestor
+      let centroEntry = entry.centrosGestores.find(c => c.nombre === centro)
+      if (!centroEntry) {
+        centroEntry = { nombre: centro, valorProgramadoPago: 0, valorProgramadoAdjudicacion: 0, valorPagado: 0, totalAsignado: 0 }
+        entry.centrosGestores.push(centroEntry)
+      }
+      centroEntry.valorProgramadoPago += pago
+      centroEntry.valorProgramadoAdjudicacion += adj
+      centroEntry.totalAsignado += total
+
+      // Agregar o actualizar banco
+      let bancoEntry = entry.bancos.find(b => b.nombre === banco)
+      if (!bancoEntry) {
+        bancoEntry = { nombre: banco, valorProgramadoPago: 0, valorProgramadoAdjudicacion: 0, valorPagado: 0, totalAsignado: 0 }
+        entry.bancos.push(bancoEntry)
+      }
+      bancoEntry.valorProgramadoPago += pago
+      bancoEntry.valorProgramadoAdjudicacion += adj
+      bancoEntry.totalAsignado += total
+    })
+
+    // PASO 2: Agregar pagos reales agrupados por año de pago
+    pagos.forEach(pago => {
+      // Intentar parsear la fecha usando fecha_pago o fecha_transaccion
+      const fechaStr = pago.fecha_pago || pago.fecha_transaccion
+      
+      let fechaPago: Date | null = null
+      if (fechaStr) {
+        if (typeof fechaStr === 'string') {
+          // Intentar formato ISO
+          fechaPago = new Date(fechaStr)
+          // Si es inválida, intentar otros formatos si es necesario (ej: DD/MM/YYYY)
+          if (isNaN(fechaPago.getTime())) {
+             // Intento simple para DD/MM/YYYY
+             const parts = fechaStr.split('/')
+             if (parts.length === 3) {
+               fechaPago = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
+             }
+          }
+        } else if (fechaStr instanceof Date) {
+          fechaPago = fechaStr
+        }
+      }
+      
+      // Si la fecha sigue siendo inválida, usar log para depurar (opcional)
+      if (!fechaPago || isNaN(fechaPago.getTime())) return
+
+      const anioPago = fechaPago.getFullYear()
+      if (!anioPago) return
+
+      // Encontrar el contrato asociado al pago
+      const contrato = filteredData.find(c => c.referencia_contrato === pago.referencia_contrato)
+      // Permitir pagos incluso si el contrato no está en filteredData? 
+      // Si filteredData tiene todos los contratos, debería estar. 
+      // Si filteredData está filtrado por filtro global, entonces es correcto excluirlo.
+      if (!contrato) return
+
+      const centro = contrato.nombre_centro_gestor || 'Sin definir'
+      const banco = contrato.banco || 'Sin definir'
+      const valorPago = Number(pago.valor_pago) || 0
+
+      // Crear año si no existe
+      if (!map.has(anioPago)) {
+        map.set(anioPago, {
+          year: anioPago,
+          valorProgramadoPago: 0,
+          valorProgramadoAdjudicacion: 0,
+          valorPagado: 0,
+          totalAsignado: 0,
+          centrosGestores: [],
+          bancos: []
+        })
+      }
+
+      const entry = map.get(anioPago)!
+      entry.valorPagado += valorPago
+
+      // Actualizar o crear centro gestor
+      let centroEntry = entry.centrosGestores.find(c => c.nombre === centro)
+      if (!centroEntry) {
+        centroEntry = { nombre: centro, valorProgramadoPago: 0, valorProgramadoAdjudicacion: 0, valorPagado: 0, totalAsignado: 0 }
+        entry.centrosGestores.push(centroEntry)
+      }
+      centroEntry.valorPagado += valorPago
+
+      // Actualizar o crear banco
+      let bancoEntry = entry.bancos.find(b => b.nombre === banco)
+      if (!bancoEntry) {
+        bancoEntry = { nombre: banco, valorProgramadoPago: 0, valorProgramadoAdjudicacion: 0, valorPagado: 0, totalAsignado: 0 }
+        entry.bancos.push(bancoEntry)
+      }
+      bancoEntry.valorPagado += valorPago
+    })
+
+
+    // Ordenar centros gestores y bancos por monto total en cada año
+    map.forEach(entry => {
+      entry.centrosGestores.sort((a, b) => b.totalAsignado - a.totalAsignado)
+      entry.bancos.sort((a, b) => b.totalAsignado - a.totalAsignado)
+    })
+
+    return Array.from(map.values()).sort((a, b) => a.year - b.year)
+  }, [filteredAsignaciones, filteredData, pagos])
 
   // Cálculo correcto del avance físico total basado en los contratos
   // Usa el último reporte de cada contrato (mismo que la gráfica semanal usa para la última semana)
@@ -2581,6 +2797,8 @@ const useEmprestitoRealData = () => {
     analysisByBank,
     analysisByBankForChart,
     analysisByCentroGestor,
+    analysisByCentroGestorV2,
+    analysisByYear,
     totalContratos: filteredData.length,
     valorTotalAsignado: filteredData.reduce((sum, c) => sum + (Number(c.valor_contrato) || 0), 0),
     valorTotalAsignadoBanco, // Ahora usa el cálculo con logs
@@ -3153,8 +3371,169 @@ const AvanceFisicoChart: React.FC<{
 const FinancialAnalysisToggle: React.FC<{
   bankData: AnalysisByBank[]
   centroGestorData: AnalysisByCentroGestor[]
-}> = ({ bankData, centroGestorData }) => {
-  const [viewMode, setViewMode] = useState<'banco' | 'centroGestor'>('banco')
+  centroGestorV2Data: AnalysisByCentroGestorV2[]
+  yearData: AnalysisByYear[]
+}> = ({ bankData, centroGestorData, centroGestorV2Data, yearData }) => {
+  const [viewMode, setViewMode] = useState<'banco' | 'centroGestor' | 'year'>('banco')
+  const [selectedCentroGestor, setSelectedCentroGestor] = useState<string>('Todos')
+  const [selectedBanco, setSelectedBanco] = useState<string>('Todos')
+  const [showCentrosBreakdown, setShowCentrosBreakdown] = useState(false)
+  const [showBancosBreakdown, setShowBancosBreakdown] = useState(false)
+
+  // Obtener lista de centros gestores únicos desde yearData
+  const centrosGestoresOptions = useMemo(() => {
+    const centros = new Set<string>()
+    yearData.forEach(year => {
+      year.centrosGestores.forEach(c => centros.add(c.nombre))
+    })
+    return ['Todos', ...Array.from(centros).sort()]
+  }, [yearData])
+
+  // Obtener lista de bancos únicos desde yearData
+  const bancosOptions = useMemo(() => {
+    const bancos = new Set<string>()
+    yearData.forEach(year => {
+      year.bancos.forEach(b => bancos.add(b.nombre))
+    })
+    return ['Todos', ...Array.from(bancos).sort()]
+  }, [yearData])
+
+  // Filtrar datos por centro gestor y banco seleccionado
+  const filteredYearData = useMemo(() => {
+    if (selectedCentroGestor === 'Todos' && selectedBanco === 'Todos') return yearData
+
+    return yearData.map(year => {
+      let valorPago = 0
+      let valorAdj = 0
+      let valorReal = 0
+
+      year.centrosGestores.forEach(centro => {
+        if (selectedCentroGestor === 'Todos' || centro.nombre === selectedCentroGestor) {
+          // Si hay filtro de banco, buscar en asignaciones originales
+          if (selectedBanco === 'Todos') {
+            valorPago += centro.valorProgramadoPago
+            valorAdj += centro.valorProgramadoAdjudicacion
+            valorReal += centro.valorPagado
+          } else {
+            // Buscar en bancos del año que coincidan
+            year.bancos.forEach(banco => {
+              if (banco.nombre === selectedBanco) {
+                // Proporción del banco en el centro gestor (simplificación)
+                const proporcion = year.totalAsignado > 0 ? banco.totalAsignado / year.totalAsignado : 0
+                valorPago += centro.valorProgramadoPago * proporcion
+                valorAdj += centro.valorProgramadoAdjudicacion * proporcion
+                valorReal += centro.valorPagado * proporcion
+              }
+            })
+          }
+        }
+      })
+
+      return {
+        year: year.year,
+        valorProgramadoPago: valorPago,
+        valorProgramadoAdjudicacion: valorAdj,
+        valorPagado: valorReal,
+        totalAsignado: valorPago + valorAdj,
+        centrosGestores: year.centrosGestores,
+        bancos: year.bancos
+      }
+    })
+  }, [yearData, selectedCentroGestor, selectedBanco])
+
+  const renderYearChart = () => {
+    // Preparar datos para gráfico de breakdown si está activado
+    const chartData = showCentrosBreakdown 
+      ? filteredYearData.flatMap(year => 
+          year.centrosGestores
+            .filter(c => selectedCentroGestor === 'Todos' || c.nombre === selectedCentroGestor)
+            .slice(0, 5) // Top 5 centros
+            .map(centro => ({
+              name: `${year.year} - ${centro.nombre.substring(0, 20)}...`,
+              year: year.year,
+              valorProgramadoPago: centro.valorProgramadoPago,
+              valorProgramadoAdjudicacion: centro.valorProgramadoAdjudicacion,
+              valorPagado: centro.valorPagado,
+              centro: centro.nombre
+            }))
+        )
+      : showBancosBreakdown
+      ? filteredYearData.flatMap(year =>
+          year.bancos
+            .filter(b => selectedBanco === 'Todos' || b.nombre === selectedBanco)
+            .map(banco => ({
+              name: `${year.year} - ${banco.nombre}`,
+              year: year.year,
+              valorProgramadoPago: banco.valorProgramadoPago,
+              valorProgramadoAdjudicacion: banco.valorProgramadoAdjudicacion,
+              valorPagado: banco.valorPagado,
+              banco: banco.nombre
+            }))
+        )
+      : filteredYearData.map(year => ({
+          name: year.year.toString(),
+          year: year.year,
+          valorProgramadoPago: year.valorProgramadoPago,
+          valorProgramadoAdjudicacion: year.valorProgramadoAdjudicacion,
+          valorPagado: year.valorPagado
+        }))
+
+    return (
+    <div style={{ width: '100%', height: showCentrosBreakdown || showBancosBreakdown ? 600 : 400 }}>
+       <ResponsiveContainer width="100%" height="100%">
+          <BarChart 
+            data={chartData} 
+            margin={{ 
+              top: 20, 
+              right: 30, 
+              left: 20, 
+              bottom: showCentrosBreakdown || showBancosBreakdown ? 120 : 20 
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+            <XAxis 
+              dataKey="name" 
+              angle={showCentrosBreakdown || showBancosBreakdown ? -45 : 0}
+              textAnchor={showCentrosBreakdown || showBancosBreakdown ? "end" : "middle"}
+              height={showCentrosBreakdown || showBancosBreakdown ? 100 : 60}
+              tick={{fontSize: 10}}
+            />
+            <YAxis tickFormatter={(val: number) => `$${(val/1000000000).toFixed(0)}MM`} width={80} />
+             <Tooltip 
+              formatter={(value: number) => formatCurrency(value)}
+              labelStyle={{ color: 'black' }}
+               contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: '8px', color: 'black' }}
+            />
+            <Legend verticalAlign="top"/>
+            <Bar dataKey="valorPagado" name="Pago Real" fill="#8B5CF6" barSize={50}>
+              <LabelList 
+                dataKey="valorPagado" 
+                position="top" 
+                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
+                style={{ fontSize: '11px', fill: '#5B21B6', fontWeight: 'bold' }}
+              />
+            </Bar>
+            <Bar dataKey="valorProgramadoPago" name="Pago Proyectado" fill="#10B981" barSize={50}>
+              <LabelList 
+                dataKey="valorProgramadoPago" 
+                position="top" 
+                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
+                style={{ fontSize: '11px', fill: '#059669', fontWeight: 'bold' }}
+              />
+            </Bar>
+            <Bar dataKey="valorProgramadoAdjudicacion" name="Adjudicación Proyectada" fill="#3B82F6" barSize={50}>
+              <LabelList 
+                dataKey="valorProgramadoAdjudicacion" 
+                position="top" 
+                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
+                style={{ fontSize: '11px', fill: '#2563EB', fontWeight: 'bold' }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+    </div>
+    )
+  }
 
   return (
     <motion.div
@@ -3171,10 +3550,10 @@ const FinancialAnalysisToggle: React.FC<{
         </div>
 
         {/* Toggle para cambiar vista */}
-        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+        <div className="flex flex-wrap items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           <button
             onClick={() => setViewMode('banco')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'banco'
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'banco'
                 ? 'bg-teal-600 text-white shadow-sm'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
@@ -3184,7 +3563,7 @@ const FinancialAnalysisToggle: React.FC<{
           </button>
           <button
             onClick={() => setViewMode('centroGestor')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'centroGestor'
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'centroGestor'
                 ? 'bg-teal-600 text-white shadow-sm'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
@@ -3192,12 +3571,22 @@ const FinancialAnalysisToggle: React.FC<{
             <Building2 className="w-4 h-4 inline mr-2" />
             Por Centro Gestor
           </button>
+          <button
+            onClick={() => setViewMode('year')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'year'
+                ? 'bg-teal-600 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+          >
+            <Calendar className="w-4 h-4 inline mr-2" />
+            Temporal
+          </button>
         </div>
       </div>
 
       {/* Contenido según la vista seleccionada */}
       <AnimatePresence mode="wait">
-        {viewMode === 'banco' ? (
+        {viewMode === 'banco' && (
           <motion.div
             key="banco-view"
             initial={{ opacity: 0, x: -20 }}
@@ -3212,7 +3601,8 @@ const FinancialAnalysisToggle: React.FC<{
               maxItems={8}
             />
           </motion.div>
-        ) : (
+        )}
+        {viewMode === 'centroGestor' && (
           <motion.div
             key="centro-gestor-view"
             initial={{ opacity: 0, x: 20 }}
@@ -3227,12 +3617,113 @@ const FinancialAnalysisToggle: React.FC<{
             />
           </motion.div>
         )}
+        {viewMode === 'year' && (
+          <motion.div
+            key="year-view"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="w-full overflow-hidden"
+          >
+             <h4 className="text-lg font-bold text-center mb-4 text-gray-700 dark:text-gray-200">
+               Flujo de Asignaciones por Año
+             </h4>
+             
+             {/* Filtros y controles */}
+             <div className="mb-4 space-y-3">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     <Building2 className="w-4 h-4 inline mr-1" />
+                     Centro Gestor
+                   </label>
+                   <select
+                     value={selectedCentroGestor}
+                     onChange={(e) => setSelectedCentroGestor(e.target.value)}
+                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                   >
+                     {centrosGestoresOptions.map(centro => (
+                       <option key={centro} value={centro}>{centro}</option>
+                     ))}
+                   </select>
+                 </div>
+                 
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     <Briefcase className="w-4 h-4 inline mr-1" />
+                     Banco
+                   </label>
+                   <select
+                     value={selectedBanco}
+                     onChange={(e) => setSelectedBanco(e.target.value)}
+                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                   >
+                     {bancosOptions.map(banco => (
+                       <option key={banco} value={banco}>{banco}</option>
+                     ))}
+                   </select>
+                 </div>
+               </div>
+
+               <div className="flex gap-2">
+                 <button
+                   onClick={() => {
+                     setShowCentrosBreakdown(!showCentrosBreakdown)
+                     if (!showCentrosBreakdown) setShowBancosBreakdown(false)
+                   }}
+                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                     showCentrosBreakdown
+                       ? 'bg-teal-600 text-white'
+                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                   }`}
+                 >
+                   <Building2 className="w-3 h-3 inline mr-1" />
+                   Desglose Centros Gestores
+                 </button>
+                 
+                 <button
+                   onClick={() => {
+                     setShowBancosBreakdown(!showBancosBreakdown)
+                     if (!showBancosBreakdown) setShowCentrosBreakdown(false)
+                   }}
+                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                     showBancosBreakdown
+                       ? 'bg-teal-600 text-white'
+                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                   }`}
+                 >
+                   <Briefcase className="w-3 h-3 inline mr-1" />
+                   Desglose Bancos
+                 </button>
+
+                 {(selectedCentroGestor !== 'Todos' || selectedBanco !== 'Todos' || showCentrosBreakdown || showBancosBreakdown) && (
+                   <button
+                     onClick={() => {
+                       setSelectedCentroGestor('Todos')
+                       setSelectedBanco('Todos')
+                       setShowCentrosBreakdown(false)
+                       setShowBancosBreakdown(false)
+                     }}
+                     className="px-3 py-1.5 text-xs font-medium rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50"
+                   >
+                     ✕ Limpiar Filtros
+                   </button>
+                 )}
+               </div>
+             </div>
+
+             {renderYearChart()}
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Componente fusionado: Torta + Tabla de Organismos */}
-      <div className="mt-3">
-        <OrganismosWithPieChart data={centroGestorData} />
-      </div>
+      {(viewMode === 'centroGestor' || viewMode === 'banco') && (
+        <div className="mt-3">
+          <OrganismosWithPieChart data={centroGestorData} />
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -3391,6 +3882,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     analysisByBank,
     analysisByBankForChart,
     analysisByCentroGestor,
+    analysisByCentroGestorV2,
+    analysisByYear,
     totalContratos,
     valorTotalAsignado,
     valorTotalAsignadoBanco,
@@ -3749,6 +4242,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         <FinancialAnalysisToggle
           bankData={analysisByBankForChart}
           centroGestorData={analysisByCentroGestor}
+          centroGestorV2Data={analysisByCentroGestorV2}
+          yearData={analysisByYear}
         />
 
         {/* Tabla de Contratos Detallada */}
