@@ -3795,7 +3795,8 @@ const AdvancedFilters: React.FC<{
   centrosGestores: string[]
   estados: string[]
   sectores: string[]
-}> = ({ filters, setFilters, bancos, centrosGestores, estados, sectores }) => {
+  bps: string[]
+}> = ({ filters, setFilters, bancos, centrosGestores, estados, sectores, bps }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
