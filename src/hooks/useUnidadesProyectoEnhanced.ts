@@ -8,6 +8,7 @@ import {
   fetchGeometryData, 
   fetchAttributeData, 
   fetchFilterData,
+  fetchFrentesActivos,
   generateFiltersFromData,
   filterAttributeData,
   type GeometryData,
@@ -93,6 +94,7 @@ export const useUnidadesProyecto = (
   const [filters, setFiltersState] = useState<FilterParams>(initialFilters);
   const [searchTerm, setSearchTermState] = useState<string>('');
   const [isLoadingRef, setIsLoadingRef] = useState(false); // Flag para prevenir cargas simultáneas
+  const [totalFrentesActivos, setTotalFrentesActivos] = useState<number>(0); // Estado para frentes activos
 
   // Función para actualizar el estado de manera inmutable
   const updateState = useCallback((updates: Partial<UnidadesProyectoState>) => {
@@ -124,7 +126,7 @@ export const useUnidadesProyecto = (
         console.log('🔄 fetchAllData: Loading with', useServerFilters ? 'SERVER-SIDE' : 'CLIENT-SIDE', 'filtering');
       }
 
-      const [geometry, attributes, filterOptions] = await Promise.all([
+      const [geometry, attributes, filterOptions, frentesActivos] = await Promise.all([
         fetchGeometryData(serverFilters).catch((error) => {
           console.warn('⚠️ fetchGeometryData failed:', error);
           return null;
@@ -136,8 +138,16 @@ export const useUnidadesProyecto = (
         fetchFilterData().catch((error) => {
           console.warn('⚠️ fetchFilterData failed:', error);
           return null;
+        }),
+        fetchFrentesActivos().catch((error) => {
+          console.warn('⚠️ fetchFrentesActivos failed:', error);
+          return 0;
         })
       ]);
+
+      // Actualizar el estado de frentes activos
+      console.log('🏗️ fetchAllData: Actualizando frentes activos:', frentesActivos);
+      setTotalFrentesActivos(frentesActivos);
 
       // Generar filtros desde datos si no se obtuvieron del servidor
       const finalFilterData = filterOptions || (attributes.length > 0 ? generateFiltersFromData(attributes) : null);
@@ -339,11 +349,15 @@ export const useUnidadesProyecto = (
     // Total de unidades de proyecto (número de registros)
     const totalUnidadesProyecto = data.length;
 
-    // Contar frentes activos a nivel de intervenciones (no de unidades de proyecto)
-    // Si una UP tiene 3 intervenciones y frente activo, cuenta como 3 frentes activos
-    const activeFronts = data
-      .filter(item => item.frente_activo === 'Frente activo')
-      .reduce((sum, item) => sum + (item.n_intervenciones || 0), 0);
+    // 🏗️ NUEVO: Usar el valor de frentes activos del endpoint /frentes-activos
+    // Ya no calculamos localmente, usamos el valor del estado
+    const activeFronts = totalFrentesActivos;
+    
+    console.log('🏗️ FRENTES ACTIVOS desde endpoint:', {
+      totalFrentesActivos,
+      activeFronts,
+      dataLength: data.length
+    });
 
     // Debug logging de intervenciones
     console.log('🔢 Debug totalIntervenciones calculation:', {
@@ -383,7 +397,7 @@ export const useUnidadesProyecto = (
       totalBudget,
       activeFronts
     };
-  }, [filteredData]);
+  }, [filteredData, totalFrentesActivos]);
 
   // Efecto para cargar datos iniciales
   const hasInitialized = useRef(false);

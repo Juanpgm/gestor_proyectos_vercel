@@ -497,6 +497,28 @@ export const fetchFilterData = async (): Promise<FilterData> => {
 };
 
 /**
+ * Obtiene el total de frentes activos desde el endpoint
+ */
+export const fetchFrentesActivos = async (): Promise<number> => {
+  try {
+    const url = `${API_CONFIG.BASE_PATH}/frentes-activos`;
+    console.log(`🏗️ fetchFrentesActivos: ${url}`);
+    
+    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, false);
+    const data = await response.json();
+    
+    // Extraer total_frentes_activos del objeto properties
+    const totalFrentesActivos = data?.properties?.total_frentes_activos || 0;
+    
+    console.log(`✅ fetchFrentesActivos: ${totalFrentesActivos} frentes activos`);
+    return totalFrentesActivos;
+  } catch (error) {
+    console.error('❌ fetchFrentesActivos error:', error);
+    return 0; // Retornar 0 en caso de error
+  }
+};
+
+/**
  * Función utilitaria para generar filtros desde datos existentes
  * Extrae valores únicos de cada campo, filtrando vacíos y undefined
  */
