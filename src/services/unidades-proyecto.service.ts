@@ -356,38 +356,73 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
       try {
         const properties = item.properties || item;
         
-        // La nueva estructura tiene intervenciones como array
+        // ==========================================
+        // MANEJO DE MÚLTIPLES ESTRUCTURAS DE DATOS
+        // ==========================================
+        // La API puede devolver dos estructuras diferentes:
+        // 1) Estructura NUEVA con campo 'intervenciones' (array de intervenciones)
+        // 2) Estructura ANTIGUA sin 'intervenciones' (datos directos en el objeto)
+        
         const intervenciones = properties.intervenciones || [];
-        const primeraIntervencion = intervenciones.length > 0 ? intervenciones[0] : {};
+        const esEstructuraNueva = intervenciones.length > 0;
+        const primeraIntervencion = esEstructuraNueva ? intervenciones[0] : {};
         
         // 💰 CORRECCIÓN: Sumar presupuestos de TODAS las intervenciones, no solo la primera
-        // Esto corrige el bug donde se perdían ~$178B al solo tomar la primera intervención
-        const presupuestoTotal = intervenciones.reduce((sum: number, interv: any) => {
-          const presupuesto = parseFloat(interv.presupuesto_base || 0);
-          return sum + presupuesto;
-        }, 0);
+        let presupuesto_base = 0;
+        if (esEstructuraNueva) {
+          presupuesto_base = intervenciones.reduce((sum: number, interv: any) => {
+            const presupuesto = parseFloat(interv.presupuesto_base || 0);
+            return sum + presupuesto;
+          }, 0);
+        } else {
+          // Estructura antigua: presupuesto directo
+          presupuesto_base = parseFloat(properties.presupuesto_base || 0);
+        }
         
-        // Si no hay intervenciones, usar el presupuesto a nivel de documento
-        const presupuesto_base = presupuestoTotal > 0 ? presupuestoTotal : parseFloat(properties.presupuesto_base || 0);
-        
-        // 📊 CORRECCIÓN: Calcular avance promedio ponderado por presupuesto de TODAS las intervenciones
-        // El avance debe reflejar el progreso real considerando el peso de cada intervención
+        // 📊 CORRECCIÓN: Calcular avance promedio ponderado por presupuesto
         let avance_obra = 0;
-        if (intervenciones.length > 0 && presupuestoTotal > 0) {
+        if (esEstructuraNueva && intervenciones.length > 0 && presupuesto_base > 0) {
           // Promedio ponderado: (suma de avance * presupuesto) / presupuesto total
           const avancePonderado = intervenciones.reduce((sum: number, interv: any) => {
             const avance = parseFloat(interv.avance_obra || 0);
             const presupuesto = parseFloat(interv.presupuesto_base || 0);
             return sum + (avance * presupuesto);
           }, 0);
-          avance_obra = avancePonderado / presupuestoTotal;
+          avance_obra = avancePonderado / presupuesto_base;
         } else {
-          // Sin intervenciones, usar el avance a nivel de documento
+          // Estructura antigua: avance directo
           avance_obra = parseFloat(properties.avance_obra || 0);
         }
         
-        // El campo nombre_centro_gestor no existe en la nueva estructura de la API
-        // Usar un valor por defecto o dejarlo undefined
+        // 🔢 CORRECCIÓN: n_intervenciones
+        // En estructura nueva: viene en properties
+        // En estructura antigua: NO EXISTE, usar 1 como valor por defecto (cada registro = 1 intervención)
+        const n_intervenciones = esEstructuraNueva 
+          ? (parseInt(properties.n_intervenciones) || intervenciones.length)
+          : 1; // Cada registro sin 'intervenciones' representa 1 intervención
+        
+        // 🚧 CORRECCIÓN: frente_activo
+        // En estructura nueva: viene dentro de cada intervención
+        // En estructura antigua: NO EXISTE, calcular basándose en el estado
+        let frente_activo = 'No aplica';
+        if (esEstructuraNueva) {
+          // Usar el frente_activo de la primera intervención
+          frente_activo = primeraIntervencion.frente_activo || 'No aplica';
+        } else {
+          // Estructura antigua: inferir del estado
+          // Si está en ejecución o activo, considerar como frente activo
+          const estado = (properties.estado || '').toLowerCase();
+          if (estado.includes('ejecucion') || estado.includes('ejecución') || 
+              estado.includes('activ') || estado.includes('proceso')) {
+            frente_activo = 'Frente activo';
+          } else if (estado.includes('terminado') || estado.includes('finalizado')) {
+            frente_activo = 'Terminado';
+          } else {
+            frente_activo = 'No aplica';
+          }
+        }
+        
+        // El campo nombre_centro_gestor puede venir de diferentes lugares
         const centroGestor = properties.nombre_centro_gestor || 
                            primeraIntervencion.nombre_centro_gestor ||
                            undefined;
@@ -397,13 +432,13 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           nombre_up: properties.nombre_up || '',
           nombre_up_detalle: properties.nombre_up_detalle || undefined,
           identificador: properties.identificador || undefined,
-          n_intervenciones: parseInt(properties.n_intervenciones) || 0,
-          // Campos que vienen de la intervención
+          n_intervenciones: n_intervenciones,
+          // Campos que pueden venir de la intervención o de properties
           estado: primeraIntervencion.estado || properties.estado || 'Sin estado',
           tipo_intervencion: primeraIntervencion.tipo_intervencion || properties.tipo_intervencion || 'Sin especificar',
           tipo_equipamiento: properties.tipo_equipamiento || undefined,
           clase_up: properties.clase_up || undefined,
-          frente_activo: primeraIntervencion.frente_activo || properties.frente_activo || undefined,
+          frente_activo: frente_activo,
           nombre_centro_gestor: centroGestor,
           comuna_corregimiento: properties.comuna_corregimiento || '',
           barrio_vereda: properties.barrio_vereda || '',
@@ -415,7 +450,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           duracion_proyecto: primeraIntervencion.duracion_proyecto || properties.duracion_proyecto || undefined,
           descripcion_intervencion: primeraIntervencion.descripcion_intervencion || properties.descripcion_intervencion || '',
           fuente_financiacion: primeraIntervencion.fuente_financiacion || properties.fuente_financiacion || '',
-          ano: parseInt(primeraIntervencion.ano || properties.ano || 0)
+          ano: parseInt(primeraIntervencion.ano || properties.ano || properties.anio || 0)
         });
         
         validatedData.push(validatedItem);
@@ -493,28 +528,6 @@ export const fetchFilterData = async (): Promise<FilterData> => {
   } catch (error) {
     console.error('❌ fetchFilterData error:', error);
     return handleApiError(error);
-  }
-};
-
-/**
- * Obtiene el total de frentes activos desde el endpoint
- */
-export const fetchFrentesActivos = async (): Promise<number> => {
-  try {
-    const url = `${API_CONFIG.BASE_PATH}/frentes-activos`;
-    console.log(`🏗️ fetchFrentesActivos: ${url}`);
-    
-    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, false);
-    const data = await response.json();
-    
-    // Extraer total_frentes_activos del objeto properties
-    const totalFrentesActivos = data?.properties?.total_frentes_activos || 0;
-    
-    console.log(`✅ fetchFrentesActivos: ${totalFrentesActivos} frentes activos`);
-    return totalFrentesActivos;
-  } catch (error) {
-    console.error('❌ fetchFrentesActivos error:', error);
-    return 0; // Retornar 0 en caso de error
   }
 };
 
