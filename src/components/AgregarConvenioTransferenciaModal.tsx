@@ -153,7 +153,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
 
       const [centrosResponse, bancosResponse] = await Promise.all([
         fetch(`${apiUrl}/centros-gestores/nombres-unicos`),
-        fetch(`${apiUrl}/bancos_emprestito_all`)
+        fetch(`${apiUrl}/asignaciones-emprestito-banco-centro-gestor`)
       ])
 
       if (!centrosResponse.ok) {
@@ -176,7 +176,14 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
       }
 
       if (bancosData.success && Array.isArray(bancosData.data)) {
-        setBancos(bancosData.data)
+        // Extraer nombres únicos de bancos del campo nombre_banco
+        const bancosUnicos = Array.from(
+          new Set(bancosData.data.map((asignacion: any) => asignacion.nombre_banco).filter(Boolean))
+        ) as string[]
+        const bancosFormatted = bancosUnicos.map((nombre) => ({
+          nombre_banco: nombre
+        }))
+        setBancos(bancosFormatted)
       }
 
     } catch (error) {

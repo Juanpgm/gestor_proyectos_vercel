@@ -16,8 +16,12 @@ import {
   Eye,
   EyeOff,
   Handshake,
-  TrendingUp
+  TrendingUp,
+  Plus,
+  Edit2
 } from 'lucide-react'
+import AgregarConvenioTransferenciaModal from './AgregarConvenioTransferenciaModal'
+import ModificarConvenioModal from './ModificarConvenioModal'
 
 interface ConvenioTransferencia {
   id?: string
@@ -75,6 +79,12 @@ const ConveniosTable: React.FC = () => {
     'bp'
   ]))
   const [columnWidths, setColumnWidths] = useState<{[key: string]: number}>({})
+  
+  // Estados para modales
+  const [showAgregarModal, setShowAgregarModal] = useState(false)
+  const [showModificarModal, setShowModificarModal] = useState(false)
+  const [convenioToEdit, setConvenioToEdit] = useState<ConvenioTransferencia | null>(null)
+  const [editingConvenio, setEditingConvenio] = useState<ConvenioTransferencia | null>(null)
 
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
 
@@ -118,6 +128,53 @@ const ConveniosTable: React.FC = () => {
       setError(error instanceof Error ? error.message : 'Error desconocido')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Función para manejar la edición completa
+  const handleEditConvenio = (convenio: ConvenioTransferencia) => {
+    setEditingConvenio(convenio)
+    setShowAgregarModal(true)
+  }
+
+  // Función para actualizar convenio completo vía API
+  const handleUpdateConvenio = async (docId: string, formData: any) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!apiUrl) {
+        throw new Error('URL de API no configurada')
+      }
+
+      const payload = new URLSearchParams()
+      payload.append('doc_id', docId)
+      
+      // Agregar todos los campos al payload
+      Object.keys(formData).forEach(key => {
+        if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
+          payload.append(key, formData[key].toString())
+        }
+      })
+
+      const response = await fetch(`${apiUrl}/emprestito/modificar-convenio-transferencia`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: payload.toString()
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || result.detail || 'Error al actualizar el convenio')
+      }
+
+      alert('Convenio actualizado exitosamente')
+      await fetchConvenios()
+      
+    } catch (error) {
+      console.error('Error updating convenio:', error)
+      throw error
     }
   }
 
@@ -452,6 +509,14 @@ const ConveniosTable: React.FC = () => {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>Actualizar</span>
             </button>
+            
+            <button
+              onClick={() => setShowAgregarModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Agregar Convenio</span>
+            </button>
           </div>
         </div>
       </motion.div>
@@ -612,6 +677,13 @@ const ConveniosTable: React.FC = () => {
                     </div>
                   </th>
                 ))}
+                
+                {/* Columna de Acciones */}
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center justify-between">
+                    <span>Acciones</span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -624,12 +696,65 @@ const ConveniosTable: React.FC = () => {
                       </span>
                     </td>
                   ))}
+                  
+                  {/* Columna de Acciones */}
+                  <td className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => {
+                          setConvenioToEdit(convenio)
+                          setShowModificarModal(true)
+                        }}
+                        className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
+                        title="Modificar Valor"
+                      >
+                        <span className="text-lg font-bold">$</span>
+                      </button>
+                      <button
+                        onClick={() => handleEditConvenio(convenio)}
+                        className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                        title="Editar Completo"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </motion.div>
+      
+      {/* Modales */}
+      <AgregarConvenioTransferenciaModal
+        isOpen={showAgregarModal}
+        onClose={() => {
+          setShowAgregarModal(false)
+          setEditingConvenio(null)
+        }}
+        onSuccess={() => {
+          fetchConvenios()
+          setShowAgregarModal(false)
+          setEditingConvenio(null)
+        }}
+        editingData={editingConvenio}
+        onEdit={handleUpdateConvenio}
+      />
+      
+      <ModificarConvenioModal
+        isOpen={showModificarModal}
+        onClose={() => {
+          setShowModificarModal(false)
+          setConvenioToEdit(null)
+        }}
+        onSuccess={() => {
+          fetchConvenios()
+          setShowModificarModal(false)
+          setConvenioToEdit(null)
+        }}
+        convenioData={convenioToEdit}
+      />
     </div>
   )
 }

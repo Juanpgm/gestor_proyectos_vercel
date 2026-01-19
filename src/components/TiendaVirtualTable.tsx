@@ -16,8 +16,12 @@ import {
   Building,
   Calendar,
   DollarSign,
-  FileText
+  FileText,
+  Plus,
+  Edit2
 } from 'lucide-react'
+import AgregarOrdenCompraModal from './AgregarOrdenCompraModal'
+import ModificarOrdenCompraModal from './ModificarOrdenCompraModal'
 
 // Interfaz para orden de compra
 interface OrdenCompra {
@@ -89,6 +93,11 @@ const TiendaVirtualTable: React.FC = () => {
     'bp'
   ]))
   const [columnWidths, setColumnWidths] = useState<{[key: string]: number}>({})
+  
+  // Estados para modales
+  const [showAgregarModal, setShowAgregarModal] = useState(false)
+  const [showModificarModal, setShowModificarModal] = useState(false)
+  const [ordenToEdit, setOrdenToEdit] = useState<OrdenCompra | null>(null)
 
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
 
@@ -611,6 +620,14 @@ const TiendaVirtualTable: React.FC = () => {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>{loading ? 'Actualizando...' : 'Actualizar'}</span>
             </button>
+            
+            <button
+              onClick={() => setShowAgregarModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Agregar Orden</span>
+            </button>
           </div>
         </div>
       </motion.div>
@@ -781,6 +798,13 @@ const TiendaVirtualTable: React.FC = () => {
                     </div>
                   </th>
                 ))}
+                
+                {/* Columna de Acciones */}
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center justify-between">
+                    <span>Acciones</span>
+                  </div>
+                </th>
               </tr>
             </thead>
             
@@ -806,12 +830,50 @@ const TiendaVirtualTable: React.FC = () => {
                       </div>
                     </td>
                   ))}
+                  
+                  {/* Columna de Acciones */}
+                  <td className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700">
+                    <button
+                      onClick={() => {
+                        setOrdenToEdit(orden)
+                        setShowModificarModal(true)
+                      }}
+                      className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
+                      title="Modificar Valor"
+                    >
+                      <span className="text-lg font-bold">$</span>
+                    </button>
+                  </td>
                 </motion.tr>
               ))}
             </tbody>
           </table>
         </div>
       </motion.div>
+      
+      {/* Modales */}
+      <AgregarOrdenCompraModal
+        isOpen={showAgregarModal}
+        onClose={() => setShowAgregarModal(false)}
+        onSuccess={() => {
+          fetchOrdenes()
+          setShowAgregarModal(false)
+        }}
+      />
+      
+      <ModificarOrdenCompraModal
+        isOpen={showModificarModal}
+        onClose={() => {
+          setShowModificarModal(false)
+          setOrdenToEdit(null)
+        }}
+        onSuccess={() => {
+          fetchOrdenes()
+          setShowModificarModal(false)
+          setOrdenToEdit(null)
+        }}
+        ordenData={ordenToEdit}
+      />
     </div>
   )
 }
