@@ -3015,7 +3015,7 @@ const BankBarChart: React.FC<{
               {metrics.map(metric => {
                 // DEBUG: Verificar si el dataKey existe en chartData
                 const dataKeyExists = chartData.some((item: any) => metric.key in item)
-                const firstValue = chartData[0]?.[metric.key]
+                const firstValue = chartData.length > 0 ? (chartData[0] as any)[metric.key] : undefined
                 console.log(`📊 Barra "${metric.label}" (${metric.key}): existe=${dataKeyExists}, primer valor=${firstValue}`)
                 
                 return (
