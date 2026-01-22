@@ -7,7 +7,7 @@ import { X, Plus, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 interface AgregarProcesoModalAltProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (updatedData?: any) => void
   editingData?: any | null
   onEdit?: (referenciaProceso: string, data: FormData) => Promise<void>
 }
@@ -82,7 +82,8 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
 
   // Opciones de plataforma
   const plataformasOptions = [
-    { value: 'SECOP', label: 'SECOP' },
+    { value: 'SECOP I', label: 'SECOP I' },
+    { value: 'SECOP II', label: 'SECOP II' },
     { value: 'TVEC', label: 'TVEC' }
   ]
 
@@ -96,16 +97,24 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
   // Cargar datos cuando se está editando
   useEffect(() => {
     if (editingData && isOpen) {
-      setFormData({
+      console.log('🔍 Pre-llenando formulario con:', editingData)
+      console.log('🔍 Plataforma original:', editingData.plataforma)
+      
+      const newFormData = {
         referencia_proceso: editingData.referencia_proceso || '',
         nombre_centro_gestor: editingData.nombre_centro_gestor || '',
-        nombre_banco: editingData.nombre_banco || '',
+        nombre_banco: editingData.nombre_banco || editingData.banco || '', // Intentar ambos campos
         bp: editingData.bp || '',
         plataforma: editingData.plataforma || '',
         nombre_resumido_proceso: editingData.nombre_resumido_proceso || '',
         id_paa: editingData.id_paa || '',
-        valor_proyectado: editingData.valor_proyectado?.toString() || ''
-      })
+        valor_proyectado: editingData.valor_proyectado?.toString() || editingData.valor_publicacion?.toString() || ''
+      }
+      
+      console.log('🔍 Datos a establecer en formulario:', newFormData)
+      console.log('🔍 Plataforma en newFormData:', newFormData.plataforma)
+      
+      setFormData(newFormData)
       setTipoOperacion('proceso')
     }
   }, [editingData, isOpen])
@@ -237,14 +246,80 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
         throw new Error('URL de API no configurada')
       }
 
-      // Si estamos editando, usar función especial
-      if (editingData && onEdit && tipo === 'proceso') {
+      // MODO EDICIÓN para proceso SECOP
+      if (editingData && tipo === 'proceso') {
         try {
-          await onEdit(editingData.referencia_proceso, formData)
+          console.log('📝 Iniciando edición de proceso')
+          console.log('📝 FormData actual:', formData)
+          console.log('📝 Valor proyectado a enviar:', formData.valor_proyectado)
+          
+          // Usar el nuevo endpoint PUT con query parameters
+          const params = new URLSearchParams()
+          params.append('referencia_proceso', formData.referencia_proceso)
+          params.append('nombre_centro_gestor', formData.nombre_centro_gestor)
+          params.append('nombre_banco', formData.nombre_banco)
+          params.append('plataforma', formData.plataforma)
+          
+          // Campos opcionales
+          if (formData.bp && formData.bp.trim()) {
+            params.append('bp', formData.bp.trim())
+          }
+          if (formData.nombre_resumido_proceso && formData.nombre_resumido_proceso.trim()) {
+            params.append('nombre_resumido_proceso', formData.nombre_resumido_proceso.trim())
+          }
+          if (formData.id_paa && formData.id_paa.trim()) {
+            params.append('id_paa', formData.id_paa.trim())
+          }
+          if (formData.valor_proyectado) {
+            params.append('valor_proyectado', formData.valor_proyectado.toString())
+          }
+
+          console.log('📤 URL completa:', `${apiUrl}/emprestito/modificar-proceso?${params.toString()}`)
+          console.log('📤 Parámetros a enviar:', Object.fromEntries(params))
+
+          const response = await fetch(`${apiUrl}/emprestito/modificar-proceso?${params.toString()}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            console.error('❌ Error en respuesta:', response.status, errorData)
+            if (response.status === 404) {
+              throw new Error('Proceso no encontrado')
+            }
+            throw new Error(errorData.error || errorData.detail || 'Error al actualizar el proceso')
+          }
+
+          const responseData = await response.json()
+          console.log('✅ Respuesta del servidor:', responseData)
+          console.log('✅ Success?', responseData.success)
+          console.log('✅ Message:', responseData.message)
+          console.log('✅ Campos actualizados:', responseData.campos_actualizados)
+
+          if (!responseData.success) {
+            throw new Error(responseData.error || 'El servidor indicó que la actualización falló')
+          }
+
           setSuccess('Proceso actualizado exitosamente')
-          setTimeout(() => {
-            onClose()
-          }, 1500)
+          
+          // Cerrar modal y pasar los datos actualizados para actualización optimista
+          const updatedData = {
+            ...editingData,
+            referencia_proceso: formData.referencia_proceso,
+            nombre_centro_gestor: formData.nombre_centro_gestor,
+            nombre_banco: formData.nombre_banco,
+            plataforma: formData.plataforma,
+            bp: formData.bp,
+            nombre_resumido_proceso: formData.nombre_resumido_proceso,
+            id_paa: formData.id_paa,
+            valor_proyectado: parseFloat(formData.valor_proyectado) || 0
+          }
+          console.log('📦 Datos actualizados para UI:', updatedData)
+          onClose()
+          await onSuccess(updatedData)
           return
         } catch (editError) {
           let errorMessage = 'Error desconocido al actualizar'
@@ -255,7 +330,7 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
           } else {
             errorMessage = JSON.stringify(editError)
           }
-          console.error('Error en onEdit:', errorMessage)
+          console.error('Error en edición:', errorMessage)
           throw new Error(errorMessage)
         }
       }

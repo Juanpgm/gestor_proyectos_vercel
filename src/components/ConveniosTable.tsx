@@ -106,9 +106,9 @@ const ConveniosTable: React.FC = () => {
     { key: 'sector', label: 'Sector', isSortable: true }
   ], [])
 
-  const fetchConvenios = async () => {
+  const fetchConvenios = async (showLoading = true) => {
     try {
-      setLoading(true)
+      if (showLoading) setLoading(true)
       setError(null)
       
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
@@ -127,7 +127,7 @@ const ConveniosTable: React.FC = () => {
       console.error('Error fetching convenios:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 
@@ -169,8 +169,18 @@ const ConveniosTable: React.FC = () => {
         throw new Error(result.error || result.detail || 'Error al actualizar el convenio')
       }
 
-      alert('Convenio actualizado exitosamente')
-      await fetchConvenios()
+      // Actualización optimista
+      setConvenios(prev => prev.map(c => {
+         // Compara usando el ID que tengamos disponible
+         const cId = (c as any).id || (c as any).doc_id;
+         if (cId === docId || c.referencia_contrato === formData.referencia_contrato) {
+             return { ...c, ...formData }
+         }
+         return c;
+      }))
+
+      // Recargar datos silenciosamente sin mostrar spinner (que desmontaría el modal)
+      await fetchConvenios(false)
       
     } catch (error) {
       console.error('Error updating convenio:', error)
@@ -380,7 +390,7 @@ const ConveniosTable: React.FC = () => {
         <div className="text-center">
           <Handshake className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-          <button onClick={fetchConvenios} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+          <button onClick={() => fetchConvenios()} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
             Reintentar
           </button>
         </div>
@@ -505,7 +515,7 @@ const ConveniosTable: React.FC = () => {
               </button>
             )}
             
-            <button onClick={fetchConvenios} className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+            <button onClick={() => fetchConvenios()} className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>Actualizar</span>
             </button>
@@ -745,13 +755,37 @@ const ConveniosTable: React.FC = () => {
       <ModificarConvenioModal
         isOpen={showModificarModal}
         onClose={() => {
+          console.log('🚪 Cerrando modal de convenio')
           setShowModificarModal(false)
           setConvenioToEdit(null)
         }}
-        onSuccess={() => {
-          fetchConvenios()
+        onSuccess={async (updatedData?: any) => {
+          console.log('✅ OnSuccess de convenio llamado')
+          
+          // Limpiar estados del modal primero
           setShowModificarModal(false)
           setConvenioToEdit(null)
+          
+          // Actualización optimista si recibimos datos actualizados
+          if (updatedData && updatedData.referencia_contrato) {
+            console.log('🔄 Actualización optimista de convenio:', updatedData)
+            setConvenios(prevConvenios =>
+              prevConvenios.map(convenio =>
+                convenio.referencia_contrato === updatedData.referencia_contrato
+                  ? { ...convenio, ...updatedData }
+                  : convenio
+              )
+            )
+            
+            // Sincronizar con Firebase después de 5 segundos
+            setTimeout(async () => {
+              console.log('🔄 Sincronizando con Firebase...')
+              await fetchConvenios()
+            }, 5000)
+          } else {
+            // Si es nuevo registro, recargar todo
+            await fetchConvenios()
+          }
         }}
         convenioData={convenioToEdit}
       />

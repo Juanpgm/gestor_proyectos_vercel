@@ -7,7 +7,7 @@ import { X, Edit2, AlertCircle, CheckCircle, Upload, Handshake } from 'lucide-re
 interface ModificarConvenioModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (updatedData?: any) => void
   convenioData: {
     id?: string
     referencia_contrato?: string
@@ -28,6 +28,7 @@ const ModificarConvenioModal: React.FC<ModificarConvenioModalProps> = ({
   const [change_support_file, setChangeSupportFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [globalError, setGlobalError] = useState<string | null>(null)
 
   // Reset form cuando se abre/cierra
   React.useEffect(() => {
@@ -89,14 +90,15 @@ const ModificarConvenioModal: React.FC<ModificarConvenioModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setGlobalError(null)
 
     if (!convenioData?.referencia_contrato) {
-      alert('No se encontró la referencia del contrato')
+      setGlobalError('No se encontró la referencia del contrato')
       return
     }
 
     if (!validateForm()) {
-      alert('Por favor complete todos los campos obligatorios')
+      setGlobalError('Por favor complete todos los campos obligatorios')
       return
     }
 
@@ -119,23 +121,32 @@ const ModificarConvenioModal: React.FC<ModificarConvenioModalProps> = ({
       const result = await response.json()
 
       if (!response.ok) {
+        console.error('❌ Error en respuesta:', response.status, result)
         if (response.status === 404) {
-          alert(`No se encontró el convenio con referencia: ${convenioData.referencia_contrato}`)
+          setGlobalError(`No se encontró el convenio con referencia: ${convenioData.referencia_contrato}`)
         } else {
-          alert(result.error || result.detail || 'Error al modificar el convenio')
+          setGlobalError(result.error || result.detail || 'Error al modificar el convenio')
         }
+        setIsSubmitting(false)
         return
       }
 
-      alert('Convenio de transferencia actualizado exitosamente')
+      console.log('✅ Respuesta del servidor:', result)
       
-      onSuccess()
-      onClose()
+      // Preparar datos actualizados para actualización optimista
+      const updatedData = {
+        ...convenioData,
+        valor_contrato: parseFloat(valor_contrato) || convenioData.valor_contrato
+      }
+      console.log('📦 Datos actualizados para UI:', updatedData)
+
+      // Notificar éxito y pasar datos para actualización optimista
+      // El componente padre se encargará de cerrar el modal
+      onSuccess(updatedData)
 
     } catch (error) {
       console.error('Error al modificar convenio:', error)
-      alert('Error al modificar el convenio')
-    } finally {
+      setGlobalError('Error inesperado al modificar el convenio')
       setIsSubmitting(false)
     }
   }
@@ -188,6 +199,12 @@ const ModificarConvenioModal: React.FC<ModificarConvenioModalProps> = ({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-4 overflow-y-auto max-h-[calc(90vh-200px)]">
+            {globalError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <p className="text-sm">{globalError}</p>
+              </div>
+            )}
             <div className="space-y-3">
               {/* Información compacta */}
               <div className="grid grid-cols-1 gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm">

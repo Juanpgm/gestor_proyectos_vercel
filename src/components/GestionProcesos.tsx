@@ -282,47 +282,29 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     }
   }
 
-  // Función para manejar el éxito al agregar proceso
-  const handleAgregarProcesoSuccess = () => {
-    // Recargar los datos
-    const fetchProcesos = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-        if (!apiUrl) {
-          throw new Error('URL de API no configurada')
-        }
-
-        const response = await fetch(`${apiUrl}/procesos_emprestito_all`)
-        
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-        
-        const data = await response.json()
-        
-        // Manejar diferentes formatos de respuesta
-        if (Array.isArray(data)) {
-          setProcesos(data)
-        } else if (data && Array.isArray(data.data)) {
-          setProcesos(data.data)
-        } else if (data && Array.isArray(data.procesos)) {
-          setProcesos(data.procesos)
-        } else {
-          console.warn('Formato de respuesta inesperado:', data)
-          setProcesos([])
-        }
-      } catch (error) {
-        console.error('Error fetching procesos:', error)
-        setError(error instanceof Error ? error.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
+  // Función para manejar el éxito al agregar/editar proceso
+  const handleAgregarProcesoSuccess = async (updatedData?: any) => {
+    // Si recibimos datos actualizados, actualizar el estado local inmediatamente (optimistic update)
+    if (updatedData && updatedData.referencia_proceso) {
+      console.log('🔄 Actualización optimista con:', updatedData)
+      setProcesos(prevProcesos => 
+        prevProcesos.map(proceso => 
+          proceso.referencia_proceso === updatedData.referencia_proceso
+            ? { ...proceso, ...updatedData }
+            : proceso
+        )
+      )
+      
+      // Recargar en background después de 5 segundos para sincronizar con Firebase
+      setTimeout(async () => {
+        console.log('🔄 Sincronizando con Firebase...')
+        await fetchProcesos()
+      }, 5000)
+    } else {
+      // Si es un nuevo proceso, recargar todo
+      await new Promise(resolve => setTimeout(resolve, 500))
+      await fetchProcesos()
     }
-
-    fetchProcesos()
   }
   // Función para manejar la edición
   const handleEditProceso = (proceso: ProcesoEmprestito) => {
@@ -1553,14 +1535,14 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                         >
                           <span className="text-lg font-bold">$</span>
                         </button>
-                        {/* Nota: Editar Completo para SECOP no está disponible - no existe endpoint en backend */}
-                        {/* <button
+                        {/* Botón Editar Completo - ahora disponible con PUT /emprestito/modificar-proceso */}
+                        <button
                           onClick={() => handleEditProceso(proceso)}
                           className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                           title="Editar Completo"
                         >
                           <Edit2 className="w-4 h-4" />
-                        </button> */}
+                        </button>
                         <button
                           onClick={() => setDeleteConfirm(proceso)}
                           className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"

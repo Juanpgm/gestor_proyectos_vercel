@@ -98,6 +98,7 @@ const TiendaVirtualTable: React.FC = () => {
   const [showAgregarModal, setShowAgregarModal] = useState(false)
   const [showModificarModal, setShowModificarModal] = useState(false)
   const [ordenToEdit, setOrdenToEdit] = useState<OrdenCompra | null>(null)
+  const [ordenToEditComplete, setOrdenToEditComplete] = useState<OrdenCompra | null>(null)
 
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
 
@@ -833,16 +834,31 @@ const TiendaVirtualTable: React.FC = () => {
                   
                   {/* Columna de Acciones */}
                   <td className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700">
-                    <button
-                      onClick={() => {
-                        setOrdenToEdit(orden)
-                        setShowModificarModal(true)
-                      }}
-                      className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
-                      title="Modificar Valor"
-                    >
-                      <span className="text-lg font-bold">$</span>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {/* Botón Modificar Valor */}
+                      <button
+                        onClick={() => {
+                          setOrdenToEdit(orden)
+                          setShowModificarModal(true)
+                        }}
+                        className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
+                        title="Modificar Valor"
+                      >
+                        <span className="text-lg font-bold">$</span>
+                      </button>
+                      
+                      {/* Botón Editar Completo */}
+                      <button
+                        onClick={() => {
+                          setOrdenToEditComplete(orden)
+                          setShowAgregarModal(true)
+                        }}
+                        className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                        title="Editar Completo"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </motion.tr>
               ))}
@@ -854,10 +870,41 @@ const TiendaVirtualTable: React.FC = () => {
       {/* Modales */}
       <AgregarOrdenCompraModal
         isOpen={showAgregarModal}
-        onClose={() => setShowAgregarModal(false)}
-        onSuccess={() => {
+        onClose={() => {
+          setShowAgregarModal(false)
+          setOrdenToEditComplete(null)
+        }}
+        onSuccess={async (updatedData?: any) => {
+          // Actualización optimista si recibimos datos actualizados
+          if (updatedData && updatedData.numero_orden) {
+            console.log('🔄 Actualización optimista de orden:', updatedData)
+            setOrdenes(prevOrdenes =>
+              prevOrdenes.map(orden =>
+                orden.numero_orden === updatedData.numero_orden
+                  ? { ...orden, ...updatedData }
+                  : orden
+              )
+            )
+            
+            // Sincronizar con Firebase después de 5 segundos
+            setTimeout(async () => {
+              console.log('🔄 Sincronizando con Firebase...')
+              await fetchOrdenes()
+            }, 5000)
+          } else {
+            // Si es nuevo registro, recargar todo
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await fetchOrdenes()
+          }
+          
+          setShowAgregarModal(false)
+          setOrdenToEditComplete(null)
+        }}
+        editingData={ordenToEditComplete}
+        onEdit={() => {
           fetchOrdenes()
           setShowAgregarModal(false)
+          setOrdenToEditComplete(null)
         }}
       />
       

@@ -7,21 +7,42 @@ import { X, ShoppingCart, AlertCircle, CheckCircle } from 'lucide-react'
 interface AgregarOrdenCompraModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (updatedData?: any) => void
+  editingData?: any // Datos para modo edición
+  onEdit?: (data: any) => void // Callback para edición
 }
 
 const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  editingData,
+  onEdit
 }) => {
+  const isEditMode = !!editingData
   const [formData, setFormData] = useState({
     numero_orden: '',
     nombre_centro_gestor: '',
     nombre_banco: '',
     nombre_resumido_proceso: '',
     valor_proyectado: '',
-    bp: ''
+    bp: '',
+    // Campos adicionales disponibles en la API
+    ano_orden: '',
+    bpin: '',
+    estado: '',
+    estado_orden: '',
+    fecha_publicacion_orden: '',
+    fecha_vencimiento_orden: '',
+    modalidad_contratacion: '',
+    nit_entidad: '',
+    nit_proveedor: '',
+    nombre_proveedor: '',
+    objeto_orden: '',
+    observaciones: '',
+    ordenador_gasto: '',
+    plataforma_origen: '',
+    valor_orden: ''
   })
 
   const [bancos, setBancos] = useState<string[]>([])
@@ -34,8 +55,60 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchBancosYCentros()
+      // Pre-llenar formulario en modo edición
+      if (editingData) {
+        setFormData({
+          numero_orden: String(editingData.numero_orden || ''),
+          nombre_centro_gestor: String(editingData.nombre_centro_gestor || ''),
+          nombre_banco: String(editingData.nombre_banco || ''),
+          nombre_resumido_proceso: String(editingData.nombre_resumido_proceso || ''),
+          valor_proyectado: String(editingData.valor_proyectado || editingData.valor_orden || ''),
+          bp: String(editingData.bp || ''),
+          // Campos adicionales
+          ano_orden: String(editingData.ano_orden || ''),
+          bpin: String(editingData.bpin || ''),
+          estado: String(editingData.estado || ''),
+          estado_orden: String(editingData.estado_orden || ''),
+          fecha_publicacion_orden: String(editingData.fecha_publicacion_orden || ''),
+          fecha_vencimiento_orden: String(editingData.fecha_vencimiento_orden || ''),
+          modalidad_contratacion: String(editingData.modalidad_contratacion || ''),
+          nit_entidad: String(editingData.nit_entidad || ''),
+          nit_proveedor: String(editingData.nit_proveedor || ''),
+          nombre_proveedor: String(editingData.nombre_proveedor || ''),
+          objeto_orden: String(editingData.objeto_orden || ''),
+          observaciones: String(editingData.observaciones || ''),
+          ordenador_gasto: String(editingData.ordenador_gasto || ''),
+          plataforma_origen: String(editingData.plataforma_origen || ''),
+          valor_orden: String(editingData.valor_orden || '')
+        })
+      } else {
+        // Resetear en modo creación
+        setFormData({
+          numero_orden: '',
+          nombre_centro_gestor: '',
+          nombre_banco: '',
+          nombre_resumido_proceso: '',
+          valor_proyectado: '',
+          bp: '',
+          ano_orden: '',
+          bpin: '',
+          estado: '',
+          estado_orden: '',
+          fecha_publicacion_orden: '',
+          fecha_vencimiento_orden: '',
+          modalidad_contratacion: '',
+          nit_entidad: '',
+          nit_proveedor: '',
+          nombre_proveedor: '',
+          objeto_orden: '',
+          observaciones: '',
+          ordenador_gasto: '',
+          plataforma_origen: '',
+          valor_orden: ''
+        })
+      }
     }
-  }, [isOpen])
+  }, [isOpen, editingData])
 
   const fetchBancosYCentros = async () => {
     setLoadingData(true)
@@ -76,24 +149,29 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {}
 
+    // numero_orden siempre es obligatorio
     if (!formData.numero_orden.trim()) {
       newErrors.numero_orden = 'El número de orden es obligatorio'
     }
 
-    if (!formData.nombre_centro_gestor.trim()) {
-      newErrors.nombre_centro_gestor = 'El centro gestor es obligatorio'
-    }
+    // En modo CREACIÓN, estos campos son obligatorios
+    // En modo EDICIÓN, son opcionales (solo se actualizan si se envían)
+    if (!isEditMode) {
+      if (!formData.nombre_centro_gestor.trim()) {
+        newErrors.nombre_centro_gestor = 'El centro gestor es obligatorio'
+      }
 
-    if (!formData.nombre_banco.trim()) {
-      newErrors.nombre_banco = 'El banco es obligatorio'
-    }
+      if (!formData.nombre_banco.trim()) {
+        newErrors.nombre_banco = 'El banco es obligatorio'
+      }
 
-    if (!formData.nombre_resumido_proceso.trim()) {
-      newErrors.nombre_resumido_proceso = 'El nombre del proceso es obligatorio'
-    }
+      if (!formData.nombre_resumido_proceso.trim()) {
+        newErrors.nombre_resumido_proceso = 'El nombre del proceso es obligatorio'
+      }
 
-    if (!formData.valor_proyectado || parseFloat(formData.valor_proyectado) <= 0) {
-      newErrors.valor_proyectado = 'El valor proyectado debe ser mayor a 0'
+      if (!formData.valor_proyectado || parseFloat(formData.valor_proyectado) <= 0) {
+        newErrors.valor_proyectado = 'El valor proyectado debe ser mayor a 0'
+      }
     }
 
     setErrors(newErrors)
@@ -111,37 +189,182 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
     setIsSubmitting(true)
 
     try {
-      const payload = new URLSearchParams()
-      payload.append('numero_orden', formData.numero_orden)
-      payload.append('nombre_centro_gestor', formData.nombre_centro_gestor)
-      payload.append('nombre_banco', formData.nombre_banco)
-      payload.append('nombre_resumido_proceso', formData.nombre_resumido_proceso)
-      payload.append('valor_proyectado', formData.valor_proyectado)
-      if (formData.bp) {
-        payload.append('bp', formData.bp)
-      }
-
-      const response = await fetch('/api/proxy/emprestito/cargar-orden-compra', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: payload.toString()
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        // Manejo de duplicados
-        if (response.status === 409) {
-          alert(`Ya existe una orden de compra con número: ${formData.numero_orden}`)
-        } else {
-          alert(result.error || result.detail || 'Error al crear la orden de compra')
+      if (isEditMode) {
+        // MODO EDICIÓN: usar PUT con query parameters
+        console.log('📝 Iniciando edición de orden de compra')
+        console.log('📝 FormData actual:', formData)
+        
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+        if (!apiUrl) {
+          throw new Error('URL de API no configurada')
         }
-        return
-      }
 
-      alert('Orden de compra creada exitosamente')
+        const params = new URLSearchParams()
+        // numero_orden es siempre requerido
+        params.append('numero_orden', formData.numero_orden)
+        
+        // Solo enviar campos que tienen valor (actualización parcial)
+        if (formData.nombre_centro_gestor && typeof formData.nombre_centro_gestor === 'string' && formData.nombre_centro_gestor.trim()) {
+          params.append('nombre_centro_gestor', formData.nombre_centro_gestor.trim())
+        }
+        if (formData.nombre_banco && typeof formData.nombre_banco === 'string' && formData.nombre_banco.trim()) {
+          params.append('nombre_banco', formData.nombre_banco.trim())
+        }
+        if (formData.nombre_resumido_proceso && typeof formData.nombre_resumido_proceso === 'string' && formData.nombre_resumido_proceso.trim()) {
+          params.append('nombre_resumido_proceso', formData.nombre_resumido_proceso.trim())
+        }
+        if (formData.valor_proyectado && String(formData.valor_proyectado).trim()) {
+          params.append('valor_proyectado', String(formData.valor_proyectado))
+        }
+        if (formData.bp && typeof formData.bp === 'string' && formData.bp.trim()) {
+          params.append('bp', formData.bp.trim())
+        }
+        
+        // Campos adicionales
+        if (formData.ano_orden && String(formData.ano_orden).trim()) {
+          params.append('ano_orden', String(formData.ano_orden))
+        }
+        if (formData.bpin && typeof formData.bpin === 'string' && formData.bpin.trim()) {
+          params.append('bpin', formData.bpin.trim())
+        }
+        if (formData.estado && typeof formData.estado === 'string' && formData.estado.trim()) {
+          params.append('estado', formData.estado.trim())
+        }
+        if (formData.estado_orden && typeof formData.estado_orden === 'string' && formData.estado_orden.trim()) {
+          params.append('estado_orden', formData.estado_orden.trim())
+        }
+        if (formData.fecha_publicacion_orden && typeof formData.fecha_publicacion_orden === 'string' && formData.fecha_publicacion_orden.trim()) {
+          params.append('fecha_publicacion_orden', formData.fecha_publicacion_orden.trim())
+        }
+        if (formData.fecha_vencimiento_orden && typeof formData.fecha_vencimiento_orden === 'string' && formData.fecha_vencimiento_orden.trim()) {
+          params.append('fecha_vencimiento_orden', formData.fecha_vencimiento_orden.trim())
+        }
+        if (formData.modalidad_contratacion && typeof formData.modalidad_contratacion === 'string' && formData.modalidad_contratacion.trim()) {
+          params.append('modalidad_contratacion', formData.modalidad_contratacion.trim())
+        }
+        if (formData.nit_entidad && typeof formData.nit_entidad === 'string' && formData.nit_entidad.trim()) {
+          params.append('nit_entidad', formData.nit_entidad.trim())
+        }
+        if (formData.nit_proveedor && typeof formData.nit_proveedor === 'string' && formData.nit_proveedor.trim()) {
+          params.append('nit_proveedor', formData.nit_proveedor.trim())
+        }
+        if (formData.nombre_proveedor && typeof formData.nombre_proveedor === 'string' && formData.nombre_proveedor.trim()) {
+          params.append('nombre_proveedor', formData.nombre_proveedor.trim())
+        }
+        if (formData.objeto_orden && typeof formData.objeto_orden === 'string' && formData.objeto_orden.trim()) {
+          params.append('objeto_orden', formData.objeto_orden.trim())
+        }
+        if (formData.observaciones && typeof formData.observaciones === 'string' && formData.observaciones.trim()) {
+          params.append('observaciones', formData.observaciones.trim())
+        }
+        if (formData.ordenador_gasto && typeof formData.ordenador_gasto === 'string' && formData.ordenador_gasto.trim()) {
+          params.append('ordenador_gasto', formData.ordenador_gasto.trim())
+        }
+        if (formData.plataforma_origen && typeof formData.plataforma_origen === 'string' && formData.plataforma_origen.trim()) {
+          params.append('plataforma_origen', formData.plataforma_origen.trim())
+        }
+        if (formData.valor_orden && String(formData.valor_orden).trim()) {
+          params.append('valor_orden', String(formData.valor_orden))
+        }
+
+        console.log('📤 URL completa:', `${apiUrl}/emprestito/modificar-orden-compra?${params.toString()}`)
+        console.log('📤 Parámetros a enviar:', Object.fromEntries(params))
+
+        const response = await fetch(`${apiUrl}/emprestito/modificar-orden-compra?${params.toString()}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+
+        const result = await response.json()
+        console.log('✅ Respuesta del servidor:', result)
+        console.log('✅ Success?', result.success)
+        console.log('✅ Message:', result.message)
+        console.log('✅ Campos actualizados:', result.campos_actualizados)
+
+        if (!response.ok) {
+          console.error('❌ Error en respuesta:', response.status, result)
+          if (response.status === 404) {
+            alert('Orden de compra no encontrada')
+          } else {
+            alert(result.error || result.detail || 'Error al actualizar la orden de compra')
+          }
+          return
+        }
+
+        if (!result.success) {
+          throw new Error(result.error || 'El servidor indicó que la actualización falló')
+        }
+
+        // Preparar datos actualizados para actualización optimista
+        const updatedData = {
+          ...editingData,
+          numero_orden: formData.numero_orden,
+          nombre_centro_gestor: formData.nombre_centro_gestor,
+          nombre_banco: formData.nombre_banco,
+          nombre_resumido_proceso: formData.nombre_resumido_proceso,
+          valor_proyectado: parseFloat(formData.valor_proyectado) || editingData.valor_proyectado || 0,
+          valor_orden: parseFloat(formData.valor_orden || formData.valor_proyectado) || editingData.valor_orden || 0,
+          bp: formData.bp,
+          // Campos adicionales
+          ano_orden: parseInt(formData.ano_orden) || editingData.ano_orden,
+          bpin: formData.bpin || editingData.bpin,
+          estado: formData.estado || editingData.estado,
+          estado_orden: formData.estado_orden || editingData.estado_orden,
+          fecha_publicacion_orden: formData.fecha_publicacion_orden || editingData.fecha_publicacion_orden,
+          fecha_vencimiento_orden: formData.fecha_vencimiento_orden || editingData.fecha_vencimiento_orden,
+          modalidad_contratacion: formData.modalidad_contratacion || editingData.modalidad_contratacion,
+          nit_entidad: formData.nit_entidad || editingData.nit_entidad,
+          nit_proveedor: formData.nit_proveedor || editingData.nit_proveedor,
+          nombre_proveedor: formData.nombre_proveedor || editingData.nombre_proveedor,
+          objeto_orden: formData.objeto_orden || editingData.objeto_orden,
+          observaciones: formData.observaciones || editingData.observaciones,
+          ordenador_gasto: formData.ordenador_gasto || editingData.ordenador_gasto,
+          plataforma_origen: formData.plataforma_origen || editingData.plataforma_origen
+        }
+        console.log('📦 Datos actualizados para UI:', updatedData)
+
+        alert('Orden de compra actualizada exitosamente')
+        
+        // Cerrar modal y notificar con datos actualizados
+        onClose()
+        await onSuccess(updatedData)
+        return
+      } else {
+        // MODO CREACIÓN: usar POST
+        const payload = new URLSearchParams()
+        payload.append('numero_orden', formData.numero_orden)
+        payload.append('nombre_centro_gestor', formData.nombre_centro_gestor)
+        payload.append('nombre_banco', formData.nombre_banco)
+        payload.append('nombre_resumido_proceso', formData.nombre_resumido_proceso)
+        payload.append('valor_proyectado', formData.valor_proyectado)
+        if (formData.bp) {
+          payload.append('bp', formData.bp)
+        }
+
+        const response = await fetch('/api/proxy/emprestito/cargar-orden-compra', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: payload.toString()
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          // Manejo de duplicados
+          if (response.status === 409) {
+            alert(`Ya existe una orden de compra con número: ${formData.numero_orden}`)
+          } else {
+            alert(result.error || result.detail || 'Error al crear la orden de compra')
+          }
+          return
+        }
+
+        alert('Orden de compra creada exitosamente')
+      }
       
       // Resetear formulario
       setFormData({
@@ -150,7 +373,22 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
         nombre_banco: '',
         nombre_resumido_proceso: '',
         valor_proyectado: '',
-        bp: ''
+        bp: '',
+        ano_orden: '',
+        bpin: '',
+        estado: '',
+        estado_orden: '',
+        fecha_publicacion_orden: '',
+        fecha_vencimiento_orden: '',
+        modalidad_contratacion: '',
+        nit_entidad: '',
+        nit_proveedor: '',
+        nombre_proveedor: '',
+        objeto_orden: '',
+        observaciones: '',
+        ordenador_gasto: '',
+        plataforma_origen: '',
+        valor_orden: ''
       })
       setErrors({})
       
@@ -158,8 +396,8 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
       onClose()
 
     } catch (error) {
-      console.error('Error al crear orden de compra:', error)
-      alert('Error al crear la orden de compra')
+      console.error('Error:', error)
+      alert(isEditMode ? 'Error al actualizar la orden de compra' : 'Error al crear la orden de compra')
     } finally {
       setIsSubmitting(false)
     }
@@ -209,9 +447,11 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
                   <ShoppingCart className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">Agregar Orden de Compra TVEC</h2>
+                  <h2 className="text-2xl font-bold">
+                    {isEditMode ? 'Editar Orden de Compra TVEC' : 'Agregar Orden de Compra TVEC'}
+                  </h2>
                   <p className="text-blue-100 text-sm mt-1">
-                    Registrar nueva orden de compra de Tienda Virtual
+                    {isEditMode ? 'Modificar datos de la orden de compra' : 'Registrar nueva orden de compra de Tienda Virtual'}
                   </p>
                 </div>
               </div>
@@ -242,7 +482,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white ${
                     errors.numero_orden ? 'border-red-500' : ''
                   }`}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isEditMode}
                 />
                 {errors.numero_orden && (
                   <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
@@ -255,7 +495,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
               {/* Centro Gestor */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Centro Gestor <span className="text-red-500">*</span>
+                  Centro Gestor {!isEditMode && <span className="text-red-500">*</span>}
                 </label>
                 <select
                   name="nombre_centro_gestor"
@@ -284,7 +524,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
               {/* Banco */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Banco <span className="text-red-500">*</span>
+                  Banco {!isEditMode && <span className="text-red-500">*</span>}
                 </label>
                 <select
                   name="nombre_banco"
@@ -313,7 +553,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
               {/* Nombre Resumido del Proceso */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre Resumido del Proceso <span className="text-red-500">*</span>
+                  Nombre Resumido del Proceso {!isEditMode && <span className="text-red-500">*</span>}
                 </label>
                 <textarea
                   name="nombre_resumido_proceso"
@@ -337,7 +577,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
               {/* Valor Proyectado */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Valor Proyectado (COP) <span className="text-red-500">*</span>
+                  Valor Proyectado (COP) {!isEditMode && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="number"
@@ -374,6 +614,258 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
                   disabled={isSubmitting}
                 />
               </div>
+
+              {/* Sección de Campos Adicionales - Solo visible en modo edición */}
+              {isEditMode && (
+                <div className="col-span-full">
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      Campos Adicionales (Opcionales)
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      
+                      {/* Año de Orden */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Año de Orden
+                        </label>
+                        <input
+                          type="number"
+                          name="ano_orden"
+                          value={formData.ano_orden}
+                          onChange={handleChange}
+                          placeholder="2024"
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* BPIN */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          BPIN
+                        </label>
+                        <input
+                          type="text"
+                          name="bpin"
+                          value={formData.bpin}
+                          onChange={handleChange}
+                          placeholder="BPIN-123456"
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Estado */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Estado
+                        </label>
+                        <input
+                          type="text"
+                          name="estado"
+                          value={formData.estado}
+                          onChange={handleChange}
+                          placeholder="Activa, Cerrada, Anulada..."
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Estado Orden */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Estado Orden
+                        </label>
+                        <input
+                          type="text"
+                          name="estado_orden"
+                          value={formData.estado_orden}
+                          onChange={handleChange}
+                          placeholder="En proceso, Finalizada..."
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Modalidad de Contratación */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Modalidad de Contratación
+                        </label>
+                        <input
+                          type="text"
+                          name="modalidad_contratacion"
+                          value={formData.modalidad_contratacion}
+                          onChange={handleChange}
+                          placeholder="Licitación, Contratación Directa..."
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Plataforma Origen */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Plataforma Origen
+                        </label>
+                        <input
+                          type="text"
+                          name="plataforma_origen"
+                          value={formData.plataforma_origen}
+                          onChange={handleChange}
+                          placeholder="TVEC, SECOP..."
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* NIT Entidad */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          NIT Entidad
+                        </label>
+                        <input
+                          type="text"
+                          name="nit_entidad"
+                          value={formData.nit_entidad}
+                          onChange={handleChange}
+                          placeholder="890.123.456-7"
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* NIT Proveedor */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          NIT Proveedor
+                        </label>
+                        <input
+                          type="text"
+                          name="nit_proveedor"
+                          value={formData.nit_proveedor}
+                          onChange={handleChange}
+                          placeholder="890.987.654-3"
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Nombre Proveedor */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Nombre Proveedor
+                        </label>
+                        <input
+                          type="text"
+                          name="nombre_proveedor"
+                          value={formData.nombre_proveedor}
+                          onChange={handleChange}
+                          placeholder="Nombre completo del proveedor"
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Ordenador de Gasto */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Ordenador de Gasto
+                        </label>
+                        <input
+                          type="text"
+                          name="ordenador_gasto"
+                          value={formData.ordenador_gasto}
+                          onChange={handleChange}
+                          placeholder="Nombre del ordenador de gasto"
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Valor Orden */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Valor Orden
+                        </label>
+                        <input
+                          type="number"
+                          name="valor_orden"
+                          value={formData.valor_orden}
+                          onChange={handleChange}
+                          placeholder="1500000000"
+                          step="0.01"
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Fecha Publicación Orden */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Fecha Publicación Orden
+                        </label>
+                        <input
+                          type="date"
+                          name="fecha_publicacion_orden"
+                          value={formData.fecha_publicacion_orden}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Fecha Vencimiento Orden */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Fecha Vencimiento Orden
+                        </label>
+                        <input
+                          type="date"
+                          name="fecha_vencimiento_orden"
+                          value={formData.fecha_vencimiento_orden}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Objeto de la Orden */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Objeto de la Orden
+                        </label>
+                        <textarea
+                          name="objeto_orden"
+                          value={formData.objeto_orden}
+                          onChange={handleChange}
+                          placeholder="Descripción detallada del objeto de la orden..."
+                          rows={3}
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      {/* Observaciones */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Observaciones
+                        </label>
+                        <textarea
+                          name="observaciones"
+                          value={formData.observaciones}
+                          onChange={handleChange}
+                          placeholder="Observaciones adicionales..."
+                          rows={3}
+                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </form>
 
@@ -401,7 +893,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
                 ) : (
                   <>
                     <CheckCircle className="h-5 w-5" />
-                    Guardar Orden de Compra
+                    {isEditMode ? 'Actualizar Orden de Compra' : 'Guardar Orden de Compra'}
                   </>
                 )}
               </button>
