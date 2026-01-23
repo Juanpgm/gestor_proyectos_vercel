@@ -370,7 +370,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       totalItems: finalData.length,
       monumentosGroup
     };
-  }, [data, searchTerm, sortConfig, currentPage, itemsPerPage, isMonumentosExpanded]);
+  }, [data, searchTerm, sortConfig, currentPage, itemsPerPage, isMonumentosExpanded, isBanderasExpanded, isSubsidiosExpanded]);
 
   // Función para manejar la expansión del grupo de monumentos
   // Funciones para manejar la expansión de cada grupo
@@ -1348,7 +1348,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
             {searchTerm && (
               <div className="text-center tablet:text-right">
                 <span className="text-xs tablet:text-sm">
-                  Filtrados por: <span className="font-medium text-blue-600 dark:text-blue-400">"{searchTerm}"</span>
+                  Filtrados por: <span className="font-medium text-blue-600 dark:text-blue-400">&quot;{searchTerm}&quot;</span>
                 </span>
               </div>
             )}

@@ -584,6 +584,24 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
 /**
  * Función para filtrar datos localmente (útil para filtrado en tiempo real)
  */
+
+// Helper para normalizar strings para comparación (trim y lowercase)
+const normalizeString = (str: string | null | undefined): string => {
+  if (!str) return '';
+  return String(str).trim().toLowerCase();
+};
+
+// Helper para comparar strings de forma segura (case-insensitive y trimmed)
+const stringsMatch = (a: string | null | undefined, b: string | null | undefined): boolean => {
+  return normalizeString(a) === normalizeString(b);
+};
+
+// Helper para verificar si un valor está en un array de valores (case-insensitive)
+const valueInArray = (value: string | null | undefined, arr: string[]): boolean => {
+  const normalizedValue = normalizeString(value);
+  return arr.some(item => normalizeString(item) === normalizedValue);
+};
+
 export const filterAttributeData = (
   data: AttributeData[], 
   filters: FilterParams & { searchTerm?: string }
@@ -637,24 +655,24 @@ export const filterAttributeData = (
           if (multipleValues && Array.isArray(multipleValues) && multipleValues.length > 0) {
             switch (baseKey) {
               case 'estado':
-                return multipleValues.includes(item.estado);
+                return valueInArray(item.estado, multipleValues);
               case 'tipo_intervencion':
-                return multipleValues.includes(item.tipo_intervencion);
+                return valueInArray(item.tipo_intervencion, multipleValues);
               case 'tipo_equipamiento':
-                return multipleValues.includes(item.tipo_equipamiento);
+                return valueInArray(item.tipo_equipamiento, multipleValues);
               case 'frente_activo':
-                return multipleValues.includes(item.frente_activo);
+                return valueInArray(item.frente_activo, multipleValues);
               case 'centro_gestor':
               case 'centro_gestor_multiple':
-                return multipleValues.includes(item.nombre_centro_gestor);
+                return valueInArray(item.nombre_centro_gestor, multipleValues);
               case 'comuna_corregimiento':
-                return multipleValues.includes(item.comuna_corregimiento);
+                return valueInArray(item.comuna_corregimiento, multipleValues);
               case 'barrio_vereda':
-                return multipleValues.includes(item.barrio_vereda);
+                return valueInArray(item.barrio_vereda, multipleValues);
               case 'fuente_financiacion':
-                return multipleValues.includes(item.fuente_financiacion);
+                return valueInArray(item.fuente_financiacion, multipleValues);
               case 'ano':
-                return multipleValues.map(v => String(v).replace('.0', '')).includes(String(item.ano).replace('.0', ''));
+                return multipleValues.map((v: any) => String(v).replace('.0', '')).includes(String(item.ano).replace('.0', ''));
               default:
                 return true;
             }
@@ -664,22 +682,22 @@ export const filterAttributeData = (
           if (singleValue && singleValue !== '') {
             switch (baseKey) {
               case 'estado':
-                return item.estado === singleValue;
+                return stringsMatch(item.estado, singleValue);
               case 'tipo_intervencion':
-                return item.tipo_intervencion === singleValue;
+                return stringsMatch(item.tipo_intervencion, singleValue);
               case 'tipo_equipamiento':
-                return item.tipo_equipamiento === singleValue;
+                return stringsMatch(item.tipo_equipamiento, singleValue);
               case 'frente_activo':
-                return item.frente_activo === singleValue;
+                return stringsMatch(item.frente_activo, singleValue);
               case 'centro_gestor':
               case 'centro_gestor_multiple':
-                return item.nombre_centro_gestor === singleValue;
+                return stringsMatch(item.nombre_centro_gestor, singleValue);
               case 'comuna_corregimiento':
-                return item.comuna_corregimiento === singleValue;
+                return stringsMatch(item.comuna_corregimiento, singleValue);
               case 'barrio_vereda':
-                return item.barrio_vereda === singleValue;
+                return stringsMatch(item.barrio_vereda, singleValue);
               case 'fuente_financiacion':
-                return item.fuente_financiacion === singleValue;
+                return stringsMatch(item.fuente_financiacion, singleValue);
               case 'ano':
                 return String(item.ano).replace('.0', '') === String(singleValue).replace('.0', '');
               default:

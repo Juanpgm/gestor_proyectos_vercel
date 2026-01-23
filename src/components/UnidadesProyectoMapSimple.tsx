@@ -719,10 +719,17 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
     }
   };
 
+  // Helper para normalizar UPIDs para comparación case-insensitive
+  const normalizeUpid = (upid: string | null | undefined): string => {
+    if (!upid) return '';
+    return String(upid).trim().toLowerCase();
+  };
+
   // Filtrar datos según el item enfocado
   const displayData = useMemo(() => {
     if (showOnlyFocused && focusedItem) {
-      return filteredData.filter(item => item.upid === focusedItem);
+      const normalizedFocused = normalizeUpid(focusedItem);
+      return filteredData.filter(item => normalizeUpid(item.upid) === normalizedFocused);
     }
     return filteredData;
   }, [filteredData, showOnlyFocused, focusedItem]);
@@ -745,7 +752,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         data.forEach(item => {
           const avance = item.avance_obra || 0;
           const range = ranges.find(r => avance >= r.min && avance <= r.max) || ranges[0];
-          colorMap.set(item.upid, range.color);
+          colorMap.set(normalizeUpid(item.upid), range.color);
         });
         
         const legend = ranges.map(range => ({
@@ -786,7 +793,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         data.forEach(item => {
           const amount = item.presupuesto_base || 0;
           const range = ranges.find(r => amount >= r.min && amount < r.max) || ranges[0];
-          colorMap.set(item.upid, range.color);
+          colorMap.set(normalizeUpid(item.upid), range.color);
         });
         
         const legend = ranges.map(range => ({
@@ -841,7 +848,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
           
           data
             .filter(item => String(item[field]) === value)
-            .forEach(item => colorMap.set(item.upid, color));
+            .forEach(item => colorMap.set(normalizeUpid(item.upid), color));
           
           valueCounts.set(value, data.filter(item => String(item[field]) === value).length);
         });
@@ -859,13 +866,13 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
 
   // Función para obtener color de feature
   const getFeatureColor = (properties: any): string => {
-    return colorMap.get(properties.upid) || '#6B7280';
+    return colorMap.get(normalizeUpid(properties.upid)) || '#6B7280';
   };
 
   // Función para obtener estilo de feature
   const getFeatureStyle = (feature: any) => {
     const color = getFeatureColor(feature.properties);
-    const isFocused = focusedItem === feature.properties?.upid;
+    const isFocused = normalizeUpid(focusedItem) === normalizeUpid(feature.properties?.upid);
     const isDimmed = showOnlyFocused && focusedItem && !isFocused;
     const geomType = feature.geometry?.type;
     
@@ -899,7 +906,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   // Función específica para marcadores circulares
   const getCircleMarkerStyle = (feature: any): L.CircleMarkerOptions => {
     const color = getFeatureColor(feature.properties);
-    const isFocused = focusedItem === feature.properties?.upid;
+    const isFocused = normalizeUpid(focusedItem) === normalizeUpid(feature.properties?.upid);
     const isDimmed = showOnlyFocused && focusedItem && !isFocused;
     
     return {
@@ -930,11 +937,65 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   const defaultCenter: [number, number] = [3.4516, -76.5320];
   const defaultZoom = 11;
 
+  // Función para validar si una geometría tiene coordenadas válidas
+  const hasValidCoordinates = (geometry: any): boolean => {
+    if (!geometry || !geometry.coordinates) return false;
+    
+    const geomType = geometry.type;
+    const coords = geometry.coordinates;
+    
+    try {
+      switch (geomType) {
+        case 'Point':
+          // Point: [lng, lat]
+          return Array.isArray(coords) && coords.length >= 2 &&
+            typeof coords[0] === 'number' && typeof coords[1] === 'number' &&
+            !(coords[0] === 0 && coords[1] === 0);
+        
+        case 'LineString':
+        case 'MultiPoint':
+          // LineString/MultiPoint: [[lng, lat], ...]
+          return Array.isArray(coords) && coords.length > 0 &&
+            coords.some((c: any) => Array.isArray(c) && c.length >= 2 &&
+              typeof c[0] === 'number' && typeof c[1] === 'number');
+        
+        case 'Polygon':
+        case 'MultiLineString':
+          // Polygon/MultiLineString: [[[lng, lat], ...], ...]
+          return Array.isArray(coords) && coords.length > 0 &&
+            coords.some((ring: any) => Array.isArray(ring) && ring.length > 0 &&
+              ring.some((c: any) => Array.isArray(c) && c.length >= 2 &&
+                typeof c[0] === 'number' && typeof c[1] === 'number'));
+        
+        case 'MultiPolygon':
+          // MultiPolygon: [[[[lng, lat], ...], ...], ...]
+          return Array.isArray(coords) && coords.length > 0 &&
+            coords.some((poly: any) => Array.isArray(poly) && poly.length > 0 &&
+              poly.some((ring: any) => Array.isArray(ring) && ring.length > 0 &&
+                ring.some((c: any) => Array.isArray(c) && c.length >= 2 &&
+                  typeof c[0] === 'number' && typeof c[1] === 'number')));
+        
+        case 'GeometryCollection':
+          // GeometryCollection: { geometries: [...] }
+          const geometries = (geometry as any).geometries;
+          return Array.isArray(geometries) && geometries.length > 0 &&
+            geometries.some((g: any) => hasValidCoordinates(g));
+        
+        default:
+          // Para tipos desconocidos, asumir válido si tiene coordenadas
+          return coords != null;
+      }
+    } catch (error) {
+      console.warn('Error validating geometry coordinates:', error);
+      return false;
+    }
+  };
+
   // Verificar si hay features con geometrías válidas
   const validFeatures = geometryData?.features?.filter(f => 
     f.properties.has_valid_geometry !== false &&
-    f.geometry?.coordinates &&
-    !(f.geometry.coordinates[0] === 0 && f.geometry.coordinates[1] === 0)
+    f.geometry &&
+    hasValidCoordinates(f.geometry)
   ) || [];
   
   const hasValidGeometries = validFeatures.length > 0;
@@ -1095,7 +1156,11 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
               return L.circleMarker(latlng, style);
             }}
             onEachFeature={(feature: any, layer: any) => {
-              const attributeItem = filteredData.find(item => item.upid === feature.properties.upid);
+              // Normalizar UPID para comparación case-insensitive
+              const featureUpid = String(feature.properties.upid || '').trim().toLowerCase();
+              const attributeItem = filteredData.find(item => 
+                String(item.upid || '').trim().toLowerCase() === featureUpid
+              );
               
               if (attributeItem) {
                 const avance = Math.round(attributeItem.avance_obra || 0);

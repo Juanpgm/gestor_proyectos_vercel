@@ -265,10 +265,16 @@ export const useUnidadesProyecto = (
     console.log('🗺️ filteredGeometry: Starting with', state.geometryData.features.length, 'total features');
     console.log('🗺️ filteredGeometry: Filtering to match', filteredData.length, 'attribute items');
     
-    const filteredUPIDs = new Set(filteredData.map(item => item.upid));
+    // Normalizar UPIDs para comparación case-insensitive
+    const normalizeUpid = (upid: string | null | undefined): string => {
+      if (!upid) return '';
+      return String(upid).trim().toLowerCase();
+    };
+    
+    const filteredUPIDs = new Set(filteredData.map(item => normalizeUpid(item.upid)));
     
     const filteredFeatures = state.geometryData.features.filter(feature => 
-      filteredUPIDs.has(feature.properties.upid)
+      filteredUPIDs.has(normalizeUpid(feature.properties.upid))
     );
 
     console.log('✅ filteredGeometry: Result =', filteredFeatures.length, 'features');
@@ -276,7 +282,7 @@ export const useUnidadesProyecto = (
     if (filteredFeatures.length === 0 && filteredData.length > 0) {
       console.error('❌ filteredGeometry: NO FEATURES MATCH! UPIDs do not align');
       console.error('Sample filtered attribute UPIDs:', Array.from(filteredUPIDs).slice(0, 5));
-      console.error('Sample geometry feature UPIDs:', state.geometryData.features.slice(0, 5).map(f => f.properties.upid));
+      console.error('Sample geometry feature UPIDs:', state.geometryData.features.slice(0, 5).map(f => normalizeUpid(f.properties.upid)));
       console.error('Checking if UPIDs are strings:', {
         attributeType: typeof Array.from(filteredUPIDs)[0],
         geometryType: typeof state.geometryData.features[0]?.properties.upid
