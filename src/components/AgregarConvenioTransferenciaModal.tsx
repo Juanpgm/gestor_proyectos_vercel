@@ -176,9 +176,9 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
       }
 
       if (bancosData.success && Array.isArray(bancosData.data)) {
-        // Extraer nombres únicos de bancos del campo nombre_banco
+        // Extraer nombres únicos de bancos del campo banco
         const bancosUnicos = Array.from(
-          new Set(bancosData.data.map((asignacion: any) => asignacion.nombre_banco).filter(Boolean))
+          new Set(bancosData.data.map((asignacion: any) => asignacion.banco).filter(Boolean))
         ) as string[]
         const bancosFormatted = bancosUnicos.map((nombre) => ({
           nombre_banco: nombre

@@ -1668,9 +1668,9 @@ const useEmprestitoRealData = () => {
             {},
             30000 // 30 segundos
           ),
-          // 3. Bancos
+          // 3. Bancos (desde asignaciones)
           fetchWithErrorHandling<any>(
-            'https://gestorproyectoapi-production.up.railway.app/bancos_emprestito_all',
+            'https://gestorproyectoapi-production.up.railway.app/asignaciones-emprestito-banco-centro-gestor',
             {},
             30000 // 30 segundos
           ),
@@ -1861,27 +1861,15 @@ const useEmprestitoRealData = () => {
           valor: p.valor_proyectado
         })))
 
-        // Debug: Mostrar algunos datos de bancos para verificar estructura
-        console.log('📊 Muestra de datos de bancos (bancos_emprestito_all):', bancosArray.slice(0, 3))
-        console.log('� Muestra de datos de empréstito bancos (emprestito_bancos_all):', bancosArray.slice(0, 3))
-        console.log('�💰 Bancos con valor_asignado_banco:',
-          bancosArray.filter((b: any) => b.valor_asignado_banco).map((b: any) => ({
-            nombre: b.nombre_banco,
-            valor: b.valor_asignado_banco,
-            centro: b.nombre_centro_gestor
-          }))
-        )
-        console.log('💰 Empréstito bancos con valor_asignado_banco:',
-          bancosArray.filter((b: any) => b.valor_asignado_banco).map((b: any) => ({
-            nombre: b.nombre_banco || b.banco,
-            valorAsignadoBanco: b.valor_asignado_banco,
-            campos: Object.keys(b)
-          }))
+        // Debug: Mostrar algunos datos de asignaciones banco-centro-gestor
+        console.log('📊 Muestra de datos de asignaciones banco-centro-gestor:', bancosArray.slice(0, 3))
+        console.log('💰 Bancos únicos desde asignaciones:',
+          Array.from(new Set(bancosArray.map((asig: any) => asig.banco).filter(Boolean)))
         )
 
-        // Debug: Calcular suma total de valor_asignado_banco para la card
-        const totalValorAsignadoBanco = bancosArray.reduce((sum: number, banco: any) => sum + (banco.valor_asignado_banco || 0), 0)
-        console.log('💵 Total Valor Asignado Banco calculado para card:', totalValorAsignadoBanco.toLocaleString())
+        // Debug: Calcular suma total de monto_programado_banco
+        const totalValorAsignadoBanco = bancosArray.reduce((sum: number, asig: any) => sum + (asig.monto_programado_banco || 0), 0)
+        console.log('💵 Total Monto Programado Banco calculado para card:', totalValorAsignadoBanco.toLocaleString())
 
       } catch (err: any) {
         const errorMessage = err?.message || err?.type || 'Error al cargar datos de Empréstito'

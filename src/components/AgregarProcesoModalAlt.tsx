@@ -154,9 +154,9 @@ const AgregarProcesoModalAlt: React.FC<AgregarProcesoModalAltProps> = ({
       }
 
       if (bancosData.success && Array.isArray(bancosData.data)) {
-        // Extraer bancos únicos de las asignaciones del campo nombre_banco
+        // Extraer bancos únicos de las asignaciones del campo banco
         const bancosUnicos = Array.from(
-          new Set(bancosData.data.map((asig: any) => asig.nombre_banco).filter(Boolean))
+          new Set(bancosData.data.map((asig: any) => asig.banco).filter(Boolean))
         ).map((nombreBanco: any) => ({
           nombre_banco: nombreBanco
         }))

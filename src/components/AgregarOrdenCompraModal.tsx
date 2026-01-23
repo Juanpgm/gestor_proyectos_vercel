@@ -125,9 +125,9 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
       const data = await response.json()
       
       if (Array.isArray(data.data)) {
-        // Extraer nombres únicos de bancos
+        // Extraer nombres únicos de bancos del campo 'banco'
         const nombresBancos = Array.from(
-          new Set(data.data.map((asig: any) => asig.nombre_banco).filter(Boolean))
+          new Set(data.data.map((asig: any) => asig.banco).filter(Boolean))
         ) as string[]
         
         // Extraer nombres únicos de centros gestores
