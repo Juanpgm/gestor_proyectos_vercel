@@ -135,6 +135,9 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
           new Set(data.data.map((asig: any) => asig.nombre_centro_gestor).filter(Boolean))
         ) as string[]
         
+        console.log('📊 [Tienda Virtual] Bancos cargados:', nombresBancos)
+        console.log('📊 [Tienda Virtual] Centros gestores cargados:', nombresCentros)
+        
         setBancos(nombresBancos)
         setCentrosGestores(nombresCentros)
       }
