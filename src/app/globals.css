@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Importar tipografía personalizada */
+@import '../styles/fonts.css';
+
 @layer base {
   :root {
     /* Sistema de colores principal */
