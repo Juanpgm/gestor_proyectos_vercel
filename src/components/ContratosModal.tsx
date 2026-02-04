@@ -131,7 +131,7 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
       }
 
       // Cargar reportes asociados al contrato directamente del endpoint externo
-      const reportesResponse = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes_contratos/')
+      const reportesResponse = await fetch('/api/proxy/reportes_contratos/')
       let reportesContrato = []
       if (reportesResponse.ok) {
         const reportesData = await reportesResponse.json()

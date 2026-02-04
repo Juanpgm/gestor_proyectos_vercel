@@ -230,7 +230,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         throw new Error('URL de API no configurada')
       }
 
-      const response = await fetch(`${apiUrl}/contratos_emprestito_all`)
+      const response = await fetch('/api/proxy/contratos_emprestito_all')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -264,7 +264,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         throw new Error('URL de API no configurada')
       }
 
-      const response = await fetch(`${apiUrl}/rpc_all`)
+      const response = await fetch('/api/proxy/rpc_all')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)

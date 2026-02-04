@@ -38,7 +38,7 @@ export default function LoginPage() {
       setLoadingCentros(true)
       
       // Add cache busting and proper headers
-      const response = await fetch(`${API_CONFIG.BASE_URL}/centros-gestores/nombres-unicos`, {
+      const response = await fetch('/api/proxy/centros-gestores/nombres-unicos', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

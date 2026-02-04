@@ -270,10 +270,10 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
           params.append('valor_orden', String(formData.valor_orden))
         }
 
-        console.log('📤 URL completa:', `${apiUrl}/emprestito/modificar-orden-compra?${params.toString()}`)
+        console.log('📤 URL completa:', `/api/proxy/emprestito/modificar-orden-compra?${params.toString()}`)
         console.log('📤 Parámetros a enviar:', Object.fromEntries(params))
 
-        const response = await fetch(`${apiUrl}/emprestito/modificar-orden-compra?${params.toString()}`, {
+        const response = await fetch(`/api/proxy/emprestito/modificar-orden-compra?${params.toString()}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'

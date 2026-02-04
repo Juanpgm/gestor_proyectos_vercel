@@ -109,9 +109,9 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
         archivos_count: uploadedFiles.length
       })
 
-      console.log('Enviando request a:', `${apiUrl}/emprestito/cargar-pago`)
+      console.log('Enviando request a:', '/api/proxy/emprestito/cargar-pago')
 
-      const response = await fetch(`${apiUrl}/emprestito/cargar-pago`, {
+      const response = await fetch('/api/proxy/emprestito/cargar-pago', {
         method: 'POST',
         // NO incluir Content-Type header - el navegador lo establecerá automáticamente con el boundary correcto
         body: formDataToSend

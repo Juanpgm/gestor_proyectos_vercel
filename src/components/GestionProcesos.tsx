@@ -204,7 +204,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         throw new Error('URL de API no configurada')
       }
 
-      const response = await fetch(`${apiUrl}/procesos_emprestito_all`)
+      const response = await fetch('/api/proxy/procesos_emprestito_all')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -247,7 +247,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
       if (!apiUrl) return
       
-      const response = await fetch(`${apiUrl}/emprestito/ordenes-compra`)
+      const response = await fetch('/api/proxy/emprestito/ordenes-compra')
       if (!response.ok) return
       
       const result = await response.json()
@@ -268,7 +268,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
       if (!apiUrl) return
       
-      const response = await fetch(`${apiUrl}/convenios_transferencias_all`)
+      const response = await fetch('/api/proxy/convenios_transferencias_all')
       if (!response.ok) return
       
       const result = await response.json()
@@ -341,7 +341,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         valor_proyectado: formData.valor_proyectado
       })
 
-      const response = await fetch(`${apiUrl}/emprestito/proceso/${referenciaProceso}`, {
+      const response = await fetch(`/api/proxy/emprestito/proceso/${referenciaProceso}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -409,7 +409,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
       console.log('🗑️ Eliminando proceso:', referenciaProceso)
 
-      const response = await fetch(`${apiUrl}/emprestito/proceso/${referenciaProceso}`, {
+      const response = await fetch(`/api/proxy/emprestito/proceso/${referenciaProceso}`, {
         method: 'DELETE'
       })
 

@@ -79,9 +79,9 @@ export const useEmprestitoBP = () => {
 
         // Obtener datos de los 3 endpoints en paralelo
         const [procesosRes, contratosRes, asignacionesRes] = await Promise.all([
-          fetch('https://gestorproyectoapi-production.up.railway.app/emprestito/obtener-procesos-bp'),
-          fetch('https://gestorproyectoapi-production.up.railway.app/emprestito/obtener-contratos-bp'),
-          fetch('https://gestorproyectoapi-production.up.railway.app/asignaciones-emprestito-banco-centro-gestor')
+          fetch('/api/proxy/emprestito/obtener-procesos-bp'),
+          fetch('/api/proxy/emprestito/obtener-contratos-bp'),
+          fetch('/api/proxy/asignaciones-emprestito-banco-centro-gestor')
         ])
 
         if (!procesosRes.ok || !contratosRes.ok || !asignacionesRes.ok) {
@@ -333,7 +333,7 @@ export const useEmprestitoPagos = () => {
         setError(null)
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/contratos_pagos_all`
+          '/api/proxy/contratos_pagos_all'
         )
 
         if (!response.ok) {

@@ -103,7 +103,7 @@ const GestionPagos: React.FC<GestionPagosProps> = ({ onNavigateHome }) => {
       setError(null)
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
       if (!apiUrl) throw new Error('URL de API no configurada')
-      const response = await fetch(`${apiUrl}/rpc_all`)
+      const response = await fetch('/api/proxy/rpc_all')
       if (!response.ok) throw new Error(`Error ${response.status}`)
       const data = await response.json()
       if (data.success && Array.isArray(data.data)) {

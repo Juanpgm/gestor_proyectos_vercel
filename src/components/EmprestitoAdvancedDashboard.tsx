@@ -1490,7 +1490,7 @@ const useSeguimientoData = () => {
       try {
         // Endpoint para reportes de contratos - usar el endpoint directo
         const reportesData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
+          '/api/proxy/reportes_contratos/',
           {},
           120000 // 2 minutos de timeout
         )
@@ -1658,19 +1658,19 @@ const useEmprestitoRealData = () => {
         const [contratosResult, reportesResult, bancosResult, pagosResult, proyeccionesResult] = await Promise.allSettled([
           // 1. Contratos (timeout reducido a 30s)
           fetchWithErrorHandling<any>(
-            'https://gestorproyectoapi-production.up.railway.app/contratos_emprestito_all',
+            '/api/proxy/contratos_emprestito_all',
             {},
             30000 // 30 segundos
           ),
           // 2. Reportes
           fetchWithErrorHandling<any>(
-            'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
+            '/api/proxy/reportes_contratos/',
             {},
             30000 // 30 segundos
           ),
           // 3. Bancos (desde asignaciones)
           fetchWithErrorHandling<any>(
-            'https://gestorproyectoapi-production.up.railway.app/asignaciones-emprestito-banco-centro-gestor',
+            '/api/proxy/asignaciones-emprestito-banco-centro-gestor',
             {},
             30000 // 30 segundos
           ),
@@ -1713,7 +1713,7 @@ const useEmprestitoRealData = () => {
         let asignacionesData: any
         try {
           asignacionesData = await fetchWithErrorHandling<any>(
-            'https://gestorproyectoapi-production.up.railway.app/asignaciones-emprestito-banco-centro-gestor',
+            '/api/proxy/asignaciones-emprestito-banco-centro-gestor',
             {},
             120000 // 2 minutos de timeout
           )

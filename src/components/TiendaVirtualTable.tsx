@@ -135,7 +135,7 @@ const TiendaVirtualTable: React.FC = () => {
         throw new Error('URL de API no configurada')
       }
 
-      const response = await fetch(`${apiUrl}/emprestito/ordenes-compra`)
+      const response = await fetch('/api/proxy/emprestito/ordenes-compra')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)

@@ -114,7 +114,7 @@ const ConveniosTable: React.FC = () => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
       if (!apiUrl) throw new Error('URL de API no configurada')
 
-      const response = await fetch(`${apiUrl}/convenios_transferencias_all`)
+      const response = await fetch('/api/proxy/convenios_transferencias_all')
       if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
       
       const result = await response.json()
@@ -155,7 +155,7 @@ const ConveniosTable: React.FC = () => {
         }
       })
 
-      const response = await fetch(`${apiUrl}/emprestito/modificar-convenio-transferencia`, {
+      const response = await fetch('/api/proxy/emprestito/modificar-convenio-transferencia', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'

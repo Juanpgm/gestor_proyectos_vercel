@@ -34,7 +34,7 @@ export const fetchPagosEmprestito = async (): Promise<PagosResponse> => {
       throw new Error('URL de API no configurada')
     }
 
-    const response = await fetch(`${apiUrl}/contratos_pagos_all`, {
+    const response = await fetch('/api/proxy/contratos_pagos_all', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

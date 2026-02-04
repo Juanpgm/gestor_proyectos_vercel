@@ -10,7 +10,7 @@ const TestReportesAPI = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes_contratos/')
+        const response = await fetch('/api/proxy/reportes_contratos/')
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }

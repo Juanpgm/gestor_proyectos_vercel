@@ -144,7 +144,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
 
       console.log(`🗑️ Eliminando proceso: ${referencia}`)
 
-      const response = await fetch(`${apiUrl}/emprestito/proceso/${encodeURIComponent(referencia)}`, {
+      const response = await fetch(`/api/proxy/emprestito/proceso/${encodeURIComponent(referencia)}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -185,7 +185,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
       }
 
       const data = await fetchWithErrorHandling<any>(
-        `${apiUrl}/procesos_emprestito_all`,
+        '/api/proxy/procesos_emprestito_all',
         {},
         120000 // 2 minutos de timeout
       )
@@ -419,7 +419,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
       console.log('📤 Datos a enviar:', procesoData)
 
       const result = await fetchWithErrorHandling<any>(
-        `${apiUrl}/emprestito/cargar-proceso`,
+        '/api/proxy/emprestito/cargar-proceso',
         {
           method: 'POST',
           headers: {

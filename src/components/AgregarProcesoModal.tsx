@@ -117,8 +117,8 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
 
       // Cargar centros gestores y bancos en paralelo
       const [centrosResponse, bancosResponse] = await Promise.all([
-        fetch(`${apiUrl}/centros-gestores/nombres-unicos`),
-        fetch(`${apiUrl}/asignaciones-emprestito-banco-centro-gestor`)
+        fetch('/api/proxy/centros-gestores/nombres-unicos'),
+        fetch('/api/proxy/asignaciones-emprestito-banco-centro-gestor')
       ])
 
       if (!centrosResponse.ok) {
