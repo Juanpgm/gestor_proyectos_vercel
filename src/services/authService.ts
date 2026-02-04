@@ -42,8 +42,8 @@ class AuthService {
     try {
       // Configuración simple y directa
       this.config = {
-        projectId: 'unidad-cumplimiento-aa245',
-        authDomain: 'unidad-cumplimiento-aa245.firebaseapp.com',
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'calitrack-44403',
+        authDomain: `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'calitrack-44403'}.firebaseapp.com`,
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
         allowRegistration: true,
         rememberMeEnabled: AUTH_CONFIG.REMEMBER_ME_ENABLED,

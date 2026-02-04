@@ -3,18 +3,35 @@ import { getAuth, Auth, signInWithCustomToken } from 'firebase/auth';
 
 // Configuración de Firebase desde variables de entorno
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'dummy-key',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dummy-domain.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'dummy-project',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'dummy-bucket.appspot.com',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:123456789:web:abc123'
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''
 };
 
-// Verificar que las variables de entorno estén configuradas (solo warnings, no errores)
-const hasRealConfig = !!(process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
+// Verificar que las variables de entorno estén configuradas
+const hasRealConfig = !!(
+  process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
   process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN &&
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
+  process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET &&
+  process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID &&
+  process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+);
+// Firebase initialization with improved error handling
+if (!hasRealConfig) {
+  console.warn('⚠️ Firebase: Configuración incompleta detectada');
+  console.warn('Variables faltantes:', {
+    apiKey: !process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: !process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: !process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: !process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: !process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  });
+}
 
 if (!hasRealConfig && typeof window !== 'undefined') {
   console.warn('⚠️ Firebase configuration is using dummy values. Authentication will not work.');
