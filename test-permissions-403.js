@@ -1,11 +1,11 @@
 // Test para diagnosticar el problema de permisos 403
-const fetch = require("node-fetch");
+const { default: fetch } = require("node-fetch");
 
 const BACKEND_URL = "https://gestorproyectoapi-production.up.railway.app";
 
-// Credenciales de prueba (cambiar por las reales)
-const TEST_EMAIL = "admin@example.com"; // CAMBIAR
-const TEST_PASSWORD = "password123"; // CAMBIAR
+// Credenciales de prueba (usuario creado en Firebase)
+const TEST_EMAIL = "test@example.com";
+const TEST_PASSWORD = "password123";
 
 async function diagnosePermissions() {
   console.log("=".repeat(60));
@@ -54,7 +54,7 @@ async function diagnosePermissions() {
     console.log("- Roles:", JSON.stringify(loginData.user.roles || []));
     console.log(
       "- Permisos:",
-      JSON.stringify(loginData.user.permissions || [])
+      JSON.stringify(loginData.user.permissions || []),
     );
     console.log("");
 
@@ -62,7 +62,7 @@ async function diagnosePermissions() {
     const hasSuperAdmin = loginData.user.roles?.includes("super_admin");
     console.log(
       "4️⃣ ¿Tiene rol super_admin?",
-      hasSuperAdmin ? "✅ SÍ" : "❌ NO"
+      hasSuperAdmin ? "✅ SÍ" : "❌ NO",
     );
     console.log("");
 
@@ -78,7 +78,7 @@ async function diagnosePermissions() {
       console.log("✅ SOLUCIÓN:");
       console.log("");
       console.log(
-        "Opción 1: Asignar rol super_admin directamente en Firebase:"
+        "Opción 1: Asignar rol super_admin directamente en Firebase:",
       );
       console.log("  1. Ir a Firebase Console → Firestore");
       console.log("  2. Colección: usuarios");
@@ -89,7 +89,7 @@ async function diagnosePermissions() {
       console.log("Opción 2: Usar script del backend:");
       console.log(
         "  python scripts/assign_super_admin.py",
-        loginData.user.email
+        loginData.user.email,
       );
       console.log("");
       console.log("Opción 3: Crear nuevo usuario super_admin:");
@@ -111,7 +111,7 @@ async function diagnosePermissions() {
     console.log("1. Usar signInWithCustomToken(custom_token) con Firebase SDK");
     console.log("2. Obtener id_token con user.getIdToken()");
     console.log(
-      "3. Usar id_token en header Authorization de todas las peticiones"
+      "3. Usar id_token en header Authorization de todas las peticiones",
     );
     console.log("");
     console.log("Si el error 403 persiste, verifica que:");
