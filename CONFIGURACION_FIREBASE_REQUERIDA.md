@@ -45,9 +45,9 @@ Verás algo como esto:
 ```javascript
 const firebaseConfig = {
   apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-  authDomain: "unidad-cumplimiento-aa245.firebaseapp.com",
-  projectId: "unidad-cumplimiento-aa245",
-  storageBucket: "unidad-cumplimiento-aa245.appspot.com",
+  authDomain: "calitrack-44403.firebaseapp.com",
+  projectId: "calitrack-44403",
+  storageBucket: "calitrack-44403.appspot.com",
   messagingSenderId: "123456789012",
   appId: "1:123456789012:web:abcdef1234567890",
 };
@@ -60,9 +60,9 @@ Abre el archivo `.env.local` en la raíz del proyecto y reemplaza los valores de
 ```env
 # ✅ REEMPLAZA ESTOS VALORES CON LOS REALES DE FIREBASE CONSOLE
 NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=unidad-cumplimiento-aa245.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=unidad-cumplimiento-aa245
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=unidad-cumplimiento-aa245.appspot.com
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=calitrack-44403.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=calitrack-44403
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=calitrack-44403.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789012
 NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789012:web:abcdef1234567890
 ```
@@ -128,7 +128,7 @@ Después de configurar las credenciales reales:
 Si no tienes acceso a Firebase Console:
 
 1. Contacta al administrador del proyecto Firebase
-2. Solicita acceso al proyecto `unidad-cumplimiento-aa245`
+2. Solicita acceso al proyecto `calitrack-44403`
 3. O solicita que te envíen las credenciales de la aplicación web
 
 ---
