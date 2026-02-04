@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico de Producción - Debug Proxy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #1a202c;
+            margin-bottom: 20px;
+        }
+        .debug-section {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .debug-section h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+        .log {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        .status.warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Diagnóstico de Producción - Debug Proxy</h1>
+        <p>Esta página diagnostica los problemas de proxy en producción para el sistema de autenticación.</p>
+
+        <div class="debug-section">
+            <h3>1. 🌍 Información del Entorno</h3>
+            <div id="environment-info"></div>
+            <button class="btn" onclick="checkEnvironment()">Verificar Entorno</button>
+        </div>
+
+        <div class="debug-section">
+            <h3>2. 🔗 Test de Conectividad del Proxy</h3>
+            <div id="proxy-status"></div>
+            <button class="btn" onclick="testProxy()">Probar Proxy</button>
+            <button class="btn" onclick="testBackendDirect()">Probar Backend Directo</button>
+        </div>
+
+        <div class="debug-section">
+            <h3>3. 🔐 Test de Registro</h3>
+            <div id="register-status"></div>
+            <input type="email" id="test-email" placeholder="email@cali.gov.co" value="debug@cali.gov.co">
+            <input type="password" id="test-password" placeholder="Password123!" value="Debug123!!">
+            <br><br>
+            <button class="btn" onclick="testRegister()">Probar Registro via Proxy</button>
+        </div>
+
+        <div class="debug-section">
+            <h3>📋 Log de Diagnóstico</h3>
+            <div id="debug-log" class="log"></div>
+            <button class="btn" onclick="clearLog()">Limpiar Log</button>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('debug-log');
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logDiv.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function showStatus(elementId, message, type) {
+            const statusDiv = document.getElementById(elementId);
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function checkEnvironment() {
+            log('Verificando información del entorno...', 'info');
+            
+            const envInfo = {
+                url: window.location.href,
+                origin: window.location.origin,
+                hostname: window.location.hostname,
+                protocol: window.location.protocol,
+                userAgent: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other',
+                isProduction: window.location.hostname.includes('vercel.app') || window.location.hostname !== 'localhost'
+            };
+
+            const envDisplay = `
+                <strong>URL:</strong> ${envInfo.url}<br>
+                <strong>Origen:</strong> ${envInfo.origin}<br>
+                <strong>Hostname:</strong> ${envInfo.hostname}<br>
+                <strong>Protocolo:</strong> ${envInfo.protocol}<br>
+                <strong>Es Producción:</strong> ${envInfo.isProduction ? 'Sí' : 'No (Local)'}<br>
+            `;
+
+            document.getElementById('environment-info').innerHTML = envDisplay;
+            log(`Entorno: ${envInfo.isProduction ? 'PRODUCCIÓN' : 'LOCAL'}`, 'info');
+            log(`Hostname: ${envInfo.hostname}`, 'info');
+        }
+
+        async function testProxy() {
+            log('Probando conectividad del proxy...', 'info');
+            showStatus('proxy-status', 'Probando...', 'warning');
+
+            try {
+                const response = await fetch('/api/proxy/ping', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.text();
+                log(`Proxy Status: ${response.status}`, response.ok ? 'success' : 'error');
+                log(`Proxy Response: ${data.substring(0, 200)}...`, 'info');
+
+                if (response.ok) {
+                    showStatus('proxy-status', '✅ Proxy funcionando correctamente', 'success');
+                } else {
+                    showStatus('proxy-status', `❌ Error en proxy: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`Error de proxy: ${error.message}`, 'error');
+                showStatus('proxy-status', `❌ Error de red: ${error.message}`, 'error');
+            }
+        }
+
+        async function testBackendDirect() {
+            log('Probando backend directamente...', 'info');
+
+            try {
+                const response = await fetch('https://gestorproyectoapi-production.up.railway.app/ping', {
+                    method: 'GET'
+                });
+
+                const data = await response.text();
+                log(`Backend Status: ${response.status}`, response.ok ? 'success' : 'error');
+                log(`Backend Response: ${data.substring(0, 200)}...`, 'info');
+            } catch (error) {
+                log(`Error backend directo: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRegister() {
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+
+            if (!email || !password) {
+                showStatus('register-status', '❌ Por favor ingresa email y contraseña', 'error');
+                return;
+            }
+
+            log(`Probando registro con: ${email}`, 'info');
+            showStatus('register-status', 'Probando registro...', 'warning');
+
+            try {
+                const response = await fetch('/api/proxy/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        confirmPassword: password,
+                        name: 'Debug User',
+                        cellphone: '1234567890',
+                        nombre_centro_gestor: 'Test Centro'
+                    })
+                });
+
+                const data = await response.json();
+                log(`Registro Status: ${response.status}`, response.status === 201 ? 'success' : 'error');
+                log(`Registro Response: ${JSON.stringify(data, null, 2)}`, 'info');
+
+                if (response.status === 201) {
+                    showStatus('register-status', '✅ Registro exitoso via proxy', 'success');
+                } else {
+                    showStatus('register-status', `❌ Error en registro: ${data.error || data.detail || 'Error desconocido'}`, 'error');
+                }
+            } catch (error) {
+                log(`Error de registro: ${error.message}`, 'error');
+                showStatus('register-status', `❌ Error de red: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('debug-log').textContent = '';
+            log('Log limpiado', 'info');
+        }
+
+        // Auto-verificar entorno al cargar
+        window.addEventListener('DOMContentLoaded', () => {
+            log('Página de diagnóstico cargada', 'info');
+            checkEnvironment();
+        });
+    </script>
+</body>
+</html>

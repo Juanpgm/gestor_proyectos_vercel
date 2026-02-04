@@ -25,8 +25,24 @@ async function handleRequest(request: NextRequest, method: string) {
   // Extract the path after /api/proxy/
   const apiPath = pathname.replace('/api/proxy/', '')
   
+  // Validate API_BASE_URL
+  if (!API_BASE_URL) {
+    console.error('❌ API_BASE_URL is not configured')
+    return NextResponse.json({
+      error: 'Configuration error',
+      message: 'Backend URL not configured. Check NEXT_PUBLIC_API_BASE_URL environment variable.',
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    }, { status: 500, headers: corsHeaders })
+  }
+  
   // Construct the full FastAPI URL
   const fastApiUrl = `${API_BASE_URL}/${apiPath}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+  
+  // Debug logging for production
+  console.log(`🌐 [${method}] Proxying to: ${fastApiUrl}`)
+  console.log(`📍 Environment: ${process.env.NODE_ENV}`)
+  console.log(`🔧 API_BASE_URL: ${API_BASE_URL}`)
   
   try {
     // Setup timeout controller
@@ -111,6 +127,10 @@ async function handleRequest(request: NextRequest, method: string) {
       error: 'Proxy request failed',
       message: error.message || 'Unknown error',
       backend_url: fastApiUrl,
+      api_base_url: API_BASE_URL,
+      environment: process.env.NODE_ENV,
+      error_type: error.constructor.name,
+      path: apiPath,
       timestamp: new Date().toISOString(),
     }
     
