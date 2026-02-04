@@ -18,6 +18,15 @@ class AuthService {
 
   // Determinar la URL correcta basada en el entorno
   private getApiUrl(): string {
+    // Log de debug para producción
+    if (typeof window !== 'undefined') {
+      console.log('🔧 AuthService API Config:', {
+        windowOrigin: window.location.origin,
+        baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+        environment: process.env.NODE_ENV
+      });
+    }
+    
     // SIEMPRE usar el proxy para consistencia entre entornos
     if (typeof window !== 'undefined') {
       return `${window.location.origin}/api/proxy`
