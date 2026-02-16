@@ -1068,7 +1068,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                           </div>
                         </td>
                       )}
-                      {visibleColumns.avance_obra && (
+                      {visibleColumns.avance && (
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                           <div className="space-y-1">
                             <ProgressBar value={row.avance_promedio || 0} max={100} />
@@ -1081,7 +1081,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                           </div>
                         </td>
                       )}
-                      {visibleColumns.presupuesto_base && (
+                      {visibleColumns.inversion && (
                         <td className={`px-3 py-4 whitespace-nowrap text-sm font-bold ${textColor} dark:${textColor}`}>
                           <div className="flex items-center space-x-1">
                             <DollarSign className="w-3 h-3" />
