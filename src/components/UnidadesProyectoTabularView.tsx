@@ -271,6 +271,37 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage]);
 
+  const getVisiblePages = () => {
+    const pages: Array<number | 'ellipsis'> = [];
+    const maxVisible = 7;
+
+    if (totalPages <= maxVisible) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const siblings = 1;
+    const startPage = Math.max(2, currentPage - siblings);
+    const endPage = Math.min(totalPages - 1, currentPage + siblings);
+
+    pages.push(1);
+
+    if (startPage > 2) {
+      pages.push('ellipsis');
+    }
+
+    for (let page = startPage; page <= endPage; page += 1) {
+      pages.push(page);
+    }
+
+    if (endPage < totalPages - 1) {
+      pages.push('ellipsis');
+    }
+
+    pages.push(totalPages);
+
+    return pages;
+  };
+
   // Métricas globales
   const globalMetrics = useMemo(() => {
     let totalPresupuesto = 0;
@@ -618,8 +649,18 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
             </button>
 
             <div className="flex items-center gap-0.5">
-              {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                const page = i + 1;
+              {getVisiblePages().map((page, index) => {
+                if (page === 'ellipsis') {
+                  return (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400"
+                    >
+                      ...
+                    </span>
+                  );
+                }
+
                 return (
                   <button
                     key={page}

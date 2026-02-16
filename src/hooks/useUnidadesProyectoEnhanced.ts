@@ -23,10 +23,21 @@ interface UnidadesProyectoState {
   geometryData: GeometryData | null;
   attributeData: AttributeData[];
   filterData: FilterData | null;
+  intervencionesData: IntervencionMetricItem[];
   loading: boolean;
   error: string | null;
   lastUpdate: Date | null;
   totalIntervencionesCount: number | null; // Conteo real del endpoint /intervenciones
+}
+
+interface IntervencionMetricItem {
+  upid?: string;
+  avance_obra?: number;
+  presupuesto_base?: number;
+  estado?: string;
+  tipo_intervencion?: string;
+  nombre_centro_gestor?: string;
+  fuente_financiacion?: string;
 }
 
 // Opciones de configuración del hook
@@ -74,6 +85,7 @@ const createInitialState = (): UnidadesProyectoState => ({
   geometryData: null,
   attributeData: [],
   filterData: null,
+  intervencionesData: [],
   loading: true,
   error: null,
   lastUpdate: null
@@ -324,11 +336,60 @@ export const useUnidadesProyecto = (
       return acc;
     }, {} as Record<string, number>);
 
-    const avgProgress = data.length > 0 
-      ? data.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / data.length
-      : 0;
+    const normalizeUpid = (value: string | null | undefined): string =>
+      String(value || '').trim().toLowerCase();
 
-    const totalBudget = data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+    const normalizeValue = (value: string | null | undefined): string =>
+      String(value || '').trim().toLowerCase();
+
+    const matchesFilterValue = (
+      value: string | null | undefined,
+      single: string | null | undefined,
+      multi: string[] | null | undefined
+    ): boolean => {
+      if (Array.isArray(multi) && multi.length > 0) {
+        return multi.some(entry => normalizeValue(entry) === normalizeValue(value));
+      }
+      if (single && String(single).trim() !== '') {
+        return normalizeValue(value) === normalizeValue(single);
+      }
+      return true;
+    };
+
+    const filteredUpids = new Set(data.map(item => normalizeUpid(item.upid)));
+    const hasUpOnlyFilters = Boolean(
+      (filters as any)?.tipo_equipamiento || (filters as any)?.tipo_equipamiento_multiple?.length ||
+      (filters as any)?.frente_activo || (filters as any)?.frente_activo_multiple?.length ||
+      (filters as any)?.comuna_corregimiento || (filters as any)?.comuna_corregimiento_multiple?.length ||
+      (filters as any)?.barrio_vereda || (filters as any)?.barrio_vereda_multiple?.length ||
+      (filters as any)?.ano || (filters as any)?.ano_multiple?.length ||
+      searchTerm.trim() !== ''
+    );
+
+    const interventionItems = state.intervencionesData.length > 0
+      ? state.intervencionesData.filter(item => {
+          if (hasUpOnlyFilters && !filteredUpids.has(normalizeUpid(item.upid))) {
+            return false;
+          }
+
+          return (
+            matchesFilterValue(item.estado, filters.estado, (filters as any).estado_multiple) &&
+            matchesFilterValue(item.tipo_intervencion, filters.tipo_intervencion, (filters as any).tipo_intervencion_multiple) &&
+            matchesFilterValue(item.nombre_centro_gestor, filters.centro_gestor, (filters as any).centro_gestor_multiple) &&
+            matchesFilterValue(item.fuente_financiacion, filters.fuente_financiacion, (filters as any).fuente_financiacion_multiple)
+          );
+        })
+      : [];
+
+    const avgProgress = interventionItems.length > 0
+      ? interventionItems.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / interventionItems.length
+      : (data.length > 0
+        ? data.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / data.length
+        : 0);
+
+    const totalBudget = interventionItems.length > 0
+      ? interventionItems.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0)
+      : data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
     
     // 🔍 DIAGNÓSTICO: Calcular presupuesto total SIN filtros
     const totalBudgetAllData = allData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
@@ -408,7 +469,7 @@ export const useUnidadesProyecto = (
       totalBudget,
       activeFronts
     };
-  }, [filteredData, state.attributeData, state.totalIntervencionesCount]);
+  }, [filteredData, state.attributeData, state.intervencionesData, state.totalIntervencionesCount, filters, searchTerm]);
 
   // Efecto para cargar datos iniciales
   const hasInitialized = useRef(false);
@@ -475,6 +536,46 @@ export const useUnidadesProyecto = (
     // Ejecutar el fetch cuando el componente se monta
     fetchIntervencionesCount();
   }, []); // Solo ejecutar una vez al montar
+
+  // Efecto para obtener todas las intervenciones (para métricas agregadas)
+  useEffect(() => {
+    const fetchIntervencionesData = async () => {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const url = `${baseUrl}/intervenciones?limit=10000`;
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const data = Array.isArray(payload?.data) ? payload.data : [];
+
+        setState(prev => ({
+          ...prev,
+          intervencionesData: data.map((item: any) => ({
+            upid: item?.upid,
+            avance_obra: typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0),
+            presupuesto_base: typeof item?.presupuesto_base === 'number' ? item.presupuesto_base : parseFloat(item?.presupuesto_base || 0),
+            estado: item?.estado,
+            tipo_intervencion: item?.tipo_intervencion,
+            nombre_centro_gestor: item?.nombre_centro_gestor,
+            fuente_financiacion: item?.fuente_financiacion
+          }))
+        }));
+      } catch (error) {
+        console.error('❌ Error fetching intervenciones data:', error);
+      }
+    };
+
+    fetchIntervencionesData();
+  }, []);
 
   // Resultado del hook
   return {
