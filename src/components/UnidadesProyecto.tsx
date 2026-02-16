@@ -27,7 +27,7 @@ import dynamic from 'next/dynamic';
 // Componentes dinámicos para evitar problemas de SSR
 const UnidadesProyectoMapSimple = dynamic(() => import('./UnidadesProyectoMapSimple'), { ssr: false });
 const UnidadesProyectoFilters = dynamic(() => import('./UnidadesProyectoFilters'), { ssr: false });
-const UnidadesProyectoAttributesTable = dynamic(() => import('./UnidadesProyectoAttributesTable'), { ssr: false });
+const UnidadesProyectoTabularView = dynamic(() => import('./UnidadesProyectoTabularView'), { ssr: false });
 
 // Hooks mejorados
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
@@ -475,30 +475,26 @@ const CompactMetrics: React.FC<{
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
       <div className="text-center">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.total}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Total Intervenciones</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.total}</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Total Intervenciones</div>
       </div>
       <div className="text-center">
-        <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{metrics.totalUnidadesProyecto}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Total Unidades de Proyecto</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-600 dark:text-indigo-400">{metrics.totalUnidadesProyecto}</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Total Unidades de Proyecto</div>
       </div>
       <div className="text-center">
-        <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.activeFronts || 0}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Frentes de Obra Activos</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.activeFronts || 0}</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Frentes de Obra Activos</div>
       </div>
       <div className="text-center">
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.avgProgress.toFixed(1)}%</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Avance Promedio</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">{metrics.avgProgress.toFixed(1)}%</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Avance Promedio</div>
       </div>
       <div className="text-center">
-        <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{Object.keys(metrics.byStatus).length}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Estados</div>
-      </div>
-      <div className="text-center">
-        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(metrics.totalBudget)}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Presupuesto Total</div>
+        <div className="text-base sm:text-lg lg:text-xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(metrics.totalBudget)}</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Presupuesto Total</div>
       </div>
     </div>
   );
@@ -852,24 +848,18 @@ const UnidadesProyecto: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Tabla de Atributos - Con scroll horizontal en tablets */}
+            {/* Tabla de Intervenciones en el Territorio */}
             <motion.div
               key="split-attributes"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`${CSS_UTILS.card} p-0 overflow-x-auto`}
+              className={`${CSS_UTILS.card} p-5`}
             >
-              <div className="min-w-[640px]">
-                <UnidadesProyectoAttributesTable
-                  data={filteredData}
-                  className="h-[600px] md:h-[700px]"
-                  maxHeight="550px"
-                  pageSize={20}
-                  onRowClick={handleItemFocus}
-                  focusedItem={focusedItem}
-                  onShowDetails={handleShowDetails}
-                />
-              </div>
+              <UnidadesProyectoTabularView
+                data={filteredData}
+                onRowClick={handleItemFocus}
+                focusedItem={focusedItem}
+              />
             </motion.div>
           </div>
         )}

@@ -10,6 +10,7 @@ import {
   fetchFilterData,
   generateFiltersFromData,
   filterAttributeData,
+  consolidateAttributeData,
   type GeometryData,
   type AttributeData,
   type FilterData,
@@ -25,6 +26,7 @@ interface UnidadesProyectoState {
   loading: boolean;
   error: string | null;
   lastUpdate: Date | null;
+  totalIntervencionesCount: number | null; // Conteo real del endpoint /intervenciones
 }
 
 // Opciones de configuración del hook
@@ -297,10 +299,11 @@ export const useUnidadesProyecto = (
 
   // Métricas computadas
   const metrics = useMemo(() => {
-    const data = filteredData;
+    const data = consolidateAttributeData(filteredData);
+    const allData = consolidateAttributeData(state.attributeData);
     
     // 🔍 DIAGNÓSTICO: Comparar datos totales vs filtrados
-    const totalDataCount = state.attributeData.length;
+    const totalDataCount = allData.length;
     const filteredDataCount = data.length;
     const hasFiltersApplied = totalDataCount !== filteredDataCount;
     
@@ -328,7 +331,7 @@ export const useUnidadesProyecto = (
     const totalBudget = data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
     
     // 🔍 DIAGNÓSTICO: Calcular presupuesto total SIN filtros
-    const totalBudgetAllData = state.attributeData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+    const totalBudgetAllData = allData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
     const budgetDifference = totalBudgetAllData - totalBudget;
     const percentageDifference = totalBudgetAllData > 0 
       ? ((budgetDifference / totalBudgetAllData) * 100).toFixed(2) 
@@ -339,15 +342,31 @@ export const useUnidadesProyecto = (
     console.log(`📉 Diferencia: $${budgetDifference.toLocaleString('es-CO')} (${percentageDifference}%)`);
     console.log('==================================================\n');
 
-    // Sumar total de intervenciones (suma de n_intervenciones)
-    const totalIntervenciones = data.reduce((sum, item) => sum + (item.n_intervenciones || 0), 0);
+    // ✨ NUEVO: Usar el conteo real del endpoint /intervenciones
+    // En lugar de sumar n_intervenciones de las unidades de proyecto
+    const totalIntervenciones = state.totalIntervencionesCount || 0;
     
     // Total de unidades de proyecto (número de registros)
     const totalUnidadesProyecto = data.length;
 
+    const normalizeCentro = (value: string | null | undefined): string =>
+      String(value || '').trim().toLowerCase();
+
     // Contar frentes activos (unidades de proyecto con frente activo)
-    // Cuenta el número de UPs que tienen frente activo, independientemente del número de intervenciones
-    const activeFronts = data.filter(item => item.frente_activo === 'Frente activo').length;
+    // Excluye la Secretaría de Vivienda Social y Habitat y ciertos tipos de intervención
+    const excludedCentro = 'secretaría de vivienda social y habitat';
+    const excludedTipos = new Set([
+      'mantenimiento',
+      'estudios y diseños',
+      'demarcación vial'
+    ]);
+    const requiredEstado = 'en ejecución';
+    const activeFronts = data.filter(item =>
+      item.frente_activo === 'Frente activo' &&
+      normalizeCentro(item.nombre_centro_gestor) !== excludedCentro &&
+      !excludedTipos.has(normalizeCentro(item.tipo_intervencion)) &&
+      normalizeCentro(item.estado) === requiredEstado
+    ).length;
 
     // Debug logging de intervenciones
     console.log('🔢 Debug totalIntervenciones calculation:', {
@@ -381,7 +400,7 @@ export const useUnidadesProyecto = (
     });
 
     return {
-      total: totalIntervenciones, // Total de intervenciones (suma de n_intervenciones)
+      total: totalIntervenciones, // Total de intervenciones desde endpoint /intervenciones
       totalUnidadesProyecto, // Total de unidades de proyecto (número de registros)
       byStatus,
       byType,
@@ -389,7 +408,7 @@ export const useUnidadesProyecto = (
       totalBudget,
       activeFronts
     };
-  }, [filteredData]);
+  }, [filteredData, state.attributeData, state.totalIntervencionesCount]);
 
   // Efecto para cargar datos iniciales
   const hasInitialized = useRef(false);
@@ -414,6 +433,48 @@ export const useUnidadesProyecto = (
 
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, fetchAllData]); // fetchAllData ya tiene filters en su closure
+
+  // Efecto para obtener el conteo real de intervenciones desde el endpoint
+  useEffect(() => {
+    const fetchIntervencionesCount = async () => {
+      try {
+        console.log('📊 Fetching total intervenciones count from /intervenciones endpoint...');
+        
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const url = `${baseUrl}/intervenciones?limit=1`; // Solo necesitamos el count, no todos los datos
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // La API devuelve { success, data, count, filters }
+        const totalCount = data.count || 0;
+        
+        console.log(`✅ Total intervenciones from endpoint: ${totalCount}`);
+        
+        // Actualizar el estado con el conteo real
+        setState(prev => ({
+          ...prev,
+          totalIntervencionesCount: totalCount
+        }));
+        
+      } catch (error) {
+        console.error('❌ Error fetching intervenciones count:', error);
+        // En caso de error, mantener el valor null y las métricas usarán 0
+      }
+    };
+
+    // Ejecutar el fetch cuando el componente se monta
+    fetchIntervencionesCount();
+  }, []); // Solo ejecutar una vez al montar
 
   // Resultado del hook
   return {

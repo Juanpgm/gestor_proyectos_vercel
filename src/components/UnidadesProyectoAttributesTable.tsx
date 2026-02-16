@@ -29,6 +29,26 @@ import {
 import { type AttributeData } from '@/services/unidades-proyecto.service';
 import { formatCurrency } from '@/utils/formatCurrency';
 
+// Tipo para intervenciones
+interface IntervencionData {
+  intervencion_id: string;
+  upid: string;
+  estado: string;
+  tipo_intervencion: string;
+  avance_obra: number;
+  presupuesto_base: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+  nombre_centro_gestor: string;
+  fuente_financiacion?: string;
+  identificador?: string;
+  clase_up?: string;
+  bpin?: number;
+  referencia_contrato?: string;
+  referencia_proceso?: string;
+  url_proceso?: string;
+}
+
 // Tipo para el grupo de monumentos
 interface MonumentosGroupData {
   id: string;
@@ -205,27 +225,37 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   const [isMonumentosExpanded, setIsMonumentosExpanded] = useState(false);
   const [isBanderasExpanded, setIsBanderasExpanded] = useState(false);
   
+  // Estados para expansión de UPs individuales y sus intervenciones
+  const [expandedUPs, setExpandedUPs] = useState<Set<string>>(new Set());
+  const [intervencionesCache, setIntervencionesCache] = useState<Record<string, IntervencionData[]>>({});
+  const [loadingIntervenciones, setLoadingIntervenciones] = useState<Set<string>>(new Set());
+  
+  // Variables sintéticas calculadas por UP (avance promedio e inversión total)
+  const [syntheticMetrics, setSyntheticMetrics] = useState<Record<string, { avance: number; inversion: number }>>({});
+  
   const [visibleColumns, setVisibleColumns] = useState({
     upid: true,
+    intervencion_id: false, // ID único de la intervención
     nombre_up: true,
-    identificador: false, // Nueva columna de identificador (oculta por defecto)
-    estado: true,
-    tipo_intervencion: false,
+    nombre_up_detalle: false,
+    identificador: false,
+    estado: true, // Mostrar en intervenciones, ocultar en UP (lógica condicional)
+    tipo_intervencion: true, // Mostrar en intervenciones, ocultar en UP (lógica condicional)
     tipo_equipamiento: false,
-    clase_up: false, // ⬅️ NUEVA COLUMNA
-    frente_activo: false, // ⬅️ NUEVA COLUMNA
-    avance_obra: true,
-    presupuesto_base: true,
-    nombre_centro_gestor: true, // Mostrar por defecto ya que el usuario lo necesita completo
-    ubicacion: true, // Nueva columna unificada de barrio y comuna
+    clase_up: false,
+    frente_activo: true, // Importante para intervenciones
+    avance: true, // Variable sintética: promedio de avance_obra
+    inversion: true, // Variable sintética: suma de presupuesto_base
+    nombre_centro_gestor: true, // Mostrar en intervenciones, ocultar en UP (lógica condicional)
+    ubicacion: true, // Barrio y comuna combinados
     fuente_financiacion: false,
-    duracion_proyecto: false, // Nueva columna combinada de fechas
-    fecha_inicio: false, // ⬅️ NUEVA COLUMNA
-    fecha_fin: false, // ⬅️ NUEVA COLUMNA
-    fecha_inauguracion: false, // ⬅️ NUEVA COLUMNA
-    ano: false,
+    duracion_proyecto: false,
+    fecha_inicio: false,
+    fecha_fin: false,
+    fecha_inauguracion: false,
+    ano: true, // Año de la intervención, importante
     descripcion_intervencion: false,
-    acciones: true // Nueva columna de acciones
+    acciones: false // Oculto en ambos niveles
   });
 
   // Datos filtrados, ordenados y paginados con agrupación de monumentos
@@ -445,6 +475,161 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     }
   };
 
+  // Función para toggle la expansión de una UP y cargar sus intervenciones
+  const toggleUPExpansion = async (upid: string) => {
+    const isCurrentlyExpanded = expandedUPs.has(upid);
+    
+    // Toggle expansión
+    setExpandedUPs(prev => {
+      const newSet = new Set(prev);
+      if (isCurrentlyExpanded) {
+        newSet.delete(upid);
+      } else {
+        newSet.add(upid);
+      }
+      return newSet;
+    });
+    
+    // Si se está expandiendo y no tenemos las intervenciones en cache, cargarlas
+    if (!isCurrentlyExpanded && !intervencionesCache[upid]) {
+      setLoadingIntervenciones(prev => new Set(prev).add(upid));
+      
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const response = await fetch(`${apiUrl}/intervenciones?upid=${upid}&limit=10000`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const intervenciones: IntervencionData[] = data.data || [];
+        
+        console.log(`✅ Loaded ${intervenciones.length} intervenciones for UP ${upid}`);
+        
+        // Calcular variables sintéticas
+        const avance = intervenciones.length > 0
+          ? intervenciones.reduce((sum, int) => sum + (int.avance_obra || 0), 0) / intervenciones.length
+          : 0;
+        const inversion = intervenciones.reduce((sum, int) => sum + (int.presupuesto_base || 0), 0);
+        
+        // Guardar variables sintéticas
+        setSyntheticMetrics(prev => ({
+          ...prev,
+          [upid]: { avance, inversion }
+        }));
+        
+        // Guardar en cache
+        setIntervencionesCache(prev => ({
+          ...prev,
+          [upid]: intervenciones
+        }));
+        
+      } catch (error) {
+        console.error(`❌ Error loading intervenciones for UP ${upid}:`, error);
+        // Guardar array vacío y métricas en 0 para evitar reintentos
+        setIntervencionesCache(prev => ({
+          ...prev,
+          [upid]: []
+        }));
+        setSyntheticMetrics(prev => ({
+          ...prev,
+          [upid]: { avance: 0, inversion: 0 }
+        }));
+      } finally {
+        setLoadingIntervenciones(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(upid);
+          return newSet;
+        });
+      }
+    }
+  };
+
+  // Cargar métricas sintéticas para las UPs de la página actual
+  React.useEffect(() => {
+    const loadMetricsForVisibleUPs = async () => {
+      if (!paginatedData || paginatedData.length === 0) return;
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      
+      // Cargar intervenciones para cada UP visible que no esté en cache
+      for (const item of paginatedData) {
+        const upid = item.upid;
+        
+        // Si ya tenemos las métricas o están cargando, skip
+        if (syntheticMetrics[upid] || loadingIntervenciones.has(upid)) continue;
+        
+        // Si ya están en cache, calcular métricas
+        if (intervencionesCache[upid]) {
+          const intervenciones = intervencionesCache[upid];
+          const avance = intervenciones.length > 0
+            ? intervenciones.reduce((sum, int) => sum + (int.avance_obra || 0), 0) / intervenciones.length
+            : 0;
+          const inversion = intervenciones.reduce((sum, int) => sum + (int.presupuesto_base || 0), 0);
+          
+          setSyntheticMetrics(prev => ({
+            ...prev,
+            [upid]: { avance, inversion }
+          }));
+          continue;
+        }
+        
+        // Cargar intervenciones desde API
+        setLoadingIntervenciones(prev => new Set(prev).add(upid));
+        
+        try {
+          const response = await fetch(`${apiUrl}/intervenciones?upid=${upid}&limit=10000`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+          }
+          
+          const data = await response.json();
+          const intervenciones: IntervencionData[] = data.data || [];
+          
+          // Calcular variables sintéticas
+          const avance = intervenciones.length > 0
+            ? intervenciones.reduce((sum, int) => sum + (int.avance_obra || 0), 0) / intervenciones.length
+            : 0;
+          const inversion = intervenciones.reduce((sum, int) => sum + (int.presupuesto_base || 0), 0);
+          
+          // Guardar variables sintéticas
+          setSyntheticMetrics(prev => ({
+            ...prev,
+            [upid]: { avance, inversion }
+          }));
+          
+          // Guardar en cache
+          setIntervencionesCache(prev => ({
+            ...prev,
+            [upid]: intervenciones
+          }));
+          
+        } catch (error) {
+          console.error(`❌ Error loading intervenciones for UP ${upid}:`, error);
+          // Guardar métricas en 0 para evitar reintentos
+          setSyntheticMetrics(prev => ({
+            ...prev,
+            [upid]: { avance: 0, inversion: 0 }
+          }));
+          setIntervencionesCache(prev => ({
+            ...prev,
+            [upid]: []
+          }));
+        } finally {
+          setLoadingIntervenciones(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(upid);
+            return newSet;
+          });
+        }
+      }
+    };
+    
+    loadMetricsForVisibleUPs();
+  }, [paginatedData, currentPage]); // Recargar cuando cambie la página
+
   // Alternar visibilidad de columnas
   const toggleColumn = (column: keyof typeof visibleColumns) => {
     setVisibleColumns(prev => ({
@@ -559,7 +744,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
           <div className="flex items-center space-x-2">
             <Table className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-base tablet:text-lg font-semibold text-gray-900 dark:text-white">
-              Atributos de Unidades de Proyecto
+              Intervenciones en el territorio
             </h3>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
               {totalItems} de {data.length}
@@ -653,11 +838,25 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<Building2 className="w-3 h-3" />} 
                   />
                 )}
+                {visibleColumns.intervencion_id && (
+                  <ColumnHeader 
+                    label="ID Intervención" 
+                    sortKey="intervencion_id" 
+                    icon={<Hash className="w-3 h-3" />} 
+                  />
+                )}
                 {visibleColumns.nombre_up && (
                   <ColumnHeader 
                     label="Nombre UP" 
                     sortKey="nombre_up" 
                     icon={<Activity className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.nombre_up_detalle && (
+                  <ColumnHeader 
+                    label="Detalle" 
+                    sortKey="nombre_up_detalle" 
+                    icon={<FileText className="w-3 h-3" />} 
                   />
                 )}
                 {visibleColumns.identificador && (
@@ -667,16 +866,16 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<Hash className="w-3 h-3" />} 
                   />
                 )}
-                {visibleColumns.avance_obra && (
+                {visibleColumns.avance && (
                   <ColumnHeader 
-                    label="Avance Obra" 
+                    label="Avance" 
                     sortKey="avance_obra" 
                     icon={<Activity className="w-3 h-3" />} 
                   />
                 )}
-                {visibleColumns.presupuesto_base && (
+                {visibleColumns.inversion && (
                   <ColumnHeader 
-                    label="Presupuesto" 
+                    label="Inversión" 
                     sortKey="presupuesto_base" 
                     icon={<DollarSign className="w-3 h-3" />} 
                   />
@@ -961,25 +1160,53 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                 // Si es un elemento individual, renderizar normalmente
                 const item = row as AttributeData;
                 const isFocused = focusedItem === item.upid;
+                const isExpanded = expandedUPs.has(item.upid);
+                const intervenciones = intervencionesCache[item.upid] || [];
+                const isLoadingIntervs = loadingIntervenciones.has(item.upid);
+                
                 return (
-                <motion.tr
-                  key={item.upid}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.01 }}
-                  onClick={() => onRowClick && onRowClick(item.upid)}
-                  className={`transition-colors cursor-pointer ${
-                    isFocused 
-                      ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500' 
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                  }`}
-                  style={{ height: 'auto' }}
-                >
-                  {visibleColumns.upid && (
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
-                      {item.upid}
-                    </td>
-                  )}
+                  <React.Fragment key={item.upid}>
+                    {/* Fila principal de la UP */}
+                    <motion.tr
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.01 }}
+                      onClick={() => onRowClick && onRowClick(item.upid)}
+                      className={`transition-colors ${
+                        isFocused 
+                          ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500' 
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                      style={{ height: 'auto' }}
+                    >
+                      {visibleColumns.upid && (
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleUPExpansion(item.upid);
+                              }}
+                              className="flex-shrink-0 p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                              title={isExpanded ? 'Ocultar intervenciones' : 'Ver intervenciones'}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              )}
+                            </button>
+                            <span className="font-medium text-blue-600 dark:text-blue-400">
+                              {item.upid}
+                            </span>
+                            {intervenciones.length > 0 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                {intervenciones.length}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      )}
                   {visibleColumns.nombre_up && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="space-y-1">
@@ -1001,22 +1228,41 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       </div>
                     </td>
                   )}
-                  {visibleColumns.avance_obra && (
+                  {visibleColumns.avance && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      <div className="space-y-1">
-                        <ProgressBar value={item.avance_obra || 0} max={100} />
-                        <div className={`text-xs font-medium ${getProgressStatus(item.avance_obra || 0).color}`}>
-                          <div className="flex items-center space-x-1">
-                            <Target className="w-3 h-3" />
-                            <span>{getProgressStatus(item.avance_obra || 0).label}</span>
+                      {syntheticMetrics[item.upid] ? (
+                        <div className="space-y-1">
+                          <ProgressBar value={syntheticMetrics[item.upid].avance || 0} max={100} />
+                          <div className={`text-xs font-medium ${getProgressStatus(syntheticMetrics[item.upid].avance || 0).color}`}>
+                            <div className="flex items-center space-x-1">
+                              <Target className="w-3 h-3" />
+                              <span>{getProgressStatus(syntheticMetrics[item.upid].avance || 0).label} (Promedio)</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : loadingIntervenciones.has(item.upid) ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400 italic">Sin datos</div>
+                      )}
                     </td>
                   )}
-                  {visibleColumns.presupuesto_base && (
+                  {visibleColumns.inversion && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
-                      {formatCurrency(item.presupuesto_base || 0)}
+                      {syntheticMetrics[item.upid] ? (
+                        <div className="space-y-1">
+                          <div className="font-semibold text-base">{formatCurrency(syntheticMetrics[item.upid].inversion || 0)}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Inversión total</div>
+                        </div>
+                      ) : loadingIntervenciones.has(item.upid) ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400 italic">Sin datos</div>
+                      )}
                     </td>
                   )}
                   {visibleColumns.ubicacion && (
@@ -1028,26 +1274,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                         <div className="text-xs text-gray-500 dark:text-gray-400 leading-tight break-words whitespace-normal">
                           {item.comuna_corregimiento || 'N/A'}
                         </div>
-                      </div>
-                    </td>
-                  )}
-                  {visibleColumns.estado && (
-                    <td className="px-3 py-4 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium whitespace-normal leading-tight break-words max-w-full ${
-                        item.estado.toLowerCase().includes('activ') 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : item.estado.toLowerCase().includes('finaliz')
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                      }`}>
-                        {item.estado}
-                      </span>
-                    </td>
-                  )}
-                  {visibleColumns.tipo_intervencion && (
-                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div className="leading-tight break-words whitespace-normal">
-                        {item.tipo_intervencion}
                       </div>
                     </td>
                   )}
@@ -1069,16 +1295,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="leading-tight break-words whitespace-normal">
                         {item.clase_up || 'N/A'}
-                      </div>
-                    </td>
-                  )}
-                  {visibleColumns.nombre_centro_gestor && (
-                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div className="flex items-start space-x-2">
-                        <User className="w-3 h-3 text-purple-500 flex-shrink-0 mt-0.5" />
-                        <span className="leading-tight break-words whitespace-normal">
-                          {item.nombre_centro_gestor}
-                        </span>
                       </div>
                     </td>
                   )}
@@ -1141,22 +1357,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       </div>
                     </td>
                   )}
-                  {visibleColumns.acciones && (
-                    <td className="px-3 py-4 whitespace-nowrap text-sm">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onShowDetails && onShowDetails(item.upid);
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="Ver detalles"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  )}
                   {visibleColumns.ano && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 dark:text-indigo-400">
                       <div className="flex items-center space-x-1">
@@ -1176,6 +1376,183 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     </td>
                   )}
                 </motion.tr>
+                
+                {/* Filas de intervenciones expandidas */}
+                {isExpanded && (
+                  <>
+                    {isLoadingIntervs && (
+                      <tr className="bg-blue-50 dark:bg-blue-900/10">
+                        <td colSpan={Object.values(visibleColumns).filter(Boolean).length} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <span>Cargando intervenciones...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    
+                    {!isLoadingIntervs && intervenciones.length === 0 && (
+                      <tr className="bg-gray-50 dark:bg-gray-700/30">
+                        <td colSpan={Object.values(visibleColumns).filter(Boolean).length} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          No hay intervenciones registradas para esta unidad de proyecto
+                        </td>
+                      </tr>
+                    )}
+                    
+                    {!isLoadingIntervs && intervenciones.map((intervencion: IntervencionData, idx: number) => (
+                      <motion.tr
+                        key={intervencion.intervencion_id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-300 dark:border-blue-700"
+                      >
+                        {visibleColumns.upid && (
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <div className="flex items-center space-x-2 pl-8">
+                              <Activity className="w-3 h-3 text-blue-500" />
+                              <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                {intervencion.intervencion_id}
+                              </span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.intervencion_id && (
+                          <td className="px-3 py-4 text-sm font-mono text-gray-600 dark:text-gray-400">
+                            {intervencion.intervencion_id}
+                          </td>
+                        )}
+                        {visibleColumns.nombre_up && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            <div className="text-xs italic">
+                              {intervencion.identificador || 'Sin identificador'}
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.nombre_up_detalle && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.identificador && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            <div className="font-mono text-xs">
+                              {intervencion.identificador || 'N/A'}
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.avance && (
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <div className="space-y-1">
+                              <ProgressBar value={intervencion.avance_obra || 0} max={100} />
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {(intervencion.avance_obra || 0).toFixed(1)}%
+                              </div>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.inversion && (
+                          <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
+                            <div className="space-y-1">
+                              <div>{formatCurrency(intervencion.presupuesto_base || 0)}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">Presupuesto</div>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.ubicacion && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.estado && (
+                          <td className="px-3 py-4 text-sm">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              intervencion.estado.toLowerCase().includes('terminado') || intervencion.estado.toLowerCase().includes('inaugurado')
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : intervencion.estado.toLowerCase().includes('ejecución')
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                : intervencion.estado.toLowerCase().includes('alistamiento')
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                            }`}>
+                              {intervencion.estado}
+                            </span>
+                          </td>
+                        )}
+                        {visibleColumns.tipo_intervencion && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            {intervencion.tipo_intervencion}
+                          </td>
+                        )}
+                        {visibleColumns.tipo_equipamiento && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            {intervencion.clase_up || 'N/A'}
+                          </td>
+                        )}
+                        {visibleColumns.frente_activo && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.clase_up && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            {intervencion.clase_up || 'N/A'}
+                          </td>
+                        )}
+                        {visibleColumns.nombre_centro_gestor && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            <div className="flex items-start space-x-2">
+                              <User className="w-3 h-3 text-purple-500 flex-shrink-0 mt-0.5" />
+                              <span className="text-xs">{intervencion.nombre_centro_gestor}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.fuente_financiacion && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            {intervencion.fuente_financiacion || 'N/A'}
+                          </td>
+                        )}
+                        {visibleColumns.duracion_proyecto && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            {calculateDuration(intervencion.fecha_inicio, intervencion.fecha_fin)}
+                          </td>
+                        )}
+                        {visibleColumns.fecha_inicio && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3 text-blue-500" />
+                              <span className="text-xs">{formatDate(intervencion.fecha_inicio)}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.fecha_fin && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                            <div className="flex items-center space-x-1">
+                              <Clock className="w-3 h-3 text-orange-500" />
+                              <span className="text-xs">{formatDate(intervencion.fecha_fin)}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.fecha_inauguracion && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.ano && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.descripcion_intervencion && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                      </motion.tr>
+                    ))}
+                  </>
+                )}
+              </React.Fragment>
                 );
               })}
             </tbody>

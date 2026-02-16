@@ -5,18 +5,30 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, RefreshCw, X, ChevronDown, Check } from 'lucide-react';
+import { Search, Filter, RefreshCw, X, ChevronDown, Check, DollarSign, TrendingUp } from 'lucide-react';
 import { type FilterData, type FilterParams } from '@/services/unidades-proyecto.service';
 
 interface UnidadesProyectoFiltersProps {
   filterData: FilterData | null;
-  filters: FilterParams & { searchTerm: string };
-  onFiltersChange: (filters: FilterParams) => void;
+  filters: FilterParams & { 
+    searchTerm: string;
+    presupuesto_min?: number;
+    presupuesto_max?: number;
+    avance_min?: number;
+    avance_max?: number;
+  };
+  onFiltersChange: (filters: FilterParams & {
+    presupuesto_min?: number;
+    presupuesto_max?: number;
+    avance_min?: number;
+    avance_max?: number;
+  }) => void;
   onSearchChange: (term: string) => void;
   onClearFilters: () => void;
   isLoading?: boolean;
   className?: string;
   compact?: boolean;
+  showRangeFilters?: boolean; // Nuevo: mostrar filtros de rango
 }
 
 // Componente de selector mejorado con searchbar y checkboxes
@@ -267,6 +279,111 @@ const EnhancedFilterSelect: React.FC<{
   );
 };
 
+// Componente de filtro de rango numérico
+const RangeFilter: React.FC<{
+  label: string;
+  min?: number;
+  max?: number;
+  onMinChange: (value: number | undefined) => void;
+  onMaxChange: (value: number | undefined) => void;
+  placeholder?: { min: string; max: string };
+  icon?: React.ReactNode;
+  disabled?: boolean;
+  formatValue?: (value: number) => string;
+}> = ({
+  label,
+  min,
+  max,
+  onMinChange,
+  onMaxChange,
+  placeholder = { min: 'Mínimo', max: 'Máximo' },
+  icon,
+  disabled = false,
+  formatValue = (v) => v.toString()
+}) => {
+  const [minValue, setMinValue] = useState<string>(min?.toString() || '');
+  const [maxValue, setMaxValue] = useState<string>(max?.toString() || '');
+
+  useEffect(() => {
+    setMinValue(min?.toString() || '');
+  }, [min]);
+
+  useEffect(() => {
+    setMaxValue(max?.toString() || '');
+  }, [max]);
+
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMinValue(value);
+    const numValue = value === '' ? undefined : parseFloat(value);
+    if (numValue === undefined || !isNaN(numValue)) {
+      onMinChange(numValue);
+    }
+  };
+
+  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMaxValue(value);
+    const numValue = value === '' ? undefined : parseFloat(value);
+    if (numValue === undefined || !isNaN(numValue)) {
+      onMaxChange(numValue);
+    }
+  };
+
+  const handleClear = () => {
+    setMinValue('');
+    setMaxValue('');
+    onMinChange(undefined);
+    onMaxChange(undefined);
+  };
+
+  const hasValues = min !== undefined || max !== undefined;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+          {icon && <span className="inline-flex mr-1">{icon}</span>}
+          {label}
+        </label>
+        {hasValues && (
+          <button
+            type="button"
+            onClick={handleClear}
+            disabled={disabled}
+            className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          type="number"
+          placeholder={placeholder.min}
+          value={minValue}
+          onChange={handleMinChange}
+          disabled={disabled}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors"
+        />
+        <input
+          type="number"
+          placeholder={placeholder.max}
+          value={maxValue}
+          onChange={handleMaxChange}
+          disabled={disabled}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 transition-colors"
+        />
+      </div>
+      {hasValues && (
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          Rango: {min !== undefined ? formatValue(min) : '...'} - {max !== undefined ? formatValue(max) : '...'}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Componente principal de filtros
 const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   filterData,
@@ -276,7 +393,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   onClearFilters,
   isLoading = false,
   className = '',
-  compact = false
+  compact = false,
+  showRangeFilters = false
 }) => {
   // Estado para manejar filtros múltiples
   const [multiFilters, setMultiFilters] = useState<{
@@ -353,6 +471,15 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     
     console.log(`🎯 handleMultiFilterChange: Calling onFiltersChange with:`, newFilters);
     onFiltersChange(newFilters);
+  };
+
+  // Handler para filtros de rango
+  const handleRangeChange = (key: 'presupuesto' | 'avance', minOrMax: 'min' | 'max', value: number | undefined) => {
+    const filterKey = `${key}_${minOrMax}` as 'presupuesto_min' | 'presupuesto_max' | 'avance_min' | 'avance_max';
+    onFiltersChange({
+      ...filters,
+      [filterKey]: value
+    });
   };
 
   const hasActiveFilters = useMemo(() => {
@@ -610,6 +737,41 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             selectedItems={multiFilters.anos}
             onMultiChange={(values) => handleMultiFilterChange('anos', values)}
           />
+
+          {/* Filtros de rango - solo si están habilitados */}
+          {showRangeFilters && (
+            <>
+              {/* Rango de Presupuesto */}
+              <RangeFilter
+                label="Presupuesto Base"
+                min={filters.presupuesto_min}
+                max={filters.presupuesto_max}
+                onMinChange={(value) => handleRangeChange('presupuesto', 'min', value)}
+                onMaxChange={(value) => handleRangeChange('presupuesto', 'max', value)}
+                placeholder={{ min: 'Mínimo', max: 'Máximo' }}
+                icon={<DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />}
+                disabled={isLoading}
+                formatValue={(value) => new Intl.NumberFormat('es-CO', {
+                  style: 'currency',
+                  currency: 'COP',
+                  maximumFractionDigits: 0
+                }).format(value)}
+              />
+
+              {/* Rango de Avance de Obra */}
+              <RangeFilter
+                label="Avance de Obra (%)"
+                min={filters.avance_min}
+                max={filters.avance_max}
+                onMinChange={(value) => handleRangeChange('avance', 'min', value)}
+                onMaxChange={(value) => handleRangeChange('avance', 'max', value)}
+                placeholder={{ min: '0', max: '100' }}
+                icon={<TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                disabled={isLoading}
+                formatValue={(value) => `${value}%`}
+              />
+            </>
+          )}
         </div>
 
         {/* Filtros múltiples activos */}

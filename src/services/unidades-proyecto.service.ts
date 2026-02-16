@@ -105,9 +105,10 @@ export interface ApiResponse<T> {
   dashboard?: any;
 }
 
-// Configuración de la API
+// Configuración de la API  
 const API_CONFIG = {
-  BASE_PATH: '/api/proxy/unidades-proyecto',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || '',
+  ENDPOINT: '/unidades-proyecto', // Endpoint unificado simplificado
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000
@@ -237,47 +238,108 @@ const buildFilterQuery = (filters: FilterParams, verbose: boolean = false): stri
 // Funciones del servicio usando programación funcional
 
 /**
+ * ✨ NUEVA FUNCIÓN MAESTRA: Obtiene datos completos desde el endpoint unificado
+ * Este endpoint reemplaza los anteriores /geometry, /attributes, /filters
+ * 
+ * La API devuelve estructura:
+ * {
+ *   "success": true,
+ *   "data": [{ upid, nombre_up, geometry: {...}, ...demás propiedades }],
+ *   "count": number,
+ *   "filters": {...}
+ * }
+ * 
+ * Esta función convierte la respuesta a GeoJSON FeatureCollection estándar
+ */
+const fetchUnidadesProyectoRaw = async (filters: FilterParams = {}): Promise<any> => {
+  try {
+    const hasFilters = Object.keys(filters).length > 0;
+    const queryString = buildFilterQuery(filters, false);
+    
+    // ✨ AJUSTE: Agregar limit=10000 para obtener todos los datos sin paginación
+    const limitParam = 'limit=10000';
+    const fullQueryString = queryString 
+      ? `${queryString}&${limitParam}` 
+      : limitParam;
+    
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINT}?${fullQueryString}`;
+    
+    if (hasFilters) {
+      console.log(`🌐 fetchUnidadesProyectoRaw: Fetching with filters (limit=10000)`);
+    } else {
+      console.log(`🌐 fetchUnidadesProyectoRaw: Fetching all data (limit=10000)`);
+    }
+    
+    console.log(`🔗 fetchUnidadesProyectoRaw: URL = ${url}`);
+    
+    // Usar cache para peticiones sin filtros
+    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
+    const rawData = await response.json();
+    
+    console.log(`📦 fetchUnidadesProyectoRaw: Response keys =`, Object.keys(rawData));
+    
+    // ✨ CONVERTIR estructura de API a GeoJSON FeatureCollection
+    // La API devuelve { success, data: [...], count, filters }
+    // Necesitamos convertir a { type: "FeatureCollection", features: [...] }
+    
+    if (!rawData.success || !Array.isArray(rawData.data)) {
+      console.error('❌ Invalid API response structure:', rawData);
+      throw new Error('Respuesta inválida: se esperaba { success: true, data: [...] }');
+    }
+    
+    console.log(`📊 fetchUnidadesProyectoRaw: Converting ${rawData.data.length} items to GeoJSON FeatureCollection`);
+    
+    // Convertir cada item del array "data" a un Feature GeoJSON
+    const features = rawData.data.map((item: any) => {
+      // Extraer geometry del objeto
+      const { geometry, ...properties } = item;
+      
+      // Crear Feature GeoJSON estándar
+      return {
+        type: 'Feature',
+        geometry: geometry || null, // geometry ya viene en formato correcto { type: "Point", coordinates: [...] }
+        properties: properties // Todas las demás propiedades (upid, nombre_up, etc.)
+      };
+    });
+    
+    // Crear GeoJSON FeatureCollection
+    const geoJsonData = {
+      type: 'FeatureCollection',
+      features: features
+    };
+    
+    console.log(`✅ fetchUnidadesProyectoRaw: ${geoJsonData.features.length} features in GeoJSON FeatureCollection`);
+    
+    return geoJsonData;
+  } catch (error) {
+    console.error('❌ fetchUnidadesProyectoRaw error:', error);
+    throw error;
+  }
+};
+
+/**
  * Obtiene datos de geometría con filtros opcionales
+ * Ahora usa el endpoint unificado internamente
  */
 export const fetchGeometryData = async (filters: FilterParams = {}): Promise<GeometryData> => {
   try {
     const hasFilters = Object.keys(filters).length > 0;
-    const queryString = buildFilterQuery(filters, false);
-    const url = `${API_CONFIG.BASE_PATH}/geometry${queryString ? `?${queryString}` : ''}`;
     
-    // Solo log si hay filtros aplicados
     if (hasFilters) {
-      console.log(`🌐 fetchGeometryData: ${url.split('?')[0]} with filters`);
+      console.log(`🌐 fetchGeometryData: Fetching with filters`);
     }
     
-    // Usar cache para peticiones sin filtros (datos completos)
-    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
-    const apiResponse = await response.json();
+    // Obtener datos desde el endpoint unificado
+    const rawData = await fetchUnidadesProyectoRaw(filters);
     
-    // La API devuelve un GeoJSON FeatureCollection completo con metadatos en properties
-    let geoJsonData;
+    // El endpoint unificado ya devuelve un GeoJSON FeatureCollection válido
+    let geoJsonData = {
+      type: rawData.type,
+      features: rawData.features
+    };
     
-    if (apiResponse.type === 'FeatureCollection' && Array.isArray(apiResponse.features)) {
-      geoJsonData = {
-        type: apiResponse.type,
-        features: apiResponse.features
-      };
-      
-      // Log conciso solo si hay filtros
-      if (hasFilters) {
-        console.log(`📊 fetchGeometryData: ${apiResponse.features.length} features loaded`);
-      }
-    } else if (apiResponse.data && apiResponse.data.type === 'FeatureCollection') {
-      // Respuesta envuelta en un objeto data (caso alternativo)
-      geoJsonData = {
-        type: apiResponse.data.type,
-        features: apiResponse.data.features
-      };
-      console.log(`📊 fetchGeometryData: Processing wrapped GeoJSON with ${apiResponse.data.features?.length || 0} features`);
-    } else {
-      // Formato inesperado
-      console.warn('⚠️ fetchGeometryData: Unexpected response format:', apiResponse);
-      throw new Error('Formato de respuesta de geometría inesperado');
+    if (hasFilters) {
+      console.log(`📊 fetchGeometryData: ${geoJsonData.features.length} features loaded`);
     }
     
     // Procesar geometrías con el parser para manejar strings JSON
@@ -318,37 +380,70 @@ export const fetchGeometryData = async (filters: FilterParams = {}): Promise<Geo
 
 /**
  * Obtiene datos de atributos con filtros opcionales
+ * Ahora usa el endpoint unificado internamente
  */
 export const fetchAttributeData = async (filters: FilterParams = {}): Promise<AttributeData[]> => {
   try {
     const hasFilters = Object.keys(filters).length > 0;
-    const queryString = buildFilterQuery(filters, false);
-    const url = `${API_CONFIG.BASE_PATH}/attributes${queryString ? `?${queryString}` : ''}`;
     
-    // Usar cache para peticiones sin filtros
-    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
-    const apiResponse = await response.json();
+    // Obtener datos desde el endpoint unificado
+    const rawData = await fetchUnidadesProyectoRaw(filters);
     
-    // Los datos ahora vienen unwrapped desde el proxy
-    let dataArray;
-    
-    if (Array.isArray(apiResponse)) {
-      // Respuesta directa como array
-      dataArray = apiResponse;
-    } else if (apiResponse && apiResponse.success && Array.isArray(apiResponse.data)) {
-      // Respuesta envuelta con success: true
-      dataArray = apiResponse.data;
-    } else if (apiResponse && apiResponse.data && Array.isArray(apiResponse.data)) {
-      // Respuesta con data pero sin success
-      dataArray = apiResponse.data;
-    } else {
-      // Última opción: tratar la respuesta como array vacío
-      console.warn('⚠️ fetchAttributeData: Unexpected response format, defaulting to empty array');
-      dataArray = [];
-    }
+    // Procesar features del GeoJSON: cada feature es una unidad con properties + (opcional) intervenciones
+    const dataArray = rawData.features;
     
     console.log(`📊 fetchAttributeData: Processing ${dataArray.length} raw items`);
     
+    // Detectar si el endpoint de unidades trae campos de intervención
+    const hasInterventionFields = dataArray.some((item: any) => {
+      const properties = item.properties || item;
+      return Boolean(
+        properties?.intervenciones?.length ||
+        properties?.estado ||
+        properties?.tipo_intervencion ||
+        properties?.presupuesto_base ||
+        properties?.avance_obra
+      );
+    });
+
+    // Si el endpoint de unidades NO trae campos de intervención, usar fallback con /intervenciones
+    let intervencionesByUpid = new Map<string, any[]>();
+    if (!hasInterventionFields) {
+      console.warn('⚠️ fetchAttributeData: Datos de unidades sin intervenciones. Usando fallback /intervenciones.');
+      try {
+        const intervencionesUrl = `${API_CONFIG.BASE_URL}/intervenciones?limit=10000`;
+        const intervencionesResponse = await fetchWithRetry(intervencionesUrl, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
+        const intervencionesPayload = await intervencionesResponse.json();
+        const intervencionesData = Array.isArray(intervencionesPayload?.data) ? intervencionesPayload.data : [];
+
+        intervencionesData.forEach((interv: any) => {
+          const key = String(interv?.upid || '').trim().toLowerCase();
+          if (!key) return;
+          const bucket = intervencionesByUpid.get(key);
+          if (bucket) {
+            bucket.push(interv);
+          } else {
+            intervencionesByUpid.set(key, [interv]);
+          }
+        });
+
+        console.log(`✅ fetchAttributeData: ${intervencionesData.length} intervenciones agrupadas por UPID`);
+      } catch (intervencionesError) {
+        console.error('❌ fetchAttributeData: Error cargando /intervenciones', intervencionesError);
+      }
+    }
+
+    const inferFrenteActivo = (estados: string[]): string => {
+      const normalized = estados.map(val => String(val || '').toLowerCase());
+      if (normalized.some(val => val.includes('ejecucion') || val.includes('ejecución') || val.includes('activ') || val.includes('proceso'))) {
+        return 'Frente activo';
+      }
+      if (normalized.some(val => val.includes('terminad') || val.includes('finaliz') || val.includes('complet'))) {
+        return 'No aplica';
+      }
+      return 'No aplica';
+    };
+
     // Procesar y validar cada elemento con manejo de errores individuales
     const validatedData: AttributeData[] = [];
     
@@ -363,7 +458,8 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
         // 1) Estructura NUEVA con campo 'intervenciones' (array de intervenciones)
         // 2) Estructura ANTIGUA sin 'intervenciones' (datos directos en el objeto)
         
-        const intervenciones = properties.intervenciones || [];
+        const upidKey = String(properties.upid || '').trim().toLowerCase();
+        const intervenciones = properties.intervenciones || intervencionesByUpid.get(upidKey) || [];
         const esEstructuraNueva = intervenciones.length > 0;
         const primeraIntervencion = esEstructuraNueva ? intervenciones[0] : {};
         
@@ -406,20 +502,11 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
         // En estructura antigua: NO EXISTE, calcular basándose en el estado
         let frente_activo = 'No aplica';
         if (esEstructuraNueva) {
-          // Usar el frente_activo de la primera intervención
-          frente_activo = primeraIntervencion.frente_activo || 'No aplica';
+          const estados = intervenciones.map((interv: any) => interv?.estado).filter(Boolean);
+          frente_activo = estados.length > 0 ? inferFrenteActivo(estados) : (primeraIntervencion.frente_activo || 'No aplica');
         } else {
-          // Estructura antigua: inferir del estado
-          // Si está en ejecución o activo, considerar como frente activo
           const estado = (properties.estado || '').toLowerCase();
-          if (estado.includes('ejecucion') || estado.includes('ejecución') || 
-              estado.includes('activ') || estado.includes('proceso')) {
-            frente_activo = 'Frente activo';
-          } else if (estado.includes('terminado') || estado.includes('finalizado')) {
-            frente_activo = 'Terminado';
-          } else {
-            frente_activo = 'No aplica';
-          }
+          frente_activo = inferFrenteActivo([estado]);
         }
         
         // El campo nombre_centro_gestor puede venir de diferentes lugares
@@ -437,7 +524,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           estado: primeraIntervencion.estado || properties.estado || 'Sin estado',
           tipo_intervencion: primeraIntervencion.tipo_intervencion || properties.tipo_intervencion || 'Sin especificar',
           tipo_equipamiento: properties.tipo_equipamiento || undefined,
-          clase_up: properties.clase_up || undefined,
+          clase_up: properties.clase_up || primeraIntervencion.clase_up || undefined,
           frente_activo: frente_activo,
           nombre_centro_gestor: centroGestor,
           comuna_corregimiento: properties.comuna_corregimiento || '',
@@ -535,7 +622,65 @@ export const fetchFilterData = async (): Promise<FilterData> => {
  * Función utilitaria para generar filtros desde datos existentes
  * Extrae valores únicos de cada campo, filtrando vacíos y undefined
  */
+export const consolidateAttributeData = (data: AttributeData[]): AttributeData[] => {
+  const grouped = new Map<string, AttributeData[]>();
+
+  data.forEach(item => {
+    const key = String(item.upid || '').trim().toLowerCase();
+    if (!key) return;
+    const bucket = grouped.get(key);
+    if (bucket) {
+      bucket.push(item);
+    } else {
+      grouped.set(key, [item]);
+    }
+  });
+
+  return Array.from(grouped.values()).map(group => {
+    const base = group[0];
+    const estados = new Set(group.map(i => i.estado).filter(Boolean));
+    const tipos = new Set(group.map(i => i.tipo_intervencion).filter(Boolean));
+    const centros = new Set(group.map(i => i.nombre_centro_gestor).filter(Boolean));
+    const avances = group
+      .map(i => i.avance_obra)
+      .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
+    const presupuestos = group
+      .map(i => i.presupuesto_base)
+      .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
+
+    const estadoConsolidado = estados.size === 1
+      ? Array.from(estados)[0]!
+      : (estados.size > 1 ? 'Varios estados' : 'Sin estado');
+
+    const tipoConsolidado = tipos.size === 1
+      ? Array.from(tipos)[0]!
+      : (tipos.size > 1 ? 'Varios tipos' : 'Sin tipo');
+
+    const centroConsolidado = centros.size === 1
+      ? Array.from(centros)[0]!
+      : (centros.size > 1 ? 'Intervenido por varios organismos' : 'Sin centro');
+
+    const avancePromedio = avances.length > 0
+      ? avances.reduce((sum, val) => sum + val, 0) / avances.length
+      : 0;
+
+    const presupuestoTotal = presupuestos.length > 0
+      ? presupuestos.reduce((sum, val) => sum + val, 0)
+      : 0;
+
+    return {
+      ...base,
+      estado: estadoConsolidado,
+      tipo_intervencion: tipoConsolidado,
+      nombre_centro_gestor: centroConsolidado,
+      avance_obra: avancePromedio,
+      presupuesto_base: presupuestoTotal
+    };
+  });
+};
+
 export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
+  const consolidatedData = consolidateAttributeData(data);
   const extractUniqueValues = <T>(items: T[], key: keyof T): string[] => {
     const values = items
       .map(item => item[key])
@@ -554,15 +699,15 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
   };
 
   const filters = {
-    estados: extractUniqueValues(data, 'estado'),
-    tipos_intervencion: extractUniqueValues(data, 'tipo_intervencion'),
-    tipos_equipamiento: extractUniqueValues(data, 'tipo_equipamiento'),
-    frentes_activos: extractUniqueValues(data, 'frente_activo'),
-    centros_gestores: extractUniqueValues(data, 'nombre_centro_gestor'),
-    comunas: extractUniqueValues(data, 'comuna_corregimiento'), // Mapear comuna_corregimiento a comunas
-    barrios_veredas: extractUniqueValues(data, 'barrio_vereda'),
-    fuentes_financiacion: extractUniqueValues(data, 'fuente_financiacion'),
-    anos: extractUniqueYears(data, 'ano')
+    estados: extractUniqueValues(consolidatedData, 'estado'),
+    tipos_intervencion: extractUniqueValues(consolidatedData, 'tipo_intervencion'),
+    tipos_equipamiento: extractUniqueValues(consolidatedData, 'tipo_equipamiento'),
+    frentes_activos: extractUniqueValues(consolidatedData, 'frente_activo'),
+    centros_gestores: extractUniqueValues(consolidatedData, 'nombre_centro_gestor'),
+    comunas: extractUniqueValues(consolidatedData, 'comuna_corregimiento'), // Mapear comuna_corregimiento a comunas
+    barrios_veredas: extractUniqueValues(consolidatedData, 'barrio_vereda'),
+    fuentes_financiacion: extractUniqueValues(consolidatedData, 'fuente_financiacion'),
+    anos: extractUniqueYears(consolidatedData, 'ano')
   };
   
   console.log('🔍 generateFiltersFromData: Filtros extraídos:', {
@@ -610,6 +755,8 @@ export const filterAttributeData = (
     return [];
   }
 
+  const consolidatedData = consolidateAttributeData(data);
+
   // Log único al inicio con resumen de filtros
   const activeFilters = Object.entries(filters)
     .filter(([key, value]) => value && key !== 'searchTerm')
@@ -619,7 +766,7 @@ export const filterAttributeData = (
     console.log('📊 Filtering:', data.length, 'items |', activeFilters.join(', '));
   }
 
-  const filtered = data.filter(item => {
+  const filtered = consolidatedData.filter(item => {
     try {
       // Filtro de búsqueda por texto
       if (filters.searchTerm && filters.searchTerm.trim() !== '') {

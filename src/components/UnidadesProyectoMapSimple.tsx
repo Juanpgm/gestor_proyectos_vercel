@@ -734,9 +734,67 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
     return filteredData;
   }, [filteredData, showOnlyFocused, focusedItem]);
 
+  // Consolidar datos por UPID para coloración (tipo, avance, centro, inversión)
+  const consolidatedColorData = useMemo(() => {
+    const grouped = new Map<string, AttributeData[]>();
+
+    displayData.forEach(item => {
+      const key = normalizeUpid(item.upid);
+      if (!key) return;
+      const bucket = grouped.get(key);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        grouped.set(key, [item]);
+      }
+    });
+
+    return Array.from(grouped.values()).map(group => {
+      const base = group[0];
+      const estados = new Set(group.map(i => i.estado).filter(Boolean));
+      const tipos = new Set(group.map(i => i.tipo_intervencion).filter(Boolean));
+      const centros = new Set(group.map(i => i.nombre_centro_gestor).filter(Boolean));
+      const avances = group
+        .map(i => i.avance_obra)
+        .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
+      const presupuestos = group
+        .map(i => i.presupuesto_base)
+        .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
+
+      const estadoConsolidado = estados.size === 1
+        ? Array.from(estados)[0]!
+        : (estados.size > 1 ? 'Varios estados' : '-');
+
+      const tipoConsolidado = tipos.size === 1
+        ? Array.from(tipos)[0]!
+        : (tipos.size > 1 ? 'Varios tipos' : '-');
+
+      const centroConsolidado = centros.size === 1
+        ? Array.from(centros)[0]!
+        : (centros.size > 1 ? 'Intervenido por varios organismos' : '-');
+
+      const avancePromedio = avances.length > 0
+        ? avances.reduce((sum, val) => sum + val, 0) / avances.length
+        : 0;
+
+      const presupuestoTotal = presupuestos.length > 0
+        ? presupuestos.reduce((sum, val) => sum + val, 0)
+        : 0;
+
+      return {
+        ...base,
+        estado: estadoConsolidado,
+        tipo_intervencion: tipoConsolidado,
+        nombre_centro_gestor: centroConsolidado,
+        avance_obra: avancePromedio,
+        presupuesto_base: presupuestoTotal
+      };
+    });
+  }, [displayData]);
+
   // Generar esquema de colores y leyenda basado en el tipo de coloración
   const { colorMap, legend } = useMemo(() => {
-    const data = displayData;
+    const data = consolidatedColorData;
     
     switch (coloringType) {
       case 'avance_obra': {
@@ -811,6 +869,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
       default: {
         // Para variables categóricas
         let field: keyof AttributeData;
+        const isEstadoColoring = coloringType === 'estado';
         switch (coloringType) {
           case 'nombre_centro_gestor':
             field = 'nombre_centro_gestor';
@@ -838,31 +897,106 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
             break;
         }
         
-        const uniqueValues = Array.from(new Set(data.map(item => String(item[field])).filter(Boolean)));
+        const normalizeEstadoValue = (value: string): string =>
+          value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+
+        const normalizeFrenteActivoValue = (value: string): string => {
+          const normalized = normalizeEstadoValue(value);
+          if (!normalized) return 'No aplica';
+          if (normalized.includes('terminad') || normalized.includes('finaliz') || normalized.includes('complet')) {
+            return 'No aplica';
+          }
+          if (normalized.includes('frente activo') || normalized === 'activo') {
+            return 'Frente activo';
+          }
+          if (normalized.includes('no aplica')) {
+            return 'No aplica';
+          }
+          return value;
+        };
+
+        const normalizeCategoricalValue = (value: string): string => {
+          if (field === 'frente_activo') {
+            return normalizeFrenteActivoValue(value);
+          }
+          return value;
+        };
+
+        const uniqueValues = Array.from(new Set(
+          data
+            .map(item => normalizeCategoricalValue(String(item[field] || '')))
+            .filter(Boolean)
+        ));
+
+        const isEstadoSinDato = (value: string): boolean => {
+          const normalized = normalizeEstadoValue(value);
+          return normalized === '-' || normalized.includes('sin estado') || normalized.includes('sin dato') || normalized.includes('n/a');
+        };
+
+        const getEstadoColor = (value: string): string => {
+          const normalized = normalizeEstadoValue(value);
+          if (!normalized || isEstadoSinDato(value)) {
+            return '#6B7280';
+          }
+          if (normalized.includes('varios')) return '#6B7280';
+          if (normalized.includes('terminad') || normalized.includes('finaliz') || normalized.includes('complet')) return '#10B981';
+          if (normalized.includes('ejecucion') || normalized.includes('en curso') || normalized.includes('activo')) return '#3B82F6';
+          if (normalized.includes('alist') || normalized.includes('planific') || normalized.includes('program')) return '#F59E0B';
+          if (normalized.includes('suspend') || normalized.includes('cancel') || normalized.includes('deten') || normalized.includes('paraliz')) return '#EF4444';
+          return '#8B5CF6';
+        };
+
+        const getEstadoLabel = (value: string): string => {
+          if (isEstadoSinDato(value)) return 'Sin datos';
+          return value;
+        };
         
         const colorMap = new Map<string, string>();
         const valueCounts = new Map<string, number>();
         
         uniqueValues.forEach((value, index) => {
-          const color = COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length];
+          const color = isEstadoColoring
+            ? getEstadoColor(value)
+            : COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length];
           
           data
-            .filter(item => String(item[field]) === value)
+            .filter(item => normalizeCategoricalValue(String(item[field] || '')) === value)
             .forEach(item => colorMap.set(normalizeUpid(item.upid), color));
           
-          valueCounts.set(value, data.filter(item => String(item[field]) === value).length);
+          valueCounts.set(
+            value,
+            data.filter(item => normalizeCategoricalValue(String(item[field] || '')) === value).length
+          );
         });
+
+        const orderedValues = isEstadoColoring
+          ? uniqueValues.sort((a, b) => {
+              const aNorm = normalizeEstadoValue(a);
+              const bNorm = normalizeEstadoValue(b);
+              const aIsOther = aNorm.includes('varios') || isEstadoSinDato(a);
+              const bIsOther = bNorm.includes('varios') || isEstadoSinDato(b);
+              if (aIsOther && !bIsOther) return 1;
+              if (!aIsOther && bIsOther) return -1;
+              return a.localeCompare(b, 'es');
+            })
+          : uniqueValues;
         
-        const legend = uniqueValues.slice(0, 20).map((value, index) => ({
-          color: COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
-          label: value, // Mostrar texto completo sin truncar
+        const legend = orderedValues.slice(0, 20).map((value, index) => ({
+          color: isEstadoColoring
+            ? getEstadoColor(value)
+            : COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
+          label: isEstadoColoring ? getEstadoLabel(value) : value, // Mostrar texto completo sin truncar
           count: valueCounts.get(value)
         }));
         
         return { colorMap, legend };
       }
     }
-  }, [filteredData, coloringType]);
+  }, [consolidatedColorData, coloringType]);
 
   // Función para obtener color de feature
   const getFeatureColor = (properties: any): string => {
@@ -1049,7 +1183,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         coloringType={coloringType}
         onColoringChange={setColoringType}
         legend={legend}
-        availableData={filteredData}
+        availableData={consolidatedColorData}
       />
 
       {/* Controles de enfoque */}
