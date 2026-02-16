@@ -52,6 +52,9 @@ const AttributeSchema = z.object({
   duracion_proyecto: z.string().optional(),
   descripcion_intervencion: z.string(),
   fuente_financiacion: z.string(),
+  referencia_contrato: z.string().optional(),
+  referencia_proceso: z.string().optional(),
+  url_proceso: z.string().optional(),
   ano: z.number()
 });
 
@@ -539,6 +542,9 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           duracion_proyecto: primeraIntervencion.duracion_proyecto || properties.duracion_proyecto || undefined,
           descripcion_intervencion: primeraIntervencion.descripcion_intervencion || properties.descripcion_intervencion || '',
           fuente_financiacion: primeraIntervencion.fuente_financiacion || properties.fuente_financiacion || '',
+          referencia_contrato: primeraIntervencion.referencia_contrato || properties.referencia_contrato || undefined,
+          referencia_proceso: primeraIntervencion.referencia_proceso || properties.referencia_proceso || undefined,
+          url_proceso: primeraIntervencion.url_proceso || properties.url_proceso || undefined,
           ano: parseInt(primeraIntervencion.ano || properties.ano || properties.anio || 0)
         });
         
