@@ -719,7 +719,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       <div className="flex items-center space-x-1">
         {icon}
         <span>{label}</span>
-        {sortConfig?.key === sortKey && (
+        {sortConfig && sortConfig.key === sortKey && (
           <span className="ml-1">
             {sortConfig.direction === 'asc' ? 
               <ChevronUp className="w-3 h-3" /> : 
