@@ -543,6 +543,14 @@ class AuthService {
 
       const parsed = JSON.parse(data)
       
+      // Verificar expiración de sesión (15 días = 1,296,000,000 ms)
+      const SESSION_EXPIRY_MS = 15 * 24 * 60 * 60 * 1000; // 15 días
+      if (parsed.timestamp && (Date.now() - parsed.timestamp) > SESSION_EXPIRY_MS) {
+        console.warn('⚠️ Sesión expirada (más de 15 días) - Requiriendo nuevo login')
+        this.clearSession()
+        return null
+      }
+      
       // Validar que la sesión tenga roles
       const hasRoles = parsed.user?.roles && Array.isArray(parsed.user.roles) && parsed.user.roles.length > 0
       

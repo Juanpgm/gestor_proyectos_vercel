@@ -404,9 +404,8 @@ export const useUnidadesProyecto = (
     console.log(`📉 Diferencia: $${budgetDifference.toLocaleString('es-CO')} (${percentageDifference}%)`);
     console.log('==================================================\n');
 
-    // ✨ NUEVO: Usar el conteo real del endpoint /intervenciones
-    // En lugar de sumar n_intervenciones de las unidades de proyecto
-    const totalIntervenciones = state.totalIntervencionesCount || 0;
+    // ✨ NUEVO: Usar el conteo de intervenciones filtradas para que dependa de los filtros aplicados
+    const totalIntervenciones = interventionItems.length;
     
     // Total de unidades de proyecto (número de registros)
     const totalUnidadesProyecto = data.length;
