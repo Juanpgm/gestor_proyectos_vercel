@@ -555,6 +555,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       
       // Cargar intervenciones para cada UP visible que no esté en cache
       for (const item of paginatedData) {
+        if (isGroupRow(item)) {
+          continue;
+        }
+
         const upid = item.upid;
         
         // Si ya tenemos las métricas o están cargando, skip
