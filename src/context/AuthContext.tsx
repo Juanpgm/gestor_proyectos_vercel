@@ -98,6 +98,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         dispatch({ type: 'SET_LOADING', payload: true })
         
+        // Inicializar servicio primero para configurar persistencia
+        await authService.initialize()
+        
         // Verificar sesión almacenada
         const storedSession = authService.getStoredSession()
         
@@ -131,8 +134,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           dispatch({ type: 'SET_USER', payload: storedSession.user })
         }
         
-        // Inicializar servicio sin bloquear
-        await authService.initialize()
       } catch (error) {
         console.error('Auth init error:', error)
         dispatch({ type: 'SET_LOADING', payload: false })
@@ -171,8 +172,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
       } else {
-        // Firebase user no existe, logout
-        dispatch({ type: 'SIGN_OUT' })
+        // Firebase user no existe, verificar si tenemos sesión almacenada válida
+        const storedSession = authService.getStoredSession()
+        if (!storedSession?.user || !storedSession.user.roles || storedSession.user.roles.length === 0) {
+          // No hay sesión válida almacenada, hacer logout
+          dispatch({ type: 'SIGN_OUT' })
+        } else {
+          console.log('🔄 Firebase user null but stored session valid, keeping logged in')
+        }
       }
     })
 
