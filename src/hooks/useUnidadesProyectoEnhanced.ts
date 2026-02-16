@@ -88,7 +88,8 @@ const createInitialState = (): UnidadesProyectoState => ({
   intervencionesData: [],
   loading: true,
   error: null,
-  lastUpdate: null
+  lastUpdate: null,
+  totalIntervencionesCount: null
 });
 
 // Hook principal
