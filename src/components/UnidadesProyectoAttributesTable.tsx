@@ -651,7 +651,9 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       // Vista compacta: mostrar solo campos esenciales
       setVisibleColumns({
         upid: true,
+        intervencion_id: false,
         nombre_up: true,
+        nombre_up_detalle: false,
         identificador: false,
         estado: true,
         tipo_equipamiento: false,
@@ -675,7 +677,9 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       // Vista completa: mostrar todos los campos relevantes
       setVisibleColumns({
         upid: true,
+        intervencion_id: false,
         nombre_up: true,
+        nombre_up_detalle: false,
         identificador: false,
         estado: true,
         tipo_intervencion: true,
