@@ -1,6 +1,8 @@
 'use client'
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 import { AuthState, User } from '@/types/auth'
 import authService from '@/services/authService'
 
@@ -138,6 +140,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     initAuth()
+  }, [])
+
+  // Listener de Firebase Auth para mantener sincronización
+  useEffect(() => {
+    if (!auth) {
+      console.warn('⚠️ Firebase auth not available, skipping listener')
+      return () => {}
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('🔄 Firebase Auth state changed:', !!firebaseUser)
+      
+      if (firebaseUser) {
+        // Firebase user existe, verificar si tenemos sesión completa
+        const storedSession = authService.getStoredSession()
+        
+        if (storedSession?.user && storedSession.user.roles && storedSession.user.roles.length > 0) {
+          // Sesión completa disponible
+          dispatch({ type: 'SET_USER', payload: storedSession.user })
+        } else {
+          // Intentar obtener sesión completa desde backend
+          try {
+            const user = await authService.validateSession()
+            dispatch({ type: 'SET_USER', payload: user })
+          } catch (error) {
+            console.error('❌ Error validating session on auth change:', error)
+            // Si no podemos validar, mantener logged out
+            dispatch({ type: 'SIGN_OUT' })
+          }
+        }
+      } else {
+        // Firebase user no existe, logout
+        dispatch({ type: 'SIGN_OUT' })
+      }
+    })
+
+    return () => unsubscribe()
   }, [])
 
   // Funciones de autenticación

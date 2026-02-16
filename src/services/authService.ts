@@ -4,7 +4,9 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   User as FirebaseUser,
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { AuthConfig, LoginCredentials, RegisterCredentials, User } from '@/types/auth'
@@ -77,6 +79,17 @@ class AuthService {
       }
 
       this.isInitialized = true
+      
+      // Configurar persistencia local para mantener sesión por 15 días
+      if (auth) {
+        try {
+          await setPersistence(auth, browserLocalPersistence);
+          console.log('✅ Firebase Auth persistence set to local');
+        } catch (error) {
+          console.warn('⚠️ Error setting persistence:', error);
+        }
+      }
+      
       console.log('✅ AuthService initialized')
     } catch (error) {
       console.error('❌ Auth init error:', error)
