@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Table, 
   Search, 
@@ -28,6 +28,12 @@ import {
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
 import { formatCurrency } from '@/utils/formatCurrency';
+import dynamic from 'next/dynamic';
+
+// Componentes dinámicos para modales de avances
+const RegistrarAvanceUPModal = dynamic(() => import('./RegistrarAvanceUPModal'), { ssr: false });
+const EditarInfoUPModal = dynamic(() => import('./EditarInfoUPModal'), { ssr: false });
+const HistorialAvancesUP = dynamic(() => import('./HistorialAvancesUP'), { ssr: false });
 
 // Tipo para intervenciones
 interface IntervencionData {
@@ -233,6 +239,11 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   // Variables sintéticas calculadas por UP (avance promedio e inversión total)
   const [syntheticMetrics, setSyntheticMetrics] = useState<Record<string, { avance: number; inversion: number }>>({});
   
+  // Estado para modales de avances y edición
+  const [modalAvance, setModalAvance] = useState<{ upid: string; nombre: string; avance: number; presupuesto: number } | null>(null);
+  const [modalEditar, setModalEditar] = useState<AttributeData | null>(null);
+  const [modalHistorial, setModalHistorial] = useState<{ upid: string; nombre: string } | null>(null);
+
   const [visibleColumns, setVisibleColumns] = useState({
     upid: true,
     intervencion_id: false, // ID único de la intervención
@@ -255,7 +266,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     fecha_inauguracion: false,
     ano: true, // Año de la intervención, importante
     descripcion_intervencion: false,
-    acciones: false // Oculto en ambos niveles
+    acciones: true // Botones de registrar avance y editar info
   });
 
   // Datos filtrados, ordenados y paginados con agrupación de monumentos
@@ -1386,6 +1397,56 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       </div>
                     </td>
                   )}
+                  {visibleColumns.acciones && (
+                    <td className="px-3 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center space-x-1.5">
+                        {/* Botón Registrar Avance */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalAvance({
+                              upid: item.upid,
+                              nombre: item.nombre_up,
+                              avance: syntheticMetrics[item.upid]?.avance || item.avance_obra || 0,
+                              presupuesto: syntheticMetrics[item.upid]?.inversion || item.presupuesto_base || 0
+                            });
+                          }}
+                          className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors shadow-sm"
+                          title="Registrar avance de esta UP"
+                        >
+                          <Activity className="w-3.5 h-3.5 mr-1" />
+                          Avance
+                        </button>
+                        {/* Botón Historial */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalHistorial({
+                              upid: item.upid,
+                              nombre: item.nombre_up
+                            });
+                          }}
+                          className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors shadow-sm"
+                          title="Ver historial de avances"
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1" />
+                          Historial
+                        </button>
+                        {/* Botón Editar Info */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalEditar(item);
+                          }}
+                          className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/70 transition-colors shadow-sm"
+                          title="Editar información de esta UP"
+                        >
+                          <FileText className="w-3.5 h-3.5 mr-1" />
+                          Editar
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </motion.tr>
                 
                 {/* Filas de intervenciones expandidas */}
@@ -1743,6 +1804,50 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
           </div>
         </div>
       )}
+      {/* Modales de avances y edición */}
+      <AnimatePresence>
+        {modalAvance && (
+          <RegistrarAvanceUPModal
+            upid={modalAvance.upid}
+            nombreUP={modalAvance.nombre}
+            avanceActual={modalAvance.avance}
+            presupuesto={modalAvance.presupuesto}
+            onClose={() => setModalAvance(null)}
+            onSuccess={() => setModalAvance(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {modalEditar && (
+          <EditarInfoUPModal
+            item={modalEditar}
+            onClose={() => setModalEditar(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {modalHistorial && (
+          <HistorialAvancesUP
+            upid={modalHistorial.upid}
+            nombreUP={modalHistorial.nombre}
+            onClose={() => setModalHistorial(null)}
+            onRegistrarAvance={() => {
+              setModalHistorial(null);
+              const item = data.find(d => d.upid === modalHistorial.upid);
+              if (item) {
+                setModalAvance({
+                  upid: item.upid,
+                  nombre: item.nombre_up,
+                  avance: syntheticMetrics[item.upid]?.avance || item.avance_obra || 0,
+                  presupuesto: syntheticMetrics[item.upid]?.inversion || item.presupuesto_base || 0
+                });
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

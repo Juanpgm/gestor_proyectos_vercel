@@ -17,6 +17,12 @@ import {
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
 import { formatCurrency } from '@/utils/formatCurrency';
+import dynamic from 'next/dynamic';
+
+// Componentes dinámicos para modales de avances
+const RegistrarAvanceUPModal = dynamic(() => import('./RegistrarAvanceUPModal'), { ssr: false });
+const EditarInfoUPModal = dynamic(() => import('./EditarInfoUPModal'), { ssr: false });
+const HistorialAvancesUP = dynamic(() => import('./HistorialAvancesUP'), { ssr: false });
 
 interface IntervencionData {
   intervencion_id: string;
@@ -251,6 +257,11 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
   
   const itemsPerPage = 12;
 
+  // Estado para modales de avances y edición
+  const [modalAvance, setModalAvance] = useState<{ upid: string; nombre: string; avance: number; presupuesto: number } | null>(null);
+  const [modalEditar, setModalEditar] = useState<AttributeData | null>(null);
+  const [modalHistorial, setModalHistorial] = useState<{ upid: string; nombre: string } | null>(null);
+
   // Filtrar datos
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
@@ -461,6 +472,8 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                 <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-20 sm:w-24 md:w-28">Avance</th>
                 {/* Presupuesto - oculto en móvil y tablet, visible desde desktop */}
                 <th className="hidden md:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 w-16 lg:w-20">Presupuesto</th>
+                {/* Acciones - oculto en móvil, visible desde tablet */}
+                <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-32 lg:w-44">Acciones</th>
               </tr>
             </thead>
 
@@ -468,7 +481,7 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
               <AnimatePresence mode="popLayout">
                 {paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-1 sm:px-1.5 py-4 sm:py-6 text-center">
+                    <td colSpan={9} className="px-1 sm:px-1.5 py-4 sm:py-6 text-center">
                       <div className="flex flex-col items-center gap-2 text-gray-500">
                         <AlertCircle className="w-5 h-5" />
                         <p className="text-xs sm:text-sm">No hay resultados</p>
@@ -579,13 +592,60 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                               {formatCurrency(itemMetrics.presupuesto)}
                             </span>
                           </td>
+
+                          {/* Acciones - oculto en móvil */}
+                          <td className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalAvance({
+                                    upid: item.upid,
+                                    nombre: item.nombre_up,
+                                    avance: itemMetrics.avance || item.avance_obra || 0,
+                                    presupuesto: itemMetrics.presupuesto || item.presupuesto_base || 0
+                                  });
+                                }}
+                                className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors"
+                                title="Registrar avance"
+                              >
+                                <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                                <span className="hidden lg:inline">Avance</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalHistorial({
+                                    upid: item.upid,
+                                    nombre: item.nombre_up
+                                  });
+                                }}
+                                className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
+                                title="Historial de avances"
+                              >
+                                <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span className="hidden lg:inline">Historial</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalEditar(item);
+                                }}
+                                className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 rounded hover:bg-blue-200 dark:hover:bg-blue-900/70 transition-colors"
+                                title="Editar información"
+                              >
+                                <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                <span className="hidden lg:inline">Editar</span>
+                              </button>
+                            </div>
+                          </td>
                         </motion.tr>
 
                         {/* Intervenciones Expandidas - Fichas Resumen */}
                         <AnimatePresence>
                           {isExpanded && (
                             <tr className="bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/5 dark:to-blue-900/0">
-                              <td colSpan={8} className="px-1 sm:px-1.5 py-2 sm:py-3">
+                              <td colSpan={9} className="px-1 sm:px-1.5 py-2 sm:py-3">
                                 {isLoading ? (
                                   <div className="flex items-center justify-center gap-2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -697,6 +757,52 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
           </div>
         </div>
       )}
+
+      {/* Modales de avances y edición */}
+      <AnimatePresence>
+        {modalAvance && (
+          <RegistrarAvanceUPModal
+            upid={modalAvance.upid}
+            nombreUP={modalAvance.nombre}
+            avanceActual={modalAvance.avance}
+            presupuesto={modalAvance.presupuesto}
+            onClose={() => setModalAvance(null)}
+            onSuccess={() => setModalAvance(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {modalEditar && (
+          <EditarInfoUPModal
+            item={modalEditar}
+            onClose={() => setModalEditar(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {modalHistorial && (
+          <HistorialAvancesUP
+            upid={modalHistorial.upid}
+            nombreUP={modalHistorial.nombre}
+            onClose={() => setModalHistorial(null)}
+            onRegistrarAvance={() => {
+              const item = data.find(d => d.upid === modalHistorial.upid);
+              setModalHistorial(null);
+              if (item) {
+                const itemMetrics = metrics[item.upid] || { avance: 0, presupuesto: 0 };
+                setModalAvance({
+                  upid: item.upid,
+                  nombre: item.nombre_up,
+                  avance: itemMetrics.avance || item.avance_obra || 0,
+                  presupuesto: itemMetrics.presupuesto || item.presupuesto_base || 0
+                });
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
