@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -20,8 +21,16 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  BarChart3
+  BarChart3,
+  ClipboardEdit,
+  History
 } from 'lucide-react'
+import { useReportesContrato, useResumenReportes } from '@/hooks/useReportesContrato'
+import type { ReporteContratoFormData } from '@/types/avances-emprestito'
+
+// Dynamic imports para modales (code splitting)
+const RegistrarReporteContratoModal = dynamic(() => import('./RegistrarReporteContratoModal'), { ssr: false })
+const HistorialReportesContrato = dynamic(() => import('./HistorialReportesContrato'), { ssr: false })
 
 // Interfaz para contrato de empréstito
 interface ContratoEmprestito {
@@ -72,6 +81,15 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'dias_restantes', direction: 'asc' })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [columnSearchTerm, setColumnSearchTerm] = useState('')
+
+  // Estados para modales de avance
+  const [modalReporte, setModalReporte] = useState<{ open: boolean; contrato: ContratoEmprestito | null }>({ open: false, contrato: null })
+  const [modalHistorial, setModalHistorial] = useState<{ open: boolean; contrato: ContratoEmprestito | null }>({ open: false, contrato: null })
+
+  // Hook de reportes para el contrato seleccionado en modal
+  const referenciaContratoActiva = modalReporte.contrato?.referencia_contrato || modalReporte.contrato?.referencia_proceso || modalHistorial.contrato?.referencia_contrato || modalHistorial.contrato?.referencia_proceso || ''
+  const { reportes: reportesContrato, loading: loadingReportes, submitting, crearReporte, refetch: refetchReportes } = useReportesContrato(referenciaContratoActiva || undefined)
+  const resumenReportes = useResumenReportes(reportesContrato)
   
   // Columnas visibles por defecto
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
@@ -1232,6 +1250,11 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                     )}
                   </th>
                 )}
+
+                {/* Columna de Acciones */}
+                <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 text-sm sticky right-0 bg-gray-50 dark:bg-gray-700">
+                  Acciones
+                </th>
               </tr>
             </thead>
 
@@ -1384,6 +1407,32 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
                         )}
                       </td>
                     )}
+
+                    {/* Celda de Acciones */}
+                    <td className="py-3 px-4 text-center sticky right-0 bg-white dark:bg-gray-800">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setModalReporte({ open: true, contrato })
+                          }}
+                          className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors"
+                          title="Reportar avance"
+                        >
+                          <ClipboardEdit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setModalHistorial({ open: true, contrato })
+                          }}
+                          className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                          title="Ver historial de reportes"
+                        >
+                          <History className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </motion.tr>
                 )
               })}
@@ -1404,6 +1453,32 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal: Registrar Reporte de Avance */}
+      {modalReporte.open && modalReporte.contrato && (
+        <RegistrarReporteContratoModal
+          isOpen={modalReporte.open}
+          onClose={() => setModalReporte({ open: false, contrato: null })}
+          referenciaContrato={modalReporte.contrato.referencia_contrato || modalReporte.contrato.referencia_proceso || ''}
+          nombreContrato={modalReporte.contrato.nombre_proceso || modalReporte.contrato.descripcion_proceso || modalReporte.contrato.objeto_contrato || undefined}
+          onSubmit={crearReporte}
+          submitting={submitting}
+        />
+      )}
+
+      {/* Modal: Historial de Reportes */}
+      {modalHistorial.open && modalHistorial.contrato && (
+        <HistorialReportesContrato
+          isOpen={modalHistorial.open}
+          onClose={() => setModalHistorial({ open: false, contrato: null })}
+          referenciaContrato={modalHistorial.contrato.referencia_contrato || modalHistorial.contrato.referencia_proceso || ''}
+          nombreContrato={modalHistorial.contrato.nombre_proceso || modalHistorial.contrato.descripcion_proceso || modalHistorial.contrato.objeto_contrato || undefined}
+          reportes={reportesContrato}
+          resumen={resumenReportes}
+          loading={loadingReportes}
+          onRefresh={refetchReportes}
+        />
+      )}
     </div>
   )
 }

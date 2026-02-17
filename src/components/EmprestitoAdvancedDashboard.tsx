@@ -46,6 +46,12 @@ import ContratosModal from './ContratosModal'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
 import { fetchPagosEmprestito, PagoEmprestito } from '@/services/pagos.service'
 import { formatCurrency } from '@/utils/formatCurrency'
+import dynamic from 'next/dynamic'
+import { useReportesContrato, useResumenReportes } from '@/hooks/useReportesContrato'
+import { ClipboardEdit, History } from 'lucide-react'
+
+const RegistrarReporteContratoModal = dynamic(() => import('./RegistrarReporteContratoModal'), { ssr: false })
+const HistorialReportesContrato = dynamic(() => import('./HistorialReportesContrato'), { ssr: false })
 
 // Tipos para los reportes de contratos (usar la estructura existente)
 interface ReporteContratoTS extends ReporteEmprestito {
@@ -3948,6 +3954,13 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedContrato, setSelectedContrato] = useState<any>(null)
 
+  // Estados para reportar avances
+  const [modalReporte, setModalReporte] = useState<{ open: boolean; contrato: any | null }>({ open: false, contrato: null })
+  const [modalHistorial, setModalHistorial] = useState<{ open: boolean; contrato: any | null }>({ open: false, contrato: null })
+  const activeRefReporte = modalReporte.contrato?.referencia_contrato || modalHistorial.contrato?.referencia_contrato || ''
+  const { reportes: reportesContrato, loading: loadingReportes, submitting: submittingReporte, crearReporte, refetch: refetchReportes } = useReportesContrato(activeRefReporte || undefined)
+  const resumenReportes = useResumenReportes(reportesContrato)
+
   // Estado para selector de columnas
   const [columnSettings, setColumnSettings] = useState({
     proceso: true,
@@ -3965,7 +3978,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     fechaInicio: true,
     fechaFin: true,
     diasTranscurridos: false,
-    diasRestantes: true
+    diasRestantes: true,
+    acciones: true
   })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'dias_restantes', direction: 'asc' })
@@ -4411,7 +4425,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         { key: 'fechaFin', label: 'Fecha Fin' },
                         { key: 'diasTranscurridos', label: 'Días Transcurridos' },
                         { key: 'diasRestantes', label: 'Días Restantes' },
-                        { key: 'detalle', label: 'Detalle' }
+                        { key: 'detalle', label: 'Detalle' },
+                        { key: 'acciones', label: 'Acciones Avance' }
                       ].map(col => (
                         <label key={col.key} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
                           <input
@@ -4658,6 +4673,11 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     {columnSettings.detalle && (
                       <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '60px', width: '5%' }}>
                         Detalle
+                      </th>
+                    )}
+                    {columnSettings.acciones && (
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '8%' }}>
+                        Acciones
                       </th>
                     )}
                   </tr>
@@ -4922,6 +4942,26 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </button>
+                          </td>
+                        )}
+                        {columnSettings.acciones && (
+                          <td className="py-3 px-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => setModalReporte({ open: true, contrato })}
+                                className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"
+                                title="Reportar avance"
+                              >
+                                <ClipboardEdit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setModalHistorial({ open: true, contrato })}
+                                className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 transition-colors hover:bg-purple-50 dark:hover:bg-purple-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"
+                                title="Ver historial de reportes"
+                              >
+                                <History className="h-4 w-4" />
+                              </button>
+                            </div>
                           </td>
                         )}
                       </motion.tr>
@@ -5226,6 +5266,32 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         referenciaContrato={selectedContrato?.referencia_contrato}
         reportes={reportes}
         pagos={pagos}
+      />
+
+      {/* Modal para reportar avance de contrato */}
+      <RegistrarReporteContratoModal
+        isOpen={modalReporte.open}
+        onClose={() => setModalReporte({ open: false, contrato: null })}
+        referenciaContrato={modalReporte.contrato?.referencia_contrato || ''}
+        nombreContrato={modalReporte.contrato?.nombre_resumido_proceso || modalReporte.contrato?.objeto_contrato || ''}
+        onSubmit={async (formData) => {
+          const success = await crearReporte(formData)
+          if (success) setModalReporte({ open: false, contrato: null })
+          return success
+        }}
+        submitting={submittingReporte}
+      />
+
+      {/* Modal historial de reportes */}
+      <HistorialReportesContrato
+        isOpen={modalHistorial.open}
+        onClose={() => setModalHistorial({ open: false, contrato: null })}
+        referenciaContrato={modalHistorial.contrato?.referencia_contrato || ''}
+        nombreContrato={modalHistorial.contrato?.nombre_resumido_proceso || modalHistorial.contrato?.objeto_contrato || ''}
+        reportes={reportesContrato}
+        resumen={resumenReportes}
+        loading={loadingReportes}
+        onRefresh={refetchReportes}
       />
     </div>
   )
