@@ -25,7 +25,7 @@ import {
   Plus,
   Columns
 } from 'lucide-react'
-import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
+import AgregarProcesoModal from './AgregarProcesoModal'
 
 // Interfaz para proyección de empréstito
 interface ProyeccionEmprestito {
@@ -1003,7 +1003,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       </motion.div>
 
       {/* Modal para agregar proceso desde proyección */}
-      <AgregarProcesoModalAlt
+      <AgregarProcesoModal
         isOpen={showAgregarProcesoModal}
         onClose={() => {
           setShowAgregarProcesoModal(false)

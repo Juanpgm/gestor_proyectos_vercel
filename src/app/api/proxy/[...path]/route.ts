@@ -55,6 +55,7 @@ async function handleRequest(request: NextRequest, method: string) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Accept-Encoding': 'identity',
         // Forward authorization headers if present
         ...(request.headers.get('authorization') && {
           'Authorization': request.headers.get('authorization')!

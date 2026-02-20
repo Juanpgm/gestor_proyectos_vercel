@@ -27,7 +27,7 @@ import {
   ShoppingCart,
   Handshake
 } from 'lucide-react'
-import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
+import AgregarProcesoModal from './AgregarProcesoModal'
 import TiendaVirtualTable from './TiendaVirtualTable'
 import ConveniosTable from './ConveniosTable'
 import ModificarProcesoSecopModal from './ModificarProcesoSecopModal'
@@ -73,6 +73,46 @@ interface SortConfig {
 
 interface GestionProcesosProps {
   onNavigateHome: () => void
+}
+
+const normalizeProcesosResponse = (payload: any): ProcesoEmprestito[] => {
+  if (!payload) return []
+
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
+  if (Array.isArray(payload.data)) {
+    return payload.data
+  }
+
+  if (Array.isArray(payload.procesos)) {
+    return payload.procesos
+  }
+
+  if (Array.isArray(payload.results)) {
+    return payload.results
+  }
+
+  if (Array.isArray(payload.items)) {
+    return payload.items
+  }
+
+  if (payload.data && typeof payload.data === 'object') {
+    const values = Object.values(payload.data)
+    if (values.length > 0 && values.every(item => typeof item === 'object' && item !== null)) {
+      return values as ProcesoEmprestito[]
+    }
+  }
+
+  if (typeof payload === 'object') {
+    const values = Object.values(payload)
+    if (values.length > 0 && values.every(item => typeof item === 'object' && item !== null)) {
+      return values as ProcesoEmprestito[]
+    }
+  }
+
+  return []
 }
 
 const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => {
@@ -198,11 +238,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     try {
       setLoading(true)
       setError(null)
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
 
       const response = await fetch('/api/proxy/procesos_emprestito_all')
       
@@ -213,14 +248,10 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       const data = await response.json()
       console.log('API Response:', data)
       console.log('Is Array:', Array.isArray(data))
-      
-      // Manejar diferentes formatos de respuesta
-      if (Array.isArray(data)) {
-        setProcesos(data)
-      } else if (data && Array.isArray(data.data)) {
-        setProcesos(data.data)
-      } else if (data && Array.isArray(data.procesos)) {
-        setProcesos(data.procesos)
+
+      const normalizedProcesos = normalizeProcesosResponse(data)
+      if (normalizedProcesos.length > 0) {
+        setProcesos(normalizedProcesos)
       } else {
         console.warn('Formato de respuesta inesperado:', data)
         setProcesos([])
@@ -244,9 +275,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const fetchOrdenesCompra = async () => {
     try {
       setLoadingOrdenes(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) return
-      
+
       const response = await fetch('/api/proxy/emprestito/ordenes-compra')
       if (!response.ok) return
       
@@ -265,9 +294,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const fetchConveniosData = async () => {
     try {
       setLoadingConvenios(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) return
-      
+
       const response = await fetch('/api/proxy/convenios_transferencias_all')
       if (!response.ok) return
       
@@ -315,11 +342,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   // Función para actualizar proceso vía API
   const handleUpdateProceso = async (referenciaProceso: string, formData: any) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       const updateData = new URLSearchParams()
       
       // Solo enviar campos que fueron modificados/no vacíos
@@ -402,11 +424,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   // Función para eliminar proceso
   const handleDeleteProceso = async (referenciaProceso: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       console.log('🗑️ Eliminando proceso:', referenciaProceso)
 
       const response = await fetch(`/api/proxy/emprestito/proceso/${referenciaProceso}`, {
@@ -1573,7 +1590,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
       {/* Modal para agregar/editar proceso - Solo para SECOP */}
       {activeTab === 'secop' && (
-        <AgregarProcesoModalAlt
+        <AgregarProcesoModal
           isOpen={showAgregarModal}
           onClose={() => {
             setShowAgregarModal(false)
