@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useAvancesUP } from '@/hooks/useAvancesUP';
 import type { AvanceUPFormData } from '@/types/avances-up';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { formatCurrencyFull } from '@/utils/formatCurrency';
 
 interface RegistrarAvanceUPModalProps {
   upid: string;
@@ -155,7 +155,7 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
             <div className="flex items-center justify-between text-sm mt-1">
               <span className="text-emerald-700 dark:text-emerald-300">Presupuesto total:</span>
               <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                {formatCurrency(presupuesto)}
+                {formatCurrencyFull(presupuesto)}
               </span>
             </div>
           )}

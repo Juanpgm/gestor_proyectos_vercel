@@ -27,13 +27,21 @@ import {
   X
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { formatCurrency, formatCurrencyFull } from '@/utils/formatCurrency';
 import dynamic from 'next/dynamic';
 
 // Componentes dinámicos para modales de avances
 const RegistrarAvanceUPModal = dynamic(() => import('./RegistrarAvanceUPModal'), { ssr: false });
 const EditarInfoUPModal = dynamic(() => import('./EditarInfoUPModal'), { ssr: false });
 const HistorialAvancesUP = dynamic(() => import('./HistorialAvancesUP'), { ssr: false });
+
+const ACTION_BUTTON_BASE_CLASS = 'inline-flex items-center px-2.5 py-1.5 text-sm font-medium rounded-lg transition-colors shadow-md ring-1';
+const ACTION_BUTTON_ICON_CLASS = 'w-4 h-4 mr-1.5';
+const ACTION_BUTTON_VARIANTS = {
+  avance: 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/70 ring-emerald-300/70 dark:ring-emerald-700/70',
+  historial: 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 hover:bg-purple-200 dark:hover:bg-purple-900/70 ring-purple-300/70 dark:ring-purple-700/70',
+  editar: 'text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 hover:bg-orange-200 dark:hover:bg-orange-900/70 ring-orange-300/70 dark:ring-orange-700/70',
+};
 
 // Tipo para intervenciones
 interface IntervencionData {
@@ -1096,7 +1104,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                         <td className={`px-3 py-4 whitespace-nowrap text-sm font-bold ${textColor} dark:${textColor}`}>
                           <div className="flex items-center space-x-1">
                             <DollarSign className="w-3 h-3" />
-                            <span>{formatCurrency(row.presupuesto_total || 0)}</span>
+                            <span>{formatCurrencyFull(row.presupuesto_total || 0)}</span>
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Total del grupo
@@ -1245,7 +1253,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   )}
                   {visibleColumns.identificador && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div className="font-mono text-xs" title={item.identificador}>
+                      <div className="text-xs" title={item.identificador}>
                         {item.identificador || 'N/A'}
                       </div>
                     </td>
@@ -1275,7 +1283,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
                       {syntheticMetrics[item.upid] ? (
                         <div className="space-y-1">
-                          <div className="font-semibold text-base">{formatCurrency(syntheticMetrics[item.upid].inversion || 0)}</div>
+                          <div className="font-semibold text-base">{formatCurrencyFull(syntheticMetrics[item.upid].inversion || 0)}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">Inversión total</div>
                         </div>
                       ) : loadingIntervenciones.has(item.upid) ? (
@@ -1406,10 +1414,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                             e.stopPropagation();
                             setModalEditar(item);
                           }}
-                          className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/70 transition-colors shadow-sm"
+                          className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.editar}`}
                           title="Editar información de esta UP"
                         >
-                          <FileText className="w-3.5 h-3.5 mr-1" />
+                          <FileText className={ACTION_BUTTON_ICON_CLASS} />
                           Editar
                         </button>
                       </div>
@@ -1451,14 +1459,14 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                           <td className="px-3 py-4 whitespace-nowrap text-sm">
                             <div className="flex items-center space-x-2 pl-8">
                               <Activity className="w-3 h-3 text-blue-500" />
-                              <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
                                 {intervencion.intervencion_id}
                               </span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.intervencion_id && (
-                          <td className="px-3 py-4 text-sm font-mono text-gray-600 dark:text-gray-400">
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
                             {intervencion.intervencion_id}
                           </td>
                         )}
@@ -1476,7 +1484,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                         )}
                         {visibleColumns.identificador && (
                           <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
-                            <div className="font-mono text-xs">
+                            <div className="text-xs">
                               {intervencion.identificador || 'N/A'}
                             </div>
                           </td>
@@ -1494,7 +1502,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                         {visibleColumns.inversion && (
                           <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
                             <div className="space-y-1">
-                              <div>{formatCurrency(intervencion.presupuesto_base || 0)}</div>
+                              <div>{formatCurrencyFull(intervencion.presupuesto_base || 0)}</div>
                               <div className="text-xs text-gray-500 dark:text-gray-400">Presupuesto</div>
                             </div>
                           </td>
@@ -1602,10 +1610,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                                     presupuesto: intervencion.presupuesto_base || 0
                                   });
                                 }}
-                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors shadow-sm"
+                                className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.avance}`}
                                 title="Registrar avance de esta intervención"
                               >
-                                <Activity className="w-3.5 h-3.5 mr-1" />
+                                <Activity className={ACTION_BUTTON_ICON_CLASS} />
                                 Avance
                               </button>
                               <button
@@ -1619,10 +1627,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                                     presupuesto: intervencion.presupuesto_base || 0
                                   });
                                 }}
-                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors shadow-sm"
+                                className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.historial}`}
                                 title="Ver historial de avances de esta intervención"
                               >
-                                <Clock className="w-3.5 h-3.5 mr-1" />
+                                <Clock className={ACTION_BUTTON_ICON_CLASS} />
                                 Historial
                               </button>
                             </div>
@@ -1842,6 +1850,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
             upid={modalHistorial.upid}
             intervencionId={modalHistorial.intervencionId}
             nombreUP={modalHistorial.nombre}
+            presupuesto={modalHistorial.presupuesto}
             onClose={() => setModalHistorial(null)}
             onRegistrarAvance={() => {
               setModalHistorial(null);

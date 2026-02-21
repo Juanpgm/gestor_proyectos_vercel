@@ -19,13 +19,14 @@ import {
   User
 } from 'lucide-react';
 import { useAvancesUP } from '@/hooks/useAvancesUP';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { formatCurrency, formatCurrencyFull } from '@/utils/formatCurrency';
 import type { AvanceUP } from '@/types/avances-up';
 
 interface HistorialAvancesUPProps {
   upid: string;
   intervencionId?: string;
   nombreUP: string;
+  presupuesto?: number;
   onClose: () => void;
   onRegistrarAvance?: () => void;
 }
@@ -252,6 +253,7 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
   upid,
   intervencionId,
   nombreUP,
+  presupuesto = 0,
   onClose,
   onRegistrarAvance
 }) => {
@@ -316,6 +318,16 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
                 </p>
               </div>
             </div>
+            {presupuesto > 0 && (
+              <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800 flex items-center justify-between text-sm">
+                <span className="text-purple-700 dark:text-purple-300 font-medium">
+                  Presupuesto base:
+                </span>
+                <span className="font-bold text-purple-700 dark:text-purple-300">
+                  {formatCurrencyFull(presupuesto)}
+                </span>
+              </div>
+            )}
           </div>
         )}
 

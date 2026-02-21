@@ -16,7 +16,7 @@ import {
   ChevronsRight
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { formatCurrency, formatCurrencyFull } from '@/utils/formatCurrency';
 import dynamic from 'next/dynamic';
 
 // Componentes dinámicos para modales de avances
@@ -64,7 +64,7 @@ const ProgressBar: React.FC<{ value: number }> = ({ value }) => {
 
   return (
     <div className="flex flex-col gap-0.5 w-full">
-      <span className="text-xs font-bold text-right text-gray-700 dark:text-gray-300">
+      <span className="text-xs font-bold text-center text-gray-700 dark:text-gray-300 leading-none">
         {percentage.toFixed(0)}%
       </span>
       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
@@ -116,7 +116,7 @@ const IntervencionCard: React.FC<{
       <div className="border-b border-blue-200 dark:border-blue-700 pb-2">
         <div className="flex items-start justify-between gap-2 sm:gap-3">
           <div className="flex-1 min-w-0">
-            <p className="font-mono text-xs text-blue-600 dark:text-blue-400 mb-0.5">
+            <p className="text-xs text-blue-600 dark:text-blue-400 mb-0.5">
               {interv.intervencion_id}
             </p>
             <h4 className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm">
@@ -154,7 +154,7 @@ const IntervencionCard: React.FC<{
         <div>
           <p className="text-gray-600 dark:text-gray-400 font-medium mb-0.5 text-xs">Presupuesto</p>
           <p className="font-bold text-green-600 dark:text-green-400 text-xs">
-            {formatCurrency(interv.presupuesto_base || 0)}
+            {formatCurrencyFull(interv.presupuesto_base || 0)}
           </p>
         </div>
 
@@ -186,7 +186,7 @@ const IntervencionCard: React.FC<{
         {interv.bpin && (
           <div>
             <p className="text-gray-600 dark:text-gray-400 font-medium mb-0.5 text-xs">BPIN</p>
-            <p className="text-gray-900 dark:text-white text-xs font-mono">{interv.bpin}</p>
+            <p className="text-gray-900 dark:text-white text-xs">{interv.bpin}</p>
           </div>
         )}
 
@@ -213,7 +213,7 @@ const IntervencionCard: React.FC<{
         {interv.identificador && (
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
             <p className="text-gray-600 dark:text-gray-400 font-medium mb-0.5 text-xs">Identificador</p>
-            <p className="text-gray-900 dark:text-white text-xs font-mono">{interv.identificador}</p>
+            <p className="text-gray-900 dark:text-white text-xs">{interv.identificador}</p>
           </div>
         )}
 
@@ -221,14 +221,14 @@ const IntervencionCard: React.FC<{
         {interv.referencia_contrato && (
           <div className="col-span-1 sm:col-span-1.5 lg:col-span-1">
             <p className="text-gray-600 dark:text-gray-400 font-medium mb-0.5 text-xs">Contrato</p>
-            <p className="text-gray-900 dark:text-white text-xs font-mono truncate">{interv.referencia_contrato}</p>
+            <p className="text-gray-900 dark:text-white text-xs truncate">{interv.referencia_contrato}</p>
           </div>
         )}
 
         {interv.referencia_proceso && (
           <div className="col-span-1 sm:col-span-1.5 lg:col-span-1">
             <p className="text-gray-600 dark:text-gray-400 font-medium mb-0.5 text-xs">Proceso</p>
-            <p className="text-gray-900 dark:text-white text-xs font-mono truncate">{interv.referencia_proceso}</p>
+            <p className="text-gray-900 dark:text-white text-xs truncate">{interv.referencia_proceso}</p>
           </div>
         )}
       </div>
@@ -246,18 +246,18 @@ const IntervencionCard: React.FC<{
       <div className="border-t border-blue-200 dark:border-blue-700 pt-2 flex items-center justify-end gap-2">
         <button
           onClick={() => onRegistrarAvance(interv)}
-          className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors"
+          className="inline-flex items-center px-2 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors shadow-sm ring-1 ring-emerald-300/70 dark:ring-emerald-700/70"
           title={`Registrar avance en intervención ${interv.intervencion_id}`}
         >
-          <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+          <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
           Avance
         </button>
         <button
           onClick={() => onVerHistorial(interv)}
-          className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
+          className="inline-flex items-center px-2 py-1.5 text-sm font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors shadow-sm ring-1 ring-purple-300/70 dark:ring-purple-700/70"
           title={`Ver historial de intervención ${interv.intervencion_id}`}
         >
-          <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Historial
         </button>
       </div>
@@ -482,9 +482,9 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                 {/* Expandir - siempre visible */}
                 <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-5 sm:w-6"></th>
                 {/* UPID - siempre visible */}
-                <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-12 sm:w-16">UPID</th>
+                <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-[68px] sm:w-[78px]">UPID</th>
                 {/* Nombre / Ubicación - siempre visible */}
-                <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-24 sm:w-28 md:w-32">Nombre</th>
+                <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-[128px] sm:w-[148px] md:w-[184px] lg:w-[202px]">Nombre</th>
                 {/* Centro Gestor - oculto en móvil, visible desde tablet */}
                 <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-20 md:w-24 lg:w-28">Centro</th>
                 {/* Estado - oculto en móvil, visible desde tablet */}
@@ -492,11 +492,11 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                 {/* Tipo - oculto en móvil y tablet, visible desde desktop */}
                 <th className="hidden lg:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-16 md:w-20 lg:w-24">Tipo</th>
                 {/* Avance - siempre visible */}
-                <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-20 sm:w-24 md:w-28">Avance</th>
+                <th className="px-0 sm:px-0.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-[64px] sm:w-[72px] md:w-[80px] lg:w-[88px]">Avance</th>
                 {/* Presupuesto - oculto en móvil y tablet, visible desde desktop */}
-                <th className="hidden md:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 w-16 lg:w-20">Presupuesto</th>
+                <th className="hidden md:table-cell px-1 sm:px-2 py-2 sm:py-2.5 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 w-24 md:w-28 lg:w-32">Presupuesto</th>
                 {/* Acciones - oculto en móvil, visible desde tablet */}
-                <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-32 lg:w-44">Acciones</th>
+                <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-28 lg:w-36">Acciones</th>
               </tr>
             </thead>
 
@@ -555,8 +555,8 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                           </td>
 
                           {/* UPID */}
-                          <td className="px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
-                            <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-sm sm:text-base">
+                          <td className="px-1 sm:px-1.5 py-2 sm:py-2.5 whitespace-nowrap">
+                            <span className="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm lg:text-base leading-none">
                               {item.upid}
                             </span>
                           </td>
@@ -605,14 +605,14 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                           </td>
 
                           {/* Avance */}
-                          <td className="px-1 sm:px-1.5 py-2 sm:py-2.5">
+                          <td className="px-0 sm:px-0.5 py-2 sm:py-2.5">
                             <ProgressBar value={itemMetrics.avance} />
                           </td>
 
                           {/* Presupuesto - oculto en móvil y tablet */}
-                          <td className="hidden md:table-cell pl-1 sm:pl-1.5 pr-2 sm:pr-3 py-2 sm:py-2.5 text-right">
-                            <span className="font-bold text-green-600 dark:text-green-400 text-xs sm:text-sm">
-                              {formatCurrency(itemMetrics.presupuesto)}
+                          <td className="hidden md:table-cell px-1 sm:px-2 pr-2 sm:pr-2.5 py-2 sm:py-2.5 text-right">
+                            <span className="inline-block font-bold text-green-600 dark:text-green-400 text-xs sm:text-sm whitespace-nowrap tabular-nums">
+                              {formatCurrencyFull(itemMetrics.presupuesto)}
                             </span>
                           </td>
 
@@ -624,10 +624,10 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                                   e.stopPropagation();
                                   setModalEditar(item);
                                 }}
-                                className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 rounded hover:bg-blue-200 dark:hover:bg-blue-900/70 transition-colors"
+                                className="inline-flex items-center px-2 py-1.5 text-sm font-medium text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 rounded hover:bg-orange-200 dark:hover:bg-orange-900/70 transition-colors shadow-sm ring-1 ring-orange-300/70 dark:ring-orange-700/70"
                                 title="Editar información"
                               >
-                                <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                 <span className="hidden lg:inline">Editar</span>
                               </button>
                             </div>
@@ -802,6 +802,7 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
             upid={modalHistorial.upid}
             intervencionId={modalHistorial.intervencionId}
             nombreUP={modalHistorial.nombre}
+            presupuesto={modalHistorial.presupuesto}
             onClose={() => setModalHistorial(null)}
             onRegistrarAvance={() => {
               setModalHistorial(null);
