@@ -6,8 +6,6 @@ import {
   X,
   Save,
   TrendingUp,
-  DollarSign,
-  Calendar,
   FileText,
   AlertCircle,
   CheckCircle2,
@@ -20,6 +18,7 @@ import { formatCurrency } from '@/utils/formatCurrency';
 
 interface RegistrarAvanceUPModalProps {
   upid: string;
+  intervencionId?: string;
   nombreUP: string;
   avanceActual: number;
   presupuesto: number;
@@ -29,13 +28,14 @@ interface RegistrarAvanceUPModalProps {
 
 const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
   upid,
+  intervencionId,
   nombreUP,
   avanceActual,
   presupuesto,
   onClose,
   onSuccess
 }) => {
-  const { addAvance, error: hookError, clearError } = useAvancesUP(upid);
+  const { addAvance, error: hookError, clearError } = useAvancesUP(upid, intervencionId);
   
   const [formData, setFormData] = useState<AvanceUPFormData>({
     fecha_reporte: new Date().toISOString().split('T')[0],
@@ -53,33 +53,24 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.fecha_reporte) {
-      newErrors.fecha_reporte = 'La fecha es obligatoria';
-    }
     if (formData.avance_fisico < 0 || formData.avance_fisico > 100) {
       newErrors.avance_fisico = 'Debe estar entre 0% y 100%';
     }
     if (formData.avance_financiero < 0 || formData.avance_financiero > 100) {
       newErrors.avance_financiero = 'Debe estar entre 0% y 100%';
     }
-    if (formData.valor_ejecutado < 0) {
-      newErrors.valor_ejecutado = 'No puede ser negativo';
-    }
-    if (presupuesto > 0 && formData.valor_ejecutado > presupuesto) {
-      newErrors.valor_ejecutado = 'No puede superar el presupuesto total';
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
 
     if (!validate()) return;
 
-    const result = addAvance({
+    const result = await addAvance({
       ...formData,
       archivos: selectedFiles
     });
@@ -196,127 +187,41 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Fecha del reporte */}
+          {/* Avance de Intervención */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              <Calendar className="w-4 h-4" />
-              Fecha del Reporte *
-            </label>
-            <input
-              type="date"
-              value={formData.fecha_reporte}
-              onChange={(e) => setFormData(prev => ({ ...prev, fecha_reporte: e.target.value }))}
-              className={`w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
-                errors.fecha_reporte ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
-            />
-            {errors.fecha_reporte && (
-              <p className="text-xs text-red-500 mt-1">{errors.fecha_reporte}</p>
-            )}
-          </div>
-
-          {/* Avances - Grid 2 columnas */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Avance Físico */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                <TrendingUp className="w-4 h-4 text-blue-500" />
-                Avance Físico (%) *
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.1}
-                  value={formData.avance_fisico}
-                  onChange={(e) => setFormData(prev => ({ ...prev, avance_fisico: parseFloat(e.target.value) || 0 }))}
-                  className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
-                    errors.avance_fisico ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
-              </div>
-              {errors.avance_fisico && (
-                <p className="text-xs text-red-500 mt-1">{errors.avance_fisico}</p>
-              )}
-              {/* Barra visual */}
-              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all ${
-                    formData.avance_fisico >= 70 ? 'bg-green-500' :
-                    formData.avance_fisico >= 40 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${Math.min(formData.avance_fisico, 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Avance Financiero */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                <DollarSign className="w-4 h-4 text-green-500" />
-                Avance Financiero (%) *
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.1}
-                  value={formData.avance_financiero}
-                  onChange={(e) => setFormData(prev => ({ ...prev, avance_financiero: parseFloat(e.target.value) || 0 }))}
-                  className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
-                    errors.avance_financiero ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
-              </div>
-              {errors.avance_financiero && (
-                <p className="text-xs text-red-500 mt-1">{errors.avance_financiero}</p>
-              )}
-              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all ${
-                    formData.avance_financiero >= 70 ? 'bg-green-500' :
-                    formData.avance_financiero >= 40 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${Math.min(formData.avance_financiero, 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Valor Ejecutado */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-              <DollarSign className="w-4 h-4 text-amber-500" />
-              Valor Ejecutado (COP)
+              <TrendingUp className="w-4 h-4 text-blue-500" />
+              Avance de Intervención (%) *
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
               <input
                 type="number"
                 min={0}
-                step={1000}
-                value={formData.valor_ejecutado}
-                onChange={(e) => setFormData(prev => ({ ...prev, valor_ejecutado: parseFloat(e.target.value) || 0 }))}
-                className={`w-full pl-7 pr-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
-                  errors.valor_ejecutado ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                max={100}
+                step={0.1}
+                value={formData.avance_fisico}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  setFormData(prev => ({ ...prev, avance_fisico: val, avance_financiero: val }));
+                }}
+                className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
+                  errors.avance_fisico ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                 }`}
               />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
             </div>
-            {errors.valor_ejecutado && (
-              <p className="text-xs text-red-500 mt-1">{errors.valor_ejecutado}</p>
+            {errors.avance_fisico && (
+              <p className="text-xs text-red-500 mt-1">{errors.avance_fisico}</p>
             )}
-            {formData.valor_ejecutado > 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {formatCurrency(formData.valor_ejecutado)}
-                {presupuesto > 0 && (
-                  <span> ({((formData.valor_ejecutado / presupuesto) * 100).toFixed(1)}% del presupuesto)</span>
-                )}
-              </p>
-            )}
+            <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all ${
+                  formData.avance_fisico >= 70 ? 'bg-green-500' :
+                  formData.avance_fisico >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${Math.min(formData.avance_fisico, 100)}%` }}
+              />
+            </div>
           </div>
 
           {/* Observaciones */}

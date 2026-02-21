@@ -75,6 +75,8 @@ interface GestionProcesosProps {
   onNavigateHome: () => void
 }
 
+type ProcesosDataSource = 'api' | 'backup'
+
 const normalizeProcesosResponse = (payload: any): ProcesoEmprestito[] => {
   if (!payload) return []
 
@@ -115,6 +117,33 @@ const normalizeProcesosResponse = (payload: any): ProcesoEmprestito[] => {
   return []
 }
 
+const normalizeBackupProcesos = (payload: any): ProcesoEmprestito[] => {
+  const records = Array.isArray(payload) ? payload : []
+
+  return records
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => ({
+      id: item.id?.toString?.() || item.id,
+      referencia_proceso: item.referencia_proceso || '',
+      nombre_proceso: item.objeto || item.descripcion || item.nombre_proceso || '',
+      nombre_resumido_proceso: item.descripcion || item.nombre_resumido_proceso || '',
+      valor_proyectado: Number(item.valor_total ?? item.valor_proyectado ?? 0),
+      valor_publicacion: Number(item.valor_plataforma ?? item.valor_publicacion ?? item.valor_total ?? 0),
+      nombre_centro_gestor: item.nombre_centro_gestor || '',
+      estado_proceso: item.estado_proceso_secop || item.estado_proceso || '',
+      fecha_publicacion: item.planeado || item.fecha_publicacion || '',
+      modalidad_contratacion: item.modalidad || item.modalidad_contratacion || '',
+      tipo_contrato: item.tipo_contrato || '',
+      nombre_banco: item.banco || item.nombre_banco || '',
+      bp: item.bp || '',
+      id_paa: item.id_paa || '',
+      descripcion_proceso: item.objeto || item.descripcion || '',
+      plataforma: item.plataforma || 'SECOP',
+      ...item,
+    }))
+    .filter((item) => Boolean(item.referencia_proceso))
+}
+
 const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => {
   // Estados para tabs
   const [activeTab, setActiveTab] = useState<'secop' | 'tiendaVirtual' | 'convenios'>('secop')
@@ -123,6 +152,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dataSource, setDataSource] = useState<ProcesosDataSource>('api')
   
   // Estados para datos agregados de otros tabs
   const [ordenesCompra, setOrdenesCompra] = useState<any[]>([])
@@ -239,26 +269,49 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       setLoading(true)
       setError(null)
 
-      const response = await fetch('/api/proxy/procesos_emprestito_all')
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      console.log('API Response:', data)
-      console.log('Is Array:', Array.isArray(data))
+      try {
+        const response = await fetch('/api/proxy/procesos_emprestito_all', { cache: 'no-store' })
 
-      const normalizedProcesos = normalizeProcesosResponse(data)
-      if (normalizedProcesos.length > 0) {
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        }
+
+        const rawBody = await response.text()
+        if (!rawBody || rawBody.trim().length === 0) {
+          throw new Error('El backend respondió sin contenido para procesos_emprestito_all')
+        }
+
+        const data = JSON.parse(rawBody)
+        const normalizedProcesos = normalizeProcesosResponse(data)
+
+        if (normalizedProcesos.length === 0) {
+          throw new Error('La API respondió sin registros de procesos válidos')
+        }
+
         setProcesos(normalizedProcesos)
-      } else {
-        console.warn('Formato de respuesta inesperado:', data)
-        setProcesos([])
+        setDataSource('api')
+      } catch (primaryError) {
+        console.warn('⚠️ Fallback a datos locales de procesos por falla del backend:', primaryError)
+
+        const backupResponse = await fetch('/data/emprestito/emp_procesos.json', { cache: 'no-store' })
+        if (!backupResponse.ok) {
+          throw primaryError
+        }
+
+        const backupData = await backupResponse.json()
+        const normalizedBackup = normalizeBackupProcesos(backupData)
+
+        if (normalizedBackup.length === 0) {
+          throw primaryError
+        }
+
+        setProcesos(normalizedBackup)
+        setDataSource('backup')
       }
     } catch (error) {
       console.error('Error fetching procesos:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')
+      setProcesos([])
     } finally {
       setLoading(false)
     }
@@ -948,6 +1001,12 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           </button>
         </div>
       </motion.div>
+
+      {dataSource === 'backup' && activeTab === 'secop' && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+          Mostrando respaldo local de procesos por una falla temporal del backend principal.
+        </div>
+      )}
 
       {/* Tabs - Immediately after header */}
       <motion.div

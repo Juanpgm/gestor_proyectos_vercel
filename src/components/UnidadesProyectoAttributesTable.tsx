@@ -240,9 +240,9 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   const [syntheticMetrics, setSyntheticMetrics] = useState<Record<string, { avance: number; inversion: number }>>({});
   
   // Estado para modales de avances y edición
-  const [modalAvance, setModalAvance] = useState<{ upid: string; nombre: string; avance: number; presupuesto: number } | null>(null);
+  const [modalAvance, setModalAvance] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
   const [modalEditar, setModalEditar] = useState<AttributeData | null>(null);
-  const [modalHistorial, setModalHistorial] = useState<{ upid: string; nombre: string } | null>(null);
+  const [modalHistorial, setModalHistorial] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
 
   const [visibleColumns, setVisibleColumns] = useState({
     upid: true,
@@ -1400,38 +1400,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   {visibleColumns.acciones && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-1.5">
-                        {/* Botón Registrar Avance */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setModalAvance({
-                              upid: item.upid,
-                              nombre: item.nombre_up,
-                              avance: syntheticMetrics[item.upid]?.avance || item.avance_obra || 0,
-                              presupuesto: syntheticMetrics[item.upid]?.inversion || item.presupuesto_base || 0
-                            });
-                          }}
-                          className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors shadow-sm"
-                          title="Registrar avance de esta UP"
-                        >
-                          <Activity className="w-3.5 h-3.5 mr-1" />
-                          Avance
-                        </button>
-                        {/* Botón Historial */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setModalHistorial({
-                              upid: item.upid,
-                              nombre: item.nombre_up
-                            });
-                          }}
-                          className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors shadow-sm"
-                          title="Ver historial de avances"
-                        >
-                          <Clock className="w-3.5 h-3.5 mr-1" />
-                          Historial
-                        </button>
                         {/* Botón Editar Info */}
                         <button
                           onClick={(e) => {
@@ -1618,6 +1586,46 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                         {visibleColumns.descripcion_intervencion && (
                           <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
                             <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.acciones && (
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <div className="flex items-center space-x-1.5 justify-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalAvance({
+                                    upid: item.upid,
+                                    intervencionId: intervencion.intervencion_id,
+                                    nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
+                                    avance: intervencion.avance_obra || 0,
+                                    presupuesto: intervencion.presupuesto_base || 0
+                                  });
+                                }}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors shadow-sm"
+                                title="Registrar avance de esta intervención"
+                              >
+                                <Activity className="w-3.5 h-3.5 mr-1" />
+                                Avance
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalHistorial({
+                                    upid: item.upid,
+                                    intervencionId: intervencion.intervencion_id,
+                                    nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
+                                    avance: intervencion.avance_obra || 0,
+                                    presupuesto: intervencion.presupuesto_base || 0
+                                  });
+                                }}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors shadow-sm"
+                                title="Ver historial de avances de esta intervención"
+                              >
+                                <Clock className="w-3.5 h-3.5 mr-1" />
+                                Historial
+                              </button>
+                            </div>
                           </td>
                         )}
                       </motion.tr>
@@ -1809,6 +1817,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         {modalAvance && (
           <RegistrarAvanceUPModal
             upid={modalAvance.upid}
+            intervencionId={modalAvance.intervencionId}
             nombreUP={modalAvance.nombre}
             avanceActual={modalAvance.avance}
             presupuesto={modalAvance.presupuesto}
@@ -1831,19 +1840,18 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         {modalHistorial && (
           <HistorialAvancesUP
             upid={modalHistorial.upid}
+            intervencionId={modalHistorial.intervencionId}
             nombreUP={modalHistorial.nombre}
             onClose={() => setModalHistorial(null)}
             onRegistrarAvance={() => {
               setModalHistorial(null);
-              const item = data.find(d => d.upid === modalHistorial.upid);
-              if (item) {
-                setModalAvance({
-                  upid: item.upid,
-                  nombre: item.nombre_up,
-                  avance: syntheticMetrics[item.upid]?.avance || item.avance_obra || 0,
-                  presupuesto: syntheticMetrics[item.upid]?.inversion || item.presupuesto_base || 0
-                });
-              }
+              setModalAvance({
+                upid: modalHistorial.upid,
+                intervencionId: modalHistorial.intervencionId,
+                nombre: modalHistorial.nombre,
+                avance: modalHistorial.avance,
+                presupuesto: modalHistorial.presupuesto
+              });
             }}
           />
         )}

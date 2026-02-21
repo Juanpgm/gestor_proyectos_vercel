@@ -80,7 +80,11 @@ const ProgressBar: React.FC<{ value: number }> = ({ value }) => {
 };
 
 // Componente de Ficha Resumen de Intervención
-const IntervencionCard: React.FC<{ interv: IntervencionData }> = ({ interv }) => {
+const IntervencionCard: React.FC<{
+  interv: IntervencionData;
+  onRegistrarAvance: (interv: IntervencionData) => void;
+  onVerHistorial: (interv: IntervencionData) => void;
+}> = ({ interv, onRegistrarAvance, onVerHistorial }) => {
   // Calcular duración del proyecto
   const getDuration = () => {
     if (!interv.fecha_inicio || !interv.fecha_fin) return null;
@@ -238,6 +242,25 @@ const IntervencionCard: React.FC<{ interv: IntervencionData }> = ({ interv }) =>
           </p>
         </div>
       )}
+
+      <div className="border-t border-blue-200 dark:border-blue-700 pt-2 flex items-center justify-end gap-2">
+        <button
+          onClick={() => onRegistrarAvance(interv)}
+          className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors"
+          title={`Registrar avance en intervención ${interv.intervencion_id}`}
+        >
+          <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+          Avance
+        </button>
+        <button
+          onClick={() => onVerHistorial(interv)}
+          className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
+          title={`Ver historial de intervención ${interv.intervencion_id}`}
+        >
+          <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Historial
+        </button>
+      </div>
     </motion.div>
   );
 };
@@ -258,9 +281,9 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
   const itemsPerPage = 12;
 
   // Estado para modales de avances y edición
-  const [modalAvance, setModalAvance] = useState<{ upid: string; nombre: string; avance: number; presupuesto: number } | null>(null);
+  const [modalAvance, setModalAvance] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
   const [modalEditar, setModalEditar] = useState<AttributeData | null>(null);
-  const [modalHistorial, setModalHistorial] = useState<{ upid: string; nombre: string } | null>(null);
+  const [modalHistorial, setModalHistorial] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
 
   // Filtrar datos
   const filteredData = useMemo(() => {
@@ -599,36 +622,6 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setModalAvance({
-                                    upid: item.upid,
-                                    nombre: item.nombre_up,
-                                    avance: itemMetrics.avance || item.avance_obra || 0,
-                                    presupuesto: itemMetrics.presupuesto || item.presupuesto_base || 0
-                                  });
-                                }}
-                                className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors"
-                                title="Registrar avance"
-                              >
-                                <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                                <span className="hidden lg:inline">Avance</span>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setModalHistorial({
-                                    upid: item.upid,
-                                    nombre: item.nombre_up
-                                  });
-                                }}
-                                className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 rounded hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
-                                title="Historial de avances"
-                              >
-                                <svg className="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span className="hidden lg:inline">Historial</span>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
                                   setModalEditar(item);
                                 }}
                                 className="inline-flex items-center px-1.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 rounded hover:bg-blue-200 dark:hover:bg-blue-900/70 transition-colors"
@@ -664,7 +657,28 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                                     className="space-y-2 sm:space-y-3"
                                   >
                                     {intervenciones.map((interv) => (
-                                      <IntervencionCard key={interv.intervencion_id} interv={interv} />
+                                      <IntervencionCard
+                                        key={interv.intervencion_id}
+                                        interv={interv}
+                                        onRegistrarAvance={(intervencion) => {
+                                          setModalAvance({
+                                            upid: item.upid,
+                                            intervencionId: intervencion.intervencion_id,
+                                            nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
+                                            avance: intervencion.avance_obra || 0,
+                                            presupuesto: intervencion.presupuesto_base || 0
+                                          });
+                                        }}
+                                        onVerHistorial={(intervencion) => {
+                                          setModalHistorial({
+                                            upid: item.upid,
+                                            intervencionId: intervencion.intervencion_id,
+                                            nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
+                                            avance: intervencion.avance_obra || 0,
+                                            presupuesto: intervencion.presupuesto_base || 0
+                                          });
+                                        }}
+                                      />
                                     ))}
                                   </motion.div>
                                 )}
@@ -763,6 +777,7 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
         {modalAvance && (
           <RegistrarAvanceUPModal
             upid={modalAvance.upid}
+            intervencionId={modalAvance.intervencionId}
             nombreUP={modalAvance.nombre}
             avanceActual={modalAvance.avance}
             presupuesto={modalAvance.presupuesto}
@@ -785,20 +800,18 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
         {modalHistorial && (
           <HistorialAvancesUP
             upid={modalHistorial.upid}
+            intervencionId={modalHistorial.intervencionId}
             nombreUP={modalHistorial.nombre}
             onClose={() => setModalHistorial(null)}
             onRegistrarAvance={() => {
-              const item = data.find(d => d.upid === modalHistorial.upid);
               setModalHistorial(null);
-              if (item) {
-                const itemMetrics = metrics[item.upid] || { avance: 0, presupuesto: 0 };
-                setModalAvance({
-                  upid: item.upid,
-                  nombre: item.nombre_up,
-                  avance: itemMetrics.avance || item.avance_obra || 0,
-                  presupuesto: itemMetrics.presupuesto || item.presupuesto_base || 0
-                });
-              }
+              setModalAvance({
+                upid: modalHistorial.upid,
+                intervencionId: modalHistorial.intervencionId,
+                nombre: modalHistorial.nombre,
+                avance: modalHistorial.avance,
+                presupuesto: modalHistorial.presupuesto
+              });
             }}
           />
         )}

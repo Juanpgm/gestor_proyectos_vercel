@@ -24,6 +24,7 @@ import type { AvanceUP } from '@/types/avances-up';
 
 interface HistorialAvancesUPProps {
   upid: string;
+  intervencionId?: string;
   nombreUP: string;
   onClose: () => void;
   onRegistrarAvance?: () => void;
@@ -49,8 +50,7 @@ const AvanceCard: React.FC<{
   const [expanded, setExpanded] = useState(isLatest);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const diffFisico = prevAvance ? avance.avance_fisico - prevAvance.avance_fisico : 0;
-  const diffFinanciero = prevAvance ? avance.avance_financiero - prevAvance.avance_financiero : 0;
+  const diffAvance = prevAvance ? avance.avance_fisico - prevAvance.avance_fisico : 0;
 
   const formatDate = (dateStr: string) => {
     try {
@@ -118,26 +118,13 @@ const AvanceCard: React.FC<{
               <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
                 {avance.avance_fisico.toFixed(1)}%
               </span>
-              {prevAvance && diffFisico !== 0 && (
-                <span className={`text-xs font-medium ${diffFisico > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {diffFisico > 0 ? '+' : ''}{diffFisico.toFixed(1)}%
+              {prevAvance && diffAvance !== 0 && (
+                <span className={`text-xs font-medium ${diffAvance > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {diffAvance > 0 ? '+' : ''}{diffAvance.toFixed(1)}%
                 </span>
               )}
             </div>
-            <span className="text-xs text-gray-400">Físico</span>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                {avance.avance_financiero.toFixed(1)}%
-              </span>
-              {prevAvance && diffFinanciero !== 0 && (
-                <span className={`text-xs font-medium ${diffFinanciero > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {diffFinanciero > 0 ? '+' : ''}{diffFinanciero.toFixed(1)}%
-                </span>
-              )}
-            </div>
-            <span className="text-xs text-gray-400">Financiero</span>
+            <span className="text-xs text-gray-400">Avance</span>
           </div>
         </div>
       </div>
@@ -154,10 +141,10 @@ const AvanceCard: React.FC<{
           >
             <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
               {/* Barras de progreso */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-500 dark:text-gray-400">Avance Físico</span>
+                    <span className="text-gray-500 dark:text-gray-400">Avance</span>
                     <span className="font-bold text-blue-600 dark:text-blue-400">
                       {avance.avance_fisico.toFixed(1)}%
                     </span>
@@ -166,20 +153,6 @@ const AvanceCard: React.FC<{
                     <div
                       className="bg-blue-500 h-2 rounded-full transition-all"
                       style={{ width: `${Math.min(avance.avance_fisico, 100)}%` }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-500 dark:text-gray-400">Avance Financiero</span>
-                    <span className="font-bold text-green-600 dark:text-green-400">
-                      {avance.avance_financiero.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-green-500 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min(avance.avance_financiero, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -277,11 +250,12 @@ const AvanceCard: React.FC<{
 
 const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
   upid,
+  intervencionId,
   nombreUP,
   onClose,
   onRegistrarAvance
 }) => {
-  const { avances, loading, error, resumen, deleteAvance } = useAvancesUP(upid);
+  const { avances, loading, error, resumen, deleteAvance } = useAvancesUP(upid, intervencionId);
 
   return (
     <motion.div
@@ -322,7 +296,7 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
         {/* Resumen */}
         {resumen && (
           <div className="px-6 py-3 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-800">
-            <div className="grid grid-cols-4 gap-4 text-center">
+            <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
                   {resumen.total_reportes}
@@ -333,13 +307,7 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
                 <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                   {resumen.ultimo_avance_fisico.toFixed(1)}%
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Últ. Físico</p>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                  {resumen.ultimo_avance_financiero.toFixed(1)}%
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Últ. Financiero</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Últ. Avance</p>
               </div>
               <div className="flex flex-col items-center">
                 <TendenciaIcon tendencia={resumen.tendencia} />
