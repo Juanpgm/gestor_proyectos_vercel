@@ -11,6 +11,36 @@ import SearchableSelect from '@/components/SearchableSelect'
 
 type AuthMode = 'login' | 'register'
 
+const CENTROS_GESTORES_EXACTOS: string[] = [
+  'Secretaría de Gobierno',
+  'Departamento Administrativo de Gestión Jurídica Pública',
+  'Departamento Administrativo de Control Interno',
+  'Departamento Administrativo de Control Disciplinario Interno de Instrucción',
+  'Departamento Administrativo de Hacienda',
+  'Departamento Administrativo de Planeación',
+  'Departamento Administrativo de Gestión del Medio Ambiente',
+  'Departamento Administrativo de Tecnologías de la Información y las Comunicaciones',
+  'Departamento Administrativo de Contratación Pública',
+  'Departamento Administrativo de Desarrollo e Innovación Institucional',
+  'Secretaría de Educación',
+  'Secretaría de Salud Pública',
+  'Secretaría de Bienestar Social',
+  'Secretaría de Vivienda Social y Hábitat',
+  'Secretaría de Cultura',
+  'Secretaría de Infraestructura',
+  'Secretaría de Movilidad',
+  'Secretaría de Seguridad y Justicia',
+  'Secretaría del Deporte y la Recreación',
+  'Secretaría de Gestión del Riesgo de Emergencias y Desastres',
+  'Secretaría de Paz y Cultura Ciudadana',
+  'Secretaría de Desarrollo Económico',
+  'Secretaría de Turismo',
+  'Secretaría de Desarrollo Territorial y Participación Ciudadana',
+  'Unidad Administrativa Especial de Gestión de Bienes y Servicios',
+  'Unidad Administrativa Especial de Servicios Públicos',
+  'Unidad Administrativa Especial de Protección Animal'
+]
+
 export default function LoginPage() {
   const { state, signIn, signUp, signInWithGoogle, clearError } = useAuth()
   const [mode, setMode] = useState<AuthMode>('login')
@@ -36,46 +66,11 @@ export default function LoginPage() {
   const fetchCentrosGestores = async () => {
     try {
       setLoadingCentros(true)
-      
-      // Add cache busting and proper headers
-      const response = await fetch('/api/proxy/centros-gestores/nombres-unicos', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-cache'
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const result = await response.json()
-      
-      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-        setCentrosGestores(result.data)
-        setApiDataLoaded(true)
-      } else {
-        throw new Error('Invalid API response or empty data')
-      }
+      setCentrosGestores(CENTROS_GESTORES_EXACTOS)
+      setApiDataLoaded(true)
     } catch (error) {
       console.error('Error fetching centros gestores:', error)
-      // Fallback a valores predefinidos si la API falla
-      setCentrosGestores([
-        "Secretaría de Gobierno y Participación Ciudadana",
-        "Secretaría de Seguridad y Justicia", 
-        "Secretaría de Salud Pública",
-        "Secretaría de Educación",
-        "Secretaría de Cultura y Turismo",
-        "Secretaría de Desarrollo Económico",
-        "Secretaría de Infraestructura y Valorización",
-        "Secretaría de Movilidad",
-        "Secretaría de Desarrollo Territorial y Bienestar Social",
-        "Secretaría de Gestión del Riesgo de Emergencias y Desastres",
-        "Unidad de Cumplimiento",
-        "Otro"
-      ])
+      setCentrosGestores(CENTROS_GESTORES_EXACTOS)
     } finally {
       setLoadingCentros(false)
     }
