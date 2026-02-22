@@ -35,13 +35,27 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
 // Componente para mostrar información del usuario autenticado
 export function UserProfile() {
-  const { state, signOut } = useAuth()
+  const { state, signOut, getHighestRole } = useAuth()
   
   if (!state.user) return null
 
+  const highestRole = getHighestRole()
+  const nombreCentroGestor = state.user.nombre_centro_gestor || state.user.centro_gestor_assigned
+  const roleGradientMap: Record<string, string> = {
+    super_admin: 'from-purple-600 to-fuchsia-600',
+    admin: 'from-blue-600 to-indigo-600',
+    gestor_master: 'from-emerald-600 to-green-600',
+    gestor: 'from-green-600 to-teal-600',
+    consultor_master: 'from-amber-500 to-orange-600',
+    consultor: 'from-cyan-600 to-sky-600',
+    publico: 'from-gray-500 to-slate-600'
+  }
+
+  const profileGradient = roleGradientMap[highestRole || ''] || 'from-blue-600 to-green-600'
+
   return (
-    <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-green-600 px-2 py-1 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
-      <div className="flex items-center space-x-2">
+    <div className={`flex items-center space-x-2 bg-gradient-to-r ${profileGradient} px-2 py-1 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 max-w-full`}>
+      <div className="flex items-center space-x-2 min-w-0">
         {state.user.photoURL ? (
           <img
             src={state.user.photoURL}
@@ -59,9 +73,22 @@ export function UserProfile() {
           <p className="text-xs md:text-sm font-medium text-white truncate">
             {state.user.displayName || state.user.email?.split('@')[0]}
           </p>
-          <p className="text-xs text-blue-100 truncate">
-            {state.user.email}
+          {nombreCentroGestor && (
+            <p className="text-xs text-blue-100 truncate">
+              {nombreCentroGestor}
+            </p>
+          )}
+        </div>
+
+        <div className="md:hidden min-w-0 max-w-[130px]">
+          <p className="text-[10px] text-white font-medium truncate">
+            {state.user.displayName || state.user.email?.split('@')[0]}
           </p>
+          {nombreCentroGestor && (
+            <p className="text-[10px] text-blue-100 truncate">
+              {nombreCentroGestor}
+            </p>
+          )}
         </div>
       </div>
       <button

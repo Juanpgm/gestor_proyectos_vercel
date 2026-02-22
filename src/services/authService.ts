@@ -128,6 +128,12 @@ class AuthService {
     }
     
     // Extraer centro_gestor desde firestore_data o custom_claims
+    const nombre_centro_gestor =
+      apiUser.nombre_centro_gestor ||
+      apiUser.firestore_data?.nombre_centro_gestor ||
+      apiUser.custom_claims?.centro_gestor ||
+      null
+
     const centro_gestor_assigned = 
       apiUser.centro_gestor_assigned || 
       apiUser.firestore_data?.nombre_centro_gestor ||
@@ -164,6 +170,7 @@ class AuthService {
       // Roles y permisos extraídos de firestore_data
       roles: roles,
       permissions: permissions,
+      nombre_centro_gestor: nombre_centro_gestor,
       centro_gestor_assigned: centro_gestor_assigned,
       is_active: is_active,
       phone: phone,

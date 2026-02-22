@@ -12,6 +12,7 @@ export interface User {
   // Campos de administración y roles
   roles?: string[]
   permissions?: string[]
+  nombre_centro_gestor?: string | null
   centro_gestor_assigned?: string | null
   is_active?: boolean
   phone?: string | null
