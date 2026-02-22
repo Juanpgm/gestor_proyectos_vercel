@@ -55,7 +55,8 @@ const AttributeSchema = z.object({
   referencia_contrato: z.string().optional(),
   referencia_proceso: z.string().optional(),
   url_proceso: z.string().optional(),
-  ano: z.number()
+  ano: z.number(),
+  proyectos_estrategicos: z.string().optional() // Nuevo campo para proyectos estratégicos
 });
 
 const FilterSchema = z.object({
@@ -67,7 +68,8 @@ const FilterSchema = z.object({
   comunas: z.array(z.string()), // La API devuelve 'comunas' no 'comunas_corregimientos'
   barrios_veredas: z.array(z.string()),
   fuentes_financiacion: z.array(z.string()),
-  anos: z.array(z.string()) // La API devuelve años como strings
+  anos: z.array(z.string()), // La API devuelve años como strings
+  proyectos_estrategicos: z.array(z.string()).optional() // Nuevos proyectos estratégicos
 });
 
 // Tipos derivados de los schemas
@@ -86,6 +88,7 @@ export interface FilterParams {
   barrio_vereda?: string;
   fuente_financiacion?: string;
   ano?: string; // Cambiar a string para consistencia con la API
+  proyectos_estrategicos?: string; // Nuevos proyectos estratégicos
   search?: string;
   // Campos para filtros múltiples
   estado_multiple?: string[];
@@ -97,6 +100,7 @@ export interface FilterParams {
   barrio_vereda_multiple?: string[];
   fuente_financiacion_multiple?: string[];
   ano_multiple?: string[];
+  proyectos_estrategicos_multiple?: string[]; // Múltiples proyectos estratégicos
 }
 
 // Tipo para respuestas de la API
@@ -545,7 +549,8 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           referencia_contrato: primeraIntervencion.referencia_contrato || properties.referencia_contrato || undefined,
           referencia_proceso: primeraIntervencion.referencia_proceso || properties.referencia_proceso || undefined,
           url_proceso: primeraIntervencion.url_proceso || properties.url_proceso || undefined,
-          ano: parseInt(primeraIntervencion.ano || properties.ano || properties.anio || 0)
+          ano: parseInt(primeraIntervencion.ano || properties.ano || properties.anio || 0),
+          proyectos_estrategicos: properties.proyectos_estrategicos || undefined
         });
         
         validatedData.push(validatedItem);
@@ -682,7 +687,8 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
       tipo_intervencion: tipoConsolidado,
       nombre_centro_gestor: centroConsolidado,
       avance_obra: avancePromedio,
-      presupuesto_base: presupuestoTotal
+      presupuesto_base: presupuestoTotal,
+      proyectos_estrategicos: base.proyectos_estrategicos || undefined
     };
   });
 };
@@ -715,7 +721,8 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
     comunas: extractUniqueValues(consolidatedData, 'comuna_corregimiento'), // Mapear comuna_corregimiento a comunas
     barrios_veredas: extractUniqueValues(consolidatedData, 'barrio_vereda'),
     fuentes_financiacion: extractUniqueValues(consolidatedData, 'fuente_financiacion'),
-    anos: extractUniqueYears(consolidatedData, 'ano')
+    anos: extractUniqueYears(consolidatedData, 'ano'),
+    proyectos_estrategicos: extractUniqueValues(consolidatedData, 'proyectos_estrategicos') // Extraídos desde los datos reales de la API
   };
   
   console.log('🔍 generateFiltersFromData: Filtros extraídos:', {
@@ -728,7 +735,8 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
     comunas: filters.comunas.length,
     barrios_veredas: filters.barrios_veredas.length,
     fuentes_financiacion: filters.fuentes_financiacion.length,
-    anos: filters.anos.length
+    anos: filters.anos.length,
+    proyectos_estrategicos: filters.proyectos_estrategicos?.length ?? 0
   });
   
   return filters;
@@ -826,6 +834,8 @@ export const filterAttributeData = (
                 return valueInArray(item.barrio_vereda, multipleValues);
               case 'fuente_financiacion':
                 return valueInArray(item.fuente_financiacion, multipleValues);
+              case 'proyectos_estrategicos':
+                return item.proyectos_estrategicos ? valueInArray(item.proyectos_estrategicos, multipleValues) : false;
               case 'ano':
                 return multipleValues.map((v: any) => String(v).replace('.0', '')).includes(String(item.ano).replace('.0', ''));
               default:
@@ -855,6 +865,8 @@ export const filterAttributeData = (
                 return stringsMatch(item.fuente_financiacion, singleValue);
               case 'ano':
                 return String(item.ano).replace('.0', '') === String(singleValue).replace('.0', '');
+              case 'proyectos_estrategicos':
+                return item.proyectos_estrategicos ? stringsMatch(item.proyectos_estrategicos, singleValue) : false;
               default:
                 return true;
             }

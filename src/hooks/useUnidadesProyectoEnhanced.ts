@@ -358,7 +358,9 @@ export const useUnidadesProyecto = (
     };
 
     const filteredUpids = new Set(data.map(item => normalizeUpid(item.upid)));
-    const hasUpOnlyFilters = Boolean(
+    // Aplicar filtro por UPIDs siempre que haya CUALQUIER filtro activo a nivel de UP
+    // (incluyendo proyectos_estrategicos, tipo_equipamiento, barrio, etc.)
+    const hasUpOnlyFilters = data.length !== allData.length || Boolean(
       (filters as any)?.tipo_equipamiento || (filters as any)?.tipo_equipamiento_multiple?.length ||
       (filters as any)?.frente_activo || (filters as any)?.frente_activo_multiple?.length ||
       (filters as any)?.comuna_corregimiento || (filters as any)?.comuna_corregimiento_multiple?.length ||

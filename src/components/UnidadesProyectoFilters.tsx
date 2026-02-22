@@ -407,6 +407,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     barrios_veredas: string[];
     fuentes_financiacion: string[];
     anos: string[];
+    proyectos_estrategicos: string[];
   }>({
     estados: [],
     tipos_intervencion: [],
@@ -416,7 +417,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     comunas_corregimientos: [],
     barrios_veredas: [],
     fuentes_financiacion: [],
-    anos: []
+    anos: [],
+    proyectos_estrategicos: []
   });
 
   // Toggle entre modo single y multi-select - habilitado por defecto
@@ -446,6 +448,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                      key === 'barrios_veredas' ? 'barrio_vereda' :
                      key === 'fuentes_financiacion' ? 'fuente_financiacion' :
                      key === 'tipos_equipamiento' ? 'tipo_equipamiento' :
+                     key === 'proyectos_estrategicos' ? 'proyectos_estrategicos' :
                      'ano';
     
     console.log(`🎯 handleMultiFilterChange: mappedKey=${mappedKey}`);
@@ -516,7 +519,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       comunas_corregimientos: [],
       barrios_veredas: [],
       fuentes_financiacion: [],
-      anos: []
+      anos: [],
+      proyectos_estrategicos: []
     });
     onClearFilters();
   };
@@ -536,7 +540,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
         comunas_corregimientos: [],
         barrios_veredas: [],
         fuentes_financiacion: [],
-        anos: []
+        anos: [],
+        proyectos_estrategicos: []
       });
     }
   };
@@ -738,6 +743,19 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             onMultiChange={(values) => handleMultiFilterChange('anos', values)}
           />
 
+          {/* Proyectos Estratégicos */}
+          <EnhancedFilterSelect
+            label="Proyectos Estratégicos"
+            value={filters.proyectos_estrategicos}
+            onChange={(value) => handleFilterChange('proyectos_estrategicos', value)}
+            options={filterData?.proyectos_estrategicos || ['Pulmón de Oriente']}
+            placeholder="Todos los proyectos"
+            disabled={isLoading}
+            multiSelect={isMultiMode}
+            selectedItems={multiFilters.proyectos_estrategicos}
+            onMultiChange={(values) => handleMultiFilterChange('proyectos_estrategicos', values)}
+          />
+
           {/* Filtros de rango - solo si están habilitados */}
           {showRangeFilters && (
             <>
@@ -791,7 +809,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                   comunas_corregimientos: 'Comunas',
                   barrios_veredas: 'Barrios',
                   fuentes_financiacion: 'Fuentes',
-                  anos: 'Años'
+                  anos: 'Años',
+                  proyectos_estrategicos: 'Proyectos'
                 };
                 
                 return values.map(value => (
@@ -832,6 +851,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
               <span>Comunas: {filterData.comunas.length}</span>
               <span>Barrios: {filterData.barrios_veredas.length}</span>
               <span>Años: {filterData.anos.length}</span>
+              <span>Proyectos: {filterData.proyectos_estrategicos?.length || 1}</span>
             </div>
           </div>
         )}

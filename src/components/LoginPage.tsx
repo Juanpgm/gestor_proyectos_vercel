@@ -116,12 +116,15 @@ export default function LoginPage() {
     
     setIsLoading(true)
 
+    const normalizedEmail = formData.email.trim().toLowerCase()
+    const normalizedCentroGestor = formData.nombre_centro_gestor.trim()
+
     try {
       if (mode === 'login') {
-        await signIn(formData.email, formData.password, formData.remember)
+        await signIn(normalizedEmail, formData.password, formData.remember)
         setLoginAttempts(0) // Reset attempts on successful login
       } else {
-        await signUp(formData.name, formData.email, formData.password, formData.confirmPassword, formData.cellphone, formData.nombre_centro_gestor)
+        await signUp(formData.name, normalizedEmail, formData.password, formData.confirmPassword, formData.cellphone, normalizedCentroGestor)
       }
     } catch (error: any) {
       console.error('Authentication error:', error)
@@ -479,6 +482,8 @@ export default function LoginPage() {
                             ? 'Usuario no encontrado'
                             : mode === 'login' && (state.error.includes('Contraseña incorrecta') || state.error.includes('invalid password') || state.error.includes('incorrect password'))
                             ? 'Contraseña incorrecta'
+                            : mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists'))
+                            ? 'Correo ya registrado'
                             : 'Error de autenticación'
                           }
                         </p>
@@ -487,6 +492,8 @@ export default function LoginPage() {
                             ? 'El correo electrónico ingresado no está registrado en el sistema.'
                             : mode === 'login' && (state.error.includes('Contraseña incorrecta') || state.error.includes('invalid password') || state.error.includes('incorrect password'))
                             ? 'La contraseña ingresada es incorrecta. Verifique e intente nuevamente.'
+                            : mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists'))
+                            ? 'Ese correo ya tiene una cuenta. Inicia sesión o recupera la contraseña.'
                             : state.error
                           }
                         </p>
@@ -515,6 +522,31 @@ export default function LoginPage() {
                             >
                               Recupérala aquí
                             </button>
+                          </div>
+                        )}
+
+                        {mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists')) && (
+                          <div className="mt-3 space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-red-600 dark:text-red-400">¿Ya tienes cuenta?</span>
+                              <button
+                                type="button"
+                                onClick={() => setMode('login')}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline transition-colors"
+                              >
+                                Inicia sesión
+                              </button>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-red-600 dark:text-red-400">¿No recuerdas la clave?</span>
+                              <button
+                                type="button"
+                                onClick={() => setShowForgotPassword(true)}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline transition-colors"
+                              >
+                                Recupérala aquí
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
