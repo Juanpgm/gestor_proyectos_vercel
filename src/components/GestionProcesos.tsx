@@ -144,6 +144,14 @@ const normalizeBackupProcesos = (payload: any): ProcesoEmprestito[] => {
     .filter((item) => Boolean(item.referencia_proceso))
 }
 
+const extractArrayPayload = <T = any>(payload: any): T[] => {
+  if (Array.isArray(payload)) return payload as T[]
+  if (Array.isArray(payload?.data)) return payload.data as T[]
+  if (Array.isArray(payload?.results)) return payload.results as T[]
+  if (Array.isArray(payload?.items)) return payload.items as T[]
+  return []
+}
+
 const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => {
   // Estados para tabs
   const [activeTab, setActiveTab] = useState<'secop' | 'tiendaVirtual' | 'convenios'>('secop')
@@ -270,19 +278,46 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       setError(null)
 
       try {
-        const response = await fetch('/api/proxy/procesos_emprestito_all', { cache: 'no-store' })
+        const fetchAndNormalize = async (url: string): Promise<ProcesoEmprestito[]> => {
+          const response = await fetch(url, { cache: 'no-store' })
 
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`)
+          }
+
+          const rawBody = await response.text()
+          if (!rawBody || rawBody.trim().length === 0) {
+            throw new Error('El backend respondió sin contenido para procesos_emprestito_all')
+          }
+
+          let parsedBody: any
+          try {
+            parsedBody = JSON.parse(rawBody)
+          } catch {
+            parsedBody = rawBody
+          }
+
+          if (typeof parsedBody === 'string') {
+            try {
+              parsedBody = JSON.parse(parsedBody)
+            } catch {
+              throw new Error('Formato de respuesta inválido para procesos_emprestito_all')
+            }
+          }
+
+          if (parsedBody?.success === false) {
+            throw new Error(parsedBody?.error || parsedBody?.message || 'El endpoint de procesos respondió con error')
+          }
+
+          return normalizeProcesosResponse(parsedBody)
         }
 
-        const rawBody = await response.text()
-        if (!rawBody || rawBody.trim().length === 0) {
-          throw new Error('El backend respondió sin contenido para procesos_emprestito_all')
-        }
+        let normalizedProcesos = await fetchAndNormalize('/api/proxy/procesos_emprestito_all')
 
-        const data = JSON.parse(rawBody)
-        const normalizedProcesos = normalizeProcesosResponse(data)
+        if (normalizedProcesos.length === 0) {
+          // Reintento único sin caché de proxy para evitar datos transitoriamente vacíos
+          normalizedProcesos = await fetchAndNormalize(`/api/proxy/procesos_emprestito_all?bypass_cache=1&_t=${Date.now()}`)
+        }
 
         if (normalizedProcesos.length === 0) {
           throw new Error('La API respondió sin registros de procesos válidos')
@@ -333,9 +368,8 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       if (!response.ok) return
       
       const result = await response.json()
-      if (result.success && Array.isArray(result.data)) {
-        setOrdenesCompra(result.data)
-      }
+      const ordenes = extractArrayPayload(result)
+      setOrdenesCompra(ordenes)
     } catch (error) {
       console.error('Error fetching órdenes:', error)
     } finally {
@@ -352,9 +386,8 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       if (!response.ok) return
       
       const result = await response.json()
-      if (result.success && Array.isArray(result.data)) {
-        setConvenios(result.data)
-      }
+      const conveniosData = extractArrayPayload(result)
+      setConvenios(conveniosData)
     } catch (error) {
       console.error('Error fetching convenios:', error)
     } finally {

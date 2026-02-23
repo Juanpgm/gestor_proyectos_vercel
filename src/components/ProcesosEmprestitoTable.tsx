@@ -65,6 +65,14 @@ interface NuevoProceso {
   valor_proyectado?: string
 }
 
+const extractArrayPayload = <T = any>(payload: any): T[] => {
+  if (Array.isArray(payload)) return payload as T[]
+  if (Array.isArray(payload?.data)) return payload.data as T[]
+  if (Array.isArray(payload?.results)) return payload.results as T[]
+  if (Array.isArray(payload?.items)) return payload.items as T[]
+  return []
+}
+
 const ProcesosEmprestitoTable: React.FC = () => {
   // Estados para datos
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
@@ -189,8 +197,8 @@ const ProcesosEmprestitoTable: React.FC = () => {
         {},
         120000 // 2 minutos de timeout
       )
-      
-      setProcesos(Array.isArray(data) ? data : [])
+
+      setProcesos(extractArrayPayload<ProcesoEmprestito>(data))
     } catch (error) {
       console.error('Error al cargar procesos:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')

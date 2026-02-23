@@ -12,6 +12,64 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 }
 
+const EMPRESTITO_CACHE_TTL = 15 * 60 * 1000 // 15 minutos
+const emprestitoProxyCache = new Map<string, { data: unknown; status: number; timestamp: number }>()
+
+const normalizeApiPath = (apiPath: string): string => apiPath.replace(/\/+$/, '')
+
+const isCacheableEmprestitoPath = (apiPath: string): boolean => {
+  const path = normalizeApiPath(apiPath)
+
+  if (
+    path === 'contratos_pagos_all' ||
+    path === 'rpc_all' ||
+    path === 'rpc_documentos_temporales' ||
+    path === 'convenios_transferencias_all' ||
+    path === 'pagos_emprestito_all' ||
+    path === 'rpc_contratos_emprestito_all' ||
+    path === 'contratos_emprestito_all' ||
+    path === 'emprestito/ordenes-compra' ||
+    path === 'procesos_emprestito_all' ||
+    path === 'emprestito/obtener-procesos-bp' ||
+    path === 'emprestito/obtener-contratos-bp' ||
+    path === 'asignaciones-emprestito-banco-centro-gestor'
+  ) {
+    return true
+  }
+
+  return (
+    path.startsWith('emprestito/proceso/') ||
+    path.startsWith('contratos_emprestito/referencia/') ||
+    path.startsWith('contratos_emprestito/centro-gestor/') ||
+    path.startsWith('ordenes_compra_emprestito/numero/') ||
+    path.startsWith('ordenes_compra_emprestito/centro-gestor/')
+  )
+}
+
+const buildCacheKey = (apiPath: string, searchParams: URLSearchParams): string => {
+  const query = searchParams.toString()
+  const normalizedPath = normalizeApiPath(apiPath)
+  return query ? `${normalizedPath}?${query}` : normalizedPath
+}
+
+const shouldCacheResponsePayload = (payload: unknown): boolean => {
+  if (payload === null || payload === undefined) return false
+
+  if (typeof payload === 'object') {
+    const obj = payload as Record<string, unknown>
+
+    if ('success' in obj && obj.success === false) {
+      return false
+    }
+
+    if ((('error' in obj) || ('detail' in obj)) && !('data' in obj)) {
+      return false
+    }
+  }
+
+  return true
+}
+
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
@@ -24,6 +82,29 @@ async function handleRequest(request: NextRequest, method: string) {
   
   // Extract the path after /api/proxy/
   const apiPath = pathname.replace('/api/proxy/', '')
+  const bypassCache = searchParams.get('bypass_cache') === '1'
+  const isCacheableGet = method === 'GET' && isCacheableEmprestitoPath(apiPath) && !bypassCache
+  const cacheKey = isCacheableGet ? buildCacheKey(apiPath, searchParams) : ''
+
+  if (isCacheableGet) {
+    const cached = emprestitoProxyCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < EMPRESTITO_CACHE_TTL) {
+      console.log(`💾 [CACHE HIT][${method}] ${cacheKey}`)
+      return NextResponse.json(cached.data, {
+        status: cached.status,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-Proxy-Cache': 'HIT',
+        },
+      })
+    }
+
+    if (cached) {
+      emprestitoProxyCache.delete(cacheKey)
+    }
+    console.log(`🕒 [CACHE MISS][${method}] ${cacheKey}`)
+  }
   
   // Validate API_BASE_URL
   if (!API_BASE_URL) {
@@ -109,15 +190,35 @@ async function handleRequest(request: NextRequest, method: string) {
         responseData = { error: 'Invalid JSON response from backend' }
       }
     } else {
-      responseData = await response.text()
+      const rawText = await response.text()
+      try {
+        responseData = JSON.parse(rawText)
+      } catch {
+        responseData = rawText
+      }
     }
     
     // Return the response with CORS headers
+    if (isCacheableGet && response.ok && shouldCacheResponsePayload(responseData)) {
+      emprestitoProxyCache.set(cacheKey, {
+        data: responseData,
+        status: response.status,
+        timestamp: Date.now(),
+      })
+      console.log(`✅ [CACHE STORE][${method}] ${cacheKey}`)
+    }
+
+    if (method !== 'GET' && response.ok && emprestitoProxyCache.size > 0) {
+      emprestitoProxyCache.clear()
+      console.log(`🧹 [CACHE CLEAR][${method}] Cache de Empréstito limpiado por mutación exitosa`)
+    }
+
     return NextResponse.json(responseData, {
       status: response.status,
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
+        ...(isCacheableGet ? { 'X-Proxy-Cache': 'MISS' } : {}),
       },
     })
     

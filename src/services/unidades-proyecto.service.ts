@@ -136,7 +136,11 @@ const delay = (ms: number): Promise<void> =>
 
 // Cache en memoria para datos inmutables (opcional)
 const memoryCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const DEFAULT_UNIDADES_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
+const parsedUnidadesCacheTtl = Number(process.env.NEXT_PUBLIC_UNIDADES_CACHE_TTL_MS);
+const CACHE_TTL = Number.isFinite(parsedUnidadesCacheTtl) && parsedUnidadesCacheTtl > 0
+  ? parsedUnidadesCacheTtl
+  : DEFAULT_UNIDADES_CACHE_TTL_MS;
 
 // Utilidad para hacer fetch con retry optimizado
 const fetchWithRetry = async (

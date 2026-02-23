@@ -74,6 +74,13 @@ export interface IntervencionesFilterParams {
   avance_max?: number;
 }
 
+const DEFAULT_INTERVENCIONES_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
+const parsedIntervencionesCacheTtl = Number(process.env.NEXT_PUBLIC_INTERVENCIONES_CACHE_TTL_MS);
+const INTERVENCIONES_CACHE_TTL = Number.isFinite(parsedIntervencionesCacheTtl) && parsedIntervencionesCacheTtl > 0
+  ? parsedIntervencionesCacheTtl
+  : DEFAULT_INTERVENCIONES_CACHE_TTL_MS;
+const intervencionesMemoryCache = new Map<string, { data: IntervencionesResponse; timestamp: number }>();
+
 /**
  * Construye query string desde los parámetros de filtro
  */
@@ -97,6 +104,7 @@ export async function fetchIntervenciones(
 ): Promise<IntervencionesResponse> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    const hasFilters = Object.keys(filters).length > 0;
     const queryString = buildQueryString(filters);
     
     // ✨ AJUSTE: Agregar limit=10000 para obtener todos los datos
@@ -107,6 +115,14 @@ export async function fetchIntervenciones(
     
     const url = `${baseUrl}/intervenciones?${fullQueryString}`;
 
+    if (!hasFilters) {
+      const cached = intervencionesMemoryCache.get(url);
+      if (cached && Date.now() - cached.timestamp < INTERVENCIONES_CACHE_TTL) {
+        console.log('💾 Usando caché de /intervenciones (vigente 1 hora)');
+        return cached.data;
+      }
+    }
+
     console.log('📡 Fetching intervenciones desde:', url);
     console.log('🔍 Filtros aplicados:', filters);
 
@@ -115,7 +131,7 @@ export async function fetchIntervenciones(
       headers: {
         'Content-Type': 'application/json',
       },
-      cache: 'no-store'
+      cache: hasFilters ? 'no-store' : 'default'
     });
 
     if (!response.ok) {
@@ -127,6 +143,13 @@ export async function fetchIntervenciones(
 
     // Validar la respuesta con Zod
     const validated = IntervencionesResponseSchema.parse(data);
+
+    if (!hasFilters) {
+      intervencionesMemoryCache.set(url, {
+        data: validated,
+        timestamp: Date.now()
+      });
+    }
 
     console.log('✅ Intervenciones obtenidas:', {
       total_unidades: validated.features.length,

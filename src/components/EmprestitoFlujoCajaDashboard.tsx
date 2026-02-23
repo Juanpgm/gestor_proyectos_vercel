@@ -102,7 +102,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
     const fetchFlujoCaja = async () => {
       try {
         setLoading(true)
-        const response = await fetch('https://gestorproyectoapi-production.up.railway.app/emprestito/flujo-caja/all')
+        const response = await fetch('/api/proxy/emprestito/flujo-caja/all')
         const data = await response.json()
         setFlujoCajaData(data)
         

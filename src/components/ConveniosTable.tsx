@@ -57,6 +57,14 @@ interface SortConfig {
   direction: 'asc' | 'desc'
 }
 
+const extractArrayPayload = <T = any>(payload: any): T[] => {
+  if (Array.isArray(payload)) return payload as T[]
+  if (Array.isArray(payload?.data)) return payload.data as T[]
+  if (Array.isArray(payload?.results)) return payload.results as T[]
+  if (Array.isArray(payload?.items)) return payload.items as T[]
+  return []
+}
+
 const ConveniosTable: React.FC = () => {
   const [convenios, setConvenios] = useState<ConvenioTransferencia[]>([])
   const [loading, setLoading] = useState(true)
@@ -118,11 +126,7 @@ const ConveniosTable: React.FC = () => {
       if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
       
       const result = await response.json()
-      if (result.success && Array.isArray(result.data)) {
-        setConvenios(result.data)
-      } else {
-        setConvenios([])
-      }
+      setConvenios(extractArrayPayload(result))
     } catch (error) {
       console.error('Error fetching convenios:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')

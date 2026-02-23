@@ -1,5 +1,13 @@
 'use client'
 
+const extractArrayPayload = <T = any>(payload: any): T[] => {
+  if (Array.isArray(payload)) return payload as T[]
+  if (Array.isArray(payload?.data)) return payload.data as T[]
+  if (Array.isArray(payload?.results)) return payload.results as T[]
+  if (Array.isArray(payload?.items)) return payload.items as T[]
+  return []
+}
+
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
@@ -142,13 +150,8 @@ const TiendaVirtualTable: React.FC = () => {
       }
       
       const result = await response.json()
-      
-      if (result.success && Array.isArray(result.data)) {
-        setOrdenes(result.data)
-      } else {
-        console.warn('Formato de respuesta inesperado:', result)
-        setOrdenes([])
-      }
+        const ordenesData = extractArrayPayload(result)
+        setOrdenes(ordenesData)
     } catch (error) {
       console.error('Error fetching órdenes:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')

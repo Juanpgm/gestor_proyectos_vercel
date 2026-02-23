@@ -75,7 +75,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
       try {
         setLoading(true)
         setError(null)
-        const response = await fetch('https://gestorproyectoapi-production.up.railway.app/emprestito/flujo-caja/all')
+        const response = await fetch('/api/proxy/emprestito/flujo-caja/all')
         
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`)

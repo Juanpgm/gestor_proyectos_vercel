@@ -2,6 +2,14 @@
 
 import { useState, useEffect, useMemo } from 'react'
 
+const extractArrayPayload = <T = any>(payload: any): T[] => {
+  if (Array.isArray(payload)) return payload as T[]
+  if (Array.isArray(payload?.data)) return payload.data as T[]
+  if (Array.isArray(payload?.results)) return payload.results as T[]
+  if (Array.isArray(payload?.items)) return payload.items as T[]
+  return []
+}
+
 // Tipos para los datos de los endpoints
 export interface ProcesoBP {
   bp: string
@@ -77,26 +85,44 @@ export const useEmprestitoBP = () => {
         setLoading(true)
         setError(null)
 
-        // Obtener datos de los 3 endpoints en paralelo
-        const [procesosRes, contratosRes, asignacionesRes] = await Promise.all([
-          fetch('/api/proxy/emprestito/obtener-procesos-bp'),
-          fetch('/api/proxy/emprestito/obtener-contratos-bp'),
-          fetch('/api/proxy/asignaciones-emprestito-banco-centro-gestor')
-        ])
+        const fetchCollection = async <T = any>(url: string, label: string): Promise<{ data: T[]; error: string | null }> => {
+          try {
+            const response = await fetch(url)
+            if (!response.ok) {
+              throw new Error(`${label}: HTTP ${response.status}`)
+            }
 
-        if (!procesosRes.ok || !contratosRes.ok || !asignacionesRes.ok) {
-          throw new Error('Error al obtener datos de empréstito BP')
+            const payload = await response.json()
+            if (payload?.success === false) {
+              throw new Error(payload?.error || payload?.message || `${label}: respuesta no exitosa`)
+            }
+
+            return { data: extractArrayPayload<T>(payload), error: null }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : `${label}: error desconocido`
+            return { data: [], error: message }
+          }
         }
 
-        const [procesosData, contratosData, asignacionesData] = await Promise.all([
-          procesosRes.json(),
-          contratosRes.json(),
-          asignacionesRes.json()
+        // Obtener datos de los 3 endpoints en paralelo
+        const [procesosResult, contratosResult, asignacionesResult] = await Promise.all([
+          fetchCollection<ProcesoBP>('/api/proxy/emprestito/obtener-procesos-bp', 'procesos-bp'),
+          fetchCollection<ContratoBP>('/api/proxy/emprestito/obtener-contratos-bp', 'contratos-bp'),
+          fetchCollection<AsignacionBP>('/api/proxy/asignaciones-emprestito-banco-centro-gestor', 'asignaciones-bp')
         ])
 
-        setProcesos(procesosData.data || [])
-        setContratos(contratosData.data || [])
-        setAsignaciones(asignacionesData.data || [])
+        setProcesos(procesosResult.data)
+        setContratos(contratosResult.data)
+        setAsignaciones(asignacionesResult.data)
+
+        const errors = [procesosResult.error, contratosResult.error, asignacionesResult.error].filter(Boolean) as string[]
+        if (errors.length === 3) {
+          throw new Error('No se pudieron cargar datos de Empréstito BP')
+        }
+
+        if (errors.length > 0) {
+          console.warn('⚠️ Carga parcial de Empréstito BP:', errors)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido')
         console.error('Error al cargar datos de empréstito BP:', err)
@@ -296,7 +322,7 @@ export const useEmprestitoPagosAll = () => {
         setError(null)
 
         const response = await fetch(
-          'https://gestorproyectoapi-production.up.railway.app/pagos_emprestito_all'
+          '/api/proxy/pagos_emprestito_all'
         )
 
         if (!response.ok) {
@@ -304,7 +330,7 @@ export const useEmprestitoPagosAll = () => {
         }
 
         const data = await response.json()
-        setPagos(data.data || [])
+        setPagos(extractArrayPayload<PagoEmprestitoBP>(data))
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Error desconocido'
         setError(message)
@@ -341,7 +367,7 @@ export const useEmprestitoPagos = () => {
         }
 
         const data = await response.json()
-        setPagos(data.data || [])
+        setPagos(extractArrayPayload<PagoBP>(data))
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Error desconocido'
         setError(message)

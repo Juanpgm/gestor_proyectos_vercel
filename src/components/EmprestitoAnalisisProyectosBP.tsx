@@ -929,7 +929,7 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
   React.useEffect(() => {
     const fetchContratosBP = async () => {
       try {
-        const response = await fetch('https://gestorproyectoapi-production.up.railway.app/emprestito/obtener-contratos-bp')
+        const response = await fetch('/api/proxy/emprestito/obtener-contratos-bp')
         const result = await response.json()
         if (result.success && result.data) {
           setContratosBP(result.data)
