@@ -196,11 +196,6 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
         // MODO EDICIÓN: usar PUT con query parameters
         console.log('📝 Iniciando edición de orden de compra')
         console.log('📝 FormData actual:', formData)
-        
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-        if (!apiUrl) {
-          throw new Error('URL de API no configurada')
-        }
 
         const params = new URLSearchParams()
         // numero_orden es siempre requerido

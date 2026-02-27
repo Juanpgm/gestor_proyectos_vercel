@@ -52,6 +52,13 @@ const buildCacheKey = (apiPath: string, searchParams: URLSearchParams): string =
   return query ? `${normalizedPath}?${query}` : normalizedPath
 }
 
+const sanitizeSearchParamsForBackend = (searchParams: URLSearchParams): URLSearchParams => {
+  const sanitized = new URLSearchParams(searchParams)
+  sanitized.delete('bypass_cache')
+  sanitized.delete('_t')
+  return sanitized
+}
+
 const shouldCacheResponsePayload = (payload: unknown): boolean => {
   if (payload === null || payload === undefined) return false
 
@@ -84,7 +91,8 @@ async function handleRequest(request: NextRequest, method: string) {
   const apiPath = pathname.replace('/api/proxy/', '')
   const bypassCache = searchParams.get('bypass_cache') === '1'
   const isCacheableGet = method === 'GET' && isCacheableEmprestitoPath(apiPath) && !bypassCache
-  const cacheKey = isCacheableGet ? buildCacheKey(apiPath, searchParams) : ''
+  const backendSearchParams = sanitizeSearchParamsForBackend(searchParams)
+  const cacheKey = isCacheableGet ? buildCacheKey(apiPath, backendSearchParams) : ''
 
   if (isCacheableGet) {
     const cached = emprestitoProxyCache.get(cacheKey)
@@ -118,7 +126,7 @@ async function handleRequest(request: NextRequest, method: string) {
   }
   
   // Construct the full FastAPI URL
-  const fastApiUrl = `${API_BASE_URL}/${apiPath}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+  const fastApiUrl = `${API_BASE_URL}/${apiPath}${backendSearchParams.toString() ? `?${backendSearchParams.toString()}` : ''}`
   
   // Debug logging for production
   console.log(`🌐 [${method}] Proxying to: ${fastApiUrl}`)
@@ -131,17 +139,24 @@ async function handleRequest(request: NextRequest, method: string) {
     const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT)
     
     // Prepare request options
+    const forwardedHeaders: Record<string, string> = {
+      'Accept': request.headers.get('accept') || 'application/json',
+      'Accept-Encoding': 'identity',
+    }
+
+    const incomingContentType = request.headers.get('content-type')
+    if (incomingContentType && ['POST', 'PUT', 'PATCH'].includes(method)) {
+      forwardedHeaders['Content-Type'] = incomingContentType
+    }
+
+    const incomingAuthorization = request.headers.get('authorization')
+    if (incomingAuthorization) {
+      forwardedHeaders['Authorization'] = incomingAuthorization
+    }
+
     const requestOptions: RequestInit = {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Accept-Encoding': 'identity',
-        // Forward authorization headers if present
-        ...(request.headers.get('authorization') && {
-          'Authorization': request.headers.get('authorization')!
-        }),
-      },
+      headers: forwardedHeaders,
       signal: controller.signal,
       cache: 'no-store',
     }

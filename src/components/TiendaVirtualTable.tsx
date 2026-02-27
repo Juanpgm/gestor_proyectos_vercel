@@ -137,11 +137,6 @@ const TiendaVirtualTable: React.FC = () => {
     try {
       setLoading(true)
       setError(null)
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
 
       const response = await fetch('/api/proxy/emprestito/ordenes-compra')
       

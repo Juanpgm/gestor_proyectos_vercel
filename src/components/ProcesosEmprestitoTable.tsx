@@ -138,11 +138,6 @@ const ProcesosEmprestitoTable: React.FC = () => {
     setIsDeleting(true)
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       // Obtener la referencia del proceso (probando ambas propiedades posibles)
       const referencia = (procesoToDelete as any).referencia_proceso || procesoToDelete.proceso_numero || ''
       
@@ -187,11 +182,6 @@ const ProcesosEmprestitoTable: React.FC = () => {
     setError(null)
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       const data = await fetchWithErrorHandling<any>(
         '/api/proxy/procesos_emprestito_all',
         {},
@@ -393,12 +383,6 @@ const ProcesosEmprestitoTable: React.FC = () => {
     setIsSubmitting(true)
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       // Preparar datos incluyendo campos opcionales si están presentes
       const procesoData: Record<string, any> = {
         referencia_proceso: nuevoProceso.referencia_proceso.trim(),

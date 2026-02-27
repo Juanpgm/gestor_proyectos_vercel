@@ -404,11 +404,6 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
     setSuccess(null)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       // MODO EDICIÓN para proceso SECOP
       if (editingData && tipo === 'proceso') {
         try {
@@ -437,10 +432,10 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
             params.append('valor_proyectado', formData.valor_proyectado.toString())
           }
 
-          console.log('📤 URL completa:', `${apiUrl}/emprestito/modificar-proceso?${params.toString()}`)
+          console.log('📤 URL completa:', `/api/proxy/emprestito/modificar-proceso?${params.toString()}`)
           console.log('📤 Parámetros a enviar:', Object.fromEntries(params))
 
-          const response = await fetch(`${apiUrl}/emprestito/modificar-proceso?${params.toString()}`, {
+          const response = await fetch(`/api/proxy/emprestito/modificar-proceso?${params.toString()}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json'
@@ -540,9 +535,9 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
       }
 
       console.log('📤 Enviando datos como FormData:', Object.fromEntries(formDataToSend))
-      console.log('🔗 URL de API:', `${apiUrl}${endpoint}`)
+      console.log('🔗 URL de API:', `/api/proxy${endpoint}`)
 
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await fetch(`/api/proxy${endpoint}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',

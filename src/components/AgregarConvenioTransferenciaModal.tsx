@@ -146,11 +146,6 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
     setError(null)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       const [centrosResponse, bancosResponse] = await Promise.all([
         fetch('/api/proxy/centros-gestores/nombres-unicos'),
         fetch('/api/proxy/asignaciones-emprestito-banco-centro-gestor')
@@ -241,11 +236,6 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
     setSuccess(null)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       // Si estamos editando, usar función especial
       if (editingData && onEdit) {
         try {
@@ -331,9 +321,9 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
       const endpoint = '/emprestito/cargar-convenio-transferencia'
 
       console.log('📤 Enviando datos como FormData:', Object.fromEntries(formDataToSend))
-      console.log('🔗 URL de API:', `${apiUrl}${endpoint}`)
+      console.log('🔗 URL de API:', `/api/proxy${endpoint}`)
 
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await fetch(`/api/proxy${endpoint}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',

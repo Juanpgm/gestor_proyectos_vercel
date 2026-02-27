@@ -118,9 +118,6 @@ const ConveniosTable: React.FC = () => {
     try {
       if (showLoading) setLoading(true)
       setError(null)
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) throw new Error('URL de API no configurada')
 
       const response = await fetch('/api/proxy/convenios_transferencias_all')
       if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -144,11 +141,6 @@ const ConveniosTable: React.FC = () => {
   // Función para actualizar convenio completo vía API
   const handleUpdateConvenio = async (docId: string, formData: any) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       const payload = new URLSearchParams()
       payload.append('doc_id', docId)
       
