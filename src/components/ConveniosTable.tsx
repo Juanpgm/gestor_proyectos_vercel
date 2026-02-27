@@ -18,7 +18,8 @@ import {
   Handshake,
   TrendingUp,
   Plus,
-  Edit2
+  Edit2,
+  Trash2
 } from 'lucide-react'
 import AgregarConvenioTransferenciaModal from './AgregarConvenioTransferenciaModal'
 import ModificarConvenioModal from './ModificarConvenioModal'
@@ -93,6 +94,10 @@ const ConveniosTable: React.FC = () => {
   const [showModificarModal, setShowModificarModal] = useState(false)
   const [convenioToEdit, setConvenioToEdit] = useState<ConvenioTransferencia | null>(null)
   const [editingConvenio, setEditingConvenio] = useState<ConvenioTransferencia | null>(null)
+  const [convenioToDelete, setConvenioToDelete] = useState<ConvenioTransferencia | null>(null)
+  const [isDeletingConvenio, setIsDeletingConvenio] = useState(false)
+  const [successToast, setSuccessToast] = useState<string | null>(null)
+  const [errorToast, setErrorToast] = useState<string | null>(null)
 
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
 
@@ -143,11 +148,31 @@ const ConveniosTable: React.FC = () => {
     try {
       const payload = new URLSearchParams()
       payload.append('doc_id', docId)
-      
-      // Agregar todos los campos al payload
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
-          payload.append(key, formData[key].toString())
+
+      const allowedFields = [
+        'referencia_contrato',
+        'nombre_centro_gestor',
+        'banco',
+        'objeto_contrato',
+        'valor_contrato',
+        'bp',
+        'bpin',
+        'valor_convenio',
+        'urlproceso',
+        'fecha_inicio_contrato',
+        'fecha_fin_contrato',
+        'modalidad_contrato',
+        'ordenador_gastor',
+        'tipo_contrato',
+        'estado_contrato',
+        'sector',
+        'nombre_resumido_proceso'
+      ] as const
+
+      allowedFields.forEach((key) => {
+        const value = formData?.[key]
+        if (value !== null && value !== undefined && String(value).trim() !== '') {
+          payload.append(key, String(value).trim())
         }
       })
 
@@ -184,9 +209,66 @@ const ConveniosTable: React.FC = () => {
     }
   }
 
+  const handleDeleteConvenio = async (convenio: ConvenioTransferencia) => {
+    setIsDeletingConvenio(true)
+    try {
+      const referenciaContrato = String(convenio.referencia_contrato || '').trim()
+
+      if (!referenciaContrato) {
+        throw new Error('No se encontró referencia_contrato para eliminar este convenio')
+      }
+
+      const response = await fetch(`/api/proxy/emprestito/eliminar-convenio-transferencia/${encodeURIComponent(referenciaContrato)}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        let deleteError = 'No fue posible eliminar el convenio'
+        try {
+          const errorData = await response.json()
+          deleteError = errorData?.detail || errorData?.error || errorData?.message || `${response.status}: ${response.statusText}`
+        } catch {
+          deleteError = `${response.status}: ${response.statusText}`
+        }
+        throw new Error(deleteError)
+      }
+
+      setConvenios(prev => prev.filter(item => item.id !== convenio.id && item.referencia_contrato !== referenciaContrato))
+      await fetchConvenios(false)
+      setSuccessToast(`Convenio ${referenciaContrato} eliminado correctamente`)
+      return true
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error desconocido'
+      setErrorToast(`Error al eliminar convenio: ${message}`)
+      return false
+    } finally {
+      setIsDeletingConvenio(false)
+    }
+  }
+
   useEffect(() => {
     fetchConvenios()
   }, [])
+
+  useEffect(() => {
+    if (!successToast) return
+
+    const timeout = setTimeout(() => {
+      setSuccessToast(null)
+    }, 3000)
+
+    return () => clearTimeout(timeout)
+  }, [successToast])
+
+  useEffect(() => {
+    if (!errorToast) return
+
+    const timeout = setTimeout(() => {
+      setErrorToast(null)
+    }, 4000)
+
+    return () => clearTimeout(timeout)
+  }, [errorToast])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -274,6 +356,36 @@ const ConveniosTable: React.FC = () => {
       }
       return 0
     }
+          {successToast && (
+            <div className="fixed top-4 right-4 z-50">
+              <div className="bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+                <span className="text-sm font-medium">{successToast}</span>
+                <button
+                  onClick={() => setSuccessToast(null)}
+                  className="text-white/80 hover:text-white text-lg leading-none"
+                  aria-label="Cerrar notificación"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
+          {errorToast && (
+            <div className="fixed top-20 right-4 z-50">
+              <div className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+                <span className="text-sm font-medium">{errorToast}</span>
+                <button
+                  onClick={() => setErrorToast(null)}
+                  className="text-white/80 hover:text-white text-lg leading-none"
+                  aria-label="Cerrar notificación de error"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
 
     return {
       totalConvenios: convenios.length,
@@ -723,6 +835,13 @@ const ConveniosTable: React.FC = () => {
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
+                      <button
+                        onClick={() => setConvenioToDelete(convenio)}
+                        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -731,6 +850,40 @@ const ConveniosTable: React.FC = () => {
           </table>
         </div>
       </motion.div>
+
+      {convenioToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Confirmar eliminación</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              ¿Está seguro que desea eliminar el convenio <span className="font-semibold">{convenioToDelete.referencia_contrato || '-'}</span>? Esta acción no se puede deshacer.
+            </p>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConvenioToDelete(null)}
+                disabled={isDeletingConvenio}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!convenioToDelete) return
+                  const deleted = await handleDeleteConvenio(convenioToDelete)
+                  if (deleted) {
+                    setConvenioToDelete(null)
+                  }
+                }}
+                disabled={isDeletingConvenio}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeletingConvenio ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Modales */}
       <AgregarConvenioTransferenciaModal

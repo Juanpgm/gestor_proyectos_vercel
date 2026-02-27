@@ -8,6 +8,46 @@ const extractArrayPayload = <T = any>(payload: any): T[] => {
   return []
 }
 
+const parseDateCandidate = (value: any): number => {
+  if (value === null || value === undefined) return 0
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return 0
+    return value > 1e12 ? value : value * 1000
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value)
+    return Number.isNaN(parsed) ? 0 : parsed
+  }
+
+  if (typeof value === 'object') {
+    const maybeSeconds = (value as any).seconds ?? (value as any)._seconds
+    if (typeof maybeSeconds === 'number' && Number.isFinite(maybeSeconds)) {
+      return maybeSeconds * 1000
+    }
+  }
+
+  return 0
+}
+
+const getOrdenRecencyTimestamp = (orden: OrdenCompra): number => {
+  const candidates = [
+    orden.fecha_actualizacion,
+    orden.fecha_guardado,
+    orden.fecha_creacion,
+    orden.fecha_publicacion_orden,
+    orden.fecha_enriquecimiento_tvec,
+    (orden as any).updated_at,
+    (orden as any).created_at,
+  ]
+
+  return candidates.reduce((maxTimestamp, candidate) => {
+    const ts = parseDateCandidate(candidate)
+    return ts > maxTimestamp ? ts : maxTimestamp
+  }, 0)
+}
+
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
@@ -26,7 +66,8 @@ import {
   DollarSign,
   FileText,
   Plus,
-  Edit2
+  Edit2,
+  Trash2
 } from 'lucide-react'
 import AgregarOrdenCompraModal from './AgregarOrdenCompraModal'
 import ModificarOrdenCompraModal from './ModificarOrdenCompraModal'
@@ -107,6 +148,10 @@ const TiendaVirtualTable: React.FC = () => {
   const [showModificarModal, setShowModificarModal] = useState(false)
   const [ordenToEdit, setOrdenToEdit] = useState<OrdenCompra | null>(null)
   const [ordenToEditComplete, setOrdenToEditComplete] = useState<OrdenCompra | null>(null)
+  const [ordenToDelete, setOrdenToDelete] = useState<OrdenCompra | null>(null)
+  const [isDeletingOrden, setIsDeletingOrden] = useState(false)
+  const [successToast, setSuccessToast] = useState<string | null>(null)
+  const [errorToast, setErrorToast] = useState<string | null>(null)
 
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
 
@@ -155,9 +200,66 @@ const TiendaVirtualTable: React.FC = () => {
     }
   }
 
+  const handleDeleteOrden = async (orden: OrdenCompra) => {
+    setIsDeletingOrden(true)
+    try {
+      const numeroOrden = String(orden.numero_orden || (orden as any).numeroOrden || '').trim()
+
+      if (!numeroOrden) {
+        throw new Error('No se encontró numero_orden para eliminar esta orden')
+      }
+
+      const response = await fetch(`/api/proxy/emprestito/eliminar-orden-compra/${encodeURIComponent(numeroOrden)}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        let deleteError = 'No fue posible eliminar la orden'
+        try {
+          const errorData = await response.json()
+          deleteError = errorData?.detail || errorData?.error || errorData?.message || `${response.status}: ${response.statusText}`
+        } catch {
+          deleteError = `${response.status}: ${response.statusText}`
+        }
+        throw new Error(deleteError)
+      }
+
+      setOrdenes(prev => prev.filter(item => item.id !== orden.id && item.numero_orden !== numeroOrden))
+      await fetchOrdenes()
+      setSuccessToast(`Orden ${numeroOrden} eliminada correctamente`)
+      return true
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error desconocido'
+      setErrorToast(`Error al eliminar orden: ${message}`)
+      return false
+    } finally {
+      setIsDeletingOrden(false)
+    }
+  }
+
   useEffect(() => {
     fetchOrdenes()
   }, [])
+
+  useEffect(() => {
+    if (!successToast) return
+
+    const timeout = setTimeout(() => {
+      setSuccessToast(null)
+    }, 3000)
+
+    return () => clearTimeout(timeout)
+  }, [successToast])
+
+  useEffect(() => {
+    if (!errorToast) return
+
+    const timeout = setTimeout(() => {
+      setErrorToast(null)
+    }, 4000)
+
+    return () => clearTimeout(timeout)
+  }, [errorToast])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -248,6 +350,8 @@ const TiendaVirtualTable: React.FC = () => {
           ? aStr.localeCompare(bStr)
           : bStr.localeCompare(aStr)
       })
+    } else {
+      filtered.sort((a, b) => getOrdenRecencyTimestamp(b) - getOrdenRecencyTimestamp(a))
     }
 
     return filtered
@@ -432,6 +536,36 @@ const TiendaVirtualTable: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {successToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <span className="text-sm font-medium">{successToast}</span>
+            <button
+              onClick={() => setSuccessToast(null)}
+              className="text-white/80 hover:text-white text-lg leading-none"
+              aria-label="Cerrar notificación"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {errorToast && (
+        <div className="fixed top-20 right-4 z-50">
+          <div className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <span className="text-sm font-medium">{errorToast}</span>
+            <button
+              onClick={() => setErrorToast(null)}
+              className="text-white/80 hover:text-white text-lg leading-none"
+              aria-label="Cerrar notificación de error"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       {ordenes.length > 0 && (
         <motion.div
@@ -856,6 +990,13 @@ const TiendaVirtualTable: React.FC = () => {
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
+                      <button
+                        onClick={() => setOrdenToDelete(orden)}
+                        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </td>
                 </motion.tr>
@@ -864,6 +1005,49 @@ const TiendaVirtualTable: React.FC = () => {
           </table>
         </div>
       </motion.div>
+
+      {ordenToDelete && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => {
+            if (!isDeletingOrden) {
+              setOrdenToDelete(null)
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Eliminar Orden de Compra</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              ¿Está seguro que desea eliminar la orden <strong>{ordenToDelete.numero_orden || (ordenToDelete as any).numeroOrden}</strong>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setOrdenToDelete(null)}
+                disabled={isDeletingOrden}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!ordenToDelete) return
+                  const deleted = await handleDeleteOrden(ordenToDelete)
+                  if (deleted) {
+                    setOrdenToDelete(null)
+                  }
+                }}
+                disabled={isDeletingOrden}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeletingOrden ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Modales */}
       <AgregarOrdenCompraModal

@@ -38,6 +38,56 @@ class AuthService {
     return '/api/proxy'
   }
 
+  private parseApiErrorMessage(data: any, fallback: string): string {
+    if (data?.detail && Array.isArray(data.detail) && data.detail.length > 0) {
+      return data.detail[0]?.msg || fallback
+    }
+
+    if (typeof data?.detail === 'string' && data.detail.trim()) {
+      return data.detail
+    }
+
+    if (typeof data?.error === 'string' && data.error.trim()) {
+      return data.error
+    }
+
+    if (typeof data?.message === 'string' && data.message.trim()) {
+      return data.message
+    }
+
+    return fallback
+  }
+
+  async getRegisterHealthCheck(): Promise<any> {
+    const response = await fetch(`${this.getApiUrl()}/auth/register/health-check`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(this.parseApiErrorMessage(data, 'No se pudo consultar /auth/register/health-check'))
+    }
+
+    return data
+  }
+
+  async getWorkloadIdentityStatus(): Promise<any> {
+    const response = await fetch(`${this.getApiUrl()}/auth/workload-identity/status`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(this.parseApiErrorMessage(data, 'No se pudo consultar /auth/workload-identity/status'))
+    }
+
+    return data
+  }
+
   private constructor() {}
 
   static getInstance(): AuthService {
@@ -108,24 +158,77 @@ class AuthService {
 
   // Convertir respuesta de API a nuestro tipo User
   private mapApiUser(apiUser: any, idToken?: string): User {
-    // Extraer roles desde diferentes ubicaciones posibles
-    // ORDEN DE PRIORIDAD: firestore_data > roles directos > custom_claims
-    let roles = apiUser.roles || []
-    if (!roles || roles.length === 0) {
-      roles = apiUser.firestore_data?.roles || []
+    const toArray = (value: any): string[] => {
+      if (Array.isArray(value)) {
+        return value.filter(Boolean).map(String)
+      }
+
+      if (typeof value === 'string' && value.trim()) {
+        return value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      }
+
+      return []
     }
-    if (!roles || roles.length === 0) {
-      roles = apiUser.custom_claims?.roles || []
+
+    const pickFirstArray = (...candidates: any[]): string[] => {
+      for (const candidate of candidates) {
+        const parsed = toArray(candidate)
+        if (parsed.length > 0) return parsed
+      }
+      return []
     }
-    
-    // Extraer permisos
-    let permissions = apiUser.permissions || []
-    if (!permissions || permissions.length === 0) {
-      permissions = apiUser.firestore_data?.permissions || []
+
+    const normalizeRole = (role: string): string => {
+      const normalized = role.trim().toLowerCase().replace(/-/g, '_')
+      const aliases: Record<string, string> = {
+        admin: 'admin_general',
+        administrador: 'admin_general',
+        admin_master: 'admin_general',
+        superadmin: 'super_admin',
+        super_administrador: 'super_admin',
+        viewer: 'visualizador'
+      }
+      return aliases[normalized] || normalized
     }
-    if (!permissions || permissions.length === 0) {
-      permissions = apiUser.custom_claims?.permissions || []
-    }
+
+    const dedupe = (items: string[]) => Array.from(new Set(items))
+
+    const rawRoleCandidates = [
+      apiUser.roles,
+      apiUser.role,
+      apiUser.user_role,
+      apiUser.firestore_data?.roles,
+      apiUser.firestore_data?.role,
+      apiUser.custom_claims?.roles,
+      apiUser.custom_claims?.role,
+      apiUser.claims?.roles,
+      apiUser.claims?.role,
+      apiUser.profile?.roles,
+      apiUser.profile?.role,
+      apiUser.data?.roles,
+      apiUser.data?.role
+    ]
+
+    const parsedRoles = pickFirstArray(...rawRoleCandidates)
+    const roles = dedupe(parsedRoles.map(normalizeRole))
+
+    const permissions = dedupe(pickFirstArray(
+      apiUser.permissions,
+      apiUser.effective_permissions,
+      apiUser.firestore_data?.permissions,
+      apiUser.firestore_data?.effective_permissions,
+      apiUser.custom_claims?.permissions,
+      apiUser.custom_claims?.effective_permissions,
+      apiUser.claims?.permissions,
+      apiUser.claims?.effective_permissions,
+      apiUser.profile?.permissions,
+      apiUser.profile?.effective_permissions,
+      apiUser.data?.permissions,
+      apiUser.data?.effective_permissions
+    ))
     
     // Extraer centro_gestor desde firestore_data o custom_claims
     const nombre_centro_gestor =
@@ -151,7 +254,7 @@ class AuthService {
     console.log('🔄 Mapping API user:', {
       email: apiUser.email,
       rolesFound: roles,
-      rolesSource: roles.length > 0 ? (apiUser.firestore_data?.roles ? 'firestore_data' : (apiUser.roles ? 'direct' : 'custom_claims')) : 'none',
+      rolesSource: roles.length > 0 ? 'multi-source-normalized' : 'none',
       permissionsFound: permissions,
       hasCustomClaims: !!apiUser.custom_claims,
       hasFirestoreData: !!apiUser.firestore_data,
@@ -182,7 +285,8 @@ class AuthService {
       email: mappedUser.email,
       roles: mappedUser.roles,
       permissions: mappedUser.permissions,
-      isSuperAdmin: mappedUser.roles.includes('super_admin')
+      isSuperAdmin: mappedUser.roles.includes('super_admin'),
+      hasManageUsers: mappedUser.permissions.includes('manage:users') || mappedUser.permissions.includes('*')
     })
     
     return mappedUser
@@ -414,33 +518,64 @@ class AuthService {
       // PASO 1: Autenticar con Google usando Firebase
       const result = await signInWithPopup(auth, this.googleProvider)
       console.log('✅ Google popup completed:', result.user?.email)
+
+      const googleCredential = GoogleAuthProvider.credentialFromResult(result)
+      const googleIdToken = googleCredential?.idToken || null
       
       // PASO 2: Obtener ID token
       const idToken = await result.user.getIdToken()
       console.log('✅ ID token obtained')
 
-      // PASO 3: Validar con backend y obtener roles/permisos
+      // PASO 3: Intentar endpoint oficial /auth/google (OpenAPI)
       const apiUrl = this.getApiUrl()
-      console.log('🌐 Validating session with backend:', apiUrl)
-      
-      const response = await fetch(`${apiUrl}/auth/validate-session`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      let backendData: any = null
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Validation failed')
+      if (googleIdToken) {
+        const formData = new URLSearchParams()
+        formData.append('google_token', googleIdToken)
+
+        const googleResponse = await fetch(`${apiUrl}/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
+          },
+          body: formData.toString()
+        })
+
+        if (googleResponse.ok) {
+          backendData = await googleResponse.json()
+          console.log('✅ /auth/google successful')
+        } else {
+          const googleErrorData = await googleResponse.json().catch(() => ({}))
+          console.warn('⚠️ /auth/google failed, fallback to /auth/validate-session', googleErrorData)
+        }
       }
 
-      const backendData = await response.json()
-      console.log('✅ Backend validation successful')
+      // Fallback robusto: validar sesión con token Firebase
+      if (!backendData) {
+        console.log('🌐 Validating session with backend:', apiUrl)
+        const response = await fetch(`${apiUrl}/auth/validate-session`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}))
+          throw new Error(this.parseApiErrorMessage(error, 'Validation failed'))
+        }
+
+        backendData = await response.json()
+        console.log('✅ Backend validation successful')
+      }
 
       // PASO 4: Mapear usuario con roles y permisos del backend
-      const user = this.mapApiUser(backendData.user, idToken)
+      const backendUser = backendData?.user || backendData?.data?.user || backendData?.data || backendData
+      const backendToken = backendData?.id_token || backendData?.idToken || idToken
+      const user = this.mapApiUser(backendUser, backendToken)
       
       // Guardar sesión localmente
       this.saveSession(user, remember)
@@ -467,7 +602,12 @@ class AuthService {
   // Validar sesión actual
   async validateSession(idToken?: string): Promise<User | null> {
     try {
-      const token = idToken || this.getStoredToken()
+      let token = idToken || this.getStoredToken()
+
+      if (!token && auth?.currentUser) {
+        token = await auth.currentUser.getIdToken()
+      }
+
       if (!token) return null
 
       const response = await fetch(`${this.getApiUrl()}/auth/validate-session`, {
@@ -486,7 +626,7 @@ class AuthService {
         return null
       }
 
-      const user = this.mapApiUser(data.user)
+      const user = this.mapApiUser(data.user, token)
       
       // Actualizar sesión local
       this.saveSession(user, true)
@@ -603,7 +743,7 @@ class AuthService {
   // Obtener token almacenado
   private getStoredToken(): string | null {
     const session = this.getStoredSession()
-    return session?.user?.uid || null
+    return (session?.user as any)?.idToken || (session?.user as any)?.id_token || null
   }
 
   // Limpiar sesión
@@ -674,36 +814,33 @@ class AuthService {
   // Cambiar contraseña
   async changePassword(email: string, newPassword: string, confirmPassword: string): Promise<{ success: boolean; message: string }> {
     try {
+      if (newPassword !== confirmPassword) {
+        throw new Error('Las contraseñas no coinciden')
+      }
+
+      const session = this.getStoredSession()
+      const uid = session?.user?.uid
+      if (!uid) {
+        throw new Error('No se encontró sesión activa para determinar el uid del usuario')
+      }
+
+      const formData = new URLSearchParams()
+      formData.append('uid', uid)
+      formData.append('new_password', newPassword)
+
       const response = await fetch(`${this.getApiUrl()}/auth/change-password`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({ 
-          email,
-          new_password: newPassword,
-          confirm_password: confirmPassword
-        })
+        body: formData.toString()
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        // Manejar errores de la misma manera que en login
-        let errorMessage = 'Error al cambiar la contraseña'
-        
-        if (response.status === 422 && data.detail && Array.isArray(data.detail)) {
-          const firstError = data.detail[0]
-          errorMessage = firstError?.msg || 'Error de validación'
-        } else if (data.error) {
-          errorMessage = data.error
-        } else if (data.detail && typeof data.detail === 'string') {
-          errorMessage = data.detail
-        } else if (data.message) {
-          errorMessage = data.message
-        }
-        
-        throw new Error(errorMessage)
+        throw new Error(this.parseApiErrorMessage(data, 'Error al cambiar la contraseña'))
       }
 
       return {

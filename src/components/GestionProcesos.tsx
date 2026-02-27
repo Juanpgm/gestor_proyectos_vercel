@@ -152,6 +152,47 @@ const extractArrayPayload = <T = any>(payload: any): T[] => {
   return []
 }
 
+const parseDateCandidate = (value: any): number => {
+  if (value === null || value === undefined) return 0
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return 0
+    return value > 1e12 ? value : value * 1000
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value)
+    return Number.isNaN(parsed) ? 0 : parsed
+  }
+
+  if (typeof value === 'object') {
+    const maybeSeconds = (value as any).seconds ?? (value as any)._seconds
+    if (typeof maybeSeconds === 'number' && Number.isFinite(maybeSeconds)) {
+      return maybeSeconds * 1000
+    }
+  }
+
+  return 0
+}
+
+const getProcessRecencyTimestamp = (proceso: ProcesoEmprestito): number => {
+  const candidates = [
+    proceso.fecha_actualizacion,
+    proceso.fecha_creacion,
+    (proceso as any).fecha_guardado,
+    proceso.fecha_publicacion,
+    proceso.fecha_publicacion_fase,
+    (proceso as any).planeado,
+    (proceso as any).updated_at,
+    (proceso as any).created_at,
+  ]
+
+  return candidates.reduce((maxTimestamp, candidate) => {
+    const ts = parseDateCandidate(candidate)
+    return ts > maxTimestamp ? ts : maxTimestamp
+  }, 0)
+}
+
 const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => {
   // Estados para tabs
   const [activeTab, setActiveTab] = useState<'secop' | 'tiendaVirtual' | 'convenios'>('secop')
@@ -609,9 +650,15 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   // Función para eliminar proceso
   const handleDeleteProceso = async (referenciaProceso: string) => {
     try {
-      console.log('🗑️ Eliminando proceso:', referenciaProceso)
+      const referencia = referenciaProceso?.trim()
 
-      const response = await fetch(`/api/proxy/emprestito/proceso/${referenciaProceso}`, {
+      if (!referencia) {
+        throw new Error('No se encontró la referencia_proceso para eliminar')
+      }
+
+      console.log('🗑️ Eliminando proceso:', referencia)
+
+      const response = await fetch(`/api/proxy/emprestito/proceso/${encodeURIComponent(referencia)}`, {
         method: 'DELETE'
       })
 
@@ -736,6 +783,8 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           ? aStr.localeCompare(bStr)
           : bStr.localeCompare(aStr)
       })
+    } else {
+      filtered.sort((a, b) => getProcessRecencyTimestamp(b) - getProcessRecencyTimestamp(a))
     }
 
     return filtered

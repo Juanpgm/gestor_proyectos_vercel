@@ -341,6 +341,18 @@ export const ByCentroGestorView: React.FC<{ centros: any[] }> = ({ centros }) =>
 export const MetadataView: React.FC<{ metadata: any[] }> = ({ metadata }) => {
   const latestMetadata = metadata[0] // Usar el más reciente
 
+  const displayValue = (value: any): string => {
+    if (value === null || value === undefined) return 'N/A'
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value)
+    if (typeof value === 'object') {
+      if ('label' in value && value.label) return String(value.label)
+      if ('code' in value && value.code) return String(value.code)
+      if ('name' in value && value.name) return String(value.name)
+      return JSON.stringify(value)
+    }
+    return String(value)
+  }
+
   if (!latestMetadata) {
     return (
       <div className="text-center py-8 text-slate-600 dark:text-slate-400">
@@ -429,9 +441,9 @@ export const MetadataView: React.FC<{ metadata: any[] }> = ({ metadata }) => {
                   Severidades ({latestMetadata.filters.severities.length})
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {latestMetadata.filters.severities.map((s: string) => (
-                    <span key={s} className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded">
-                      {s}
+                  {latestMetadata.filters.severities.map((s: any, idx: number) => (
+                    <span key={`${displayValue(s)}-${idx}`} className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded">
+                      {displayValue(s)}
                     </span>
                   ))}
                 </div>
@@ -443,9 +455,9 @@ export const MetadataView: React.FC<{ metadata: any[] }> = ({ metadata }) => {
                   Prioridades ({latestMetadata.filters.priorities.length})
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {latestMetadata.filters.priorities.map((p: string) => (
-                    <span key={p} className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded">
-                      {p}
+                  {latestMetadata.filters.priorities.map((p: any, idx: number) => (
+                    <span key={`${displayValue(p)}-${idx}`} className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white rounded">
+                      {displayValue(p)}
                     </span>
                   ))}
                 </div>
@@ -457,9 +469,9 @@ export const MetadataView: React.FC<{ metadata: any[] }> = ({ metadata }) => {
                   Dimensiones ISO 19157 ({latestMetadata.filters.dimensions.length})
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {latestMetadata.filters.dimensions.map((d: string) => (
-                    <span key={d} className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100 rounded border border-blue-200 dark:border-blue-800">
-                      {d}
+                  {latestMetadata.filters.dimensions.map((d: any, idx: number) => (
+                    <span key={`${displayValue(d)}-${idx}`} className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100 rounded border border-blue-200 dark:border-blue-800">
+                      {displayValue(d)}
                     </span>
                   ))}
                 </div>
@@ -471,9 +483,9 @@ export const MetadataView: React.FC<{ metadata: any[] }> = ({ metadata }) => {
                   Centros Gestores ({latestMetadata.filters.centros_gestores.length})
                 </p>
                 <div className="max-h-40 overflow-y-auto space-y-1">
-                  {latestMetadata.filters.centros_gestores.map((c: string) => (
-                    <div key={c} className="text-xs px-2 py-1 bg-slate-50 dark:bg-slate-900 rounded">
-                      {c}
+                  {latestMetadata.filters.centros_gestores.map((c: any, idx: number) => (
+                    <div key={`${displayValue(c)}-${idx}`} className="text-xs px-2 py-1 bg-slate-50 dark:bg-slate-900 rounded">
+                      {displayValue(c)}
                     </div>
                   ))}
                 </div>

@@ -7,7 +7,12 @@ const API_BASE_URL = "https://gestorproyectoapi-production.up.railway.app";
 
 const endpoints = [
   {
-    name: "Quality Control Summary (Unidades Proyecto)",
+    name: "Calidad de Datos ISO/DAMA (principal)",
+    url: `${API_BASE_URL}/unidades-proyecto/calidad-datos`,
+    method: "GET",
+  },
+  {
+    name: "Quality Control Summary (legacy)",
     url: `${API_BASE_URL}/unidades-proyecto/quality-control-summary`,
     method: "GET",
   },
@@ -75,7 +80,7 @@ async function testEndpoint(endpoint) {
         const data = await response.json();
         console.log(`✅ Respuesta exitosa`);
         console.log(
-          `📦 Tipo de dato: ${Array.isArray(data) ? "Array" : typeof data}`
+          `📦 Tipo de dato: ${Array.isArray(data) ? "Array" : typeof data}`,
         );
 
         if (Array.isArray(data)) {
@@ -94,7 +99,7 @@ async function testEndpoint(endpoint) {
         console.log(
           `📄 Contenido: ${text.substring(0, 200)}${
             text.length > 200 ? "..." : ""
-          }`
+          }`,
         );
       }
     } else {

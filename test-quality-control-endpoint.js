@@ -1,14 +1,14 @@
 /**
- * Script para probar el endpoint de quality-control-summary
- * Verifica que el endpoint funcione correctamente
+ * Script para probar el endpoint principal de calidad de datos
+ * Verifica que /unidades-proyecto/calidad-datos funcione correctamente
  */
 
 const API_BASE_URL = "https://gestorproyectoapi-production.up.railway.app";
 
 async function testQualityControlSummary() {
-  console.log("\n🧪 Probando endpoint de Quality Control Summary...\n");
+  console.log("\n🧪 Probando endpoint de Calidad de Datos (ISO/DAMA)...\n");
 
-  const endpoint = `${API_BASE_URL}/unidades-proyecto/quality-control-summary`;
+  const endpoint = `${API_BASE_URL}/unidades-proyecto/calidad-datos`;
 
   console.log(`📍 URL: ${endpoint}\n`);
 
@@ -23,8 +23,7 @@ async function testQualityControlSummary() {
 
       console.log("✅ Respuesta exitosa:");
       console.log(`   - success: ${data.success}`);
-      console.log(`   - count: ${data.count}`);
-      console.log(`   - collection: ${data.collection}`);
+      console.log(`   - keys raíz: ${Object.keys(data).join(", ")}`);
 
       if (data.data && data.data.length > 0) {
         console.log(`\n📋 Campos del primer registro:`);
@@ -39,11 +38,23 @@ async function testQualityControlSummary() {
         console.log("\n⚠️  No hay datos en la respuesta");
       }
 
-      // Probar con filtros
-      console.log("\n🔍 Probando con filtro de centro gestor...");
-      const responseWithFilter = await fetch(`${endpoint}?limit=5`);
-      const dataWithFilter = await responseWithFilter.json();
-      console.log(`✅ Con filtro limit=5: ${dataWithFilter.count} registros`);
+      console.log("\n🔍 Validando estructura para reportes/tabs...");
+      const expectedSections = [
+        "summary",
+        "resumen",
+        "records",
+        "registros",
+        "stats",
+        "estadisticas",
+        "metadata",
+        "metadatos",
+      ];
+      const availableSections = expectedSections.filter(
+        (key) => key in data || (data.data && key in data.data),
+      );
+      console.log(
+        `✅ Secciones detectadas: ${availableSections.join(", ") || "ninguna (revisar contrato actual)"}`,
+      );
     } else {
       const errorText = await response.text();
       console.log("❌ Error en la respuesta:");

@@ -11,8 +11,11 @@ import {
   CheckCircle,
   XCircle,
   Edit,
-  Key,
-  Eye
+  Eye,
+  Power,
+  PlusCircle,
+  MinusCircle,
+  Trash2
 } from 'lucide-react'
 import { AdminUser, getRoleInfo } from '@/types/admin'
 import { format } from 'date-fns'
@@ -24,6 +27,10 @@ interface UserListProps {
   onEdit: (user: AdminUser) => void
   onAssignRoles: (user: AdminUser) => void
   onViewPermissions: (user: AdminUser) => void
+  onToggleStatus: (user: AdminUser) => void
+  onDeleteUser: (user: AdminUser) => void
+  onGrantTemporaryPermission: (user: AdminUser) => void
+  onRevokeTemporaryPermission: (user: AdminUser) => void
   canEdit: boolean
 }
 
@@ -33,6 +40,10 @@ export default function UserList({
   onEdit,
   onAssignRoles,
   onViewPermissions,
+  onToggleStatus,
+  onDeleteUser,
+  onGrantTemporaryPermission,
+  onRevokeTemporaryPermission,
   canEdit
 }: UserListProps) {
   if (loading) {
@@ -207,19 +218,49 @@ export default function UserList({
 
                 {/* Acciones */}
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-1.5 flex-wrap">
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => onViewPermissions(user)}
                       className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                      title="Ver permisos"
+                      title="Ver usuario (solo lectura)"
                     >
                       <Eye className="w-4 h-4" />
                     </motion.button>
 
                     {canEdit && (
                       <>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => onToggleStatus(user)}
+                          className="p-2 text-amber-600 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                          title={user.is_active ? 'Desactivar usuario' : 'Activar usuario'}
+                        >
+                          <Power className="w-4 h-4" />
+                        </motion.button>
+
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => onGrantTemporaryPermission(user)}
+                          className="p-2 text-cyan-600 hover:text-cyan-900 dark:text-cyan-400 dark:hover:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors"
+                          title="Otorgar permiso temporal"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                        </motion.button>
+
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => onRevokeTemporaryPermission(user)}
+                          className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/20 rounded-lg transition-colors"
+                          title="Revocar permiso temporal"
+                        >
+                          <MinusCircle className="w-4 h-4" />
+                        </motion.button>
+
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -238,6 +279,16 @@ export default function UserList({
                           title="Editar usuario"
                         >
                           <Edit className="w-4 h-4" />
+                        </motion.button>
+
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => onDeleteUser(user)}
+                          className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Eliminar usuario"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </motion.button>
                       </>
                     )}

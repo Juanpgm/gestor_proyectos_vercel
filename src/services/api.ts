@@ -54,8 +54,16 @@ export class ApiClient {
       // Importar dinámicamente para evitar problemas en SSR
       if (typeof window !== 'undefined') {
         const { getCurrentIdToken } = await import('@/lib/firebase');
-        const token = await getCurrentIdToken();
-        return token;
+        const firebaseToken = await getCurrentIdToken();
+        if (firebaseToken) return firebaseToken;
+
+        // Fallback: sesión persistida por AuthService
+        const rawSession = localStorage.getItem('auth_session') || sessionStorage.getItem('auth_session');
+        if (rawSession) {
+          const parsed = JSON.parse(rawSession);
+          const sessionToken = parsed?.user?.idToken || parsed?.user?.id_token || null;
+          if (sessionToken) return sessionToken;
+        }
       }
       return null;
     } catch (error) {
@@ -91,10 +99,17 @@ export class ApiClient {
 
         // Build headers object properly to avoid TypeScript errors
         const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           ...(options.headers as Record<string, string> || {}),
         };
+
+        // Solo establecer Content-Type por defecto si no viene uno definido
+        const hasContentType = Object.keys(headers).some(
+          (key) => key.toLowerCase() === 'content-type'
+        );
+        if (!hasContentType && options.body !== undefined) {
+          headers['Content-Type'] = 'application/json';
+        }
 
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
@@ -156,9 +171,10 @@ export class ApiClient {
    * POST request
    */
   async post<T>(endpoint: string, data?: any, useRetry: boolean = false): Promise<T> {
+    const isStringPayload = typeof data === 'string'
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data === undefined ? undefined : (isStringPayload ? data : JSON.stringify(data)),
     }, useRetry);
   }
 
@@ -166,9 +182,10 @@ export class ApiClient {
    * PUT request
    */
   async put<T>(endpoint: string, data?: any, useRetry: boolean = false): Promise<T> {
+    const isStringPayload = typeof data === 'string'
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data === undefined ? undefined : (isStringPayload ? data : JSON.stringify(data)),
     }, useRetry);
   }
 

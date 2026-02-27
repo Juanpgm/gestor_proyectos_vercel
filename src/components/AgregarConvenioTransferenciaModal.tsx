@@ -308,16 +308,6 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
       if (formData.sector && formData.sector.trim()) {
         formDataToSend.append('sector', formData.sector.trim())
       }
-      if (formData.contratista && formData.contratista.trim()) {
-        formDataToSend.append('contratista', formData.contratista.trim())
-      }
-      if (formData.nit_contratista && formData.nit_contratista.trim()) {
-        formDataToSend.append('nit_contratista', formData.nit_contratista.trim())
-      }
-      if (formData.supervisor && formData.supervisor.trim()) {
-        formDataToSend.append('supervisor', formData.supervisor.trim())
-      }
-
       const endpoint = '/emprestito/cargar-convenio-transferencia'
 
       console.log('📤 Enviando datos como FormData:', Object.fromEntries(formDataToSend))

@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Save, Shield, Loader, AlertCircle } from 'lucide-react'
-import { AdminUser, RoleId, ROLES_CONFIG, getRoleInfo } from '@/types/admin'
+import { AdminUser, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo } from '@/types/admin'
 import adminService from '@/services/admin.service'
 
 interface RoleAssignmentModalProps {
@@ -17,24 +17,15 @@ export default function RoleAssignmentModal({
   onClose,
   onSuccess
 }: RoleAssignmentModalProps) {
-  const [selectedRoles, setSelectedRoles] = useState<RoleId[]>(user.roles || [])
+  const detectedCurrentRole = getHighestRole(user.roles)
+  const [selectedRole, setSelectedRole] = useState<RoleId | null>(detectedCurrentRole)
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleToggleRole = (roleId: RoleId) => {
-    setSelectedRoles(prev => {
-      if (prev.includes(roleId)) {
-        return prev.filter(r => r !== roleId)
-      } else {
-        return [...prev, roleId]
-      }
-    })
-  }
-
   const handleSave = async () => {
-    if (selectedRoles.length === 0) {
-      setError('Debes seleccionar al menos un rol')
+    if (!selectedRole) {
+      setError('Debes seleccionar un rol')
       return
     }
 
@@ -42,8 +33,8 @@ export default function RoleAssignmentModal({
       setLoading(true)
       setError(null)
       await adminService.assignRoles(user.uid, {
-        roles: selectedRoles,
-        reason: reason || 'Asignación de roles desde panel de administración'
+        roles: [selectedRole],
+        reason: reason || 'Asignación de rol único desde panel de administración'
       })
       onSuccess()
     } catch (err: any) {
@@ -111,37 +102,44 @@ export default function RoleAssignmentModal({
                     Información sobre Roles
                   </h4>
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    Puedes asignar múltiples roles a un usuario. Los permisos se combinan, 
-                    otorgando el máximo nivel de acceso entre todos los roles asignados.
+                    Cada usuario debe tener un único rol activo. El rol detectado actualmente
+                    para este usuario se preselecciona automáticamente.
                   </p>
                 </div>
               </div>
             </div>
 
+            <div className="bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                Rol actual detectado:{' '}
+                <span className="font-semibold">
+                  {detectedCurrentRole ? getRoleInfo(detectedCurrentRole).name : 'Sin rol asignado'}
+                </span>
+              </p>
+            </div>
+
             {/* Lista de Roles */}
             <div className="space-y-3">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                Selecciona los roles para este usuario:
+                Selecciona el rol para este usuario:
               </h3>
 
               <div className="grid gap-3">
                 {rolesArray.map((roleId) => {
                   const roleInfo = getRoleInfo(roleId)
-                  const isSelected = selectedRoles.includes(roleId)
-                  const isDisabled = roleId === 'publico' // No permitir asignar rol público manualmente
+                  const isSelected = selectedRole === roleId
 
                   return (
                     <motion.button
                       key={roleId}
-                      whileHover={!isDisabled ? { scale: 1.02 } : {}}
-                      whileTap={!isDisabled ? { scale: 0.98 } : {}}
-                      onClick={() => !isDisabled && handleToggleRole(roleId)}
-                      disabled={isDisabled}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedRole(roleId)}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${
                         isSelected
                           ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                      } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      } cursor-pointer`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -177,9 +175,9 @@ export default function RoleAssignmentModal({
 
                         <div className="ml-4">
                           <input
-                            type="checkbox"
+                            type="radio"
+                            name="user-role"
                             checked={isSelected}
-                            disabled={isDisabled}
                             onChange={() => {}}
                             className="w-6 h-6 text-purple-600 rounded focus:ring-purple-500"
                           />
@@ -226,7 +224,7 @@ export default function RoleAssignmentModal({
           {/* Footer */}
           <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              {selectedRoles.length} rol(es) seleccionado(s)
+              {selectedRole ? `Rol seleccionado: ${getRoleInfo(selectedRole).name}` : 'Sin rol seleccionado'}
             </div>
             <div className="flex gap-3">
               <button
@@ -237,7 +235,7 @@ export default function RoleAssignmentModal({
               </button>
               <button
                 onClick={handleSave}
-                disabled={loading || selectedRoles.length === 0}
+                disabled={loading || !selectedRole}
                 className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg flex items-center gap-2"
               >
                 {loading ? (

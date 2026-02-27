@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Shield, Key, Clock, CheckCircle } from 'lucide-react'
+import { X, Shield, Key, Clock, CheckCircle, User, Mail, Phone, Building, Calendar, BadgeCheck, BadgeX } from 'lucide-react'
 import { AdminUser, getRoleInfo } from '@/types/admin'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -13,14 +13,6 @@ interface PermissionViewerProps {
 }
 
 export default function PermissionViewer({ user, onClose }: PermissionViewerProps) {
-  console.log('🔍 PermissionViewer - Usuario:', {
-    uid: user.uid,
-    email: user.email,
-    roles: user.roles,
-    permissions: user.permissions,
-    temporary_permissions: user.temporary_permissions
-  })
-
   // Combinar permisos de roles + permisos temporales activos
   const temporaryPermissionsActive = (user.temporary_permissions || []).filter(
     tp => new Date(tp.expires_at) > new Date()
@@ -40,13 +32,12 @@ export default function PermissionViewer({ user, onClose }: PermissionViewerProp
     ])
   )
 
-  console.log('📊 Permisos calculados:', {
-    fromUser: user.permissions?.length || 0,
-    fromRoles: permissionsFromRoles.length,
-    temporary: temporaryPermissionsActive.length,
-    total: allPermissions.length,
-    permisos: allPermissions
-  })
+  const formatDateTime = (value?: string) => {
+    if (!value) return 'No disponible'
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return 'No disponible'
+    return format(parsed, 'dd/MM/yyyy HH:mm', { locale: es })
+  }
 
   return (
     <AnimatePresence>
@@ -70,7 +61,7 @@ export default function PermissionViewer({ user, onClose }: PermissionViewerProp
               <Key className="w-8 h-8 text-blue-600" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Permisos de Usuario
+                  Ficha de Usuario (solo lectura)
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {user.email}
@@ -87,6 +78,97 @@ export default function PermissionViewer({ user, onClose }: PermissionViewerProp
 
           {/* Content */}
           <div className="p-6 space-y-6">
+            {/* Información General */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  Información general
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1">UID</p>
+                  <p className="text-sm text-gray-900 dark:text-white break-all">{user.uid}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Mail className="w-3 h-3" /> Correo</p>
+                  <p className="text-sm text-gray-900 dark:text-white break-all">{user.email}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1">Nombre completo</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{user.full_name || 'No disponible'}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Phone className="w-3 h-3" /> Teléfono</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{user.phone_number || 'No disponible'}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Building className="w-3 h-3" /> Centro gestor</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{user.centro_gestor_assigned || 'No asignado'}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1">Proveedor</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{user.provider || 'No disponible'}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Creado</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{formatDateTime(user.created_at)}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Última actualización</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{formatDateTime(user.updated_at)}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Último login</p>
+                  <p className="text-sm text-gray-900 dark:text-white">{formatDateTime(user.last_login_at)}</p>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1">Estado de cuenta</p>
+                  <div className="flex items-center gap-2">
+                    {user.is_active ? (
+                      <>
+                        <BadgeCheck className="w-4 h-4 text-green-600" />
+                        <span className="text-sm text-green-700 dark:text-green-300">Activa</span>
+                      </>
+                    ) : (
+                      <>
+                        <BadgeX className="w-4 h-4 text-red-600" />
+                        <span className="text-sm text-red-700 dark:text-red-300">Inactiva</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-500 mb-1">Verificación de correo</p>
+                  <div className="flex items-center gap-2">
+                    {user.email_verified ? (
+                      <>
+                        <BadgeCheck className="w-4 h-4 text-green-600" />
+                        <span className="text-sm text-green-700 dark:text-green-300">Verificado</span>
+                      </>
+                    ) : (
+                      <>
+                        <BadgeX className="w-4 h-4 text-amber-600" />
+                        <span className="text-sm text-amber-700 dark:text-amber-300">No verificado</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Roles Asignados */}
             <div>
               <div className="flex items-center gap-2 mb-4">

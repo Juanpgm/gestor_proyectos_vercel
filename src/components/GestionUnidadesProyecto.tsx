@@ -229,6 +229,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   const [showFilters, setShowFilters] = useState(true)
 
   const API_BASE_URL = '/api/proxy' // Usar el proxy de Next.js para evitar CORS
+  const CALIDAD_DATOS_ENDPOINT = '/unidades-proyecto/calidad-datos'
 
   // Definición de tabs - quality-control endpoints de la API
   const tabs = [
@@ -237,7 +238,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       label: 'Resumen',
       icon: CheckCircle2,
       endpoint: '/unidades-proyecto/quality-control/summary',
-      description: 'Resumen general de control de calidad'
+      description: 'Resumen general de calidad de datos (ISO/DAMA)'
     },
     {
       id: 'records' as TabType,
@@ -276,6 +277,393 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     }
   ]
 
+  const pickFirst = (...values: any[]) => values.find((value) => value !== undefined && value !== null)
+
+  const mapSeverityCode = (code?: string) => {
+    const normalized = String(code || '').toUpperCase()
+    if (normalized === 'S1') return 'CRITICAL'
+    if (normalized === 'S2') return 'HIGH'
+    if (normalized === 'S3') return 'MEDIUM'
+    return 'LOW'
+  }
+
+  const toNumber = (value: any, fallback: number = 0): number => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+
+  const normalizePriorityValue = (value: any): string => {
+    if (typeof value === 'string' || typeof value === 'number') return String(value).toUpperCase()
+    if (value && typeof value === 'object') {
+      if (value.code) return String(value.code).toUpperCase()
+      if (value.label) return String(value.label)
+    }
+    return 'P3'
+  }
+
+  const buildSummaryFromCalidadDatos = (source: any) => {
+    const resumen = pickFirst(source.resumen, source.summary, source.resumen_ejecutivo, source.metricas_generales) || {}
+    const overall = source.overall || {}
+    const rules = Array.isArray(source.rules) ? source.rules : []
+
+    const severityDistribution = rules.reduce((acc: Record<string, number>, rule: any) => {
+      const severity = mapSeverityCode(rule?.severity?.code)
+      acc[severity] = (acc[severity] || 0) + 1
+      return acc
+    }, {})
+
+    const dimensionDistribution = rules.reduce((acc: Record<string, number>, rule: any) => {
+      const dimension = rule?.dimension || 'no_clasificado'
+      const affected = toNumber(rule?.scope?.affected_records)
+      acc[dimension] = (acc[dimension] || 0) + affected
+      return acc
+    }, {})
+
+    const recommendations = (Array.isArray(resumen.hallazgos_principales) ? resumen.hallazgos_principales : [])
+      .map((item: any) => ({
+        category: item?.category || 'General',
+        priority: normalizePriorityValue(item?.priority),
+        recommendation: item?.recommendation || item?.description || String(item || '')
+      }))
+
+    return {
+      ...resumen,
+      report_id: source.report_id || resumen.report_id,
+      report_timestamp: source.generated_at || resumen.generated_at,
+      global_quality_score: toNumber(resumen.data_quality_score, toNumber(overall.quality_score)),
+      error_rate: toNumber(resumen.error_rate, 100 - toNumber(resumen.data_quality_score, toNumber(overall.quality_score))),
+      total_records_validated: toNumber(resumen.total_registros, overall.total_records),
+      records_with_issues: toNumber(resumen.registros_con_problemas, overall.total_issues),
+      records_without_issues: Math.max(0, toNumber(resumen.total_registros, overall.total_records) - toNumber(resumen.registros_con_problemas)),
+      total_issues_found: toNumber(resumen.total_hallazgos, overall.total_issues),
+      system_status: (resumen?.clasificacion?.status || source?.overall?.classification?.status || 'NORMAL').toUpperCase(),
+      requires_immediate_action: ['CRITICAL', 'WARNING', 'ACEPTABLE'].includes((resumen?.clasificacion?.status || '').toUpperCase()),
+      severity_distribution: severityDistribution,
+      dimension_distribution: dimensionDistribution,
+      top_quality_centros: [],
+      top_problematic_centros: [],
+      recommendations,
+      overall_trend: source.overall_trend,
+      trends_summary: source.trends_summary,
+      trends_count: source.trends_count,
+      has_comparison_data: source.has_comparison_data
+    }
+  }
+
+  const buildRecordsFromCalidadDatos = (source: any) => {
+    const recordsRoot = pickFirst(source.registros, source.records, source.data_records, source.detalle_registros, source.issues)
+    const rulesArray = Array.isArray(recordsRoot?.rules)
+      ? recordsRoot.rules
+      : Array.isArray(recordsRoot)
+        ? recordsRoot
+        : []
+
+    return rulesArray.map((rule: any, index: number) => {
+      const affected = toNumber(rule?.scope?.affected_records)
+      const evaluated = toNumber(rule?.scope?.evaluated_records)
+      const priorityCode = String(rule?.priority?.code || 'P3').toUpperCase()
+      const severity = mapSeverityCode(rule?.severity?.code)
+
+      return {
+        id: rule?.rule_id || `rule-${index}`,
+        upid: rule?.rule_id || `RULE-${index + 1}`,
+        nombre_up: rule?.name || 'Regla de calidad',
+        nombre_centro_gestor: rule?.collection || 'Colección no especificada',
+        total_issues: affected,
+        max_severity: severity,
+        priority: priorityCode,
+        issues: [
+          {
+            rule_id: rule?.rule_id || `RULE-${index + 1}`,
+            rule_name: rule?.name || 'Regla',
+            dimension: rule?.dimension || 'no_clasificado',
+            severity,
+            field_name: rule?.collection || 'coleccion',
+            current_value: {
+              affected_records: affected,
+              evaluated_records: evaluated,
+              compliance_pct: toNumber(rule?.result?.compliance_pct)
+            },
+            expected_value: {
+              affected_records: 0,
+              compliance_pct: 100
+            },
+            suggestion: rule?.description || 'Revisar cumplimiento de la regla',
+            details: rule?.description || 'Sin detalles'
+          }
+        ],
+        affected_fields: [rule?.collection || 'coleccion'],
+        severity_counts: { [severity]: affected },
+        dimension_counts: { [rule?.dimension || 'no_clasificado']: affected }
+      }
+    })
+  }
+
+  const buildCentrosFromCalidadDatos = (source: any) => {
+    const root = pickFirst(source.por_centro_gestor, source.by_centro_gestor, source.byCentroGestor, source['by-centro-gestor']) || {}
+    const centros = Array.isArray(root.centros)
+      ? root.centros
+      : (Array.isArray(root) ? root : [])
+
+    return centros.map((centro: any, index: number) => {
+      const totalRecords = toNumber(centro?.total_intervenciones)
+      const issuesObj = centro?.issues || {}
+      const invalidRanges = issuesObj?.invalid_ranges || {}
+      const totalIssues =
+        toNumber(issuesObj?.missing_required_fields) +
+        toNumber(issuesObj?.estado_vs_avance_inconsistente) +
+        toNumber(issuesObj?.intervencion_id_duplicates) +
+        toNumber(issuesObj?.without_fecha_inicio) +
+        toNumber(issuesObj?.without_fecha_fin) +
+        toNumber(invalidRanges?.avance_obra) +
+        toNumber(invalidRanges?.presupuesto_base)
+
+      const recordsWithIssues = Math.min(totalRecords, totalIssues)
+      const score = toNumber(centro?.dqs?.score)
+      const status = (centro?.dqs?.classification?.status || '').toUpperCase()
+
+      const severityCounts: Record<string, number> = {}
+      const bySeverity = centro?.dqs?.by_severity || {}
+      Object.entries(bySeverity).forEach(([sevCode, data]: [string, any]) => {
+        severityCounts[mapSeverityCode(sevCode)] = toNumber(data?.rules)
+      })
+
+      const topProblematicFields = [
+        { field: 'missing_required_fields', count: toNumber(issuesObj?.missing_required_fields) },
+        { field: 'estado_vs_avance_inconsistente', count: toNumber(issuesObj?.estado_vs_avance_inconsistente) },
+        { field: 'intervencion_id_duplicates', count: toNumber(issuesObj?.intervencion_id_duplicates) },
+        { field: 'without_fecha_inicio', count: toNumber(issuesObj?.without_fecha_inicio) },
+        { field: 'without_fecha_fin', count: toNumber(issuesObj?.without_fecha_fin) }
+      ].filter((item) => item.count > 0)
+
+      return {
+        id: `${centro?.nombre_centro_gestor || 'centro'}-${index}`,
+        nombre_centro_gestor: centro?.nombre_centro_gestor || 'Centro no especificado',
+        total_records: totalRecords,
+        records_with_issues: recordsWithIssues,
+        records_without_issues: Math.max(0, totalRecords - recordsWithIssues),
+        total_issues: totalIssues,
+        quality_score: score,
+        error_rate: totalRecords > 0 ? Number(((recordsWithIssues / totalRecords) * 100).toFixed(2)) : 0,
+        status,
+        requires_attention: status === 'CRITICAL' || score < 95,
+        severity_counts: severityCounts,
+        dimension_counts: {
+          completitud: toNumber(issuesObj?.missing_required_fields),
+          validez_conformidad: toNumber(invalidRanges?.avance_obra) + toNumber(invalidRanges?.presupuesto_base),
+          consistencia: toNumber(issuesObj?.estado_vs_avance_inconsistente),
+          unicidad: toNumber(issuesObj?.intervencion_id_duplicates),
+          oportunidad_actualidad: toNumber(issuesObj?.without_fecha_inicio) + toNumber(issuesObj?.without_fecha_fin)
+        },
+        top_violated_rules: [],
+        top_problematic_fields: topProblematicFields,
+        affected_records_sample: []
+      }
+    })
+  }
+
+  const buildMetadataFromCalidadDatos = (source: any) => {
+    const metadatos = pickFirst(source.metadatos, source.metadata, source.meta, source.configuracion) || {}
+    const overall = source.overall || {}
+    const centrosRoot = source.por_centro_gestor || {}
+    const totalCentros = toNumber(centrosRoot.total_centros)
+
+    return {
+      id: source.report_id || 'calidad-datos-metadata',
+      report_id: source.report_id || 'N/A',
+      version: source.framework || 'ISO/DAMA',
+      generated_at: source.generated_at || new Date().toISOString(),
+      counts: {
+        total_records: toNumber(overall.total_records),
+        total_centros: totalCentros,
+        total_issues: toNumber(overall.total_issues),
+        records_with_issues: toNumber(overall.total_issues),
+        centros_require_attention: 0
+      },
+      filters: {
+        centros_gestores: [],
+        severities: ['S1', 'S2', 'S3', 'S4'],
+        priorities: Object.keys(source.priorities || {}).map((key) => key.toUpperCase()),
+        dimensions: Array.isArray(metadatos.dimensions) ? metadatos.dimensions : [],
+        statuses: ['OPTIMO', 'ACEPTABLE', 'CRITICAL']
+      },
+      standards: metadatos.standards,
+      dimensions: metadatos.dimensions,
+      collections_evaluadas: metadatos.collections_evaluadas,
+      cache_ttl_seconds: metadatos.cache_ttl_seconds,
+      history_limit: metadatos.history_limit,
+      colors: {},
+      charts: {}
+    }
+  }
+
+  const buildStatsFromCalidadDatos = (source: any) => {
+    const stats = pickFirst(source.estadisticas_globales, source.stats, source.estadisticas, source.metrics, source.metricas, source.kpis) || {}
+    const overall = stats.overall || {}
+    const byDimension = Array.isArray(stats.by_dimension) ? stats.by_dimension : []
+    const byCollection = stats.by_collection || {}
+
+    const byCollectionTotal = Object.values(byCollection).reduce((acc: number, entry: any) => acc + toNumber(entry?.total), 0)
+
+    return {
+      timestamp: source.generated_at || new Date().toISOString(),
+      data: {
+        overall: {
+          collection: 'overall',
+          count: toNumber(overall.total_records)
+        },
+        by_dimension: {
+          collection: 'by_dimension',
+          count: byDimension.length
+        },
+        by_collection: {
+          collection: 'by_collection',
+          count: byCollectionTotal
+        }
+      },
+      raw: stats
+    }
+  }
+
+  const buildChangelogFromCalidadDatos = (source: any) => {
+    const historialRoot = pickFirst(source.historial, source.changelog, source.cambios, source.change_log) || {}
+    const items = Array.isArray(historialRoot.items)
+      ? historialRoot.items
+      : (Array.isArray(historialRoot) ? historialRoot : [])
+
+    return items.map((item: any, index: number) => {
+      const next = items[index + 1]
+      return {
+        id: item?.report_id || `history-${index}`,
+        upid: item?.report_id || `history-${index}`,
+        document_id: item?.report_id || `history-${index}`,
+        action: 'updated',
+        timestamp: item?.generated_at || source.generated_at,
+        old_report_id: next?.report_id || item?.report_id || 'N/A',
+        new_report_id: item?.report_id || 'N/A',
+        changes: {
+          dqs_score: {
+            old: next?.dqs_score ?? item?.dqs_score,
+            new: item?.dqs_score
+          },
+          total_issues: {
+            old: next?.total_issues ?? item?.total_issues,
+            new: item?.total_issues
+          }
+        }
+      }
+    })
+  }
+
+  const extractTabDataFromCalidadDatos = (result: any, tab: TabType) => {
+    const source = result?.data && typeof result.data === 'object' ? result.data : result
+
+    if (!source || typeof source !== 'object') {
+      return { found: false, payload: null }
+    }
+
+    const summaries = [
+      source.summary,
+      source.resumen,
+      source.resumen_ejecutivo,
+      source.metricas_generales,
+      source.quality_summary,
+      source.latest_summary
+    ]
+
+    const records = [
+      source.records,
+      source.registros,
+      source.data_records,
+      source.detalle_registros,
+      source.issues,
+      source.data
+    ]
+
+    const changelog = [
+      source.changelog,
+      source.historial,
+      source.cambios,
+      source.change_log
+    ]
+
+    const byCentro = [
+      source.by_centro_gestor,
+      source.byCentroGestor,
+      source.por_centro_gestor,
+      source['by-centro-gestor']
+    ]
+
+    const metadata = [
+      source.metadata,
+      source.metadatos,
+      source.meta,
+      source.configuracion
+    ]
+
+    const stats = [
+      source.stats,
+      source.estadisticas,
+      source.metrics,
+      source.metricas,
+      source.kpis
+    ]
+
+    if (tab === 'summary') {
+      const hasSummary = Boolean(pickFirst(...summaries))
+      if (!hasSummary) return { found: false, payload: null }
+      return { found: true, payload: { success: true, data: buildSummaryFromCalidadDatos(source) } }
+    }
+
+    if (tab === 'records') {
+      const payload = pickFirst(...records)
+      if (!payload) return { found: false, payload: null }
+      return { found: true, payload: { success: true, data: buildRecordsFromCalidadDatos(source) } }
+    }
+
+    if (tab === 'changelog') {
+      const payload = pickFirst(...changelog)
+      if (!payload) return { found: false, payload: null }
+      return { found: true, payload: { success: true, data: buildChangelogFromCalidadDatos(source) } }
+    }
+
+    if (tab === 'by-centro-gestor') {
+      const payload = pickFirst(...byCentro)
+      if (!payload) return { found: false, payload: null }
+      return { found: true, payload: { success: true, data: buildCentrosFromCalidadDatos(source) } }
+    }
+
+    if (tab === 'metadata') {
+      const payload = pickFirst(...metadata)
+      if (!payload) return { found: false, payload: null }
+      return { found: true, payload: { success: true, data: [buildMetadataFromCalidadDatos(source)] } }
+    }
+
+    if (tab === 'stats') {
+      const payload = pickFirst(...stats)
+      if (!payload || typeof payload !== 'object') return { found: false, payload: null }
+      return { found: true, payload: buildStatsFromCalidadDatos(source) }
+    }
+
+    return { found: false, payload: null }
+  }
+
+  const fetchJson = async (url: string) => {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`)
+    }
+
+    return response.json()
+  }
+
   // Función para cargar datos según el tab activo
   const loadData = async () => {
     setLoading(true)
@@ -287,23 +675,32 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
         throw new Error('Tab no válido')
       }
 
-      const url = `${API_BASE_URL}${currentTab.endpoint}`
-      console.log('🔵 Cargando datos desde:', url)
+      let result: any = null
+      let usedEndpoint = `${API_BASE_URL}${currentTab.endpoint}`
 
-      const response = await fetch(url, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
+      const calidadDatosUrl = `${API_BASE_URL}${CALIDAD_DATOS_ENDPOINT}`
+      try {
+        const calidadDatosResult: any = await fetchJson(calidadDatosUrl)
+        const adapted = extractTabDataFromCalidadDatos(calidadDatosResult, activeTab)
+
+        if (adapted.found) {
+          result = adapted.payload
+          usedEndpoint = calidadDatosUrl
+          console.log('✅ Datos adaptados desde /unidades-proyecto/calidad-datos para tab:', activeTab)
+        } else {
+          console.warn('⚠️ /unidades-proyecto/calidad-datos no trajo sección para tab', activeTab, '- fallback a endpoint legacy')
         }
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      } catch (calidadError) {
+        console.warn('⚠️ Error consultando /unidades-proyecto/calidad-datos, usando fallback legacy:', calidadError)
       }
 
-      const result: any = await response.json()
-      console.log('📊 Respuesta recibida para', activeTab, ':', result)
+      if (!result) {
+        const legacyUrl = `${API_BASE_URL}${currentTab.endpoint}`
+        result = await fetchJson(legacyUrl)
+        usedEndpoint = legacyUrl
+      }
+
+      console.log('📊 Respuesta recibida para', activeTab, 'desde', usedEndpoint, ':', result)
 
       // Manejar diferentes estructuras según el endpoint
       if (activeTab === 'stats') {

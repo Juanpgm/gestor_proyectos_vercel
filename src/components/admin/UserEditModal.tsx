@@ -31,51 +31,74 @@ export default function UserEditModal({
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  const getReadableError = (err: any, fallback: string): string => {
+    const backendDetail = err?.originalError?.data?.detail || err?.data?.detail
+    const backendMessage = err?.originalError?.data?.message || err?.data?.message
+
+    if (typeof backendDetail === 'string' && backendDetail.trim()) return backendDetail
+    if (Array.isArray(backendDetail) && backendDetail.length > 0) {
+      const first = backendDetail[0]
+      if (typeof first?.msg === 'string') return first.msg
+      return 'Error de validación en la solicitud'
+    }
+    if (typeof backendMessage === 'string' && backendMessage.trim()) return backendMessage
+    return err?.message || fallback
+  }
+
   // Handler unificado para actualizar información general del usuario
   const handleUpdateUser = async () => {
     try {
       setLoading(true)
       setError(null)
       
-      // Preparar objeto con solo los campos que han cambiado
-      const updates: any = {}
+      const profileUpdates: any = {}
       
       if (fullName !== (user.full_name || '')) {
-        updates.full_name = fullName.trim()
+        profileUpdates.full_name = fullName.trim()
       }
       
       if (phoneNumber !== (user.phone_number || '')) {
-        updates.phone_number = phoneNumber.trim()
-      }
-      
-      if (centroGestor !== (user.centro_gestor_assigned || '')) {
-        updates.centro_gestor_assigned = centroGestor
-      }
-      
-      if (isActive !== user.is_active) {
-        updates.is_active = isActive
+        profileUpdates.phone_number = phoneNumber.trim()
       }
       
       if (emailVerified !== user.email_verified) {
-        updates.email_verified = emailVerified
+        profileUpdates.email_verified = emailVerified
       }
+
+      const centroGestorChanged = centroGestor !== (user.centro_gestor_assigned || '')
+      const isActiveChanged = isActive !== user.is_active
       
       // Si no hay cambios, mostrar mensaje
-      if (Object.keys(updates).length === 0) {
+      if (Object.keys(profileUpdates).length === 0 && !centroGestorChanged && !isActiveChanged) {
         setError('No hay cambios para guardar')
         setLoading(false)
         return
       }
       
-      // Actualizar usuario usando el endpoint PUT /auth/admin/users/{uid}
-      await adminService.updateUser(user.uid, updates)
+      if (Object.keys(profileUpdates).length > 0) {
+        await adminService.updateUser(user.uid, profileUpdates)
+      }
+
+      if (centroGestorChanged) {
+        await adminService.updateCentroGestor(user.uid, {
+          centro_gestor_assigned: centroGestor,
+          reason: 'Actualización desde modal de edición de usuario'
+        })
+      }
+
+      if (isActiveChanged) {
+        await adminService.toggleUserStatus(user.uid, {
+          is_active: isActive,
+          reason: 'Cambio de estado desde modal de edición de usuario'
+        })
+      }
       
       setSuccessMessage('Usuario actualizado exitosamente')
       setTimeout(() => {
         onSuccess()
       }, 1500)
     } catch (err: any) {
-      setError(err.message || 'Error al actualizar usuario')
+      setError(getReadableError(err, 'Error al actualizar usuario'))
     } finally {
       setLoading(false)
     }
@@ -101,7 +124,7 @@ export default function UserEditModal({
         onSuccess()
       }, 1500)
     } catch (err: any) {
-      setError(err.message || 'Error al cambiar contraseña')
+      setError(getReadableError(err, 'Error al cambiar contraseña'))
     } finally {
       setLoading(false)
     }

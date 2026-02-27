@@ -131,6 +131,12 @@ export interface GrantTemporaryPermissionResponse {
   user: AdminUser
 }
 
+export interface RevokeTemporaryPermissionResponse {
+  success: boolean
+  message: string
+  user: AdminUser
+}
+
 export interface ChangePasswordRequest {
   uid: string
   new_password: string
@@ -154,6 +160,11 @@ export interface UpdateUserResponse {
   success: boolean
   message: string
   user: AdminUser
+}
+
+export interface DeleteUserResponse {
+  success: boolean
+  message: string
 }
 
 // ============================================================================
@@ -341,8 +352,8 @@ export function hasHigherAuthority(roleId1: RoleId, roleId2: RoleId): boolean {
 }
 
 // Función helper para obtener el rol de mayor autoridad de un usuario
-export function getHighestRole(roles: RoleId[]): RoleId | null {
-  if (roles.length === 0) return null
+export function getHighestRole(roles?: RoleId[] | null): RoleId | null {
+  if (!roles || roles.length === 0) return null
   
   return roles.reduce((highest, current) => 
     hasHigherAuthority(current, highest) ? current : highest

@@ -342,6 +342,26 @@ const ComparisonWithPrevious: React.FC<{
 export const SummaryView: React.FC<{ data: any }> = ({ data }) => {
   if (!data) return null
 
+  const asText = (value: any): string => {
+    if (value === null || value === undefined) return 'N/A'
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value)
+    if (typeof value === 'object') {
+      if ('label' in value && value.label) return String(value.label)
+      if ('code' in value && value.code) return String(value.code)
+      return JSON.stringify(value)
+    }
+    return String(value)
+  }
+
+  const asPriority = (value: any): string => {
+    if (typeof value === 'string' || typeof value === 'number') return String(value).toUpperCase()
+    if (value && typeof value === 'object') {
+      if ('code' in value && value.code) return String(value.code).toUpperCase()
+      if ('label' in value && value.label) return String(value.label)
+    }
+    return 'P3'
+  }
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'CRITICAL': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
@@ -557,19 +577,24 @@ export const SummaryView: React.FC<{ data: any }> = ({ data }) => {
           <div className="space-y-2">
             {data.recommendations.map((rec: any, idx: number) => (
               <div key={idx} className="flex gap-2">
+                {(() => {
+                  const priorityLabel = asPriority(rec.priority)
+                  return (
                 <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0 ${
-                  rec.priority === 'URGENT' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                  rec.priority === 'HIGH' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+                  priorityLabel === 'URGENT' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                  priorityLabel === 'HIGH' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
                   'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                 }`}>
-                  {rec.priority}
+                  {priorityLabel}
                 </span>
+                  )
+                })()}
                 <div className="flex-1">
                   <p className="text-xs font-medium text-amber-900 dark:text-amber-100">
-                    {rec.category}
+                    {asText(rec.category)}
                   </p>
                   <p className="text-xs text-amber-800 dark:text-amber-200 mt-1">
-                    {rec.recommendation}
+                    {asText(rec.recommendation)}
                   </p>
                 </div>
               </div>

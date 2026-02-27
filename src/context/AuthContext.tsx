@@ -235,7 +235,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Helper: Verificar si el usuario tiene un permiso específico
   const hasPermission = (permission: string): boolean => {
-    return state.user?.permissions?.includes(permission) || false
+    return state.user?.permissions?.includes(permission) || state.user?.permissions?.includes('*') || false
   }
 
   // Helper: Obtener el rol con mayor jerarquía del usuario
