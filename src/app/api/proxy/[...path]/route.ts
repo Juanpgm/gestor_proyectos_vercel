@@ -52,6 +52,21 @@ const buildCacheKey = (apiPath: string, searchParams: URLSearchParams): string =
   return query ? `${normalizedPath}?${query}` : normalizedPath
 }
 
+const getProxyTimeout = (apiPath: string): number => {
+  const path = normalizeApiPath(apiPath)
+
+  if (
+    path === 'procesos_emprestito_all' ||
+    path === 'contratos_emprestito_all' ||
+    path === 'convenios_transferencias_all' ||
+    path === 'emprestito/ordenes-compra'
+  ) {
+    return Math.max(DEFAULT_TIMEOUT, 90000)
+  }
+
+  return DEFAULT_TIMEOUT
+}
+
 const sanitizeSearchParamsForBackend = (searchParams: URLSearchParams): URLSearchParams => {
   const sanitized = new URLSearchParams(searchParams)
   sanitized.delete('bypass_cache')
@@ -93,6 +108,7 @@ async function handleRequest(request: NextRequest, method: string) {
   const isCacheableGet = method === 'GET' && isCacheableEmprestitoPath(apiPath) && !bypassCache
   const backendSearchParams = sanitizeSearchParamsForBackend(searchParams)
   const cacheKey = isCacheableGet ? buildCacheKey(apiPath, backendSearchParams) : ''
+  const requestTimeout = getProxyTimeout(apiPath)
 
   if (isCacheableGet) {
     const cached = emprestitoProxyCache.get(cacheKey)
@@ -136,12 +152,11 @@ async function handleRequest(request: NextRequest, method: string) {
   try {
     // Setup timeout controller
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT)
+    const timeoutId = setTimeout(() => controller.abort(), requestTimeout)
     
     // Prepare request options
     const forwardedHeaders: Record<string, string> = {
       'Accept': request.headers.get('accept') || 'application/json',
-      'Accept-Encoding': 'identity',
     }
 
     const incomingContentType = request.headers.get('content-type')
@@ -202,7 +217,11 @@ async function handleRequest(request: NextRequest, method: string) {
         
       } catch (error) {
         console.warn('Failed to parse JSON response:', error)
-        responseData = { error: 'Invalid JSON response from backend' }
+        responseData = {
+          error: 'Invalid JSON response from backend',
+          parse_error: error instanceof Error ? error.message : String(error),
+          endpoint: apiPath,
+        }
       }
     } else {
       const rawText = await response.text()

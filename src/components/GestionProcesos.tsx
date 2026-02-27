@@ -209,6 +209,8 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   
   // Refs para manejar clics fuera del dropdown
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
+  const procesosRequestIdRef = React.useRef(0)
+  const procesosAbortRef = React.useRef<AbortController | null>(null)
 
   const columns = useMemo(() => [
     { key: 'referencia_proceso', label: 'Referencia del Proceso', isSortable: true },
@@ -273,13 +275,25 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
   // Función para cargar datos del endpoint
   const fetchProcesos = async () => {
+    const requestId = ++procesosRequestIdRef.current
+
+    if (procesosAbortRef.current) {
+      procesosAbortRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    const { signal } = controller
+    procesosAbortRef.current = controller
+
+    const isLatestRequest = () => requestId === procesosRequestIdRef.current && !signal.aborted
+
     try {
       setLoading(true)
       setError(null)
 
       try {
-        const fetchAndNormalize = async (url: string): Promise<ProcesoEmprestito[]> => {
-          const response = await fetch(url, { cache: 'no-store' })
+        const fetchAndNormalize = async (url: string): Promise<{ records: ProcesoEmprestito[]; explicitApiEmpty: boolean }> => {
+          const response = await fetch(url, { cache: 'no-store', signal })
 
           if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -309,26 +323,99 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
             throw new Error(parsedBody?.error || parsedBody?.message || 'El endpoint de procesos respondió con error')
           }
 
-          return normalizeProcesosResponse(parsedBody)
+          const normalized = normalizeProcesosResponse(parsedBody)
+          const explicitApiEmpty =
+            Array.isArray(parsedBody?.data) && parsedBody.data.length === 0 && normalized.length === 0
+
+          return { records: normalized, explicitApiEmpty }
         }
 
-        let normalizedProcesos = await fetchAndNormalize('/api/proxy/procesos_emprestito_all')
+        let normalizedResponse = await fetchAndNormalize('/api/proxy/procesos_emprestito_all')
 
-        if (normalizedProcesos.length === 0) {
+        if (normalizedResponse.records.length === 0) {
           // Reintento único sin caché de proxy para evitar datos transitoriamente vacíos
-          normalizedProcesos = await fetchAndNormalize(`/api/proxy/procesos_emprestito_all?bypass_cache=1&_t=${Date.now()}`)
+          normalizedResponse = await fetchAndNormalize(`/api/proxy/procesos_emprestito_all?bypass_cache=1&_t=${Date.now()}`)
         }
 
-        if (normalizedProcesos.length === 0) {
+        if (normalizedResponse.records.length === 0) {
+          if (normalizedResponse.explicitApiEmpty) {
+            if (!isLatestRequest()) return
+            setProcesos([])
+            setDataSource('api')
+            return
+          }
+
           throw new Error('La API respondió sin registros de procesos válidos')
         }
 
-        setProcesos(normalizedProcesos)
+        if (!isLatestRequest()) return
+        setProcesos(normalizedResponse.records)
         setDataSource('api')
       } catch (primaryError) {
+        if (signal.aborted || !isLatestRequest()) return
         console.warn('⚠️ Fallback a datos locales de procesos por falla del backend:', primaryError)
 
-        const backupResponse = await fetch('/data/emprestito/emp_procesos.json', { cache: 'no-store' })
+        // Reintento rápido adicional para errores transitorios antes de usar respaldo local
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1200))
+          if (signal.aborted || !isLatestRequest()) return
+
+          const retryResponse = await fetch(`/api/proxy/procesos_emprestito_all?bypass_cache=1&_t=${Date.now()}`, { cache: 'no-store', signal })
+          if (retryResponse.ok) {
+            const retryPayload = await retryResponse.json()
+            if (retryPayload?.success !== false) {
+              const retryNormalized = normalizeProcesosResponse(retryPayload)
+              if (retryNormalized.length > 0 || Array.isArray(retryPayload?.data)) {
+                if (!isLatestRequest()) return
+                setProcesos(retryNormalized)
+                setDataSource('api')
+                return
+              }
+            }
+          }
+        } catch (retryError) {
+          console.warn('⚠️ Reintento adicional de procesos también falló:', retryError)
+        }
+
+        // Fallback adicional: consulta directa al backend cuando el proxy falla por compresión/parseo
+        try {
+          const directApiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://gestorproyectoapi-production.up.railway.app'
+          const directResponse = await fetch(`${directApiBase}/procesos_emprestito_all`, { cache: 'no-store' })
+
+          if (directResponse.ok) {
+            const directRaw = await directResponse.text()
+            if (directRaw && directRaw.trim().length > 0) {
+              let directParsed: any
+              try {
+                directParsed = JSON.parse(directRaw)
+              } catch {
+                directParsed = directRaw
+              }
+
+              if (typeof directParsed === 'string') {
+                try {
+                  directParsed = JSON.parse(directParsed)
+                } catch {
+                  directParsed = null
+                }
+              }
+
+              if (directParsed && directParsed?.success !== false) {
+                const directNormalized = normalizeProcesosResponse(directParsed)
+                if (directNormalized.length > 0 || Array.isArray(directParsed?.data)) {
+                  if (!isLatestRequest()) return
+                  setProcesos(directNormalized)
+                  setDataSource('api')
+                  return
+                }
+              }
+            }
+          }
+        } catch (directError) {
+          console.warn('⚠️ Fallback directo al backend también falló:', directError)
+        }
+
+        const backupResponse = await fetch('/data/emprestito/emp_procesos.json', { cache: 'no-store', signal })
         if (!backupResponse.ok) {
           throw primaryError
         }
@@ -340,15 +427,20 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           throw primaryError
         }
 
+        if (!isLatestRequest()) return
         setProcesos(normalizedBackup)
         setDataSource('backup')
       }
     } catch (error) {
+      if (signal.aborted || !isLatestRequest()) return
       console.error('Error fetching procesos:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')
       setProcesos([])
     } finally {
-      setLoading(false)
+      if (isLatestRequest()) {
+        procesosAbortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
@@ -357,6 +449,13 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     fetchProcesos()
     fetchOrdenesCompra()
     fetchConveniosData()
+
+    return () => {
+      if (procesosAbortRef.current) {
+        procesosAbortRef.current.abort()
+        procesosAbortRef.current = null
+      }
+    }
   }, [])
   
   // Función para cargar órdenes de compra
