@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { getCentroGestorAccessFromSession, filterByCentroGestor } from '@/utils/centroGestorAccess'
 
 const extractArrayPayload = <T = any>(payload: any): T[] => {
   if (Array.isArray(payload)) return payload as T[]
@@ -111,9 +112,26 @@ export const useEmprestitoBP = () => {
           fetchCollection<AsignacionBP>('/api/proxy/asignaciones-emprestito-banco-centro-gestor', 'asignaciones-bp')
         ])
 
-        setProcesos(procesosResult.data)
-        setContratos(contratosResult.data)
-        setAsignaciones(asignacionesResult.data)
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const procesosFiltrados = filterByCentroGestor(
+          procesosResult.data,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'responsable', 'organismo']
+        )
+        const contratosFiltrados = filterByCentroGestor(
+          contratosResult.data,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'responsable', 'organismo']
+        )
+        const asignacionesFiltradas = filterByCentroGestor(
+          asignacionesResult.data,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'responsable', 'organismo']
+        )
+
+        setProcesos(procesosFiltrados)
+        setContratos(contratosFiltrados)
+        setAsignaciones(asignacionesFiltradas)
 
         const errors = [procesosResult.error, contratosResult.error, asignacionesResult.error].filter(Boolean) as string[]
         if (errors.length === 3) {
@@ -330,7 +348,13 @@ export const useEmprestitoPagosAll = () => {
         }
 
         const data = await response.json()
-        setPagos(extractArrayPayload<PagoEmprestitoBP>(data))
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const pagosFiltrados = filterByCentroGestor(
+          extractArrayPayload<PagoEmprestitoBP>(data),
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'responsable', 'organismo']
+        )
+        setPagos(pagosFiltrados)
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Error desconocido'
         setError(message)
@@ -367,7 +391,13 @@ export const useEmprestitoPagos = () => {
         }
 
         const data = await response.json()
-        setPagos(extractArrayPayload<PagoBP>(data))
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const pagosFiltrados = filterByCentroGestor(
+          extractArrayPayload<PagoBP>(data),
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'responsable', 'organismo']
+        )
+        setPagos(pagosFiltrados)
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Error desconocido'
         setError(message)

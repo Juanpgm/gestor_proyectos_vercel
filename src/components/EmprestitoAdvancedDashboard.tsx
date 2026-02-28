@@ -46,6 +46,7 @@ import ContratosModal from './ContratosModal'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
 import { fetchPagosEmprestito, PagoEmprestito } from '@/services/pagos.service'
 import { formatCurrency } from '@/utils/formatCurrency'
+import { getCentroGestorAccessFromSession, filterByCentroGestor } from '@/utils/centroGestorAccess'
 import dynamic from 'next/dynamic'
 import { useReportesContrato, useResumenReportes } from '@/hooks/useReportesContrato'
 import { ClipboardEdit, History } from 'lucide-react'
@@ -1500,7 +1501,13 @@ const useSeguimientoData = () => {
           {},
           120000 // 2 minutos de timeout
         )
-        setSeguimiento(reportesData.data || [])
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const seguimientoFiltrado = filterByCentroGestor(
+          reportesData.data || [],
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'responsable']
+        )
+        setSeguimiento(seguimientoFiltrado)
         setLastUpdate(new Date().toISOString())
       } catch (error: any) {
         console.warn('⚠️ Error fetching seguimiento data:', error)
@@ -1738,10 +1745,10 @@ const useEmprestitoRealData = () => {
         }
 
         // Extraer arrays de datos con validación
-        const contratosArray = contratosData.data || []
-        const reportesArray = reportesData.data || []
-        const bancosArray = bancosData.data || []
-        const pagosArray = pagosData.data || []
+        const contratosArray = (contratosData.data || []) as ContratoEmprestito[]
+        const reportesArray = (reportesData.data || []) as ReporteEmprestito[]
+        const bancosArray = (bancosData.data || []) as BancoEmprestito[]
+        const pagosArray = (pagosData.data || []) as PagoEmprestito[]
         
         // Validar y extraer asignaciones con múltiples checks
         let asignacionesArray: any[] = []
@@ -1768,6 +1775,62 @@ const useEmprestitoRealData = () => {
         }
         
         const proyeccionesArray = proyeccionesData.success && proyeccionesData.data ? proyeccionesData.data : []
+
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const normalizeCentro = (value: unknown): string => String(value || '').trim().toLowerCase()
+        const userCentro = normalizeCentro(centroGestorAccess.userCentroGestor)
+
+        const contratosFiltrados = filterByCentroGestor(
+          contratosArray,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'nombre_entidad', 'organismo']
+        ) as ContratoEmprestito[]
+
+        const referenciasPermitidas = new Set(
+          contratosFiltrados
+            .map((contrato: any) => String(contrato?.referencia_contrato || '').trim().toLowerCase())
+            .filter((value: string) => value.length > 0)
+        )
+
+        const reportesFiltrados = (centroGestorAccess.canViewAll
+          ? reportesArray
+          : (reportesArray || []).filter((reporte: any) => {
+              const centroReporte = normalizeCentro(reporte?.nombre_centro_gestor || reporte?.centro_gestor || reporte?.responsable)
+              const referencia = String(reporte?.referencia_contrato || '').trim().toLowerCase()
+              return centroReporte === userCentro || referenciasPermitidas.has(referencia)
+            })) as ReporteEmprestito[]
+
+        const pagosFiltrados = (centroGestorAccess.canViewAll
+          ? pagosArray
+          : (pagosArray || []).filter((pago: any) => {
+              const centroPago = normalizeCentro(pago?.nombre_centro_gestor || pago?.centro_gestor || pago?.responsable)
+              const referencia = String(pago?.referencia_contrato || '').trim().toLowerCase()
+              return centroPago === userCentro || referenciasPermitidas.has(referencia)
+            })) as PagoEmprestito[]
+
+        const bancosFiltrados = filterByCentroGestor(
+          bancosArray,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'organismo', 'responsable']
+        ) as BancoEmprestito[]
+
+        const asignacionesFiltradas = filterByCentroGestor(
+          asignacionesArray,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'organismo', 'responsable']
+        )
+
+        const proyeccionesFiltradas = centroGestorAccess.canViewAll
+          ? proyeccionesArray
+          : (proyeccionesArray || []).filter((proyeccion: any) => {
+              const centroProyeccion = normalizeCentro(
+                proyeccion?.nombre_centro_gestor ||
+                proyeccion?.nombre_organismo_reducido ||
+                proyeccion?.organismo ||
+                proyeccion?.centro_gestor
+              )
+              return centroProyeccion === userCentro
+            })
         
         console.log('📋 Arrays extraídos - Resumen:', {
           contratos: contratosArray.length,
@@ -1789,21 +1852,21 @@ const useEmprestitoRealData = () => {
         const loadTime = ((endTime - startTime) / 1000).toFixed(2)
 
         console.log('💾 Guardando datos en estado...')
-        setContratos(contratosArray)
-        setReportes(reportesArray)
-        setBancosEmprestito(bancosArray)
-        setEmprestitoBancos(bancosArray)
-        setPagos(pagosArray)
-        setProyecciones(proyeccionesArray)
+        setContratos(contratosFiltrados)
+        setReportes(reportesFiltrados)
+        setBancosEmprestito(bancosFiltrados)
+        setEmprestitoBancos(bancosFiltrados)
+        setPagos(pagosFiltrados)
+        setProyecciones(proyeccionesFiltradas)
         console.log('💾 Antes de setAsignaciones:', {
           esArray: Array.isArray(asignacionesArray),
           longitud: asignacionesArray.length,
           muestra: asignacionesArray.slice(0, 1)
         })
-        setAsignaciones(asignacionesArray)
+        setAsignaciones(asignacionesFiltradas)
         console.log('✅ Estado de asignaciones actualizado')
-        setFilteredData(contratosArray)
-        setYearlySummary(calculateYearlySummary(contratosArray, reportesArray, bancosArray, asignacionesArray))
+        setFilteredData(contratosFiltrados)
+        setYearlySummary(calculateYearlySummary(contratosFiltrados, reportesFiltrados, bancosFiltrados, asignacionesFiltradas))
 
         console.log(`✅ Datos cargados en ${loadTime}s (carga paralela):`, {
           contratos: contratosArray.length,

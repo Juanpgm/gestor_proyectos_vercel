@@ -1,6 +1,11 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import {
+  getCentroGestorAccessFromSession,
+  buildAllowedBpinsSet,
+  filterByAllowedBpins
+} from '@/utils/centroGestorAccess'
 
 export interface Producto {
   bpin: number
@@ -47,13 +52,23 @@ export function useProductos(): UseProductosReturn {
         setLoading(true)
         setError(null)
 
-        const response = await fetch('/data/seguimiento_pa/seguimiento_productos_pa.json')
+        const [productosResponse, proyectosResponse] = await Promise.all([
+          fetch('/data/seguimiento_pa/seguimiento_productos_pa.json'),
+          fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json')
+        ])
         
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        if (!productosResponse.ok) {
+          throw new Error(`Error ${productosResponse.status}: ${productosResponse.statusText}`)
         }
 
-        const data: Producto[] = await response.json()
+        if (!proyectosResponse.ok) {
+          throw new Error(`Error ${proyectosResponse.status}: ${proyectosResponse.statusText}`)
+        }
+
+        const [data, proyectosData]: [Producto[], Record<string, any>[]] = await Promise.all([
+          productosResponse.json(),
+          proyectosResponse.json()
+        ])
         
         if (!Array.isArray(data)) {
           throw new Error('Los datos de productos no tienen el formato esperado')
@@ -64,7 +79,16 @@ export function useProductos(): UseProductosReturn {
           sample: data.slice(0, 3)
         })
 
-        setProductos(data)
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const allowedBpins = buildAllowedBpinsSet(
+          proyectosData || [],
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'responsible', 'centro_gestor']
+        )
+
+        const productosFiltrados = filterByAllowedBpins(data, allowedBpins)
+
+        setProductos(productosFiltrados)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error desconocido cargando productos'
         console.error('❌ Error cargando productos:', err)

@@ -1,6 +1,11 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import {
+  getCentroGestorAccessFromSession,
+  buildAllowedBpinsSet,
+  filterByAllowedBpins
+} from '@/utils/centroGestorAccess'
 
 export interface Actividad {
   bpin: number
@@ -50,13 +55,23 @@ export function useActividades(): UseActividadesReturn {
         setLoading(true)
         setError(null)
 
-        const response = await fetch('/data/seguimiento_pa/seguimiento_actividades_pa.json')
+        const [actividadesResponse, proyectosResponse] = await Promise.all([
+          fetch('/data/seguimiento_pa/seguimiento_actividades_pa.json'),
+          fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json')
+        ])
         
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        if (!actividadesResponse.ok) {
+          throw new Error(`Error ${actividadesResponse.status}: ${actividadesResponse.statusText}`)
         }
 
-        const data: Actividad[] = await response.json()
+        if (!proyectosResponse.ok) {
+          throw new Error(`Error ${proyectosResponse.status}: ${proyectosResponse.statusText}`)
+        }
+
+        const [data, proyectosData]: [Actividad[], Record<string, any>[]] = await Promise.all([
+          actividadesResponse.json(),
+          proyectosResponse.json()
+        ])
         
         if (!Array.isArray(data)) {
           throw new Error('Los datos de actividades no tienen el formato esperado')
@@ -67,7 +82,16 @@ export function useActividades(): UseActividadesReturn {
           sample: data.slice(0, 3)
         })
 
-        setActividades(data)
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const allowedBpins = buildAllowedBpinsSet(
+          proyectosData || [],
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'responsible', 'centro_gestor']
+        )
+
+        const actividadesFiltradas = filterByAllowedBpins(data, allowedBpins)
+
+        setActividades(actividadesFiltradas)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error desconocido cargando actividades'
         console.error('❌ Error cargando actividades:', err)

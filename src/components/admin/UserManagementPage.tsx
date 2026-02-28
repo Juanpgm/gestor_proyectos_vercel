@@ -95,7 +95,7 @@ export default function UserManagementPage({
       .sort((a, b) => a.localeCompare(b, 'es'))
   }, [centrosGestores, allUsers, state.user?.centro_gestor_assigned])
 
-  const detectedUserRole = currentUserRole || getHighestRole((state.user?.roles as RoleId[] | undefined) || []) || 'visualizador'
+  const detectedUserRole = currentUserRole || getHighestRole((state.user?.roles as RoleId[] | undefined) || []) || 'publico'
   const isSuperAdmin = detectedUserRole === 'super_admin'
   const isAdminGeneral = detectedUserRole === 'admin_general'
   const canManageUsers = isSuperAdmin
@@ -779,15 +779,15 @@ export default function UserManagementPage({
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="bg-gray-700 border border-gray-600 rounded-xl px-4 py-3">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Users className="w-8 h-8" />
             Gestionar Usuarios
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm text-gray-200 mt-1">
             Gobernanza de datos por roles, privilegios y auditoría
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-gray-300 mt-1">
             Sesión activa: {state.user?.email || 'No detectada'} · Rol: {detectedUserRole}
           </p>
         </div>

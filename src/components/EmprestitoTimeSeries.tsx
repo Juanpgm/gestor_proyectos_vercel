@@ -21,6 +21,7 @@ import {
 } from 'recharts'
 import { TrendingUp, DollarSign, Building2, Calendar, TrendingDown } from 'lucide-react'
 import { CATEGORIES, formatNumber } from '@/lib/design-system'
+import { getCentroGestorAccessFromSession, filterByCentroGestor } from '@/utils/centroGestorAccess'
 
 // Tipos para el endpoint /emprestito/flujo-caja/all
 interface FlujoCajaRecord {
@@ -84,7 +85,9 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         const result: FlujoCajaResponse = await response.json()
         
         if (result.success && result.data) {
-          setData(result.data)
+          const centroGestorAccess = getCentroGestorAccessFromSession()
+          const filteredData = filterByCentroGestor(result.data, centroGestorAccess, ['responsable', 'organismo', 'centro_gestor'])
+          setData(filteredData)
         } else {
           throw new Error('Formato de respuesta inválido')
         }

@@ -336,7 +336,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
   }
 }
 
-export const DEFAULT_USER_ROLE: RoleId = 'visualizador'
+export const DEFAULT_USER_ROLE: RoleId = 'publico'
 
 // Función helper para obtener información de un rol
 export function getRoleInfo(roleId: RoleId): Role {

@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react'
+import {
+  getCentroGestorAccessFromSession,
+  filterByCentroGestor
+} from '@/utils/centroGestorAccess'
 
 // Interfaces para tipar los datos
 export interface ProyectoCaracteristicas {
@@ -45,9 +49,16 @@ export function useProyectos() {
         
         const data: ProyectoCaracteristicas[] = await response.json()
         console.log('📊 Datos de proyectos cargados:', data.length, 'proyectos')
+
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const dataFiltradaPorCentro = filterByCentroGestor(
+          data,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'responsible', 'centro_gestor']
+        )
         
         // Filtrar proyectos válidos (que tienen bpin y nombre_proyecto)
-        const proyectosValidos = data.filter(proyecto => 
+        const proyectosValidos = dataFiltradaPorCentro.filter(proyecto => 
           proyecto.bpin && proyecto.nombre_proyecto
         )
         

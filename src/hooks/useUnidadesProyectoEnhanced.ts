@@ -17,6 +17,10 @@ import {
   type FilterParams 
 } from '@/services/unidades-proyecto.service';
 import { useDebounce } from './useDebounce';
+import {
+  getCentroGestorAccessFromSession,
+  filterByCentroGestor
+} from '@/utils/centroGestorAccess';
 
 // Estado del hook
 interface UnidadesProyectoState {
@@ -157,16 +161,39 @@ export const useUnidadesProyecto = (
       // Generar filtros desde datos si no se obtuvieron del servidor
       const finalFilterData = filterOptions || (attributes.length > 0 ? generateFiltersFromData(attributes) : null);
 
+      const centroGestorAccess = getCentroGestorAccessFromSession();
+      const filteredAttributesByAccess = filterByCentroGestor(
+        attributes,
+        centroGestorAccess,
+        ['nombre_centro_gestor', 'centro_gestor', 'responsible']
+      );
+
+      const allowedUpids = new Set(
+        filteredAttributesByAccess
+          .map((item) => String(item.upid || '').trim().toLowerCase())
+          .filter((value) => value.length > 0)
+      );
+
+      const filteredGeometryByAccess = geometry
+        ? {
+            ...geometry,
+            features: (geometry.features || []).filter((feature) => {
+              const normalizedUpid = String(feature?.properties?.upid || '').trim().toLowerCase();
+              return normalizedUpid.length > 0 && allowedUpids.has(normalizedUpid);
+            })
+          }
+        : geometry;
+
       if (hasFilters) {
         console.log('✅ Data loaded:', {
-          geometry: geometry?.features?.length || 0,
-          attributes: attributes.length
+          geometry: filteredGeometryByAccess?.features?.length || 0,
+          attributes: filteredAttributesByAccess.length
         });
       }
 
       updateState({
-        geometryData: geometry,
-        attributeData: attributes,
+        geometryData: filteredGeometryByAccess,
+        attributeData: filteredAttributesByAccess,
         filterData: finalFilterData,
         loading: false,
         lastUpdate: new Date()
@@ -497,48 +524,6 @@ export const useUnidadesProyecto = (
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, fetchAllData]); // fetchAllData ya tiene filters en su closure
 
-  // Efecto para obtener el conteo real de intervenciones desde el endpoint
-  useEffect(() => {
-    const fetchIntervencionesCount = async () => {
-      try {
-        console.log('📊 Fetching total intervenciones count from /intervenciones endpoint...');
-        
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-        const url = `${baseUrl}/intervenciones?limit=1`; // Solo necesitamos el count, no todos los datos
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store'
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // La API devuelve { success, data, count, filters }
-        const totalCount = data.count || 0;
-        
-        console.log(`✅ Total intervenciones from endpoint: ${totalCount}`);
-        
-        // Actualizar el estado con el conteo real
-        setState(prev => ({
-          ...prev,
-          totalIntervencionesCount: totalCount
-        }));
-        
-      } catch (error) {
-        console.error('❌ Error fetching intervenciones count:', error);
-        // En caso de error, mantener el valor null y las métricas usarán 0
-      }
-    };
-
-    // Ejecutar el fetch cuando el componente se monta
-    fetchIntervencionesCount();
-  }, []); // Solo ejecutar una vez al montar
-
   // Efecto para obtener todas las intervenciones (para métricas agregadas)
   useEffect(() => {
     const fetchIntervencionesData = async () => {
@@ -559,17 +544,40 @@ export const useUnidadesProyecto = (
         const payload = await response.json();
         const data = Array.isArray(payload?.data) ? payload.data : [];
 
+        const centroGestorAccess = getCentroGestorAccessFromSession();
+
+        const mappedIntervenciones = data.map((item: any) => ({
+          upid: item?.upid,
+          avance_obra: typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0),
+          presupuesto_base: typeof item?.presupuesto_base === 'number' ? item.presupuesto_base : parseFloat(item?.presupuesto_base || 0),
+          estado: item?.estado,
+          tipo_intervencion: item?.tipo_intervencion,
+          nombre_centro_gestor: item?.nombre_centro_gestor,
+          fuente_financiacion: item?.fuente_financiacion
+        }));
+
+        const intervencionesByCentro = filterByCentroGestor(
+          mappedIntervenciones,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'responsible']
+        );
+
+        const allowedUpids = new Set(
+          state.attributeData
+            .map((item) => String(item?.upid || '').trim().toLowerCase())
+            .filter((value) => value.length > 0)
+        );
+
+        const intervencionesFiltradas = allowedUpids.size > 0
+          ? intervencionesByCentro.filter((item) =>
+              allowedUpids.has(String(item?.upid || '').trim().toLowerCase())
+            )
+          : intervencionesByCentro;
+
         setState(prev => ({
           ...prev,
-          intervencionesData: data.map((item: any) => ({
-            upid: item?.upid,
-            avance_obra: typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0),
-            presupuesto_base: typeof item?.presupuesto_base === 'number' ? item.presupuesto_base : parseFloat(item?.presupuesto_base || 0),
-            estado: item?.estado,
-            tipo_intervencion: item?.tipo_intervencion,
-            nombre_centro_gestor: item?.nombre_centro_gestor,
-            fuente_financiacion: item?.fuente_financiacion
-          }))
+          intervencionesData: intervencionesFiltradas,
+          totalIntervencionesCount: intervencionesFiltradas.length
         }));
       } catch (error) {
         console.error('❌ Error fetching intervenciones data:', error);
@@ -577,7 +585,7 @@ export const useUnidadesProyecto = (
     };
 
     fetchIntervencionesData();
-  }, []);
+  }, [state.attributeData]);
 
   // Resultado del hook
   return {

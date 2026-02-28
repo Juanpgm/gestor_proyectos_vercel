@@ -92,6 +92,12 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
+  const isUserSessionReady = (candidate: User | null | undefined): boolean => {
+    if (!candidate) return false
+    const hasRoles = Array.isArray(candidate.roles) && candidate.roles.length > 0
+    return candidate.session_valid === true && hasRoles
+  }
+
   // Inicialización simplificada
   useEffect(() => {
     const initAuth = async () => {
@@ -105,33 +111,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const storedSession = authService.getStoredSession()
         
         if (storedSession?.user) {
-          // Verificar si la sesión tiene roles
-          const hasRoles = storedSession.user.roles && storedSession.user.roles.length > 0
-          
-          if (!hasRoles) {
-            console.warn('⚠️ Sesión antigua sin roles detectada - Actualizando desde backend...')
-            
-            // Intentar actualizar sesión desde el backend
-            try {
-              const updatedUser = await authService.validateSession()
-              if (updatedUser && updatedUser.roles && updatedUser.roles.length > 0) {
-                console.log('✅ Sesión actualizada con roles desde backend:', updatedUser.roles)
-                dispatch({ type: 'SET_USER', payload: updatedUser })
-                return
-              }
-            } catch (error) {
-              console.error('❌ Error actualizando sesión:', error)
+          try {
+            const updatedUser = await authService.validateSession()
+            if (isUserSessionReady(updatedUser)) {
+              dispatch({ type: 'SET_USER', payload: updatedUser })
+              return
             }
-            
-            // Si llegamos aquí, no pudimos actualizar los roles
-            console.error('❌ No se pudieron obtener roles - Cerrando sesión')
-            await authService.signOut()
-            dispatch({ type: 'SIGN_OUT' })
-            return
+          } catch (error) {
+            console.error('❌ Error validando sesión almacenada:', error)
           }
-          
-          // Sesión válida con roles
-          dispatch({ type: 'SET_USER', payload: storedSession.user })
+
+          await authService.signOut()
+          dispatch({ type: 'SIGN_OUT' })
+          return
         }
         
         // Si no hay sesión almacenada, terminar loading
@@ -150,7 +142,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signIn = async (email: string, password: string, remember: boolean = true) => {
     try {
       dispatch({ type: 'CLEAR_ERROR' })
-      const user = await authService.signInWithEmail({ email, password, remember })
+      let user = await authService.signInWithEmail({ email, password, remember })
+
+      if (!isUserSessionReady(user)) {
+        const refreshedUser = await authService.validateSession()
+        if (isUserSessionReady(refreshedUser)) {
+          user = refreshedUser as User
+        }
+      }
+
+      if (!isUserSessionReady(user)) {
+        throw new Error('No se pudo validar la sesión completa. Intenta nuevamente.')
+      }
       
       console.log('🎯 AuthContext - User received from authService:', {
         email: user.email,
@@ -178,6 +181,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         cellphone,
         nombre_centro_gestor
       })
+
+      if (!isUserSessionReady(user)) {
+        const refreshedUser = await authService.validateSession()
+        if (!isUserSessionReady(refreshedUser)) {
+          throw new Error('Registro completado, pero la sesión aún no está lista. Intenta iniciar sesión nuevamente.')
+        }
+        dispatch({ type: 'SET_USER', payload: refreshedUser })
+        return
+      }
       
       dispatch({ type: 'SET_USER', payload: user })
     } catch (error: any) {
@@ -190,7 +202,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       dispatch({ type: 'CLEAR_ERROR' })
       
-      const user = await authService.signInWithGoogle(remember)
+      let user = await authService.signInWithGoogle(remember)
+      if (!isUserSessionReady(user)) {
+        const refreshedUser = await authService.validateSession()
+        if (isUserSessionReady(refreshedUser)) {
+          user = refreshedUser as User
+        }
+      }
+
+      if (!isUserSessionReady(user)) {
+        throw new Error('No se pudo validar sesión completa con Google. Intenta nuevamente.')
+      }
+
       dispatch({ type: 'SET_USER', payload: user })
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Error al iniciar sesión con Google' })
@@ -216,14 +239,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'SET_LOADING', payload: true })
       // Intentar validar con el backend para obtener roles actualizados
       const user = await authService.validateSession()
-      if (user) {
+      if (isUserSessionReady(user)) {
         dispatch({ type: 'SET_USER', payload: user })
       } else {
-        // Si falla, usar sesión almacenada
-        const storedSession = authService.getStoredSession()
-        dispatch({ type: 'SET_USER', payload: storedSession?.user || null })
+        dispatch({ type: 'SET_USER', payload: null })
       }
     } catch (error: any) {
+      dispatch({ type: 'SET_USER', payload: null })
       dispatch({ type: 'SET_ERROR', payload: 'Error validando sesión' })
     }
   }

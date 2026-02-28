@@ -62,11 +62,47 @@ export default function LoginPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [loginAttempts, setLoginAttempts] = useState(0)
 
+  const normalizeCentro = (value: string): string =>
+    String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+
   // Función para obtener los centros gestores
   const fetchCentrosGestores = async () => {
     try {
       setLoadingCentros(true)
-      setCentrosGestores(CENTROS_GESTORES_EXACTOS)
+      const response = await fetch('/api/proxy/centros-gestores/nombres-unicos', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        cache: 'no-store'
+      })
+
+      if (!response.ok) {
+        throw new Error(`No se pudo cargar centros gestores (${response.status})`)
+      }
+
+      const payload = await response.json().catch(() => ({}))
+      const apiCentros =
+        (Array.isArray(payload) && payload) ||
+        (Array.isArray(payload?.data) && payload.data) ||
+        (Array.isArray(payload?.centros_gestores) && payload.centros_gestores) ||
+        (Array.isArray(payload?.nombres_centros_gestores) && payload.nombres_centros_gestores) ||
+        []
+
+      const normalizedApiCentros = apiCentros
+        .map((item: any) => String(item || '').trim())
+        .filter(Boolean)
+
+      setCentrosGestores(
+        normalizedApiCentros.length > 0
+          ? normalizedApiCentros.sort((a: string, b: string) => a.localeCompare(b, 'es'))
+          : CENTROS_GESTORES_EXACTOS
+      )
       setApiDataLoaded(true)
     } catch (error) {
       console.error('Error fetching centros gestores:', error)
@@ -117,14 +153,17 @@ export default function LoginPage() {
     setIsLoading(true)
 
     const normalizedEmail = formData.email.trim().toLowerCase()
-    const normalizedCentroGestor = formData.nombre_centro_gestor.trim()
+    const selectedCentroNormalized = normalizeCentro(formData.nombre_centro_gestor)
+    const canonicalCentroGestor =
+      centrosGestores.find((centro) => normalizeCentro(centro) === selectedCentroNormalized) ||
+      formData.nombre_centro_gestor.trim()
 
     try {
       if (mode === 'login') {
         await signIn(normalizedEmail, formData.password, formData.remember)
         setLoginAttempts(0) // Reset attempts on successful login
       } else {
-        await signUp(formData.name, normalizedEmail, formData.password, formData.confirmPassword, formData.cellphone, normalizedCentroGestor)
+        await signUp(formData.name, normalizedEmail, formData.password, formData.confirmPassword, formData.cellphone, canonicalCentroGestor)
       }
     } catch (error: any) {
       console.error('Authentication error:', error)

@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
+import {
+  getCentroGestorAccessFromSession,
+  filterByCentroGestor
+} from '@/utils/centroGestorAccess'
 
 export interface FlujoCajaItem {
   banco: string
@@ -35,9 +39,11 @@ export const useFlujoCaja = (): FlujoCajaState => {
         
         // Los datos están bajo la clave "Hoja1"
         const data: FlujoCajaItem[] = flujoCajaData.Hoja1 || []
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const dataFiltrada = filterByCentroGestor(data, centroGestorAccess, ['centro_gestor'])
 
         setState({
-          data,
+          data: dataFiltrada,
           loading: false,
           error: null
         })

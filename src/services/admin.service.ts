@@ -161,7 +161,7 @@ class AdminService {
   }
 
   private normalizeRole(roleLike: any): Role {
-    const roleId = (roleLike?.id || roleLike?.role_id || roleLike?.role || roleLike?.name || 'visualizador') as Role['id']
+    const roleId = (roleLike?.id || roleLike?.role_id || roleLike?.role || roleLike?.name || 'publico') as Role['id']
     const fallbackName = String(roleId).replace(/_/g, ' ')
 
     return {

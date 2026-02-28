@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import LoginPage from '@/components/LoginPage'
-import { motion } from 'framer-motion'
 import { ROLES_CONFIG } from '@/types/admin'
 
 interface AuthWrapperProps {
@@ -11,15 +10,38 @@ interface AuthWrapperProps {
 }
 
 export default function AuthWrapper({ children }: AuthWrapperProps) {
-  const { state } = useAuth()
+  const { state, validateSession } = useAuth()
+  const sessionCheckRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const shouldHydrate =
+      state.isAuthenticated &&
+      !!state.user &&
+      state.user.session_valid !== true
+
+    if (!shouldHydrate) {
+      sessionCheckRef.current = null
+      return
+    }
+
+    const userId = state.user?.uid || '__unknown__'
+    if (sessionCheckRef.current === userId) {
+      return
+    }
+
+    sessionCheckRef.current = userId
+    validateSession().catch(() => {
+      sessionCheckRef.current = null
+    })
+  }, [state.isAuthenticated, state.user?.uid, state.user?.session_valid, validateSession])
 
   // Si está cargando, mostrar loading
-  if (state.isLoading) {
+  if (state.isLoading || (state.isAuthenticated && state.user?.session_valid !== true)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verificando sesión...</p>
+          <p className="mt-4 text-gray-600">Validando sesión y permisos...</p>
         </div>
       </div>
     )
@@ -56,7 +78,7 @@ export function UserProfile() {
   return (
     <div
       className="flex items-center space-x-2 px-2 py-1 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 max-w-full"
-      style={{ backgroundColor: profileColor }}
+      style={{ backgroundColor: '#374151', border: `1px solid ${profileColor}33` }}
     >
       <div className="flex items-center space-x-2 min-w-0">
         {state.user.photoURL ? (

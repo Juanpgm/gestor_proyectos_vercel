@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import type { FilterState } from '@/components/UnifiedFilters'
+import {
+  getCentroGestorAccessFromSession,
+  buildAllowedBpinsSet,
+  filterByAllowedBpins
+} from '@/utils/centroGestorAccess'
 
 // Interfaces para los tipos de datos
 export interface ProyectoCaracteristico {
@@ -230,15 +235,40 @@ export function useProjectData() {
           geometry: feature.geometry
         }))
 
+        const proyectosTyped = (proyectos || []) as ProyectoCaracteristico[]
+        const ejecucionTyped = (ejecucion || []) as EjecucionPresupuestal[]
+        const seguimientoTyped = (seguimiento || []) as SeguimientoPA[]
+        const movimientosTyped = (movimientos || []) as MovimientosPresupuestales[]
+        const contratosTyped = (contratos || []) as Contrato[]
+        const contratoValoresTyped = (contratoValores || []) as ContratoValor[]
+        const equipamientosTyped = (equipamientos || []) as UnidadProyectoEquipamiento[]
+        const infraestructuraTyped = (infraestructura || []) as UnidadProyectoInfraestructura[]
+
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const allowedBpins = buildAllowedBpinsSet(
+          proyectosTyped,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'responsible', 'centro_gestor']
+        )
+
+        const proyectosFiltrados = filterByAllowedBpins(proyectosTyped, allowedBpins)
+        const ejecucionFiltrada = filterByAllowedBpins(ejecucionTyped, allowedBpins)
+        const seguimientoFiltrado = filterByAllowedBpins(seguimientoTyped, allowedBpins)
+        const movimientosFiltrados = filterByAllowedBpins(movimientosTyped, allowedBpins)
+        const contratosFiltrados = filterByAllowedBpins(contratosTyped, allowedBpins)
+        const contratoValoresFiltrados = filterByAllowedBpins(contratoValoresTyped, allowedBpins)
+        const equipamientosFiltrados = filterByAllowedBpins(equipamientosTyped, allowedBpins)
+        const infraestructuraFiltrada = filterByAllowedBpins(infraestructuraTyped, allowedBpins)
+
         setData({
-          proyectos,
-          ejecucion,
-          seguimiento,
-          movimientos,
-          contratos,
-          contratoValores,
-          equipamientos,
-          infraestructura,
+          proyectos: proyectosFiltrados,
+          ejecucion: ejecucionFiltrada,
+          seguimiento: seguimientoFiltrado,
+          movimientos: movimientosFiltrados,
+          contratos: contratosFiltrados,
+          contratoValores: contratoValoresFiltrados,
+          equipamientos: equipamientosFiltrados,
+          infraestructura: infraestructuraFiltrada,
           loading: false,
           error: null
         })

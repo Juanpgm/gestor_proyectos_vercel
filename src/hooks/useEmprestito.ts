@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
+import {
+  getCentroGestorAccessFromSession,
+  filterByCentroGestor,
+  toBpinKey
+} from '@/utils/centroGestorAccess'
 
 export interface EmprestitoContrato {
   nombre_entidad: string;
@@ -240,10 +245,36 @@ export const useEmprestito = (enabled: boolean = true): EmprestitoState => {
           validador_cuipo: ''
         }))
 
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const proyectosFiltrados = filterByCentroGestor(
+          proyectos,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'nombre_entidad']
+        )
+
+        const allowedBpins = new Set(
+          proyectosFiltrados
+            .map((proyecto) => toBpinKey(proyecto.bpin))
+            .filter((value): value is string => Boolean(value))
+        )
+
+        const contratosFiltrados = centroGestorAccess.canViewAll
+          ? contratos
+          : contratos.filter((contrato) => {
+              const contratoBpin = toBpinKey(contrato.bpin)
+              const nombreEntidad = String(contrato.nombre_entidad || '').trim().toLowerCase()
+              const userCentro = String(centroGestorAccess.userCentroGestor || '').trim().toLowerCase()
+
+              if (contratoBpin && allowedBpins.has(contratoBpin)) return true
+              if (userCentro && nombreEntidad === userCentro) return true
+
+              return false
+            })
+
         setState({
           data: {
-            contratos,
-            proyectos,
+            contratos: contratosFiltrados,
+            proyectos: proyectosFiltrados,
             dimensiones: [], // Array vacío ya que no tenemos este archivo
             hechos: {} // Objeto vacío ya que no tenemos este archivo
           },

@@ -1,6 +1,11 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import {
+  getCentroGestorAccessFromSession,
+  buildAllowedBpinsSet,
+  filterByAllowedBpins
+} from '@/utils/centroGestorAccess'
 
 // Tipos para cada fuente de datos
 interface Proyecto {
@@ -208,19 +213,42 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         const contratosData = await contratosRes.json()
         const seguimientoPaData = await seguimientoPaRes.json()
 
+        const proyectosTyped = (proyectosData || []) as Proyecto[]
+        const productosTyped = (productosData || []) as Producto[]
+        const actividadesTyped = (actividadesData || []) as Actividad[]
+        const contratosTyped = (contratosData || []) as Contrato[]
+        const movimientosTyped = (movimientosPresupuestalesData || []) as MovimientoPresupuestal[]
+        const ejecucionTyped = (ejecucionPresupuestalData || []) as EjecucionPresupuestal[]
+        const seguimientoTyped = (seguimientoPaData || []) as SeguimientoPa[]
+
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const allowedBpins = buildAllowedBpinsSet(
+          proyectosTyped,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'responsible', 'centro_gestor']
+        )
+
+        const proyectosFiltrados = filterByAllowedBpins(proyectosTyped, allowedBpins)
+        const productosFiltrados = filterByAllowedBpins(productosTyped, allowedBpins)
+        const actividadesFiltradas = filterByAllowedBpins(actividadesTyped, allowedBpins)
+        const contratosFiltrados = filterByAllowedBpins(contratosTyped, allowedBpins)
+        const movimientosFiltrados = filterByAllowedBpins(movimientosTyped, allowedBpins)
+        const ejecucionFiltrada = filterByAllowedBpins(ejecucionTyped, allowedBpins)
+        const seguimientoFiltrado = filterByAllowedBpins(seguimientoTyped, allowedBpins)
+
         // Establecer los datos en el estado
-        setProyectos(proyectosData || [])
+        setProyectos(proyectosFiltrados)
         
         // Usar datos mock vacíos para equipamientos e infraestructura
         setEquipamientos(equipamientosData)
         setInfraestructuraVial(infraestructuraData)
         
-        setProductos(productosData || [])
-        setActividades(actividadesData || [])
-        setContratos(contratosData || [])
-        setMovimientosPresupuestales(movimientosPresupuestalesData || [])
-        setEjecucionPresupuestal(ejecucionPresupuestalData || [])
-        setSeguimientoPa(seguimientoPaData || [])
+        setProductos(productosFiltrados)
+        setActividades(actividadesFiltradas)
+        setContratos(contratosFiltrados)
+        setMovimientosPresupuestales(movimientosFiltrados)
+        setEjecucionPresupuestal(ejecucionFiltrada)
+        setSeguimientoPa(seguimientoFiltrado)
         setProductosPa([]) // Empty array for now
         setActividadesPa([]) // Empty array for now
 

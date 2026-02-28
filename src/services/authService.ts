@@ -58,6 +58,128 @@ class AuthService {
     return fallback
   }
 
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  private extractBackendUserPayload(payload: any): any {
+    if (!payload) return null
+    return (
+      payload.user ||
+      payload.data?.user ||
+      payload.detail?.user ||
+      payload.detail?.data?.user ||
+      payload.data ||
+      payload.detail ||
+      null
+    )
+  }
+
+  private toBoolean(value: any, fallback: boolean = false): boolean {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'number') return value === 1
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase()
+      if (normalized === 'true' || normalized === '1') return true
+      if (normalized === 'false' || normalized === '0') return false
+    }
+    return fallback
+  }
+
+  private getRequestId(payload: any): string | null {
+    if (!payload) return null
+    return (
+      payload.request_id ||
+      payload.requestId ||
+      payload.data?.request_id ||
+      payload.detail?.request_id ||
+      null
+    )
+  }
+
+  private hasHydratedProfile(user: User | null | undefined): boolean {
+    if (!user) return false
+    const hasRoles = Array.isArray(user.roles) && user.roles.length > 0
+    const isSessionValid = user.session_valid === true
+    const hasCentroGestor = Boolean(
+      (user.nombre_centro_gestor && String(user.nombre_centro_gestor).trim()) ||
+      (user.centro_gestor_assigned && String(user.centro_gestor_assigned).trim())
+    )
+    return hasRoles && hasCentroGestor && isSessionValid
+  }
+
+  private async validateSessionWithRetry(
+    firebaseUser: FirebaseUser,
+    maxAttempts: number = 2
+  ): Promise<{ backendData: any; idToken: string }> {
+    let lastError: any = null
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const idToken = await firebaseUser.getIdToken(attempt > 1)
+        const response = await fetch(`${this.getApiUrl()}/auth/validate-session`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id_token: idToken })
+        })
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}))
+          throw new Error(this.parseApiErrorMessage(error, 'Validation failed'))
+        }
+
+        const backendData = await response.json()
+        const backendUser = this.extractBackendUserPayload(backendData)
+        const requestId = this.getRequestId(backendData)
+        const mappedUser = this.mapApiUser(backendUser, idToken, {
+          ...backendData,
+          request_id: requestId,
+          session_valid: backendData?.session_valid ?? backendData?.success ?? true
+        })
+
+        console.log(`🔎 validate-session login attempt ${attempt}/${maxAttempts}`, {
+          request_id: requestId,
+          session_valid: mappedUser.session_valid,
+          profile_complete: mappedUser.profile_complete,
+          roles: mappedUser.roles
+        })
+
+        if (this.hasHydratedProfile(mappedUser)) {
+          return { backendData, idToken }
+        }
+
+        const shouldRetry =
+          attempt < maxAttempts &&
+          (mappedUser.profile_complete === false || !this.hasHydratedProfile(mappedUser))
+
+        if (!shouldRetry) {
+          return { backendData, idToken }
+        }
+
+        const retryDelay = 300 + Math.floor(Math.random() * 401)
+        console.warn(`⚠️ Perfil incompleto en intento ${attempt}/${maxAttempts}. Reintentando validación...`, {
+          request_id: requestId,
+          roles: mappedUser.roles,
+          nombre_centro_gestor: mappedUser.nombre_centro_gestor,
+          centro_gestor_assigned: mappedUser.centro_gestor_assigned,
+          profile_complete: mappedUser.profile_complete,
+          retry_in_ms: retryDelay
+        })
+
+        await this.delay(retryDelay)
+      } catch (error: any) {
+        lastError = error
+        if (attempt === maxAttempts) break
+        await this.delay(300 + Math.floor(Math.random() * 401))
+      }
+    }
+
+    throw lastError || new Error('No fue posible hidratar perfil completo en el primer login')
+  }
+
   async getRegisterHealthCheck(): Promise<any> {
     const response = await fetch(`${this.getApiUrl()}/auth/register/health-check`, {
       method: 'GET',
@@ -157,7 +279,10 @@ class AuthService {
   }
 
   // Convertir respuesta de API a nuestro tipo User
-  private mapApiUser(apiUser: any, idToken?: string): User {
+  private mapApiUser(apiUser: any, idToken?: string, responseMeta?: any): User {
+    const safeApiUser = apiUser || {}
+    const safeMeta = responseMeta || {}
+
     const toArray = (value: any): string[] => {
       if (Array.isArray(value)) {
         return value.filter(Boolean).map(String)
@@ -199,7 +324,8 @@ class AuthService {
         admin_master: 'admin_general',
         superadmin: 'super_admin',
         super_administrador: 'super_admin',
-        viewer: 'visualizador'
+        viewer: 'publico',
+        visualizador: 'publico'
       }
       return aliases[normalized] || normalized
     }
@@ -207,106 +333,188 @@ class AuthService {
     const dedupe = (items: string[]) => Array.from(new Set(items))
 
     const rawRoleCandidates = [
-      apiUser.roles,
-      apiUser.role,
-      apiUser.user_role,
-      apiUser.firestore_data?.roles,
-      apiUser.firestore_data?.role,
-      apiUser.custom_claims?.roles,
-      apiUser.custom_claims?.role,
-      apiUser.claims?.roles,
-      apiUser.claims?.role,
-      apiUser.profile?.roles,
-      apiUser.profile?.role,
-      apiUser.data?.roles,
-      apiUser.data?.role
+      safeApiUser.primary_role,
+      safeApiUser.roles,
+      safeApiUser.role,
+      safeApiUser.user_role,
+      safeApiUser.firestore_data?.roles,
+      safeApiUser.firestore_data?.role,
+      safeApiUser.custom_claims?.roles,
+      safeApiUser.custom_claims?.role,
+      safeApiUser.claims?.roles,
+      safeApiUser.claims?.role,
+      safeApiUser.profile?.roles,
+      safeApiUser.profile?.role,
+      safeApiUser.data?.roles,
+      safeApiUser.data?.role,
+      safeMeta.primary_role,
+      safeMeta.role,
+      safeMeta.roles,
+      safeMeta.user?.primary_role,
+      safeMeta.user?.roles,
+      safeMeta.data?.primary_role,
+      safeMeta.data?.roles
     ]
 
     const parsedRoles = pickFirstArray(...rawRoleCandidates)
-    const roles = dedupe(parsedRoles.map(normalizeRole))
+    const normalizedRoles = dedupe(parsedRoles.map(normalizeRole))
+    const sessionValidFlag = this.toBoolean(
+      safeMeta.session_valid ?? safeApiUser.session_valid,
+      false
+    )
+
+    const roles = normalizedRoles.length > 0
+      ? normalizedRoles
+      : (sessionValidFlag ? ['publico'] : [])
+
+    const primaryRole = roles[0] || null
 
     const permissions = dedupe(pickFirstArray(
-      apiUser.permissions,
-      apiUser.permisos,
-      apiUser.effective_permissions,
-      apiUser.permissions_effective,
-      apiUser.permission,
-      apiUser.permiso,
-      apiUser.firestore_data?.permissions,
-      apiUser.firestore_data?.permisos,
-      apiUser.firestore_data?.effective_permissions,
-      apiUser.firestore_data?.permissions_effective,
-      apiUser.custom_claims?.permissions,
-      apiUser.custom_claims?.permisos,
-      apiUser.custom_claims?.effective_permissions,
-      apiUser.custom_claims?.permissions_effective,
-      apiUser.claims?.permissions,
-      apiUser.claims?.permisos,
-      apiUser.claims?.effective_permissions,
-      apiUser.claims?.permissions_effective,
-      apiUser.profile?.permissions,
-      apiUser.profile?.permisos,
-      apiUser.profile?.effective_permissions,
-      apiUser.profile?.permissions_effective,
-      apiUser.data?.permissions,
-      apiUser.data?.permisos,
-      apiUser.data?.effective_permissions,
-      apiUser.data?.permissions_effective,
-      apiUser.authz?.permissions,
-      apiUser.authz?.effective_permissions,
-      apiUser.authorization?.permissions,
-      apiUser.authorization?.effective_permissions
+      safeApiUser.permissions,
+      safeApiUser.permisos,
+      safeApiUser.effective_permissions,
+      safeApiUser.permissions_effective,
+      safeApiUser.permission,
+      safeApiUser.permiso,
+      safeApiUser.firestore_data?.permissions,
+      safeApiUser.firestore_data?.permisos,
+      safeApiUser.firestore_data?.effective_permissions,
+      safeApiUser.firestore_data?.permissions_effective,
+      safeApiUser.custom_claims?.permissions,
+      safeApiUser.custom_claims?.permisos,
+      safeApiUser.custom_claims?.effective_permissions,
+      safeApiUser.custom_claims?.permissions_effective,
+      safeApiUser.claims?.permissions,
+      safeApiUser.claims?.permisos,
+      safeApiUser.claims?.effective_permissions,
+      safeApiUser.claims?.permissions_effective,
+      safeApiUser.profile?.permissions,
+      safeApiUser.profile?.permisos,
+      safeApiUser.profile?.effective_permissions,
+      safeApiUser.profile?.permissions_effective,
+      safeApiUser.data?.permissions,
+      safeApiUser.data?.permisos,
+      safeApiUser.data?.effective_permissions,
+      safeApiUser.data?.permissions_effective,
+      safeApiUser.authz?.permissions,
+      safeApiUser.authz?.effective_permissions,
+      safeApiUser.authorization?.permissions,
+      safeApiUser.authorization?.effective_permissions,
+      safeMeta.permissions,
+      safeMeta.permisos,
+      safeMeta.effective_permissions,
+      safeMeta.permissions_effective,
+      safeMeta.user?.permissions,
+      safeMeta.user?.permisos,
+      safeMeta.user?.effective_permissions,
+      safeMeta.user?.permissions_effective,
+      safeMeta.data?.permissions,
+      safeMeta.data?.permisos,
+      safeMeta.data?.effective_permissions,
+      safeMeta.data?.permissions_effective,
+      safeApiUser.authorization?.effective_permissions
     ))
+
+    const profileComplete = this.toBoolean(
+      safeMeta.profile_complete ??
+      safeApiUser.profile_complete ??
+      safeApiUser.profile?.profile_complete,
+      true
+    )
+
+    const sessionValid = this.toBoolean(
+      safeMeta.session_valid ?? safeApiUser.session_valid,
+      false
+    )
+
+    const requestId =
+      safeMeta.request_id ||
+      safeApiUser.request_id ||
+      safeApiUser.requestId ||
+      null
     
     // Extraer centro_gestor desde firestore_data o custom_claims
     const nombre_centro_gestor =
-      apiUser.nombre_centro_gestor ||
-      apiUser.firestore_data?.nombre_centro_gestor ||
-      apiUser.custom_claims?.centro_gestor ||
+      safeApiUser.nombre_centro_gestor ||
+      safeApiUser.centro_gestor ||
+      safeApiUser.nombre_centro ||
+      safeApiUser.firestore_data?.nombre_centro_gestor ||
+      safeApiUser.custom_claims?.nombre_centro_gestor ||
+      safeApiUser.custom_claims?.centro_gestor ||
+      safeApiUser.claims?.nombre_centro_gestor ||
+      safeApiUser.claims?.centro_gestor ||
+      safeApiUser.profile?.nombre_centro_gestor ||
+      safeApiUser.data?.nombre_centro_gestor ||
+      safeMeta?.nombre_centro_gestor ||
+      safeMeta?.centro_gestor ||
+      safeMeta?.user?.nombre_centro_gestor ||
+      safeMeta?.user?.centro_gestor ||
+      safeMeta?.data?.nombre_centro_gestor ||
+      safeMeta?.data?.centro_gestor ||
       null
 
     const centro_gestor_assigned = 
-      apiUser.centro_gestor_assigned || 
-      apiUser.firestore_data?.nombre_centro_gestor ||
-      apiUser.custom_claims?.centro_gestor || 
+      safeApiUser.centro_gestor_assigned || 
+      safeApiUser.centro_gestor ||
+      safeApiUser.firestore_data?.nombre_centro_gestor ||
+      safeApiUser.custom_claims?.nombre_centro_gestor ||
+      safeApiUser.custom_claims?.centro_gestor || 
+      safeApiUser.claims?.nombre_centro_gestor ||
+      safeApiUser.claims?.centro_gestor ||
+      safeMeta?.centro_gestor_assigned ||
+      safeMeta?.centro_gestor ||
+      safeMeta?.nombre_centro_gestor ||
+      safeMeta?.user?.centro_gestor_assigned ||
+      safeMeta?.user?.centro_gestor ||
+      safeMeta?.user?.nombre_centro_gestor ||
+      safeMeta?.data?.centro_gestor_assigned ||
+      safeMeta?.data?.centro_gestor ||
+      safeMeta?.data?.nombre_centro_gestor ||
       null
     
     // Extraer is_active desde firestore_data
-    const is_active = apiUser.firestore_data?.is_active !== undefined 
-      ? apiUser.firestore_data.is_active 
-      : (apiUser.is_active !== undefined ? apiUser.is_active : true)
+    const is_active = safeApiUser.firestore_data?.is_active !== undefined 
+      ? safeApiUser.firestore_data.is_active 
+      : (safeApiUser.is_active !== undefined ? safeApiUser.is_active : true)
     
     // Extraer teléfono
-    const phone = apiUser.phone || apiUser.phone_number || apiUser.firestore_data?.cellphone || apiUser.cellphone || null
+    const phone = safeApiUser.phone || safeApiUser.phone_number || safeApiUser.firestore_data?.cellphone || safeApiUser.cellphone || null
     
     console.log('🔄 Mapping API user:', {
-      email: apiUser.email,
+      email: safeApiUser.email,
       rolesFound: roles,
       rolesSource: roles.length > 0 ? 'multi-source-normalized' : 'none',
       permissionsFound: permissions,
-      hasCustomClaims: !!apiUser.custom_claims,
-      hasFirestoreData: !!apiUser.firestore_data,
-      apiUserKeys: Object.keys(apiUser)
+      hasCustomClaims: !!safeApiUser.custom_claims,
+      hasFirestoreData: !!safeApiUser.firestore_data,
+      request_id: requestId,
+      profile_complete: profileComplete,
+      session_valid: sessionValid,
+      apiUserKeys: Object.keys(safeApiUser)
     })
     
     const mappedUser = {
-      uid: apiUser.uid || apiUser.id,
-      email: apiUser.email,
-      displayName: apiUser.display_name || apiUser.firestore_data?.full_name || apiUser.firestore_data?.fullname || apiUser.name || apiUser.displayName,
-      photoURL: apiUser.photoURL || apiUser.photo_url,
-      emailVerified: apiUser.email_verified || apiUser.emailVerified || false,
-      provider: apiUser.provider || 'email',
-      createdAt: apiUser.created_at || apiUser.createdAt || apiUser.firestore_data?.created_at || (apiUser.custom_claims?.created_at),
-      lastLoginAt: apiUser.last_login_at || apiUser.lastLoginAt || apiUser.firestore_data?.last_login || apiUser.last_sign_in,
+      uid: safeApiUser.uid || safeApiUser.id,
+      email: safeApiUser.email,
+      displayName: safeApiUser.display_name || safeApiUser.firestore_data?.full_name || safeApiUser.firestore_data?.fullname || safeApiUser.name || safeApiUser.displayName,
+      photoURL: safeApiUser.photoURL || safeApiUser.photo_url,
+      emailVerified: safeApiUser.email_verified || safeApiUser.emailVerified || false,
+      provider: safeApiUser.provider || 'email',
+      createdAt: safeApiUser.created_at || safeApiUser.createdAt || safeApiUser.firestore_data?.created_at || (safeApiUser.custom_claims?.created_at),
+      lastLoginAt: safeApiUser.last_login_at || safeApiUser.lastLoginAt || safeApiUser.firestore_data?.last_login || safeApiUser.last_sign_in,
       // Roles y permisos extraídos de firestore_data
       roles: roles,
+      primary_role: primaryRole,
       permissions: permissions,
       nombre_centro_gestor: nombre_centro_gestor,
       centro_gestor_assigned: centro_gestor_assigned,
       is_active: is_active,
       phone: phone,
+      profile_complete: profileComplete,
+      session_valid: sessionValid,
+      request_id: requestId,
       // Token de autenticación (puede venir de la API o ser pasado explícitamente)
-      idToken: idToken || apiUser.id_token || apiUser.idToken || null
+      idToken: idToken || safeApiUser.id_token || safeApiUser.idToken || null
     }
     
     console.log('✅ User mapped successfully:', {
@@ -335,34 +543,22 @@ class AuthService {
       console.log('✅ Firebase authentication successful')
 
       // PASO 2: Obtener ID token
-      const idToken = await userCredential.user.getIdToken()
+      const idToken = await userCredential.user.getIdToken(true)
       console.log('✅ ID token obtained:', idToken.substring(0, 20) + '...')
 
       // PASO 3: Validar con backend y obtener roles/permisos
-      const apiUrl = this.getApiUrl()
-      console.log('🌐 Validating session with backend:', apiUrl)
-      
-      const response = await fetch(`${apiUrl}/auth/validate-session`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Validation failed')
-      }
-
-      const backendData = await response.json()
+      const { backendData, idToken: hydratedToken } = await this.validateSessionWithRetry(userCredential.user)
       console.log('✅ Backend validation successful:', {
-        roles: backendData.user?.roles,
-        permissions: backendData.user?.permissions
+        roles: this.extractBackendUserPayload(backendData)?.roles,
+        permissions: this.extractBackendUserPayload(backendData)?.permissions
       })
 
       // PASO 4: Mapear usuario con roles y permisos del backend
-      const user = this.mapApiUser(backendData.user, idToken)
+      const user = this.mapApiUser(this.extractBackendUserPayload(backendData), hydratedToken, {
+        ...backendData,
+        request_id: this.getRequestId(backendData),
+        session_valid: backendData?.session_valid ?? backendData?.success ?? true
+      })
       
       // Guardar sesión localmente
       this.saveSession(user, remember)
@@ -503,11 +699,13 @@ class AuthService {
       // Verificar si el registro fue exitoso
       let success = data.success
       let userData = data.user
+      let requestId = this.getRequestId(data)
 
       // Si la respuesta está anidada en detail
       if (data.detail) {
         success = data.detail.success
         userData = data.detail.user
+        requestId = requestId || this.getRequestId(data.detail)
       }
 
       if (!success) {
@@ -516,8 +714,32 @@ class AuthService {
       }
 
       // Extraer el token de la respuesta si está disponible
-      const idToken = data.id_token || data.idToken || data.token || userData?.id_token
-      const user = this.mapApiUser(userData, idToken)
+      let idToken = data.id_token || data.idToken || data.token || userData?.id_token || data.detail?.id_token || data.detail?.token
+
+      if (!idToken && auth?.currentUser) {
+        idToken = await auth.currentUser.getIdToken(true)
+      }
+
+      let user = this.mapApiUser(userData, idToken, {
+        ...data,
+        request_id: requestId,
+        session_valid: data?.session_valid ?? data?.success ?? true
+      })
+
+      if (idToken) {
+        const validatedUser = await this.validateSession(idToken)
+        if (validatedUser) {
+          user = validatedUser
+        }
+      }
+
+      console.log('🧾 register response correlation:', {
+        request_id: requestId,
+        session_valid: user.session_valid,
+        profile_complete: user.profile_complete,
+        primary_role: user.primary_role,
+        roles: user.roles
+      })
       
       // Guardar sesión localmente después del registro exitoso
       this.saveSession(user, true)
@@ -603,7 +825,11 @@ class AuthService {
       // PASO 4: Mapear usuario con roles y permisos del backend
       const backendUser = backendData?.user || backendData?.data?.user || backendData?.data || backendData
       const backendToken = backendData?.id_token || backendData?.idToken || idToken
-      const user = this.mapApiUser(backendUser, backendToken)
+      const user = this.mapApiUser(backendUser, backendToken, {
+        ...backendData,
+        request_id: this.getRequestId(backendData),
+        session_valid: backendData?.session_valid ?? backendData?.success ?? true
+      })
       
       // Guardar sesión localmente
       this.saveSession(user, remember)
@@ -638,28 +864,62 @@ class AuthService {
 
       if (!token) return null
 
-      const response = await fetch(`${this.getApiUrl()}/auth/validate-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ id_token: token })
-      })
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const response = await fetch(`${this.getApiUrl()}/auth/validate-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ id_token: token })
+        })
 
-      const data = await response.json()
+        const data = await response.json().catch(() => ({}))
 
-      if (!response.ok || !data.success) {
-        this.clearSession()
-        return null
+        if (!response.ok) {
+          if (attempt === 2) {
+            this.clearSession()
+            return null
+          }
+          await this.delay(300 + Math.floor(Math.random() * 401))
+          continue
+        }
+
+        const backendUser = this.extractBackendUserPayload(data)
+        const requestId = this.getRequestId(data)
+        const user = this.mapApiUser(backendUser, token, {
+          ...data,
+          request_id: requestId,
+          session_valid: data?.session_valid ?? data?.success ?? true
+        })
+
+        console.log(`🔎 validate-session check attempt ${attempt}/2`, {
+          request_id: requestId,
+          session_valid: user.session_valid,
+          profile_complete: user.profile_complete,
+          primary_role: user.primary_role,
+          roles: user.roles
+        })
+
+        if (user.profile_complete === false && attempt === 1) {
+          await this.delay(300 + Math.floor(Math.random() * 401))
+          if (!idToken && auth?.currentUser) {
+            token = await auth.currentUser.getIdToken(true)
+          }
+          continue
+        }
+
+        if (user.session_valid !== true) {
+          this.clearSession()
+          return null
+        }
+
+        this.saveSession(user, true)
+        return user
       }
 
-      const user = this.mapApiUser(data.user, token)
-      
-      // Actualizar sesión local
-      this.saveSession(user, true)
-      
-      return user
+      this.clearSession()
+      return null
     } catch (error) {
       console.error('Session validation error:', error)
       this.clearSession()
@@ -741,18 +1001,20 @@ class AuthService {
       
       // Validar que la sesión tenga roles
       const hasRoles = parsed.user?.roles && Array.isArray(parsed.user.roles) && parsed.user.roles.length > 0
+      const hasSessionValid = parsed.user?.session_valid === true
       
       console.log('📖 Leyendo sesión guardada:', {
         email: parsed.user?.email,
         roles: parsed.user?.roles,
         rolesLength: parsed.user?.roles?.length,
         hasRoles: hasRoles,
-        isValidSession: hasRoles
+        session_valid: parsed.user?.session_valid,
+        isValidSession: hasRoles && hasSessionValid
       })
       
       // Si la sesión no tiene roles o roles es undefined, invalidarla
-      if (!hasRoles) {
-        console.warn('⚠️ Sesión sin roles detectada - Se requiere nuevo login para actualizar roles')
+      if (!hasRoles || !hasSessionValid) {
+        console.warn('⚠️ Sesión incompleta detectada - Se requiere revalidación contra backend')
         // NO limpiamos la sesión automáticamente para no desloguear al usuario
         // Pero marcamos que necesita actualización
       }

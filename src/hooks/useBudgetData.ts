@@ -1,4 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  getCentroGestorAccessFromSession,
+  buildAllowedBpinsSet,
+  filterByAllowedBpins
+} from '@/utils/centroGestorAccess';
 
 // Simplified interfaces based on what we expect from the JSON files
 interface EjecucionPresupuestal {
@@ -94,11 +99,26 @@ export const useBudgetData = (options: UseBudgetDataOptions = {}) => {
         fetchJsonData('/data/ejecucion_presupuestal/centro_gestor.json')
       ]);
 
+      const ejecucionTyped = (ejecucion || []) as EjecucionPresupuestal[];
+      const movimientosTyped = (movimientos || []) as MovimientoPresupuestal[];
+      const caracteristicosTyped = (caracteristicos || []) as DatosCaracteristicosProyecto[];
+
+      const centroGestorAccess = getCentroGestorAccessFromSession();
+      const allowedBpins = buildAllowedBpinsSet(
+        caracteristicosTyped,
+        centroGestorAccess,
+        ['nombre_centro_gestor', 'responsible', 'centro_gestor']
+      );
+
+      const caracteristicosFiltrados = filterByAllowedBpins(caracteristicosTyped, allowedBpins);
+      const ejecucionFiltrada = filterByAllowedBpins(ejecucionTyped, allowedBpins);
+      const movimientosFiltrados = filterByAllowedBpins(movimientosTyped, allowedBpins);
+
       setState(prev => ({
         ...prev,
-        ejecucionPresupuestal: ejecucion || [],
-        movimientosPresupuestales: movimientos || [],
-        datosCaracteristicos: caracteristicos || [],
+        ejecucionPresupuestal: ejecucionFiltrada,
+        movimientosPresupuestales: movimientosFiltrados,
+        datosCaracteristicos: caracteristicosFiltrados,
         centrosGestores: centros || null,
         loading: false,
         lastUpdated: new Date()
