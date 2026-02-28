@@ -74,11 +74,14 @@ export function UserProfile() {
 
   const normalizedRole = roleAliasMap[highestRole || ''] || highestRole || ''
   const profileColor = ROLES_CONFIG[normalizedRole as keyof typeof ROLES_CONFIG]?.color || '#2563EB'
+  const isPublicRole = normalizedRole === 'publico'
 
   return (
     <div
       className="flex items-center space-x-2 px-2 py-1 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 max-w-full"
-      style={{ backgroundColor: '#374151', border: `1px solid ${profileColor}33` }}
+      style={isPublicRole
+        ? { backgroundColor: '#374151', border: `1px solid ${profileColor}33` }
+        : { backgroundColor: profileColor }}
     >
       <div className="flex items-center space-x-2 min-w-0">
         {state.user.photoURL ? (

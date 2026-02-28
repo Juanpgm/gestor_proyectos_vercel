@@ -96,6 +96,7 @@ export default function UserManagementPage({
   }, [centrosGestores, allUsers, state.user?.centro_gestor_assigned])
 
   const detectedUserRole = currentUserRole || getHighestRole((state.user?.roles as RoleId[] | undefined) || []) || 'publico'
+  const isPublicRoleTheme = (state.user?.roles || []).includes('publico')
   const isSuperAdmin = detectedUserRole === 'super_admin'
   const isAdminGeneral = detectedUserRole === 'admin_general'
   const canManageUsers = isSuperAdmin
@@ -779,15 +780,15 @@ export default function UserManagementPage({
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="bg-gray-700 border border-gray-600 rounded-xl px-4 py-3">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <div className={isPublicRoleTheme ? 'bg-gray-700 border border-gray-600 rounded-xl px-4 py-3' : ''}>
+          <h1 className={`text-2xl font-bold flex items-center gap-2 ${isPublicRoleTheme ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
             <Users className="w-8 h-8" />
             Gestionar Usuarios
           </h1>
-          <p className="text-sm text-gray-200 mt-1">
+          <p className={`text-sm mt-1 ${isPublicRoleTheme ? 'text-gray-200' : 'text-gray-600 dark:text-gray-400'}`}>
             Gobernanza de datos por roles, privilegios y auditoría
           </p>
-          <p className="text-xs text-gray-300 mt-1">
+          <p className={`text-xs mt-1 ${isPublicRoleTheme ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
             Sesión activa: {state.user?.email || 'No detectada'} · Rol: {detectedUserRole}
           </p>
         </div>
