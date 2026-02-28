@@ -19,6 +19,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSectionChange
 }) => {
   const { isSuperAdmin, state, signOut, getHighestRole, hasRole } = useAuth()
+
+  const canAccessFullManagementSidebar =
+    hasRole('super_admin') || hasRole('admin_general') || hasRole('editor_datos')
+  const isAdminCentroGestor = hasRole('admin_centro_gestor')
   
   // Debug: Mostrar información del usuario y roles en consola
   useEffect(() => {
@@ -33,13 +37,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   }, [state.isAuthenticated, state.user, isSuperAdmin, getHighestRole])
   
-  const baseMenuItems = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard Principal',
-      icon: Home,
-      description: 'Panel principal del sistema'
-    },
+  const dashboardMenuItem = {
+    id: 'dashboard',
+    label: 'Dashboard Principal',
+    icon: Home,
+    description: 'Panel principal del sistema'
+  }
+
+  const managementMenuItems = [
     {
       id: 'gestionar-procesos',
       label: 'Gestionar Procesos',
@@ -72,6 +77,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   ]
 
+  const visibleManagementMenuItems = canAccessFullManagementSidebar
+    ? managementMenuItems
+    : isAdminCentroGestor
+      ? managementMenuItems.filter((item) => item.id === 'gestionar-unidades-proyecto')
+      : []
+
+  const baseMenuItems = [dashboardMenuItem, ...visibleManagementMenuItems]
+
   // Agregar "Gestionar Usuarios" solo para super_admin
   const shouldShowUserManagement = isSuperAdmin()
   
@@ -81,9 +94,18 @@ const Sidebar: React.FC<SidebarProps> = ({
       shouldShow: shouldShowUserManagement,
       isSuperAdmin: isSuperAdmin(),
       userRoles: state.user?.roles,
+      canAccessFullManagementSidebar,
+      isAdminCentroGestor,
       totalMenuItems: shouldShowUserManagement ? baseMenuItems.length + 1 : baseMenuItems.length
     })
-  }, [shouldShowUserManagement, state.user?.roles])
+  }, [
+    shouldShowUserManagement,
+    state.user?.roles,
+    canAccessFullManagementSidebar,
+    isAdminCentroGestor,
+    baseMenuItems.length,
+    isSuperAdmin
+  ])
   
   const menuItems = shouldShowUserManagement
     ? [

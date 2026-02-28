@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
@@ -9,6 +9,7 @@ import GestionContratos from '@/components/GestionContratos'
 import ProyeccionesEmprestito from '@/components/ProyeccionesEmprestito'
 import GestionPagos from '@/components/GestionPagos'
 import GestionUnidadesProyecto from '@/components/GestionUnidadesProyecto'
+import { useAuth } from '@/context/AuthContext'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -16,14 +17,51 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const router = useRouter()
+  const { hasRole } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
+
+  const canAccessFullManagementSidebar =
+    hasRole('super_admin') || hasRole('admin_general') || hasRole('editor_datos')
+  const isAdminCentroGestor = hasRole('admin_centro_gestor')
+
+  const canAccessSection = (section: string): boolean => {
+    if (section === 'dashboard') return true
+    if (section === 'gestionar-usuarios') return hasRole('super_admin')
+
+    if (canAccessFullManagementSidebar) {
+      return [
+        'gestionar-procesos',
+        'gestionar-contratos',
+        'proyecciones-emprestito',
+        'gestion-pagos',
+        'gestionar-unidades-proyecto'
+      ].includes(section)
+    }
+
+    if (isAdminCentroGestor) {
+      return section === 'gestionar-unidades-proyecto'
+    }
+
+    return false
+  }
+
+  useEffect(() => {
+    if (!canAccessSection(activeSection)) {
+      setActiveSection('dashboard')
+    }
+  }, [activeSection, canAccessFullManagementSidebar, isAdminCentroGestor, hasRole])
 
   const handleToggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
   }
 
   const handleSectionChange = (section: string) => {
+    if (!canAccessSection(section)) {
+      setActiveSection('dashboard')
+      return
+    }
+
     // Si es gestionar-usuarios, navegar a la ruta dedicada
     if (section === 'gestionar-usuarios') {
       router.push('/admin/usuarios')
