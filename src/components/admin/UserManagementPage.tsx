@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users,
@@ -14,8 +14,9 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import adminService from '@/services/admin.service'
-import { AdminUser, ListUsersParams, Role, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo, SystemStats } from '@/types/admin'
+import { AdminUser, Role, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo, SystemStats } from '@/types/admin'
 import { useAuth } from '@/context/AuthContext'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, LabelList } from 'recharts'
 import UserList from './UserList'
 import UserEditModal from './UserEditModal'
 import RoleAssignmentModal from './RoleAssignmentModal'
@@ -36,9 +37,12 @@ interface EndpointDiagnosticItem {
 export default function UserManagementPage({
   currentUserRole
 }: UserManagementPageProps) {
+  const USERS_PAGE_SIZE = 20
+
   const router = useRouter()
   const { state, validateSession } = useAuth()
 
+  const [allUsers, setAllUsers] = useState<AdminUser[]>([])
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +51,7 @@ export default function UserManagementPage({
   const [hasBearerToken, setHasBearerToken] = useState(false)
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterRole, setFilterRole] = useState<RoleId | ''>('')
+  const [filterRole, setFilterRole] = useState<string>('')
   const [filterCentroGestor, setFilterCentroGestor] = useState('')
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined)
 
@@ -76,6 +80,20 @@ export default function UserManagementPage({
   const [endpointDiagnosticsUpdatedAt, setEndpointDiagnosticsUpdatedAt] = useState<string | null>(null)
 
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
+
+  const centroGestorOptions = useMemo(() => {
+    const normalize = (value: any): string => (typeof value === 'string' ? value.trim() : '')
+
+    const fromEndpoint = centrosGestores.map(normalize)
+    const fromGlobalUsers = allUsers.map((user) => normalize(user.centro_gestor_assigned || (user as any).nombre_centro_gestor))
+    const fromSession = [
+      normalize(state.user?.centro_gestor_assigned),
+      normalize((state.user as any)?.nombre_centro_gestor)
+    ]
+
+    return Array.from(new Set([...fromEndpoint, ...fromGlobalUsers, ...fromSession].filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, 'es'))
+  }, [centrosGestores, allUsers, state.user?.centro_gestor_assigned])
 
   const detectedUserRole = currentUserRole || getHighestRole((state.user?.roles as RoleId[] | undefined) || []) || 'visualizador'
   const isSuperAdmin = detectedUserRole === 'super_admin'
@@ -114,9 +132,29 @@ export default function UserManagementPage({
     })
   }
 
-  const roleFilterOptions = (rolesCatalog.length > 0
-    ? rolesCatalog.map((role) => role.id)
-    : (Object.keys(ROLES_CONFIG) as RoleId[])) as RoleId[]
+  const roleFilterOptions = useMemo(() => {
+    const fromCatalog = rolesCatalog.map((role) => String(role.id))
+    const fromStats = Object.keys((systemStats?.users_by_role || {}) as Record<string, number>)
+    const fromUsers = allUsers.flatMap((user) => (Array.isArray(user.roles) ? user.roles : []).map(String))
+    const fromConfig = Object.keys(ROLES_CONFIG)
+
+    return Array.from(new Set([...fromCatalog, ...fromStats, ...fromUsers, ...fromConfig]))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, 'es'))
+  }, [rolesCatalog, systemStats?.users_by_role, allUsers])
+
+  const getRoleMeta = (roleId: string) => {
+    const roleFromCatalog = rolesCatalog.find((role) => String(role.id) === roleId)
+    const roleFromConfig = (ROLES_CONFIG as Record<string, any>)[roleId]
+    const fallbackName = roleId.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+
+    return {
+      label: roleFromCatalog?.name || roleFromConfig?.name || fallbackName,
+      color: roleFromCatalog?.color || roleFromConfig?.color || '#64748B',
+      description: roleFromCatalog?.description || roleFromConfig?.description || `Rol ${fallbackName}`
+    }
+  }
+
   const effectivePermissions = Array.from(new Set([
     ...normalizePermissionList(connectedUserPermissions),
     ...normalizePermissionList(state.user?.permissions),
@@ -124,13 +162,143 @@ export default function UserManagementPage({
   ]))
   const roleNameMap = new Map(roleFilterOptions.map((roleId) => [
     roleId,
-    rolesCatalog.find((role) => role.id === roleId)?.name || getRoleInfo(roleId).name
+    getRoleMeta(roleId).label
   ]))
   const hasToken = hasBearerToken
   const isUserActive = state.user?.is_active !== false
   const hasManageUsers = isSuperAdmin || effectivePermissions.includes('manage:users') || effectivePermissions.includes('*')
   const hasManageRoles = isSuperAdmin || effectivePermissions.includes('manage:roles') || effectivePermissions.includes('*')
   const hasViewAuditLogs = isSuperAdmin || effectivePermissions.includes('view:audit_logs') || effectivePermissions.includes('*')
+
+  const roleAggregations = roleFilterOptions.map((roleId) => {
+    const roleInfo = getRoleMeta(roleId)
+    const usersByRole = (systemStats?.users_by_role || {}) as Record<string, number>
+
+    const countFromStats = usersByRole[roleId]
+    const countFromUsers = allUsers.reduce((count, user) => {
+      const roles = Array.isArray(user.roles) ? user.roles : []
+      return roles.map(String).includes(roleId) ? count + 1 : count
+    }, 0)
+
+    const count = typeof countFromStats === 'number' ? countFromStats : countFromUsers
+
+    return {
+      id: roleId,
+      label: roleInfo.label,
+      value: count,
+      color: roleInfo.color,
+      description: roleInfo.description
+    }
+  })
+
+  const roleChartData = roleAggregations
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value)
+
+  const centroGestorDistribution = useMemo(() => {
+    const normalize = (value: any): string => {
+      if (typeof value !== 'string') return 'Sin centro gestor'
+      const normalized = value.trim()
+      return normalized || 'Sin centro gestor'
+    }
+
+    const fromStats = (systemStats?.users_by_centro_gestor || {}) as Record<string, number>
+    const statsEntries = Object.entries(fromStats)
+      .filter(([key]) => Boolean(key))
+      .map(([key, value]) => ({
+        centro_gestor: normalize(key),
+        total: typeof value === 'number' ? value : 0
+      }))
+
+    if (statsEntries.length > 0) {
+      return statsEntries.sort((a, b) => b.total - a.total)
+    }
+
+    const grouped = allUsers.reduce<Record<string, number>>((acc, user) => {
+      const centro = normalize(user.centro_gestor_assigned || (user as any).nombre_centro_gestor)
+      acc[centro] = (acc[centro] || 0) + 1
+      return acc
+    }, {})
+
+    return Object.entries(grouped)
+      .map(([centro_gestor, total]) => ({ centro_gestor, total }))
+      .sort((a, b) => b.total - a.total)
+  }, [systemStats?.users_by_centro_gestor, allUsers])
+
+  const centroGestorChartData = centroGestorDistribution
+
+  const totalUsersForMetrics = systemStats?.total_users ?? allUsers.length
+
+  const wrapLabel = (value: string, maxCharsPerLine: number = 24): string[] => {
+    if (!value) return ['']
+    const words = value.split(' ')
+    const lines: string[] = []
+    let currentLine = ''
+
+    words.forEach((word) => {
+      const candidate = currentLine ? `${currentLine} ${word}` : word
+      if (candidate.length <= maxCharsPerLine) {
+        currentLine = candidate
+      } else {
+        if (currentLine) lines.push(currentLine)
+        currentLine = word
+      }
+    })
+
+    if (currentLine) lines.push(currentLine)
+    return lines.length ? lines : [value]
+  }
+
+  const renderWrappedCategoryTick = (maxCharsPerLine: number) => (props: any) => {
+    const { x, y, payload } = props
+    const value = String(payload?.value || '')
+    const lines = wrapLabel(value, maxCharsPerLine)
+
+    return (
+      <text x={x} y={y} textAnchor="end" fill="currentColor" fontSize={11}>
+        {lines.map((line, index) => (
+          <tspan key={`${value}-${index}`} x={x} dy={index === 0 ? 4 : 12}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    )
+  }
+
+  const roleBarsHeight = Math.max(320, roleChartData.length * 48)
+  const centrosBarsHeight = Math.max(320, centroGestorChartData.length * 44)
+  const [isDarkTheme, setIsDarkTheme] = useState(false)
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const root = document.documentElement
+    const syncTheme = () => setIsDarkTheme(root.classList.contains('dark'))
+
+    syncTheme()
+
+    const observer = new MutationObserver(syncTheme)
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] })
+
+    return () => observer.disconnect()
+  }, [])
+
+  const chartTooltipStyle = {
+    contentStyle: {
+      backgroundColor: isDarkTheme ? '#111827' : '#FFFFFF',
+      border: `1px solid ${isDarkTheme ? '#374151' : '#E5E7EB'}`,
+      borderRadius: '8px',
+      color: isDarkTheme ? '#F9FAFB' : '#111827',
+      fontSize: '12px'
+    },
+    labelStyle: {
+      color: isDarkTheme ? '#F9FAFB' : '#111827',
+      fontWeight: 600
+    },
+    itemStyle: {
+      color: isDarkTheme ? '#F3F4F6' : '#1F2937'
+    }
+  }
 
   const endpointChecks = [
     {
@@ -256,24 +424,67 @@ export default function UserManagementPage({
       setLoading(true)
       setError(null)
 
-      const params: ListUsersParams = {
-        page: currentPage,
-        limit: 20,
-        search: searchTerm || undefined,
-        role: filterRole || undefined,
-        centro_gestor: filterCentroGestor || undefined,
-        is_active: filterActive
-      }
-
-      const response = await adminService.listUsers(params)
-      setUsers(response.users)
-      setTotalPages(response.total_pages)
+      const loadedUsers = await adminService.listAllUsers(500)
+      setAllUsers(loadedUsers)
     } catch (err: any) {
       setError(err.message || 'Error al cargar usuarios')
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const term = searchTerm.trim().toLowerCase()
+
+    const filteredUsers = allUsers.filter((user) => {
+      const userRoles = Array.isArray(user.roles) ? user.roles : []
+
+      if (term) {
+        const searchable = [
+          user.email,
+          user.full_name,
+          user.uid,
+          user.phone_number,
+          user.centro_gestor_assigned
+        ]
+          .filter(Boolean)
+          .map((value) => String(value).toLowerCase())
+
+        const match = searchable.some((value) => value.includes(term))
+        if (!match) return false
+      }
+
+      if (filterRole && !userRoles.map(String).includes(filterRole)) {
+        return false
+      }
+
+      if (filterCentroGestor) {
+        const centro = (user.centro_gestor_assigned || '').toLowerCase()
+        if (centro !== filterCentroGestor.toLowerCase()) {
+          return false
+        }
+      }
+
+      if (typeof filterActive === 'boolean' && user.is_active !== filterActive) {
+        return false
+      }
+
+      return true
+    })
+
+    const computedTotalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PAGE_SIZE))
+
+    if (currentPage > computedTotalPages) {
+      setCurrentPage(computedTotalPages)
+      return
+    }
+
+    const start = (currentPage - 1) * USERS_PAGE_SIZE
+    const end = start + USERS_PAGE_SIZE
+
+    setTotalPages(computedTotalPages)
+    setUsers(filteredUsers.slice(start, end))
+  }, [allUsers, currentPage, searchTerm, filterRole, filterCentroGestor, filterActive])
 
   const loadGovernance = async () => {
     if (!authReady) return
@@ -392,7 +603,7 @@ export default function UserManagementPage({
     }, 220)
 
     return () => clearTimeout(timeout)
-  }, [authReady, currentPage, searchTerm, filterRole, filterCentroGestor, filterActive])
+  }, [authReady])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -403,8 +614,14 @@ export default function UserManagementPage({
     setShowEditModal(true)
   }
 
-  const handleAssignRoles = (user: AdminUser) => {
-    setSelectedUser(user)
+  const handleAssignRoles = async (user: AdminUser) => {
+    try {
+      const detailedUser = await adminService.getUser(user.uid)
+      setSelectedUser(detailedUser)
+    } catch {
+      setSelectedUser(user)
+    }
+
     setShowRoleModal(true)
   }
 
@@ -599,19 +816,137 @@ export default function UserManagementPage({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <p className="text-xs text-gray-500">Usuarios Totales</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{systemStats?.total_users ?? '-'}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalUsersForMetrics}</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Fuente: sistema + fallback listado usuarios</p>
         </div>
+
+        {roleAggregations.map((aggregation) => (
+          <div
+            key={aggregation.id}
+            className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700"
+          >
+            <p className="text-xs text-gray-500">{aggregation.label}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: aggregation.color }} />
+              {aggregation.value}
+            </p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+              {aggregation.description}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Lógica de gestión de usuarios</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          Las agregaciones por rol cuentan usuarios según los roles asignados en backend. Si está disponible,
+          se priorizan métricas de `GET /auth/admin/system/stats`; en caso contrario, se calculan desde el listado
+          consolidado de usuarios (`GET /auth/admin/users` con fallback a `GET /admin/users`). Cuando un usuario tiene
+          más de un rol, se contabiliza en cada rol correspondiente.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-500">Usuarios Activos</p>
-          <p className="text-2xl font-bold text-green-600">{systemStats?.active_users ?? '-'}</p>
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Usuarios por rol (barras)</h3>
+          <div className="max-h-[30rem] overflow-y-auto text-gray-700 dark:text-gray-200">
+            <div style={{ height: `${roleBarsHeight}px`, minHeight: '320px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={roleChartData} layout="vertical" margin={{ top: 8, right: 20, bottom: 8, left: 34 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} tick={{ fill: 'currentColor', fontSize: 11 }} />
+                  <YAxis
+                    dataKey="label"
+                    type="category"
+                    width={220}
+                    tick={renderWrappedCategoryTick(28)}
+                  />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle.contentStyle}
+                    labelStyle={chartTooltipStyle.labelStyle}
+                    itemStyle={chartTooltipStyle.itemStyle}
+                  />
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                    {roleChartData.map((entry) => (
+                      <Cell key={entry.id} fill={entry.color} />
+                    ))}
+                    <LabelList dataKey="value" position="right" fill="currentColor" fontSize={11} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-500">Usuarios Inactivos</p>
-          <p className="text-2xl font-bold text-red-600">{systemStats?.inactive_users ?? '-'}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-500">Logins Recientes</p>
-          <p className="text-2xl font-bold text-blue-600">{systemStats?.recent_logins ?? '-'}</p>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Distribución de roles</h3>
+            <div className="h-72 text-gray-700 dark:text-gray-200">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={roleChartData}
+                    dataKey="value"
+                    nameKey="label"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={88}
+                    label={false}
+                    labelLine={false}
+                  >
+                    {roleChartData.map((entry) => (
+                      <Cell key={`pie-${entry.id}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={chartTooltipStyle.contentStyle}
+                    labelStyle={chartTooltipStyle.labelStyle}
+                    itemStyle={chartTooltipStyle.itemStyle}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {roleChartData.map((item) => (
+                <div key={`legend-${item.id}`} className="text-xs text-gray-700 dark:text-gray-200 flex items-start gap-2">
+                  <span className="inline-block mt-1 w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                  <span className="leading-4 break-words">{item.label}: <strong>{item.value}</strong></span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Distribución por nombre_centro_gestor</h3>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
+              {centroGestorChartData.length} centros gestores con usuarios
+            </p>
+            <div className="max-h-[30rem] overflow-y-auto text-gray-700 dark:text-gray-200">
+              <div style={{ height: `${centrosBarsHeight}px`, minHeight: '320px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={centroGestorChartData} layout="vertical" margin={{ top: 8, right: 20, bottom: 8, left: 34 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} tick={{ fill: 'currentColor', fontSize: 11 }} />
+                    <YAxis
+                      dataKey="centro_gestor"
+                      type="category"
+                      width={220}
+                      tick={renderWrappedCategoryTick(30)}
+                    />
+                    <Tooltip
+                      contentStyle={chartTooltipStyle.contentStyle}
+                      labelStyle={chartTooltipStyle.labelStyle}
+                      itemStyle={chartTooltipStyle.itemStyle}
+                    />
+                    <Bar dataKey="total" fill="#0EA5E9" radius={[0, 6, 6, 0]}>
+                      <LabelList dataKey="total" position="right" fill="currentColor" fontSize={11} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -734,13 +1069,13 @@ export default function UserManagementPage({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rol</label>
             <select
               value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value as RoleId | '')}
+              onChange={(e) => setFilterRole(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="">Todos los roles</option>
               {roleFilterOptions.map((roleId) => (
                 <option key={roleId} value={roleId}>
-                  {roleNameMap.get(roleId) || getRoleInfo(roleId).name}
+                  {roleNameMap.get(roleId) || roleId}
                 </option>
               ))}
             </select>
@@ -754,7 +1089,7 @@ export default function UserManagementPage({
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="">Todos los centros</option>
-              {centrosGestores.map((centro) => (
+              {centroGestorOptions.map((centro) => (
                 <option key={centro} value={centro}>{centro}</option>
               ))}
             </select>
@@ -848,7 +1183,7 @@ export default function UserManagementPage({
           user={selectedUser}
           onClose={() => setShowEditModal(false)}
           onSuccess={handleUserUpdated}
-          centrosGestores={centrosGestores}
+          centrosGestores={centroGestorOptions}
         />
       )}
 

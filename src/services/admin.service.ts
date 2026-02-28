@@ -51,9 +51,19 @@ class AdminService {
   }
 
   private normalizeAdminUser(userLike: any): AdminUser {
+    const stringOrUndefined = (...candidates: any[]): string | undefined => {
+      for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+          return candidate.trim()
+        }
+      }
+      return undefined
+    }
+
     const roles = Array.from(new Set([
       ...this.toStringArray(userLike?.roles),
       ...this.toStringArray(userLike?.role),
+      ...this.toStringArray(userLike?.rol),
       ...this.toStringArray(userLike?.user_role),
       ...this.toStringArray(userLike?.custom_claims?.roles),
       ...this.toStringArray(userLike?.custom_claims?.role),
@@ -73,16 +83,64 @@ class AdminService {
       ...this.toStringArray(userLike?.claims?.permissions),
       ...this.toStringArray(userLike?.claims?.effective_permissions),
       ...this.toStringArray(userLike?.firestore_data?.permissions),
-      ...this.toStringArray(userLike?.firestore_data?.effective_permissions)
+      ...this.toStringArray(userLike?.firestore_data?.effective_permissions),
+      ...this.toStringArray(userLike?.firestore_data?.permisos)
     ]))
 
     const temporaryPermissions = Array.isArray(userLike?.temporary_permissions)
       ? userLike.temporary_permissions
       : []
 
+    const fullName = stringOrUndefined(
+      userLike?.full_name,
+      userLike?.fullname,
+      userLike?.name,
+      userLike?.display_name,
+      userLike?.displayName,
+      userLike?.firestore_data?.full_name,
+      userLike?.firestore_data?.fullname
+    )
+
+    const centroGestor = stringOrUndefined(
+      userLike?.centro_gestor_assigned,
+      userLike?.nombre_centro_gestor,
+      userLike?.centro_gestor,
+      userLike?.firestore_data?.nombre_centro_gestor,
+      userLike?.firestore_data?.centro_gestor,
+      userLike?.custom_claims?.centro_gestor,
+      userLike?.claims?.centro_gestor
+    )
+
+    const phoneNumber = stringOrUndefined(
+      userLike?.phone_number,
+      userLike?.phone,
+      userLike?.cellphone,
+      userLike?.firestore_data?.cellphone
+    )
+
+    const photoUrl = stringOrUndefined(
+      userLike?.photo_url,
+      userLike?.photoURL
+    )
+
     return {
       ...userLike,
       uid: userLike?.uid || userLike?.id || '',
+      email: userLike?.email || '',
+      full_name: fullName,
+      centro_gestor_assigned: centroGestor,
+      phone_number: phoneNumber,
+      photo_url: photoUrl,
+      provider: userLike?.provider || userLike?.sign_in_provider,
+      email_verified: typeof userLike?.email_verified === 'boolean'
+        ? userLike.email_verified
+        : Boolean(userLike?.emailVerified),
+      is_active: typeof userLike?.is_active === 'boolean'
+        ? userLike.is_active
+        : (typeof userLike?.firestore_data?.is_active === 'boolean' ? userLike.firestore_data.is_active : true),
+      created_at: userLike?.created_at || userLike?.createdAt || userLike?.firestore_data?.created_at,
+      last_login_at: userLike?.last_login_at || userLike?.lastLoginAt || userLike?.firestore_data?.last_login,
+      updated_at: userLike?.updated_at || userLike?.updatedAt || userLike?.firestore_data?.updated_at,
       roles: roles as any,
       permissions,
       temporary_permissions: temporaryPermissions
@@ -127,19 +185,16 @@ class AdminService {
 
     if (params.limit) queryParams.append('limit', params.limit.toString())
     if (offset > 0) queryParams.append('offset', offset.toString())
-    if (params.search) queryParams.append('search', params.search)
-    if (params.role) queryParams.append('role', params.role)
-    if (params.centro_gestor) queryParams.append('centro_gestor', params.centro_gestor)
-    if (typeof params.is_active === 'boolean') {
-      queryParams.append('is_active', String(params.is_active))
-    }
 
     return queryParams.toString()
   }
 
   private normalizeUsersResponse(response: any, params: ListUsersParams): ListUsersResponse {
     const rawUsers = response?.users || response?.data || []
-    const users = (Array.isArray(rawUsers) ? rawUsers : []).map((user) => this.normalizeAdminUser(user))
+    const usersArray = Array.isArray(rawUsers)
+      ? rawUsers
+      : (rawUsers && typeof rawUsers === 'object' ? Object.values(rawUsers) : [])
+    const users = usersArray.map((user) => this.normalizeAdminUser(user))
     const total = response?.total ?? users.length
     const limit = params.limit || 100
 
@@ -189,6 +244,33 @@ class AdminService {
     const endpoint = `/admin/users${query ? `?${query}` : ''}`
     const response = await apiClient.get<any>(endpoint)
     return this.normalizeUsersResponse(response, params)
+  }
+
+  async listAllUsers(limitPerRequest: number = 500): Promise<AdminUser[]> {
+    const safeLimit = Math.max(1, Math.min(500, limitPerRequest))
+    const users: AdminUser[] = []
+    let page = 1
+    let hasMore = true
+
+    while (hasMore) {
+      const response = await this.listUsers({ page, limit: safeLimit })
+      users.push(...response.users)
+
+      const received = response.users.length
+      const reachedTotal = typeof response.total === 'number' && response.total > 0
+        ? users.length >= response.total
+        : false
+
+      hasMore = received === safeLimit && !reachedTotal
+      page += 1
+    }
+
+    const uniqueByUid = new Map<string, AdminUser>()
+    users.forEach((user) => {
+      uniqueByUid.set(user.uid, user)
+    })
+
+    return Array.from(uniqueByUid.values())
   }
 
   async diagnoseUsersEndpoints(uid?: string): Promise<Array<{
@@ -510,7 +592,17 @@ class AdminService {
    */
   async getCentrosGestores(): Promise<string[]> {
     const response = await apiClient.get<any>('/centros-gestores/nombres-unicos')
-    return response.data || response.centros_gestores || []
+    const raw = response?.data || response?.centros_gestores || response
+
+    const values = Array.isArray(raw)
+      ? raw
+      : (raw && typeof raw === 'object' ? Object.values(raw) : [])
+
+    return Array.from(new Set(
+      values
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter(Boolean)
+    )).sort((a, b) => a.localeCompare(b, 'es'))
   }
 }
 

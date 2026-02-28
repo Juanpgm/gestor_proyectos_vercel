@@ -4,6 +4,7 @@ import React, { useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import LoginPage from '@/components/LoginPage'
 import { motion } from 'framer-motion'
+import { ROLES_CONFIG } from '@/types/admin'
 
 interface AuthWrapperProps {
   children: React.ReactNode
@@ -41,20 +42,22 @@ export function UserProfile() {
 
   const highestRole = getHighestRole()
   const nombreCentroGestor = state.user.nombre_centro_gestor || state.user.centro_gestor_assigned
-  const roleGradientMap: Record<string, string> = {
-    super_admin: 'from-purple-600 to-fuchsia-600',
-    admin: 'from-blue-600 to-indigo-600',
-    gestor_master: 'from-emerald-600 to-green-600',
-    gestor: 'from-green-600 to-teal-600',
-    consultor_master: 'from-amber-500 to-orange-600',
-    consultor: 'from-cyan-600 to-sky-600',
-    publico: 'from-gray-500 to-slate-600'
+  const roleAliasMap: Record<string, string> = {
+    admin: 'admin_general',
+    gestor_master: 'admin_centro_gestor',
+    gestor: 'editor_datos',
+    consultor_master: 'analista',
+    consultor: 'visualizador'
   }
 
-  const profileGradient = roleGradientMap[highestRole || ''] || 'from-blue-600 to-green-600'
+  const normalizedRole = roleAliasMap[highestRole || ''] || highestRole || ''
+  const profileColor = ROLES_CONFIG[normalizedRole as keyof typeof ROLES_CONFIG]?.color || '#2563EB'
 
   return (
-    <div className={`flex items-center space-x-2 bg-gradient-to-r ${profileGradient} px-2 py-1 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 max-w-full`}>
+    <div
+      className="flex items-center space-x-2 px-2 py-1 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 max-w-full"
+      style={{ backgroundColor: profileColor }}
+    >
       <div className="flex items-center space-x-2 min-w-0">
         {state.user.photoURL ? (
           <img

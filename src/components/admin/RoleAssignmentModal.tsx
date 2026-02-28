@@ -6,6 +6,16 @@ import { X, Save, Shield, Loader, AlertCircle } from 'lucide-react'
 import { AdminUser, Role, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo } from '@/types/admin'
 import adminService from '@/services/admin.service'
 
+const ASSIGNABLE_ROLE_IDS: RoleId[] = [
+  'admin_centro_gestor',
+  'admin_general',
+  'analista',
+  'editor_datos',
+  'publico',
+  'super_admin',
+  'visualizador'
+]
+
 interface RoleAssignmentModalProps {
   user: AdminUser
   rolesCatalog?: Role[]
@@ -19,12 +29,32 @@ export default function RoleAssignmentModal({
   onClose,
   onSuccess
 }: RoleAssignmentModalProps) {
-  const detectedCurrentRole = getHighestRole(user.roles)
+  const normalizeRoles = (value: any): RoleId[] => {
+    if (Array.isArray(value)) {
+      return value.filter(Boolean).map((role) => String(role).trim()).filter(Boolean) as RoleId[]
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      return value
+        .split(',')
+        .map((role) => role.trim())
+        .filter(Boolean) as RoleId[]
+    }
+
+    return []
+  }
+
+  const detectedRoles = normalizeRoles((user as any)?.roles)
+  const detectedCurrentRole = getHighestRole(detectedRoles) || detectedRoles[0] || null
   const [selectedRole, setSelectedRole] = useState<RoleId | null>(detectedCurrentRole)
   const [availableRoles, setAvailableRoles] = useState<Role[]>(rolesCatalog)
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setSelectedRole(detectedCurrentRole)
+  }, [user.uid, user.roles])
 
   useEffect(() => {
     setAvailableRoles(rolesCatalog)
@@ -46,8 +76,14 @@ export default function RoleAssignmentModal({
   }, [rolesCatalog.length])
 
   const rolesToRender = useMemo(() => {
-    if (availableRoles.length > 0) return availableRoles
-    return (Object.keys(ROLES_CONFIG) as RoleId[]).map((roleId) => getRoleInfo(roleId))
+    const backendById = new Map<string, Role>()
+    availableRoles.forEach((role) => backendById.set(role.id, role))
+
+    return ASSIGNABLE_ROLE_IDS.map((roleId) => {
+      const backendRole = backendById.get(roleId)
+      if (backendRole) return backendRole
+      return getRoleInfo(roleId)
+    })
   }, [availableRoles])
 
   const handleSave = async () => {
@@ -141,6 +177,27 @@ export default function RoleAssignmentModal({
                   {detectedCurrentRole ? getRoleInfo(detectedCurrentRole).name : 'Sin rol asignado'}
                 </span>
               </p>
+
+              <div className="mt-2 flex flex-wrap gap-1">
+                {detectedRoles.length > 0 ? detectedRoles.map((roleId) => {
+                  const roleInfo = getRoleInfo(roleId)
+
+                  return (
+                    <span
+                      key={roleId}
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs"
+                      style={{
+                        backgroundColor: `${roleInfo.color}20`,
+                        color: roleInfo.color
+                      }}
+                    >
+                      {roleInfo.name}
+                    </span>
+                  )
+                }) : (
+                  <span className="text-xs text-gray-500">No se detectaron roles en el usuario seleccionado</span>
+                )}
+              </div>
             </div>
 
             {/* Lista de Roles */}
