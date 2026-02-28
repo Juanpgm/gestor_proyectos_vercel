@@ -1,11 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Shield, Key, Clock, CheckCircle, User, Mail, Phone, Building, Calendar, BadgeCheck, BadgeX } from 'lucide-react'
 import { AdminUser, getRoleInfo } from '@/types/admin'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import adminService from '@/services/admin.service'
 
 interface PermissionViewerProps {
   user: AdminUser
@@ -13,6 +14,39 @@ interface PermissionViewerProps {
 }
 
 export default function PermissionViewer({ user, onClose }: PermissionViewerProps) {
+  const [rolePermissionsMap, setRolePermissionsMap] = useState<Record<string, string[]>>({})
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadRoleDetails = async () => {
+      if (!user.roles || user.roles.length === 0) {
+        if (!cancelled) setRolePermissionsMap({})
+        return
+      }
+
+      const entries = await Promise.all(user.roles.map(async (roleId) => {
+        try {
+          const role = await adminService.getRoleDetails(roleId)
+          return [roleId, role.permissions || []] as const
+        } catch {
+          const fallback = getRoleInfo(roleId).permissions || []
+          return [roleId, fallback] as const
+        }
+      }))
+
+      if (!cancelled) {
+        setRolePermissionsMap(Object.fromEntries(entries))
+      }
+    }
+
+    loadRoleDetails()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user.roles])
+
   // Combinar permisos de roles + permisos temporales activos
   const temporaryPermissionsActive = (user.temporary_permissions || []).filter(
     tp => new Date(tp.expires_at) > new Date()
@@ -20,8 +54,7 @@ export default function PermissionViewer({ user, onClose }: PermissionViewerProp
 
   // Obtener permisos desde los roles si user.permissions está vacío
   const permissionsFromRoles = user.roles?.flatMap(roleId => {
-    const roleInfo = getRoleInfo(roleId)
-    return roleInfo.permissions || []
+    return rolePermissionsMap[roleId] || getRoleInfo(roleId).permissions || []
   }) || []
 
   const allPermissions = Array.from(

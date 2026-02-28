@@ -8,7 +8,9 @@ import { Loader } from 'lucide-react'
 
 export default function UsuariosPage() {
   const router = useRouter()
-  const { state, isSuperAdmin, getHighestRole } = useAuth()
+  const { state, isSuperAdmin, hasPermission, getHighestRole } = useAuth()
+
+  const canAccessUsersModule = isSuperAdmin() || hasPermission('manage:users') || hasPermission('*')
 
   useEffect(() => {
     // Verificar autenticación y permisos
@@ -17,12 +19,12 @@ export default function UsuariosPage() {
       return
     }
 
-    // Verificar si es super_admin
-    if (!isSuperAdmin()) {
+    // Verificar si es super_admin o tiene permiso de gestión de usuarios
+    if (!canAccessUsersModule) {
       router.push('/') // Redirigir si no es super_admin
       return
     }
-  }, [state.isAuthenticated, isSuperAdmin, router])
+  }, [state.isAuthenticated, canAccessUsersModule, router])
 
   // Mostrar loading mientras se verifica la autenticación
   if (state.isLoading) {
@@ -36,8 +38,8 @@ export default function UsuariosPage() {
     )
   }
 
-  // Si no está autenticado o no es super_admin, no renderizar nada (se redirige)
-  if (!state.isAuthenticated || !isSuperAdmin()) {
+  // Si no está autenticado o no tiene permisos, no renderizar nada (se redirige)
+  if (!state.isAuthenticated || !canAccessUsersModule) {
     return null
   }
 

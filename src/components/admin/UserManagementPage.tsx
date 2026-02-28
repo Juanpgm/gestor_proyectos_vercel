@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import adminService from '@/services/admin.service'
-import { AdminUser, ListUsersParams, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo, SystemStats } from '@/types/admin'
+import { AdminUser, ListUsersParams, Role, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo, SystemStats } from '@/types/admin'
 import { useAuth } from '@/context/AuthContext'
 import UserList from './UserList'
 import UserEditModal from './UserEditModal'
@@ -24,6 +24,13 @@ import UserDetailsViewer from './UserDetailsViewer'
 interface UserManagementPageProps {
   currentUserRole?: RoleId
   currentUserCentroGestor?: string
+}
+
+interface EndpointDiagnosticItem {
+  endpoint: string
+  ok: boolean
+  status: number | null
+  message: string
 }
 
 export default function UserManagementPage({
@@ -62,6 +69,11 @@ export default function UserManagementPage({
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [centrosGestores, setCentrosGestores] = useState<string[]>([])
+  const [rolesCatalog, setRolesCatalog] = useState<Role[]>([])
+  const [connectedUserPermissions, setConnectedUserPermissions] = useState<string[]>([])
+  const [endpointDiagnostics, setEndpointDiagnostics] = useState<EndpointDiagnosticItem[]>([])
+  const [endpointDiagnosticsLoading, setEndpointDiagnosticsLoading] = useState(false)
+  const [endpointDiagnosticsUpdatedAt, setEndpointDiagnosticsUpdatedAt] = useState<string | null>(null)
 
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
 
@@ -69,14 +81,80 @@ export default function UserManagementPage({
   const isSuperAdmin = detectedUserRole === 'super_admin'
   const isAdminGeneral = detectedUserRole === 'admin_general'
   const canManageUsers = isSuperAdmin
-  const roleFilterOptions = Object.keys(ROLES_CONFIG) as RoleId[]
-  const effectivePermissions = state.user?.permissions || []
+
+  const normalizePermissionList = (value: any): string[] => {
+    if (Array.isArray(value)) {
+      return value.filter(Boolean).map(String)
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      return value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.entries(value as Record<string, any>)
+        .filter(([key, enabled]) => Boolean(key) && (enabled === true || enabled === 1 || enabled === 'true'))
+        .map(([key]) => key)
+    }
+
+    return []
+  }
+
+  const inferPermissionsFromRoles = (): string[] => {
+    const userRoles = (state.user?.roles as RoleId[] | undefined) || []
+    if (userRoles.length === 0) return []
+
+    return userRoles.flatMap((roleId) => {
+      const backendRole = rolesCatalog.find((role) => role.id === roleId)
+      if (backendRole?.permissions?.length) return backendRole.permissions
+      return getRoleInfo(roleId).permissions || []
+    })
+  }
+
+  const roleFilterOptions = (rolesCatalog.length > 0
+    ? rolesCatalog.map((role) => role.id)
+    : (Object.keys(ROLES_CONFIG) as RoleId[])) as RoleId[]
+  const effectivePermissions = Array.from(new Set([
+    ...normalizePermissionList(connectedUserPermissions),
+    ...normalizePermissionList(state.user?.permissions),
+    ...inferPermissionsFromRoles()
+  ]))
+  const roleNameMap = new Map(roleFilterOptions.map((roleId) => [
+    roleId,
+    rolesCatalog.find((role) => role.id === roleId)?.name || getRoleInfo(roleId).name
+  ]))
   const hasToken = hasBearerToken
   const isUserActive = state.user?.is_active !== false
   const hasManageUsers = isSuperAdmin || effectivePermissions.includes('manage:users') || effectivePermissions.includes('*')
+  const hasManageRoles = isSuperAdmin || effectivePermissions.includes('manage:roles') || effectivePermissions.includes('*')
   const hasViewAuditLogs = isSuperAdmin || effectivePermissions.includes('view:audit_logs') || effectivePermissions.includes('*')
 
   const endpointChecks = [
+    {
+      endpoint: 'GET /auth/admin/roles',
+      allowed: hasToken && isUserActive && hasManageRoles,
+      reason: !hasToken
+        ? 'Sin Bearer token'
+        : !isUserActive
+          ? 'Usuario inactivo (is_active=false)'
+          : !hasManageRoles
+            ? 'Falta permiso manage:roles'
+            : 'Permitido'
+    },
+    {
+      endpoint: 'GET /auth/admin/roles/{role_id}',
+      allowed: hasToken && isUserActive && hasManageRoles,
+      reason: !hasToken
+        ? 'Sin Bearer token'
+        : !isUserActive
+          ? 'Usuario inactivo (is_active=false)'
+          : !hasManageRoles
+            ? 'Falta permiso manage:roles'
+            : 'Permitido'
+    },
     {
       endpoint: 'GET /auth/admin/audit-logs',
       allowed: hasToken && isUserActive && hasViewAuditLogs,
@@ -145,11 +223,7 @@ export default function UserManagementPage({
       }
 
       try {
-        // Si no hay token persistido, revalidar sesión para obtener credenciales frescas
-        const hasToken = (state.user as any)?.idToken || (state.user as any)?.id_token
-        if (!hasToken) {
-          await validateSession()
-        }
+        await validateSession()
 
         const tokenAvailable = await resolveHasBearerToken()
 
@@ -231,6 +305,65 @@ export default function UserManagementPage({
     }
   }
 
+  const loadRolesCatalog = async () => {
+    if (!authReady || !hasToken || !isUserActive || !hasManageRoles) {
+      setRolesCatalog([])
+      return
+    }
+
+    try {
+      const roles = await adminService.getRolesCatalog()
+      setRolesCatalog(roles)
+    } catch {
+      setRolesCatalog([])
+    }
+  }
+
+  const loadConnectedUserContext = async () => {
+    if (!authReady || !state.user?.uid || !hasToken || !isUserActive || !hasManageUsers) {
+      setConnectedUserPermissions(normalizePermissionList(state.user?.permissions))
+      return
+    }
+
+    try {
+      const connectedUser = await adminService.getUser(state.user.uid)
+      const currentPermissions = Array.from(new Set([
+        ...normalizePermissionList((connectedUser as any)?.permissions),
+        ...normalizePermissionList((connectedUser as any)?.permisos),
+        ...normalizePermissionList((connectedUser as any)?.effective_permissions),
+        ...normalizePermissionList((connectedUser as any)?.permissions_effective),
+        ...normalizePermissionList(state.user?.permissions)
+      ]))
+
+      setConnectedUserPermissions(currentPermissions)
+    } catch {
+      setConnectedUserPermissions(normalizePermissionList(state.user?.permissions))
+    }
+  }
+
+  const loadEndpointDiagnostics = async () => {
+    if (!authReady) return
+
+    try {
+      setEndpointDiagnosticsLoading(true)
+      const diagnostics = await adminService.diagnoseUsersEndpoints(state.user?.uid)
+      setEndpointDiagnostics(diagnostics)
+      setEndpointDiagnosticsUpdatedAt(new Date().toISOString())
+    } catch {
+      setEndpointDiagnostics([
+        {
+          endpoint: 'Diagnóstico endpoints usuarios',
+          ok: false,
+          status: null,
+          message: 'No se pudo ejecutar el diagnóstico de endpoints'
+        }
+      ])
+      setEndpointDiagnosticsUpdatedAt(new Date().toISOString())
+    } finally {
+      setEndpointDiagnosticsLoading(false)
+    }
+  }
+
   const loadCentrosGestores = async () => {
     if (!authReady) return
 
@@ -245,8 +378,11 @@ export default function UserManagementPage({
   useEffect(() => {
     if (!authReady) return
     loadCentrosGestores()
+    loadConnectedUserContext()
+    loadRolesCatalog()
     loadGovernance()
-  }, [authReady, hasToken, isUserActive, hasManageUsers])
+    loadEndpointDiagnostics()
+  }, [authReady, hasToken, isUserActive, hasManageUsers, hasManageRoles, state.user?.uid])
 
   useEffect(() => {
     if (!authReady) return
@@ -402,7 +538,7 @@ export default function UserManagementPage({
       return
     }
 
-    await Promise.all([loadUsers(), loadGovernance()])
+    await Promise.all([loadUsers(), loadGovernance(), loadEndpointDiagnostics()])
   }
 
   if (!canManageUsers && !isAdminGeneral) {
@@ -531,6 +667,48 @@ export default function UserManagementPage({
         </div>
       </div>
 
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h3 className="font-semibold text-gray-900 dark:text-white">Diagnóstico de endpoints de usuarios</h3>
+          <button
+            onClick={() => loadEndpointDiagnostics()}
+            disabled={endpointDiagnosticsLoading}
+            className="text-xs px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+          >
+            {endpointDiagnosticsLoading ? 'Probando...' : 'Reprobar endpoints'}
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {endpointDiagnostics.map((item) => (
+            <div
+              key={item.endpoint}
+              className={`text-xs rounded-md px-3 py-2 border ${
+                item.ok
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800'
+                  : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800'
+              }`}
+            >
+              <span className="font-semibold">{item.endpoint}</span>
+              {' · '}
+              Estado: {item.status ?? 'N/A'}
+              {' · '}
+              {item.message}
+            </div>
+          ))}
+
+          {!endpointDiagnosticsLoading && endpointDiagnostics.length === 0 && (
+            <div className="text-xs rounded-md px-3 py-2 border bg-gray-50 dark:bg-gray-700/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700">
+              Sin diagnóstico aún. Usa "Reprobar endpoints".
+            </div>
+          )}
+        </div>
+
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-3">
+          Última verificación: {endpointDiagnosticsUpdatedAt ? new Date(endpointDiagnosticsUpdatedAt).toLocaleString() : 'No ejecutada'}
+        </p>
+      </div>
+
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -562,7 +740,7 @@ export default function UserManagementPage({
               <option value="">Todos los roles</option>
               {roleFilterOptions.map((roleId) => (
                 <option key={roleId} value={roleId}>
-                  {getRoleInfo(roleId).name}
+                  {roleNameMap.get(roleId) || getRoleInfo(roleId).name}
                 </option>
               ))}
             </select>
@@ -677,6 +855,7 @@ export default function UserManagementPage({
       {showRoleModal && selectedUser && (
         <RoleAssignmentModal
           user={selectedUser}
+          rolesCatalog={rolesCatalog}
           onClose={() => setShowRoleModal(false)}
           onSuccess={handleUserUpdated}
         />

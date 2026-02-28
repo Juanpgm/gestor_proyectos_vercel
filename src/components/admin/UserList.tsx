@@ -17,7 +17,7 @@ import {
   MinusCircle,
   Trash2
 } from 'lucide-react'
-import { AdminUser, getRoleInfo } from '@/types/admin'
+import { AdminUser, RoleId, getRoleInfo } from '@/types/admin'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -139,10 +139,18 @@ export default function UserList({
 
                 {/* Roles */}
                 <td className="px-6 py-4 whitespace-nowrap">
+                  {(() => {
+                    const userRoles: string[] = Array.isArray(user.roles)
+                      ? user.roles
+                      : (typeof (user as any).roles === 'string'
+                        ? (user as any).roles.split(',').map((role: string) => role.trim()).filter(Boolean)
+                        : [])
+
+                    return (
                   <div className="flex flex-wrap gap-1">
-                    {user.roles && user.roles.length > 0 ? (
-                      user.roles.map((roleId) => {
-                        const roleInfo = getRoleInfo(roleId)
+                    {userRoles.length > 0 ? (
+                      userRoles.map((roleId: string) => {
+                        const roleInfo = getRoleInfo(roleId as RoleId)
                         return (
                           <span
                             key={roleId}
@@ -160,6 +168,8 @@ export default function UserList({
                       <span className="text-xs text-gray-400 italic">Sin roles</span>
                     )}
                   </div>
+                    )
+                  })()}
                 </td>
 
                 {/* Centro Gestor */}

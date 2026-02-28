@@ -163,6 +163,16 @@ class AuthService {
         return value.filter(Boolean).map(String)
       }
 
+      if (value && typeof value === 'object') {
+        const objectEntries = Object.entries(value as Record<string, any>)
+          .filter(([key, enabled]) => Boolean(key) && (enabled === true || enabled === 1 || enabled === 'true'))
+          .map(([key]) => key)
+
+        if (objectEntries.length > 0) {
+          return objectEntries
+        }
+      }
+
       if (typeof value === 'string' && value.trim()) {
         return value
           .split(',')
@@ -217,17 +227,35 @@ class AuthService {
 
     const permissions = dedupe(pickFirstArray(
       apiUser.permissions,
+      apiUser.permisos,
       apiUser.effective_permissions,
+      apiUser.permissions_effective,
+      apiUser.permission,
+      apiUser.permiso,
       apiUser.firestore_data?.permissions,
+      apiUser.firestore_data?.permisos,
       apiUser.firestore_data?.effective_permissions,
+      apiUser.firestore_data?.permissions_effective,
       apiUser.custom_claims?.permissions,
+      apiUser.custom_claims?.permisos,
       apiUser.custom_claims?.effective_permissions,
+      apiUser.custom_claims?.permissions_effective,
       apiUser.claims?.permissions,
+      apiUser.claims?.permisos,
       apiUser.claims?.effective_permissions,
+      apiUser.claims?.permissions_effective,
       apiUser.profile?.permissions,
+      apiUser.profile?.permisos,
       apiUser.profile?.effective_permissions,
+      apiUser.profile?.permissions_effective,
       apiUser.data?.permissions,
-      apiUser.data?.effective_permissions
+      apiUser.data?.permisos,
+      apiUser.data?.effective_permissions,
+      apiUser.data?.permissions_effective,
+      apiUser.authz?.permissions,
+      apiUser.authz?.effective_permissions,
+      apiUser.authorization?.permissions,
+      apiUser.authorization?.effective_permissions
     ))
     
     // Extraer centro_gestor desde firestore_data o custom_claims

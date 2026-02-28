@@ -1,27 +1,54 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Save, Shield, Loader, AlertCircle } from 'lucide-react'
-import { AdminUser, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo } from '@/types/admin'
+import { AdminUser, Role, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo } from '@/types/admin'
 import adminService from '@/services/admin.service'
 
 interface RoleAssignmentModalProps {
   user: AdminUser
+  rolesCatalog?: Role[]
   onClose: () => void
   onSuccess: () => void
 }
 
 export default function RoleAssignmentModal({
   user,
+  rolesCatalog = [],
   onClose,
   onSuccess
 }: RoleAssignmentModalProps) {
   const detectedCurrentRole = getHighestRole(user.roles)
   const [selectedRole, setSelectedRole] = useState<RoleId | null>(detectedCurrentRole)
+  const [availableRoles, setAvailableRoles] = useState<Role[]>(rolesCatalog)
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setAvailableRoles(rolesCatalog)
+  }, [rolesCatalog])
+
+  useEffect(() => {
+    const loadRoles = async () => {
+      if (rolesCatalog.length > 0) return
+
+      try {
+        const roles = await adminService.getRolesCatalog()
+        setAvailableRoles(roles)
+      } catch {
+        setAvailableRoles([])
+      }
+    }
+
+    loadRoles()
+  }, [rolesCatalog.length])
+
+  const rolesToRender = useMemo(() => {
+    if (availableRoles.length > 0) return availableRoles
+    return (Object.keys(ROLES_CONFIG) as RoleId[]).map((roleId) => getRoleInfo(roleId))
+  }, [availableRoles])
 
   const handleSave = async () => {
     if (!selectedRole) {
@@ -43,8 +70,6 @@ export default function RoleAssignmentModal({
       setLoading(false)
     }
   }
-
-  const rolesArray = Object.keys(ROLES_CONFIG) as RoleId[]
 
   return (
     <AnimatePresence>
@@ -125,8 +150,8 @@ export default function RoleAssignmentModal({
               </h3>
 
               <div className="grid gap-3">
-                {rolesArray.map((roleId) => {
-                  const roleInfo = getRoleInfo(roleId)
+                {rolesToRender.map((roleInfo) => {
+                  const roleId = roleInfo.id
                   const isSelected = selectedRole === roleId
 
                   return (
@@ -224,7 +249,9 @@ export default function RoleAssignmentModal({
           {/* Footer */}
           <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              {selectedRole ? `Rol seleccionado: ${getRoleInfo(selectedRole).name}` : 'Sin rol seleccionado'}
+              {selectedRole
+                ? `Rol seleccionado: ${rolesToRender.find((role) => role.id === selectedRole)?.name || getRoleInfo(selectedRole).name}`
+                : 'Sin rol seleccionado'}
             </div>
             <div className="flex gap-3">
               <button
