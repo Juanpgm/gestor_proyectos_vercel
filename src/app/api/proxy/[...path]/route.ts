@@ -77,16 +77,18 @@ const sanitizeSearchParamsForBackend = (searchParams: URLSearchParams): URLSearc
 const shouldCacheResponsePayload = (payload: unknown): boolean => {
   if (payload === null || payload === undefined) return false
 
-  if (typeof payload === 'object') {
-    const obj = payload as Record<string, unknown>
+  if (typeof payload !== 'object') {
+    return false
+  }
 
-    if ('success' in obj && obj.success === false) {
-      return false
-    }
+  const obj = payload as Record<string, unknown>
 
-    if ((('error' in obj) || ('detail' in obj)) && !('data' in obj)) {
-      return false
-    }
+  if ('success' in obj && obj.success === false) {
+    return false
+  }
+
+  if ((('error' in obj) || ('detail' in obj)) && !('data' in obj)) {
+    return false
   }
 
   return true
@@ -192,6 +194,7 @@ async function handleRequest(request: NextRequest, method: string) {
     
     // Make the request to FastAPI
     const response = await fetch(fastApiUrl, requestOptions)
+    const responseClone = response.clone()
     
     clearTimeout(timeoutId)
     
@@ -202,7 +205,7 @@ async function handleRequest(request: NextRequest, method: string) {
     if (contentType?.includes('application/json')) {
       try {
         responseData = await response.json()
-        
+
         // Unwrap API responses with { success: true, data: [...] } structure
         // This is specifically for unidades-proyecto endpoints, EXCEPT geometry
         if (apiPath.includes('unidades-proyecto') && 
@@ -214,13 +217,42 @@ async function handleRequest(request: NextRequest, method: string) {
           console.log(`🔄 Unwrapping API response: ${Array.isArray(responseData.data) ? responseData.data.length : 'N/A'} items`)
           responseData = responseData.data
         }
-        
+
       } catch (error) {
-        console.warn('Failed to parse JSON response:', error)
-        responseData = {
-          error: 'Invalid JSON response from backend',
-          parse_error: error instanceof Error ? error.message : String(error),
-          endpoint: apiPath,
+        console.warn('Failed to parse JSON response, attempting text fallback:', error)
+
+        try {
+          const rawFallbackText = await responseClone.text()
+          const trimmedFallbackText = rawFallbackText?.trim?.() || ''
+
+          if (!trimmedFallbackText) {
+            responseData = {
+              error: 'Invalid JSON response from backend',
+              parse_error: error instanceof Error ? error.message : String(error),
+              endpoint: apiPath,
+            }
+          } else {
+            try {
+              responseData = JSON.parse(trimmedFallbackText)
+            } catch {
+              responseData = trimmedFallbackText
+            }
+
+            if (typeof responseData === 'string') {
+              try {
+                responseData = JSON.parse(responseData)
+              } catch {
+                // keep string payload as-is
+              }
+            }
+          }
+        } catch (fallbackParseError) {
+          console.warn('Text fallback parse also failed:', fallbackParseError)
+          responseData = {
+            error: 'Invalid JSON response from backend',
+            parse_error: error instanceof Error ? error.message : String(error),
+            endpoint: apiPath,
+          }
         }
       }
     } else {

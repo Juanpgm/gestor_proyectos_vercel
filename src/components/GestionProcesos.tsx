@@ -252,6 +252,11 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
   const procesosRequestIdRef = React.useRef(0)
   const procesosAbortRef = React.useRef<AbortController | null>(null)
+  const loadingRef = React.useRef(false)
+
+  useEffect(() => {
+    loadingRef.current = loading
+  }, [loading])
 
   const columns = useMemo(() => [
     { key: 'referencia_proceso', label: 'Referencia del Proceso', isSortable: true },
@@ -498,6 +503,22 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (dataSource !== 'backup') {
+      return
+    }
+
+    const intervalId = setInterval(() => {
+      if (!loadingRef.current) {
+        fetchProcesos()
+      }
+    }, 20000)
+
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [dataSource])
   
   // Función para cargar órdenes de compra
   const fetchOrdenesCompra = async () => {
