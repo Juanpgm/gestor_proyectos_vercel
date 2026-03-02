@@ -4,7 +4,20 @@ export interface CentroGestorAccess {
   isRestricted: boolean
 }
 
-const OPEN_ACCESS_CENTROS = new Set(['calitrack', 'otro'])
+const OPEN_ACCESS_CENTROS = new Set([
+  'calitrack',
+  'otro',
+  'secretaría de gobierno',
+  'departamento administrativo de gestión jurídica pública',
+  'departamento administrativo de control interno',
+  'departamento administrativo de control disciplinario interno de instrucción',
+  'departamento administrativo de hacienda',
+  'departamento administrativo de planeación',
+  'departamento administrativo de gestión del medio ambiente',
+  'departamento administrativo de tecnologías de la información y las comunicaciones',
+  'departamento administrativo de contratación pública',
+  'departamento administrativo de desarrollo e innovación institucional'
+])
 
 const normalizeValue = (value: unknown): string => String(value || '').trim().toLowerCase()
 
