@@ -399,10 +399,12 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
     { value: 'diciembre', label: 'Diciembre' }
   ]
 
-  const aniosDisponibles = Array.from({ length: 10 }, (_, i) => {
-    const anio = new Date().getFullYear() + i
-    return anio.toString()
-  })
+  const anioMinimoProgramacion = 2024
+  const anioMaximoProgramacion = new Date().getFullYear() + 9
+  const aniosDisponibles = Array.from(
+    { length: anioMaximoProgramacion - anioMinimoProgramacion + 1 },
+    (_, i) => (anioMinimoProgramacion + i).toString()
+  )
 
   if (!isOpen) return null
 
