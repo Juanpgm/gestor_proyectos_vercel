@@ -331,7 +331,6 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
       'nombre_banco',
       'plataforma',
       'bp',
-      'id_paa',
       'nombre_resumido_proceso',
       'valor_proyectado'
     ]
@@ -722,7 +721,7 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
               {/* Campos obligatorios adicionales */}
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Campos Obligatorios Adicionales
+                  Campos Adicionales (incluye opcionales)
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -742,14 +741,13 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      ID PAA *
+                      ID PAA (opcional)
                     </label>
                     <input
                       type="text"
                       name="id_paa"
                       value={formData.id_paa}
                       onChange={handleInputChange}
-                      required
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="Ej: PAA-2024-123"
                     />
