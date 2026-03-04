@@ -78,6 +78,7 @@ interface AuthContextType {
   // Helpers para roles y permisos
   hasRole: (role: string) => boolean
   hasPermission: (permission: string) => boolean
+  canModifyOrDeleteRecords: () => boolean
   getHighestRole: () => string | null
   isSuperAdmin: () => boolean
 }
@@ -260,6 +261,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return state.user?.permissions?.includes(permission) || state.user?.permissions?.includes('*') || false
   }
 
+  // Helper: Verificar si el usuario puede modificar o borrar registros
+  const canModifyOrDeleteRecords = (): boolean => {
+    const allowedRoles = ['admin_centro_gestor', 'admin_general', 'super_admin', 'editor_datos']
+    const roles = state.user?.roles || []
+    return roles.some(role => allowedRoles.includes(role))
+  }
+
   // Helper: Obtener el rol con mayor jerarquía del usuario
   const getHighestRole = (): string | null => {
     const roles = state.user?.roles || []
@@ -305,6 +313,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     validateSession,
     hasRole,
     hasPermission,
+    canModifyOrDeleteRecords,
     getHighestRole,
     isSuperAdmin
   }

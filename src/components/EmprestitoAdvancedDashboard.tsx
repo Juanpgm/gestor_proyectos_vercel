@@ -50,6 +50,7 @@ import { getCentroGestorAccessFromSession, filterByCentroGestor } from '@/utils/
 import dynamic from 'next/dynamic'
 import { useReportesContrato, useResumenReportes } from '@/hooks/useReportesContrato'
 import { ClipboardEdit, History } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
 const RegistrarReporteContratoModal = dynamic(() => import('./RegistrarReporteContratoModal'), { ssr: false })
 const HistorialReportesContrato = dynamic(() => import('./HistorialReportesContrato'), { ssr: false })
@@ -4006,6 +4007,8 @@ const AdvancedFilters: React.FC<{
 
 // Componente principal del dashboard avanzado
 const EmprestitoAdvancedDashboard: React.FC = () => {
+  const { canModifyOrDeleteRecords } = useAuth()
+  const canManageRecordActions = canModifyOrDeleteRecords()
   const [showFilters, setShowFilters] = useState(false)
   const [selectedYear, setSelectedYear] = useState<string>('Consolidado')
 
@@ -4042,10 +4045,16 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     fechaFin: true,
     diasTranscurridos: false,
     diasRestantes: true,
-    acciones: true
+    acciones: canManageRecordActions
   })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'dias_restantes', direction: 'asc' })
+
+  useEffect(() => {
+    if (!canManageRecordActions) {
+      setColumnSettings(prev => ({ ...prev, acciones: false }))
+    }
+  }, [canManageRecordActions])
 
   const {
     loading,
@@ -4489,7 +4498,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         { key: 'diasTranscurridos', label: 'Días Transcurridos' },
                         { key: 'diasRestantes', label: 'Días Restantes' },
                         { key: 'detalle', label: 'Detalle' },
-                        { key: 'acciones', label: 'Acciones Avance' }
+                        ...(canManageRecordActions ? [{ key: 'acciones', label: 'Acciones Avance' }] : [])
                       ].map(col => (
                         <label key={col.key} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
                           <input
@@ -4738,7 +4747,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         Detalle
                       </th>
                     )}
-                    {columnSettings.acciones && (
+                    {canManageRecordActions && columnSettings.acciones && (
                       <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '8%' }}>
                         Acciones
                       </th>
@@ -5007,7 +5016,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             </button>
                           </td>
                         )}
-                        {columnSettings.acciones && (
+                        {canManageRecordActions && columnSettings.acciones && (
                           <td className="py-3 px-2 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <button

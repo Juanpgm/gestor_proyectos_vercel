@@ -28,6 +28,7 @@ import {
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
 import { deleteProcesoWithFallback } from '@/utils/procesoDeleteFallback'
 import { isProcesoRefDeletedLocally } from '@/utils/procesosDeleteLocalStore'
+import { useAuth } from '@/context/AuthContext'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
@@ -97,6 +98,8 @@ const extractArrayPayload = <T = any>(payload: any): T[] => {
 }
 
 const ProcesosEmprestitoTable: React.FC = () => {
+  const { canModifyOrDeleteRecords } = useAuth()
+  const canManageRecordActions = canModifyOrDeleteRecords()
   // Estados para datos
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
   const [loading, setLoading] = useState(true)
@@ -512,18 +515,20 @@ const ProcesosEmprestitoTable: React.FC = () => {
           </p>
         </div>
         
-        <button 
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Añadir Proceso SECOP II
-        </button>
+        {canManageRecordActions && (
+          <button 
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Añadir Proceso SECOP II
+          </button>
+        )}
       </div>
 
       {/* Modal de añadir proceso */}
       <AnimatePresence>
-        {showAddModal && (
+        {canManageRecordActions && showAddModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -909,9 +914,11 @@ const ProcesosEmprestitoTable: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       <span>Observaciones / Alertas</span>
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      <span>Acciones</span>
-                    </th>
+                    {canManageRecordActions && (
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <span>Acciones</span>
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -978,28 +985,29 @@ const ProcesosEmprestitoTable: React.FC = () => {
                         </div>
                       </td>
                       
-                      {/* Detalle y Acciones */}
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedProceso(proceso)
-                              setShowDetailModal(true)
-                            }}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg"
-                            title="Ver detalles del proceso"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(proceso)}
-                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg"
-                            title="Eliminar proceso"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
+                      {canManageRecordActions && (
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedProceso(proceso)
+                                setShowDetailModal(true)
+                              }}
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg"
+                              title="Ver detalles del proceso"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(proceso)}
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg"
+                              title="Eliminar proceso"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

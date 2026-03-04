@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+[data-record-access='read-only'] button[title*='editar' i],
+[data-record-access='read-only'] button[title*='eliminar' i],
+[data-record-access='read-only'] button[title*='borrar' i],
+[data-record-access='read-only'] button[title*='modificar' i],
+[data-record-access='read-only'] a[title*='editar' i],
+[data-record-access='read-only'] a[title*='eliminar' i],
+[data-record-access='read-only'] a[title*='borrar' i],
+[data-record-access='read-only'] a[title*='modificar' i],
+[data-record-access='read-only'] [role='button'][title*='editar' i],
+[data-record-access='read-only'] [role='button'][title*='eliminar' i],
+[data-record-access='read-only'] [role='button'][title*='borrar' i],
+[data-record-access='read-only'] [role='button'][title*='modificar' i],
+[data-record-access='read-only'] button[aria-label*='editar' i],
+[data-record-access='read-only'] button[aria-label*='eliminar' i],
+[data-record-access='read-only'] button[aria-label*='borrar' i],
+[data-record-access='read-only'] button[aria-label*='modificar' i],
+[data-record-access='read-only'] a[aria-label*='editar' i],
+[data-record-access='read-only'] a[aria-label*='eliminar' i],
+[data-record-access='read-only'] a[aria-label*='borrar' i],
+[data-record-access='read-only'] a[aria-label*='modificar' i],
+[data-record-access='read-only'] [role='button'][aria-label*='editar' i],
+[data-record-access='read-only'] [role='button'][aria-label*='eliminar' i],
+[data-record-access='read-only'] [role='button'][aria-label*='borrar' i],
+[data-record-access='read-only'] [role='button'][aria-label*='modificar' i] {
+  display: none !important;
+}
+
 /* Importar tipografía personalizada */
 @import '../styles/fonts.css';
 

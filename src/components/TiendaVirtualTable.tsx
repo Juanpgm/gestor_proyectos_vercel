@@ -71,6 +71,7 @@ import {
 } from 'lucide-react'
 import AgregarOrdenCompraModal from './AgregarOrdenCompraModal'
 import ModificarOrdenCompraModal from './ModificarOrdenCompraModal'
+import { useAuth } from '@/context/AuthContext'
 
 // Interfaz para orden de compra
 interface OrdenCompra {
@@ -121,6 +122,8 @@ interface SortConfig {
 }
 
 const TiendaVirtualTable: React.FC = () => {
+  const { canModifyOrDeleteRecords } = useAuth()
+  const canManageRecordActions = canModifyOrDeleteRecords()
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -754,13 +757,15 @@ const TiendaVirtualTable: React.FC = () => {
               <span>{loading ? 'Actualizando...' : 'Actualizar'}</span>
             </button>
             
-            <button
-              onClick={() => setShowAgregarModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Agregar Orden</span>
-            </button>
+            {canManageRecordActions && (
+              <button
+                onClick={() => setShowAgregarModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar Orden</span>
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -932,12 +937,13 @@ const TiendaVirtualTable: React.FC = () => {
                   </th>
                 ))}
                 
-                {/* Columna de Acciones */}
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between">
-                    <span>Acciones</span>
-                  </div>
-                </th>
+                {canManageRecordActions && (
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between">
+                      <span>Acciones</span>
+                    </div>
+                  </th>
+                )}
               </tr>
             </thead>
             
@@ -964,41 +970,42 @@ const TiendaVirtualTable: React.FC = () => {
                     </td>
                   ))}
                   
-                  {/* Columna de Acciones */}
-                  <td className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center gap-1">
-                      {/* Botón Modificar Valor */}
-                      <button
-                        onClick={() => {
-                          setOrdenToEdit(orden)
-                          setShowModificarModal(true)
-                        }}
-                        className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
-                        title="Modificar Valor"
-                      >
-                        <span className="text-lg font-bold">$</span>
-                      </button>
-                      
-                      {/* Botón Editar Completo */}
-                      <button
-                        onClick={() => {
-                          setOrdenToEditComplete(orden)
-                          setShowAgregarModal(true)
-                        }}
-                        className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                        title="Editar Completo"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setOrdenToDelete(orden)}
-                        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {canManageRecordActions && (
+                    <td className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-1">
+                        {/* Botón Modificar Valor */}
+                        <button
+                          onClick={() => {
+                            setOrdenToEdit(orden)
+                            setShowModificarModal(true)
+                          }}
+                          className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
+                          title="Modificar Valor"
+                        >
+                          <span className="text-lg font-bold">$</span>
+                        </button>
+                        
+                        {/* Botón Editar Completo */}
+                        <button
+                          onClick={() => {
+                            setOrdenToEditComplete(orden)
+                            setShowAgregarModal(true)
+                          }}
+                          className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                          title="Editar Completo"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setOrdenToDelete(orden)}
+                          className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </motion.tr>
               ))}
             </tbody>
@@ -1051,7 +1058,7 @@ const TiendaVirtualTable: React.FC = () => {
       
       {/* Modales */}
       <AgregarOrdenCompraModal
-        isOpen={showAgregarModal}
+        isOpen={canManageRecordActions && showAgregarModal}
         onClose={() => {
           setShowAgregarModal(false)
           setOrdenToEditComplete(null)

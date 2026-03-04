@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import AgregarConvenioTransferenciaModal from './AgregarConvenioTransferenciaModal'
 import ModificarConvenioModal from './ModificarConvenioModal'
+import { useAuth } from '@/context/AuthContext'
 
 interface ConvenioTransferencia {
   id?: string
@@ -67,6 +68,8 @@ const extractArrayPayload = <T = any>(payload: any): T[] => {
 }
 
 const ConveniosTable: React.FC = () => {
+  const { canModifyOrDeleteRecords } = useAuth()
+  const canManageRecordActions = canModifyOrDeleteRecords()
   const [convenios, setConvenios] = useState<ConvenioTransferencia[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -628,13 +631,15 @@ const ConveniosTable: React.FC = () => {
               <span>Actualizar</span>
             </button>
             
-            <button
-              onClick={() => setShowAgregarModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-md"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Agregar Convenio</span>
-            </button>
+            {canManageRecordActions && (
+              <button
+                onClick={() => setShowAgregarModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Agregar Convenio</span>
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -796,12 +801,13 @@ const ConveniosTable: React.FC = () => {
                   </th>
                 ))}
                 
-                {/* Columna de Acciones */}
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between">
-                    <span>Acciones</span>
-                  </div>
-                </th>
+                {canManageRecordActions && (
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between">
+                      <span>Acciones</span>
+                    </div>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -815,35 +821,36 @@ const ConveniosTable: React.FC = () => {
                     </td>
                   ))}
                   
-                  {/* Columna de Acciones */}
-                  <td className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => {
-                          setConvenioToEdit(convenio)
-                          setShowModificarModal(true)
-                        }}
-                        className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
-                        title="Modificar Valor"
-                      >
-                        <span className="text-lg font-bold">$</span>
-                      </button>
-                      <button
-                        onClick={() => handleEditConvenio(convenio)}
-                        className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                        title="Editar Completo"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setConvenioToDelete(convenio)}
-                        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {canManageRecordActions && (
+                    <td className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => {
+                            setConvenioToEdit(convenio)
+                            setShowModificarModal(true)
+                          }}
+                          className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
+                          title="Modificar Valor"
+                        >
+                          <span className="text-lg font-bold">$</span>
+                        </button>
+                        <button
+                          onClick={() => handleEditConvenio(convenio)}
+                          className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                          title="Editar Completo"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setConvenioToDelete(convenio)}
+                          className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -887,7 +894,7 @@ const ConveniosTable: React.FC = () => {
       
       {/* Modales */}
       <AgregarConvenioTransferenciaModal
-        isOpen={showAgregarModal}
+        isOpen={canManageRecordActions && showAgregarModal}
         onClose={() => {
           setShowAgregarModal(false)
           setEditingConvenio(null)

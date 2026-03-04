@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import AgregarProcesoModal from './AgregarProcesoModal'
 import ManagementFeatureTour from './ManagementFeatureTour'
+import { useAuth } from '@/context/AuthContext'
 
 // Interfaz para proyección de empréstito
 interface ProyeccionEmprestito {
@@ -78,6 +79,8 @@ interface ProyeccionesEmprestitoProps {
 }
 
 const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavigateHome }) => {
+  const { canModifyOrDeleteRecords } = useAuth()
+  const canManageRecordActions = canModifyOrDeleteRecords()
   // Estados para datos
   const [proyecciones, setProyecciones] = useState<ProyeccionEmprestito[]>([])
   const [loading, setLoading] = useState(true)
@@ -585,6 +588,10 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+<<<<<<< HEAD
+=======
+        className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white"
+>>>>>>> 1f3d6a5 (Mejoré el tema de accesibilidad pro roles a funciones transaccionales)
         data-tour-id="mgmt-proyecciones-header"
         className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white"
       >
@@ -925,7 +932,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                 ))}
                 
                 {/* Columna de Acciones - Solo visible si hay proyecciones sin proceso */}
-                {stats.sinProceso > 0 && (
+                {canManageRecordActions && stats.sinProceso > 0 && (
                   <th className="px-3 py-2 text-left border-r border-gray-200 dark:border-gray-600">
                     <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Acciones</span>
                   </th>
@@ -987,7 +994,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                   ))}
                   
                   {/* Columna de acciones - Solo para proyecciones sin proceso */}
-                  {proyeccion.sin_proceso && (
+                  {canManageRecordActions && proyeccion.sin_proceso && (
                     <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700">
                       <button
                         onClick={() => {
@@ -1011,7 +1018,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
       {/* Modal para agregar proceso desde proyección */}
       <AgregarProcesoModal
-        isOpen={showAgregarProcesoModal}
+        isOpen={canManageRecordActions && showAgregarProcesoModal}
         onClose={() => {
           setShowAgregarProcesoModal(false)
           setProyeccionSeleccionada(null)

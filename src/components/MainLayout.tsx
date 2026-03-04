@@ -17,7 +17,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const router = useRouter()
-  const { hasRole } = useAuth()
+  const { hasRole, canModifyOrDeleteRecords } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
 
@@ -123,7 +123,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   }
 
   return (
-    <>
+    <div data-record-access={canModifyOrDeleteRecords() ? 'can-modify-delete' : 'read-only'}>
       <Header onToggleSidebar={handleToggleSidebar} />
       
       <Sidebar
@@ -146,7 +146,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-    </>
+    </div>
   )
 }
 
