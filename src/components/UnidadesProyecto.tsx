@@ -922,18 +922,6 @@ const UnidadesProyecto: React.FC = () => {
         )}
       </section>
 
-      {/* Indicador de elemento enfocado - Esquina inferior derecha (más abajo para no tapar controles) */}
-      {focusedItem && (
-        <motion.div
-          initial={{ opacity: 0, x: 20, y: 20 }}
-          animate={{ opacity: 1, x: 0, y: 0 }}
-          exit={{ opacity: 0, x: 20, y: 20 }}
-          className="fixed bottom-16 right-4 z-30 bg-blue-600 dark:bg-blue-500 text-white px-3 py-2 rounded-lg shadow-lg text-sm font-medium"
-        >
-          Enfocado: {focusedItem}
-        </motion.div>
-      )}
-
       {/* Modal de detalles */}
       <AnimatePresence>
         {selectedItemForModal && (

@@ -81,6 +81,210 @@ const INTERVENCIONES_CACHE_TTL = Number.isFinite(parsedIntervencionesCacheTtl) &
   : DEFAULT_INTERVENCIONES_CACHE_TTL_MS;
 const intervencionesMemoryCache = new Map<string, { data: IntervencionesResponse; timestamp: number }>();
 
+const DEFAULT_AVANCES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+const avancesByIntervencionCache = new Map<string, { value: number | null; timestamp: number }>();
+
+const isValidAvanceValue = (value: unknown): value is number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value);
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed);
+  }
+
+  return false;
+};
+
+const toTimestamp = (record: Record<string, any>): number => {
+  const candidates = [
+    record.updated_at,
+    record.fecha_reporte,
+    record.created_at,
+    record.fecha,
+    record.timestamp
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string' || candidate.trim() === '') continue;
+    const parsed = Date.parse(candidate);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
+};
+
+const extractArrayFromApiResponse = (data: any): Record<string, any>[] => {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data?.data)) {
+    return data.data;
+  }
+
+  if (Array.isArray(data?.items)) {
+    return data.items;
+  }
+
+  if (Array.isArray(data?.results)) {
+    return data.results;
+  }
+
+  return [];
+};
+
+const buildLatestValidAvanceMap = (rawAvances: Record<string, any>[]): Map<string, number> => {
+  const latestByIntervencion = new Map<string, { value: number; timestamp: number }>();
+
+  rawAvances.forEach((row) => {
+    const intervencionId = String(row?.intervencion_id || '').trim();
+    if (!intervencionId || !isValidAvanceValue(row?.avance_obra)) {
+      return;
+    }
+
+    const value = typeof row.avance_obra === 'number' ? row.avance_obra : Number(row.avance_obra);
+    const timestamp = toTimestamp(row);
+    const current = latestByIntervencion.get(intervencionId);
+
+    if (!current || timestamp >= current.timestamp) {
+      latestByIntervencion.set(intervencionId, { value, timestamp });
+    }
+  });
+
+  const result = new Map<string, number>();
+  latestByIntervencion.forEach((entry, intervencionId) => {
+    result.set(intervencionId, entry.value);
+  });
+
+  return result;
+};
+
+const getBaseEndpointCandidates = (baseUrl: string): string[] => {
+  const candidates: string[] = [];
+  const trimmedBase = (baseUrl || '').replace(/\/+$/, '');
+
+  if (trimmedBase) {
+    candidates.push(`${trimmedBase}/avances_unidades_proyecto`);
+  }
+
+  candidates.push('/api/proxy/avances_unidades_proyecto');
+
+  return Array.from(new Set(candidates));
+};
+
+const pickLatestValidAvance = (rows: Record<string, any>[]): number | null => {
+  let bestValue: number | null = null;
+  let bestTimestamp = Number.NEGATIVE_INFINITY;
+
+  rows.forEach((row) => {
+    if (!isValidAvanceValue(row?.avance_obra)) {
+      return;
+    }
+
+    const value = typeof row.avance_obra === 'number' ? row.avance_obra : Number(row.avance_obra);
+    const timestamp = toTimestamp(row);
+
+    if (timestamp > bestTimestamp) {
+      bestTimestamp = timestamp;
+      bestValue = value;
+      return;
+    }
+
+    if (timestamp === bestTimestamp && bestValue === null) {
+      bestValue = value;
+    }
+  });
+
+  return bestValue;
+};
+
+const getUniqueIntervencionIds = (features: IntervencionesResponse['features']): string[] => {
+  const ids = new Set<string>();
+
+  features.forEach((feature) => {
+    feature.properties.intervenciones.forEach((intervencion) => {
+      const id = String(intervencion.intervencion_id || '').trim();
+      if (id) {
+        ids.add(id);
+      }
+    });
+  });
+
+  return Array.from(ids);
+};
+
+const fetchLatestAvanceForIntervencion = async (
+  endpoints: string[],
+  intervencionId: string
+): Promise<number | null> => {
+  const cached = avancesByIntervencionCache.get(intervencionId);
+  if (cached && Date.now() - cached.timestamp < DEFAULT_AVANCES_CACHE_TTL_MS) {
+    return cached.value;
+  }
+
+  const query = `intervencion_id=${encodeURIComponent(intervencionId)}`;
+
+  for (const endpoint of endpoints) {
+    const url = `${endpoint}?${query}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const payload = await response.json();
+      const rows = extractArrayFromApiResponse(payload);
+      const latest = pickLatestValidAvance(rows);
+
+      avancesByIntervencionCache.set(intervencionId, {
+        value: latest,
+        timestamp: Date.now()
+      });
+
+      return latest;
+    } catch {
+      continue;
+    }
+  }
+
+  avancesByIntervencionCache.set(intervencionId, {
+    value: null,
+    timestamp: Date.now()
+  });
+
+  return null;
+};
+
+const fetchLatestAvancesMap = async (
+  baseUrl: string,
+  features: IntervencionesResponse['features']
+): Promise<Map<string, number>> => {
+  const intervencionIds = getUniqueIntervencionIds(features);
+  const endpoints = getBaseEndpointCandidates(baseUrl);
+  const result = new Map<string, number>();
+
+  await Promise.all(intervencionIds.map(async (intervencionId) => {
+    const latest = await fetchLatestAvanceForIntervencion(endpoints, intervencionId);
+    if (typeof latest === 'number') {
+      result.set(intervencionId, latest);
+    }
+  }));
+
+  return result;
+};
+
 /**
  * Construye query string desde los parámetros de filtro
  */
@@ -144,22 +348,57 @@ export async function fetchIntervenciones(
     // Validar la respuesta con Zod
     const validated = IntervencionesResponseSchema.parse(data);
 
+    let latestAvancesByIntervencion = new Map<string, number>();
+    try {
+      latestAvancesByIntervencion = await fetchLatestAvancesMap(baseUrl, validated.features);
+    } catch (avanceError) {
+      console.warn('⚠️ No fue posible sincronizar /avances_unidades_proyecto, usando avance_obra de /intervenciones', avanceError);
+    }
+
+    const mergedFeatures = validated.features.map((feature) => {
+      const mergedIntervenciones = feature.properties.intervenciones.map((intervencion) => {
+        const latestAvance = latestAvancesByIntervencion.get(intervencion.intervencion_id);
+
+        if (typeof latestAvance === 'number') {
+          return {
+            ...intervencion,
+            avance_obra: latestAvance
+          };
+        }
+
+        return intervencion;
+      });
+
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          intervenciones: mergedIntervenciones
+        }
+      };
+    });
+
+    const mergedValidated: IntervencionesResponse = {
+      ...validated,
+      features: mergedFeatures
+    };
+
     if (!hasFilters) {
       intervencionesMemoryCache.set(url, {
-        data: validated,
+        data: mergedValidated,
         timestamp: Date.now()
       });
     }
 
     console.log('✅ Intervenciones obtenidas:', {
-      total_unidades: validated.features.length,
-      total_intervenciones: validated.features.reduce(
+      total_unidades: mergedValidated.features.length,
+      total_intervenciones: mergedValidated.features.reduce(
         (sum, f) => sum + f.properties.n_intervenciones, 
         0
       )
     });
 
-    return validated;
+    return mergedValidated;
 
   } catch (error) {
     console.error('❌ Error al obtener intervenciones:', error);

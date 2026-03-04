@@ -285,6 +285,75 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
   const [modalEditar, setModalEditar] = useState<AttributeData | null>(null);
   const [modalHistorial, setModalHistorial] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
 
+  const extractArrayPayload = (payload: any): any[] => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.items)) return payload.items;
+    if (Array.isArray(payload?.results)) return payload.results;
+    return [];
+  };
+
+  const toTimestamp = (record: Record<string, any>): number => {
+    const candidates = [record.updated_at, record.fecha_reporte, record.created_at, record.fecha, record.timestamp];
+    for (const candidate of candidates) {
+      if (typeof candidate !== 'string' || candidate.trim() === '') continue;
+      const parsed = Date.parse(candidate);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    return 0;
+  };
+
+  const toValidNumber = (value: unknown): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
+
+  const getLatestAvanceForIntervencion = async (
+    apiUrl: string,
+    intervencionId: string
+  ): Promise<number | null> => {
+    const cleanApiUrl = (apiUrl || '').replace(/\/+$/, '');
+    const query = `intervencion_id=${encodeURIComponent(intervencionId)}`;
+    const candidates = [
+      cleanApiUrl ? `${cleanApiUrl}/avances_unidades_proyecto?${query}` : `/avances_unidades_proyecto?${query}`,
+      `/api/proxy/avances_unidades_proyecto?${query}`
+    ];
+
+    for (const url of candidates) {
+      try {
+        const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+        if (!response.ok) continue;
+
+        const payload = await response.json();
+        const rows = extractArrayPayload(payload);
+
+        let bestValue: number | null = null;
+        let bestTimestamp = Number.NEGATIVE_INFINITY;
+
+        rows.forEach((row) => {
+          const current = toValidNumber(row?.avance_obra);
+          if (current === null) return;
+
+          const ts = toTimestamp(row);
+          if (ts > bestTimestamp) {
+            bestTimestamp = ts;
+            bestValue = current;
+          }
+        });
+
+        return bestValue;
+      } catch {
+        continue;
+      }
+    }
+
+    return null;
+  };
+
   // Filtrar datos
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
@@ -368,8 +437,40 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
       const res = await fetch(`${apiUrl}/intervenciones?upid=${upid}&limit=10000`);
       if (!res.ok) throw new Error('Error loading intervenciones');
 
-      const { data: intervenciones } = await res.json();
-      const intList: IntervencionData[] = intervenciones || [];
+      const payload = await res.json();
+      const intervenciones = extractArrayPayload(payload);
+      let intList: IntervencionData[] = intervenciones || [];
+
+      const uniqueIntervencionIds = Array.from(new Set(
+        intList
+          .map((interv) => String(interv.intervencion_id || '').trim())
+          .filter(Boolean)
+      ));
+
+      if (uniqueIntervencionIds.length > 0) {
+        const latestEntries = await Promise.all(
+          uniqueIntervencionIds.map(async (intervencionId) => {
+            const latest = await getLatestAvanceForIntervencion(apiUrl, intervencionId);
+            return [intervencionId, latest] as const;
+          })
+        );
+
+        const latestAvanceMap = new Map<string, number>();
+        latestEntries.forEach(([intervencionId, latest]) => {
+          if (typeof latest === 'number') {
+            latestAvanceMap.set(intervencionId, latest);
+          }
+        });
+
+        intList = intList.map((interv) => {
+          const intervencionId = String(interv.intervencion_id || '').trim();
+          const latest = latestAvanceMap.get(intervencionId);
+          if (typeof latest === 'number') {
+            return { ...interv, avance_obra: latest };
+          }
+          return interv;
+        });
+      }
 
       // Calcular métricas
       const avance = intList.length > 0
