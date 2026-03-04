@@ -107,6 +107,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   key={tab.id}
                   onClick={() => !isDisabled && onTabChange(tab.id)}
                   disabled={isDisabled}
+                  data-tour-id={`nav-${tab.id}`}
                   className={`flex items-center space-x-2 tablet:space-x-3 px-3 tablet:px-6 py-2 tablet:py-4 rounded-lg tablet:rounded-xl font-medium transition-all duration-200 text-sm tablet:text-base min-w-0 tablet-interactive ${
                     isDisabled
                       ? 'text-gray-400 dark:text-gray-600 opacity-50 cursor-not-allowed'
@@ -220,6 +221,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                         key={tab.id}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        data-tour-id={`nav-${tab.id}`}
                         onClick={() => {
                           if (!isDisabled) {
                             onTabChange(tab.id)

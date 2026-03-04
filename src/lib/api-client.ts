@@ -1,6 +1,9 @@
 import { auth } from '@/lib/firebase';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  'https://gestorproyectoapi-production.up.railway.app';
 
 /**
  * Obtener el token actual del usuario autenticado
@@ -40,6 +43,21 @@ export async function refreshIdToken(): Promise<string | null> {
  * Cliente API con autenticación automática
  */
 export class ApiClient {
+  private static async parseResponse<T>(response: Response): Promise<T> {
+    const rawText = await response.text();
+    const trimmedText = rawText?.trim?.() || '';
+
+    if (!trimmedText || response.status === 204 || response.status === 205 || response.status === 304) {
+      return {} as T;
+    }
+
+    try {
+      return JSON.parse(trimmedText) as T;
+    } catch {
+      return trimmedText as T;
+    }
+  }
+
   /**
    * GET request
    */
@@ -59,11 +77,11 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const error = await ApiClient.parseResponse<any>(response);
+      throw new Error(error?.message || error?.detail || 'Request failed');
     }
 
-    return response.json();
+    return ApiClient.parseResponse<T>(response);
   }
 
   /**
@@ -86,11 +104,11 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const error = await ApiClient.parseResponse<any>(response);
+      throw new Error(error?.message || error?.detail || 'Request failed');
     }
 
-    return response.json();
+    return ApiClient.parseResponse<T>(response);
   }
 
   /**
@@ -113,11 +131,11 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const error = await ApiClient.parseResponse<any>(response);
+      throw new Error(error?.message || error?.detail || 'Request failed');
     }
 
-    return response.json();
+    return ApiClient.parseResponse<T>(response);
   }
 
   /**
@@ -139,11 +157,11 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const error = await ApiClient.parseResponse<any>(response);
+      throw new Error(error?.message || error?.detail || 'Request failed');
     }
 
-    return response.json();
+    return ApiClient.parseResponse<T>(response);
   }
 
   /**
@@ -166,11 +184,11 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const error = await ApiClient.parseResponse<any>(response);
+      throw new Error(error?.message || error?.detail || 'Request failed');
     }
 
-    return response.json();
+    return ApiClient.parseResponse<T>(response);
   }
 
   /**
@@ -193,11 +211,11 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Upload failed');
+      const error = await ApiClient.parseResponse<any>(response);
+      throw new Error(error?.message || error?.detail || 'Upload failed');
     }
 
-    return response.json();
+    return ApiClient.parseResponse<T>(response);
   }
 }
 

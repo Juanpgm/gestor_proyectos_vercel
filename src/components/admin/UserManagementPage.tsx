@@ -21,6 +21,7 @@ import UserList from './UserList'
 import UserEditModal from './UserEditModal'
 import RoleAssignmentModal from './RoleAssignmentModal'
 import UserDetailsViewer from './UserDetailsViewer'
+import ManagementFeatureTour from '@/components/ManagementFeatureTour'
 
 interface UserManagementPageProps {
   currentUserRole?: RoleId
@@ -779,7 +780,7 @@ export default function UserManagementPage({
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-tour-id="mgmt-usuarios-header">
         <div className={isPublicRoleTheme ? 'bg-gray-700 border border-gray-600 rounded-xl px-4 py-3' : ''}>
           <h1 className={`text-2xl font-bold flex items-center gap-2 ${isPublicRoleTheme ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
             <Users className="w-8 h-8" />
@@ -794,6 +795,11 @@ export default function UserManagementPage({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <ManagementFeatureTour
+            moduleKey="usuarios"
+            highestRole={detectedUserRole}
+            userId={state.user?.uid || state.user?.email}
+          />
           <button
             onClick={() => router.push('/')}
             className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center gap-2 text-sm"
@@ -814,7 +820,7 @@ export default function UserManagementPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" data-tour-id="mgmt-usuarios-stats">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <p className="text-xs text-gray-500">Usuarios Totales</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalUsersForMetrics}</p>
@@ -1045,7 +1051,7 @@ export default function UserManagementPage({
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700" data-tour-id="mgmt-usuarios-filters">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           <h3 className="font-semibold text-gray-900 dark:text-white">Filtros (aplicación automática)</h3>
@@ -1146,18 +1152,20 @@ export default function UserManagementPage({
         </div>
       )}
 
-      <UserList
-        users={users}
-        loading={loading}
-        onEdit={handleEditUser}
-        onAssignRoles={handleAssignRoles}
-        onViewPermissions={handleViewPermissions}
-        onToggleStatus={handleToggleStatus}
-        onDeleteUser={handleDeleteUser}
-        onGrantTemporaryPermission={handleGrantTemporaryPermission}
-        onRevokeTemporaryPermission={handleRevokeTemporaryPermission}
-        canEdit={isSuperAdmin}
-      />
+      <div data-tour-id="mgmt-usuarios-table">
+        <UserList
+          users={users}
+          loading={loading}
+          onEdit={handleEditUser}
+          onAssignRoles={handleAssignRoles}
+          onViewPermissions={handleViewPermissions}
+          onToggleStatus={handleToggleStatus}
+          onDeleteUser={handleDeleteUser}
+          onGrantTemporaryPermission={handleGrantTemporaryPermission}
+          onRevokeTemporaryPermission={handleRevokeTemporaryPermission}
+          canEdit={isSuperAdmin}
+        />
+      </div>
 
       {totalPages > 1 && (
         <div className="flex justify-center gap-2">

@@ -26,10 +26,13 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
+import { deleteProcesoWithFallback } from '@/utils/procesoDeleteFallback'
+import { isProcesoRefDeletedLocally } from '@/utils/procesosDeleteLocalStore'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
   id?: number
+  referencia_proceso?: string
   proceso_numero?: string
   proceso_nombre?: string
   proceso_presupuesto_estimado?: number
@@ -43,6 +46,26 @@ interface ProcesoEmprestito {
   objeto_contratar?: string
   ubicacion?: string
   contacto_entidad?: string
+}
+
+const resolveProcesoReferencia = (proceso: Partial<ProcesoEmprestito> | null | undefined): string => {
+  if (!proceso) return ''
+
+  const candidates = [
+    (proceso as any).referencia_proceso,
+    (proceso as any).proceso_numero,
+    (proceso as any).referencia,
+    (proceso as any).numero_proceso,
+    (proceso as any).id_proceso,
+    proceso.id,
+  ]
+
+  for (const candidate of candidates) {
+    const value = String(candidate || '').trim()
+    if (value) return value
+  }
+
+  return ''
 }
 
 // Interfaz para filtros
@@ -138,8 +161,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
     setIsDeleting(true)
     
     try {
-      // Obtener la referencia del proceso (probando ambas propiedades posibles)
-      const referencia = (procesoToDelete as any).referencia_proceso || procesoToDelete.proceso_numero || ''
+      const referencia = resolveProcesoReferencia(procesoToDelete)
       
       if (!referencia) {
         throw new Error('No se encontró referencia del proceso para eliminar')
@@ -147,25 +169,17 @@ const ProcesosEmprestitoTable: React.FC = () => {
 
       console.log(`🗑️ Eliminando proceso: ${referencia}`)
 
-      const response = await fetch(`/api/proxy/emprestito/proceso/${encodeURIComponent(referencia)}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.detail || `Error ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      console.log('✅ Proceso eliminado:', result)
+      const { endpoint, data: result, mode, message } = await deleteProcesoWithFallback(procesoToDelete as Record<string, any>, referencia)
+      console.log('✅ Proceso eliminado vía:', endpoint, result)
 
       // Cerrar modal y recargar lista
       setShowDeleteModal(false)
       setProcesoToDelete(null)
       await fetchProcesos()
+
+      if (mode === 'local') {
+        alert(message)
+      }
 
     } catch (error) {
       console.error('❌ Error al eliminar proceso:', error)
@@ -188,7 +202,13 @@ const ProcesosEmprestitoTable: React.FC = () => {
         120000 // 2 minutos de timeout
       )
 
-      setProcesos(extractArrayPayload<ProcesoEmprestito>(data))
+      const records = extractArrayPayload<ProcesoEmprestito>(data)
+      const filteredRecords = records.filter((record) => {
+        const referencia = resolveProcesoReferencia(record)
+        return !isProcesoRefDeletedLocally(referencia)
+      })
+
+      setProcesos(filteredRecords)
     } catch (error) {
       console.error('Error al cargar procesos:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')
@@ -1019,7 +1039,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
                 </div>
                 
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  ¿Está seguro que desea eliminar el proceso <strong>{(procesoToDelete as any).referencia_proceso || procesoToDelete.proceso_numero}</strong>? 
+                  ¿Está seguro que desea eliminar el proceso <strong>{resolveProcesoReferencia(procesoToDelete)}</strong>? 
                   <br /><br />
                   <span className="text-sm text-red-500 dark:text-red-400 font-medium">
                     Esta acción no se puede deshacer. Se eliminará de ambas colecciones (SECOP y TVEC).
@@ -1028,6 +1048,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
 
                 <div className="flex justify-end gap-3">
                   <button
+                    type="button"
                     onClick={() => setShowDeleteModal(false)}
                     disabled={isDeleting}
                     className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50"
@@ -1035,7 +1056,12 @@ const ProcesosEmprestitoTable: React.FC = () => {
                     Cancelar
                   </button>
                   <button
-                    onClick={handleConfirmDelete}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      void handleConfirmDelete()
+                    }}
                     disabled={isDeleting}
                     className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
                   >

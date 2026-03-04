@@ -74,6 +74,12 @@ const sanitizeSearchParamsForBackend = (searchParams: URLSearchParams): URLSearc
   return sanitized
 }
 
+const shouldRetryOnEmptyJson = (apiPath: string, method: string): boolean => {
+  if (method !== 'GET') return false
+  const normalizedPath = normalizeApiPath(apiPath)
+  return normalizedPath === 'procesos_emprestito_all' || normalizedPath === 'emprestito/obtener-procesos-bp'
+}
+
 const shouldCacheResponsePayload = (payload: unknown): boolean => {
   if (payload === null || payload === undefined) return false
 
@@ -159,6 +165,7 @@ async function handleRequest(request: NextRequest, method: string) {
     // Prepare request options
     const forwardedHeaders: Record<string, string> = {
       'Accept': request.headers.get('accept') || 'application/json',
+      'Accept-Encoding': 'identity',
     }
 
     const incomingContentType = request.headers.get('content-type')
@@ -192,75 +199,121 @@ async function handleRequest(request: NextRequest, method: string) {
     
     console.log(`🌐 Proxying ${method} request to: ${fastApiUrl}`)
     
-    // Make the request to FastAPI
-    const response = await fetch(fastApiUrl, requestOptions)
-    const responseClone = response.clone()
-    
-    clearTimeout(timeoutId)
-    
-    // Get response data
-    let responseData
-    const contentType = response.headers.get('content-type')
-    
-    if (contentType?.includes('application/json')) {
-      try {
-        responseData = await response.json()
+    const shouldRetryEmptyJson = shouldRetryOnEmptyJson(apiPath, method)
+    let response: Response | null = null
+    let responseData: any = null
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const targetUrl = attempt === 1
+        ? fastApiUrl
+        : `${fastApiUrl}${fastApiUrl.includes('?') ? '&' : '?'}_proxy_retry=${Date.now()}_${attempt}`
+
+      response = await fetch(targetUrl, requestOptions)
+      const contentType = response.headers.get('content-type') || ''
+
+      if (contentType.includes('application/json')) {
+        const rawText = await response.text()
+        const trimmed = rawText?.trim?.() || ''
+
+        if (!trimmed) {
+          if (shouldRetryEmptyJson && attempt < 3) {
+            console.warn(`⚠️ Empty JSON body from backend (${apiPath}), retry ${attempt}/2`)
+            continue
+          }
+
+          responseData = {
+            error: 'Empty JSON response from backend',
+            endpoint: apiPath,
+          }
+          break
+        }
+
+        try {
+          responseData = JSON.parse(trimmed)
+        } catch {
+          try {
+            responseData = JSON.parse(JSON.parse(trimmed))
+          } catch (parseError) {
+            if (shouldRetryEmptyJson && attempt < 3) {
+              console.warn(`⚠️ Invalid JSON body from backend (${apiPath}), retry ${attempt}/2`, parseError)
+              continue
+            }
+
+            responseData = {
+              error: 'Invalid JSON response from backend',
+              parse_error: parseError instanceof Error ? parseError.message : String(parseError),
+              endpoint: apiPath,
+            }
+          }
+        }
 
         // Unwrap API responses with { success: true, data: [...] } structure
         // This is specifically for unidades-proyecto endpoints, EXCEPT geometry
-        if (apiPath.includes('unidades-proyecto') && 
-            !apiPath.includes('geometry') && // Geometry returns GeoJSON directly
-            responseData && 
-            typeof responseData === 'object' && 
-            responseData.success === true && 
+        if (apiPath.includes('unidades-proyecto') &&
+            !apiPath.includes('geometry') &&
+            responseData &&
+            typeof responseData === 'object' &&
+            responseData.success === true &&
             'data' in responseData) {
           console.log(`🔄 Unwrapping API response: ${Array.isArray(responseData.data) ? responseData.data.length : 'N/A'} items`)
           responseData = responseData.data
         }
 
-      } catch (error) {
-        console.warn('Failed to parse JSON response, attempting text fallback:', error)
+        break
+      }
 
+      const rawText = await response.text()
+      const trimmedText = rawText?.trim?.() || ''
+
+      if (!trimmedText) {
+        responseData = null
+      } else {
         try {
-          const rawFallbackText = await responseClone.text()
-          const trimmedFallbackText = rawFallbackText?.trim?.() || ''
-
-          if (!trimmedFallbackText) {
-            responseData = {
-              error: 'Invalid JSON response from backend',
-              parse_error: error instanceof Error ? error.message : String(error),
-              endpoint: apiPath,
-            }
-          } else {
-            try {
-              responseData = JSON.parse(trimmedFallbackText)
-            } catch {
-              responseData = trimmedFallbackText
-            }
-
-            if (typeof responseData === 'string') {
-              try {
-                responseData = JSON.parse(responseData)
-              } catch {
-                // keep string payload as-is
-              }
-            }
-          }
-        } catch (fallbackParseError) {
-          console.warn('Text fallback parse also failed:', fallbackParseError)
-          responseData = {
-            error: 'Invalid JSON response from backend',
-            parse_error: error instanceof Error ? error.message : String(error),
-            endpoint: apiPath,
-          }
+          responseData = JSON.parse(trimmedText)
+        } catch {
+          responseData = rawText
         }
       }
-    } else {
-      const rawText = await response.text()
+      break
+    }
+
+    clearTimeout(timeoutId)
+
+    if (!response) {
+      throw new Error('No response from backend')
+    }
+
+    const normalizedApiPath = normalizeApiPath(apiPath)
+    if (
+      method === 'GET' &&
+      normalizedApiPath === 'procesos_emprestito_all' &&
+      responseData &&
+      typeof responseData === 'object' &&
+      (responseData as any).error === 'Empty JSON response from backend'
+    ) {
       try {
-        responseData = JSON.parse(rawText)
-      } catch {
-        responseData = rawText
+        const fallbackUrl = `${API_BASE_URL}/emprestito/obtener-procesos-bp`
+        console.warn('⚠️ procesos_emprestito_all vacío; intentando fallback API-only:', fallbackUrl)
+
+        const fallbackResponse = await fetch(fallbackUrl, requestOptions)
+        const fallbackRaw = await fallbackResponse.text()
+        const fallbackTrimmed = fallbackRaw?.trim?.() || ''
+
+        if (fallbackResponse.ok && fallbackTrimmed) {
+          const fallbackData = JSON.parse(fallbackTrimmed)
+          if (fallbackData && Array.isArray(fallbackData.data)) {
+            responseData = {
+              ...fallbackData,
+              metadata: {
+                ...(fallbackData.metadata || {}),
+                proxy_source: 'emprestito/obtener-procesos-bp',
+              },
+            }
+            console.log(`✅ Fallback API-only exitoso: ${fallbackData.data.length} procesos`)
+          }
+        }
+      } catch (fallbackError) {
+        console.warn('⚠️ Fallback API-only de procesos también falló:', fallbackError)
       }
     }
     
@@ -277,6 +330,27 @@ async function handleRequest(request: NextRequest, method: string) {
     if (method !== 'GET' && response.ok && emprestitoProxyCache.size > 0) {
       emprestitoProxyCache.clear()
       console.log(`🧹 [CACHE CLEAR][${method}] Cache de Empréstito limpiado por mutación exitosa`)
+    }
+
+    const isExplicitNoContentStatus =
+      response.status === 204 ||
+      response.status === 205 ||
+      response.status === 304
+
+    const isSuccessfulEmptyBody =
+      (response.status >= 200 && response.status < 300) &&
+      (responseData === null || responseData === undefined)
+
+    const shouldReturnNoContent = isExplicitNoContentStatus || isSuccessfulEmptyBody
+
+    if (shouldReturnNoContent) {
+      return new NextResponse(null, {
+        status: response.status,
+        headers: {
+          ...corsHeaders,
+          ...(isCacheableGet ? { 'X-Proxy-Cache': 'MISS' } : {}),
+        },
+      })
     }
 
     return NextResponse.json(responseData, {

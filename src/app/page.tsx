@@ -32,12 +32,16 @@ import ContratosStats from '@/components/ContratosStats'
 import ContratosCharts from '@/components/ContratosCharts'
 import ProcesosTable from '@/components/ProcesosTable'
 import ProcesosStats from '@/components/ProcesosStats'
+import SectionFeatureTour from '@/components/SectionFeatureTour'
+import { useAuth } from '@/context/AuthContext'
 
 type ActiveTab = 'projects' | 'project_units' | 'contracts' | 'activities' | 'products' | 'emprestito' | 'procesos'
 
 function DashboardContent() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('projects')
   const [filteredBpinsFromContracts, setFilteredBpinsFromContracts] = useState<number[] | undefined>(undefined)
+  const { state: authState, getHighestRole } = useAuth()
+  const highestRole = getHighestRole()
   
   // Usar el contexto global del dashboard
   const { state, getFilteredCount, exportData } = useDashboard()
@@ -324,11 +328,13 @@ function DashboardContent() {
       case 'projects':
         return (
           <div className="space-y-6">
-            <StatsCards />
+            <div data-tour-id="section-projects-stats">
+              <StatsCards />
+            </div>
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
               <div className="xl:col-span-4 order-1">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col">
-                  <div className="overflow-hidden">
+                  <div className="overflow-hidden" data-tour-id="section-projects-table">
                     <ProjectsTable className="w-full" />
                   </div>
                 </div>
@@ -340,93 +346,113 @@ function DashboardContent() {
       case 'project_units':
         return (
           <div className="space-y-6">
-            <UnidadesProyecto />
+            <div data-tour-id="section-project-units-main">
+              <UnidadesProyecto />
+            </div>
           </div>
         )
 
       case 'contracts':
         return (
           <div className="space-y-6">
-            <ContratosStats 
-              totalContratos={filteredContratosMetrics.totalContratos}
-              totalValorContratos={filteredContratosMetrics.totalValorContratos}
-              valorPagado={filteredContratosMetrics.valorPagado}
-              valorPendientePago={filteredContratosMetrics.valorPendientePago}
-              valorPendienteEjecucion={filteredContratosMetrics.valorPendienteEjecucion}
-              contratosLiquidados={filteredContratosMetrics.contratosLiquidados}
-              contratosModificados={filteredContratosMetrics.contratosModificados}
-              contratosConPagoAdelantado={filteredContratosMetrics.contratosConPagoAdelantado}
-              loading={contratosState.loading}
-            />
+            <div data-tour-id="section-contracts-stats">
+              <ContratosStats 
+                totalContratos={filteredContratosMetrics.totalContratos}
+                totalValorContratos={filteredContratosMetrics.totalValorContratos}
+                valorPagado={filteredContratosMetrics.valorPagado}
+                valorPendientePago={filteredContratosMetrics.valorPendientePago}
+                valorPendienteEjecucion={filteredContratosMetrics.valorPendienteEjecucion}
+                contratosLiquidados={filteredContratosMetrics.contratosLiquidados}
+                contratosModificados={filteredContratosMetrics.contratosModificados}
+                contratosConPagoAdelantado={filteredContratosMetrics.contratosConPagoAdelantado}
+                loading={contratosState.loading}
+              />
+            </div>
             
-            <ContratosCharts 
-              contratos={filteredContratos}
-              loading={contratosState.loading}
-            />
+            <div data-tour-id="section-contracts-charts">
+              <ContratosCharts 
+                contratos={filteredContratos}
+                loading={contratosState.loading}
+              />
+            </div>
             
-            <ContratosTable 
-              contratos={contratosState.data.contratos}
-              filteredContratos={filteredContratos}
-              loading={contratosState.loading}
-            />
+            <div data-tour-id="section-contracts-table">
+              <ContratosTable 
+                contratos={contratosState.data.contratos}
+                filteredContratos={filteredContratos}
+                loading={contratosState.loading}
+              />
+            </div>
           </div>
         )
 
       case 'activities':
         return (
           <div className="space-y-8">
-            <ActividadesStats
-              totalActividades={filteredActividadesMetrics.totalActividades}
-              completedActivities={filteredActividadesMetrics.completedActivities}
-              inProgressActivities={filteredActividadesMetrics.inProgressActivities}
-              notStartedActivities={filteredActividadesMetrics.notStartedActivities}
-              activitiesWithoutDates={filteredActividadesMetrics.activitiesWithoutDates}
-              averageProgress={filteredActividadesMetrics.averageProgress}
-              loading={actividadesState.loading}
-            />
+            <div data-tour-id="section-activities-stats">
+              <ActividadesStats
+                totalActividades={filteredActividadesMetrics.totalActividades}
+                completedActivities={filteredActividadesMetrics.completedActivities}
+                inProgressActivities={filteredActividadesMetrics.inProgressActivities}
+                notStartedActivities={filteredActividadesMetrics.notStartedActivities}
+                activitiesWithoutDates={filteredActividadesMetrics.activitiesWithoutDates}
+                averageProgress={filteredActividadesMetrics.averageProgress}
+                loading={actividadesState.loading}
+              />
+            </div>
             
-            <ActividadesCharts
-              actividades={filteredActividades}
-              loading={actividadesState.loading}
-            />
+            <div data-tour-id="section-activities-charts">
+              <ActividadesCharts
+                actividades={filteredActividades}
+                loading={actividadesState.loading}
+              />
+            </div>
             
-            <ActividadesTable
-              actividades={actividadesState.actividades}
-              filteredActividades={filteredActividades}
-              loading={actividadesState.loading}
-            />
+            <div data-tour-id="section-activities-table">
+              <ActividadesTable
+                actividades={actividadesState.actividades}
+                filteredActividades={filteredActividades}
+                loading={actividadesState.loading}
+              />
+            </div>
           </div>
         )
 
       case 'products':
         return (
           <div className="space-y-8">
-            <ProductosStats
-              totalProductos={filteredProductosMetrics.totalProductos}
-              completedProducts={filteredProductosMetrics.completedProducts}
-              inProgressProducts={filteredProductosMetrics.inProgressProducts}
-              notStartedProducts={filteredProductosMetrics.notStartedProducts}
-              averageProgress={filteredProductosMetrics.averageProgress}
-              productsByType={filteredProductosMetrics.productsByType}
-              loading={productosState.loading}
-            />
+            <div data-tour-id="section-products-stats">
+              <ProductosStats
+                totalProductos={filteredProductosMetrics.totalProductos}
+                completedProducts={filteredProductosMetrics.completedProducts}
+                inProgressProducts={filteredProductosMetrics.inProgressProducts}
+                notStartedProducts={filteredProductosMetrics.notStartedProducts}
+                averageProgress={filteredProductosMetrics.averageProgress}
+                productsByType={filteredProductosMetrics.productsByType}
+                loading={productosState.loading}
+              />
+            </div>
             
-            <ProductosCharts
-              productos={filteredProductos}
-              loading={productosState.loading}
-            />
+            <div data-tour-id="section-products-charts">
+              <ProductosCharts
+                productos={filteredProductos}
+                loading={productosState.loading}
+              />
+            </div>
             
-            <ProductosTable
-              productos={productosState.productos}
-              filteredProductos={filteredProductos}
-              loading={productosState.loading}
-            />
+            <div data-tour-id="section-products-table">
+              <ProductosTable
+                productos={productosState.productos}
+                filteredProductos={filteredProductos}
+                loading={productosState.loading}
+              />
+            </div>
           </div>
         )
 
       case 'emprestito':
         return (
-          <div className="space-y-8">
+          <div className="space-y-8" data-tour-id="section-emprestito-main">
             <Suspense 
               fallback={
                 <div className="flex items-center justify-center py-12">
@@ -449,21 +475,25 @@ function DashboardContent() {
       case 'procesos':
         return (
           <div className="space-y-8">
-            <ProcesosStats
-              totalProcesos={procesosMetrics.totalProcesos}
-              procesosAdjudicados={procesosMetrics.procesosAdjudicados}
-              procesosNoAdjudicados={procesosMetrics.procesosNoAdjudicados}
-              valorTotalProcesos={procesosMetrics.valorTotalProcesos}
-              valorTotalAdjudicado={procesosMetrics.valorTotalAdjudicado}
-              promedioVisualizaciones={procesosMetrics.promedioVisualizaciones}
-              promedioProveedoresInteres={procesosMetrics.promedioProveedoresInteres}
-              procesosPorEstado={procesosMetrics.procesosPorEstado}
-            />
+            <div data-tour-id="section-procesos-stats">
+              <ProcesosStats
+                totalProcesos={procesosMetrics.totalProcesos}
+                procesosAdjudicados={procesosMetrics.procesosAdjudicados}
+                procesosNoAdjudicados={procesosMetrics.procesosNoAdjudicados}
+                valorTotalProcesos={procesosMetrics.valorTotalProcesos}
+                valorTotalAdjudicado={procesosMetrics.valorTotalAdjudicado}
+                promedioVisualizaciones={procesosMetrics.promedioVisualizaciones}
+                promedioProveedoresInteres={procesosMetrics.promedioProveedoresInteres}
+                procesosPorEstado={procesosMetrics.procesosPorEstado}
+              />
+            </div>
             
-            <ProcesosTable
-              procesos={procesosState.data.procesos}
-              loading={procesosState.loading}
-            />
+            <div data-tour-id="section-procesos-table">
+              <ProcesosTable
+                procesos={procesosState.data.procesos}
+                loading={procesosState.loading}
+              />
+            </div>
           </div>
         )
 
@@ -492,6 +522,14 @@ function DashboardContent() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
+
+        <div className="flex justify-end mb-3">
+          <SectionFeatureTour
+            activeTab={activeTab}
+            highestRole={highestRole}
+            userId={authState.user?.uid || authState.user?.email}
+          />
+        </div>
 
         {/* Contenido principal con animaciones mejoradas */}
         <motion.div

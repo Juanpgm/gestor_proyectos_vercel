@@ -26,6 +26,7 @@ import {
   Columns
 } from 'lucide-react'
 import AgregarProcesoModal from './AgregarProcesoModal'
+import ManagementFeatureTour from './ManagementFeatureTour'
 
 // Interfaz para proyección de empréstito
 interface ProyeccionEmprestito {
@@ -584,6 +585,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        data-tour-id="mgmt-proyecciones-header"
         className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -598,13 +600,16 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
               </p>
             </div>
           </div>
-          <button
-            onClick={onNavigateHome}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Volver al Dashboard</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ManagementFeatureTour moduleKey="proyecciones" />
+            <button
+              onClick={onNavigateHome}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver al Dashboard</span>
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -614,6 +619,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
         className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        data-tour-id="mgmt-proyecciones-stats"
       >
         {/* Columna Izquierda: Con Proceso */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -743,6 +749,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+        data-tour-id="mgmt-proyecciones-filters"
       >
         <div className="flex flex-col md:flex-row gap-4">
           {/* Búsqueda global */}

@@ -28,6 +28,7 @@ import {
 import PagosTable from './PagosTable'
 import { fetchPagosEmprestito, PagoEmprestito } from '@/services/pagos.service'
 import RegistrarPagoModal from './RegistrarPagoModal'
+import ManagementFeatureTour from './ManagementFeatureTour'
 
 interface RPC {
   id: string
@@ -383,6 +384,7 @@ const GestionPagos: React.FC<GestionPagosProps> = ({ onNavigateHome }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="bg-gradient-to-r from-green-500 to-teal-600 rounded-xl p-6 text-white shadow-lg"
+        data-tour-id="mgmt-pagos-header"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-4">
@@ -396,13 +398,16 @@ const GestionPagos: React.FC<GestionPagosProps> = ({ onNavigateHome }) => {
               </p>
             </div>
           </div>
-          <button
-            onClick={onNavigateHome}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Volver al Dashboard</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ManagementFeatureTour moduleKey="pagos" />
+            <button
+              onClick={onNavigateHome}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver al Dashboard</span>
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -412,6 +417,7 @@ const GestionPagos: React.FC<GestionPagosProps> = ({ onNavigateHome }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        data-tour-id="mgmt-pagos-tabs"
       >
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           <button
@@ -449,6 +455,7 @@ const GestionPagos: React.FC<GestionPagosProps> = ({ onNavigateHome }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"
+        data-tour-id="mgmt-pagos-stats"
       >
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center h-full w-full">
@@ -559,6 +566,7 @@ const GestionPagos: React.FC<GestionPagosProps> = ({ onNavigateHome }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4"
+            data-tour-id="mgmt-pagos-filters"
           >
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -688,6 +696,7 @@ const GestionPagos: React.FC<GestionPagosProps> = ({ onNavigateHome }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+            data-tour-id="mgmt-pagos-table"
           >
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
