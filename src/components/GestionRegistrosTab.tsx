@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
@@ -11,8 +11,14 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
+  ChevronRight as ChevronRightIcon,
+  ChevronsLeft,
+  ChevronLeft,
+  ChevronsRight,
+  MapPin,
   X,
 } from 'lucide-react'
+import { formatCurrencyFull } from '@/utils/formatCurrency'
 import {
   crearUnidadProyecto,
   crearIntervencion,
@@ -45,6 +51,13 @@ interface UP {
   ano?: number
   avance_obra?: number
   presupuesto_base?: number
+  fecha_inicio?: string
+  fecha_fin?: string
+  identificador?: string
+  descripcion_intervencion?: string
+  referencia_contrato?: string
+  referencia_proceso?: string
+  url_proceso?: string
 }
 
 interface Intervencion {
@@ -256,6 +269,7 @@ const SolicitarCambioUPForm: React.FC<{ up: UP; onSuccess: () => void; onClose: 
   const [form, setForm] = useState<SolicitudCambioUPPayload>({
     upid: up.upid,
     nombre_up: up.nombre_up,
+    nombre_up_detalle: up.nombre_up_detalle || '',
     estado: up.estado || '',
     tipo_intervencion: up.tipo_intervencion || '',
     tipo_equipamiento: up.tipo_equipamiento || '',
@@ -266,6 +280,7 @@ const SolicitarCambioUPForm: React.FC<{ up: UP; onSuccess: () => void; onClose: 
     frente_activo: up.frente_activo || '',
     fuente_financiacion: up.fuente_financiacion || '',
     direccion: up.direccion || '',
+    ano: up.ano,
     avance_obra: up.avance_obra,
     presupuesto_base: up.presupuesto_base,
   })
@@ -298,6 +313,7 @@ const SolicitarCambioUPForm: React.FC<{ up: UP; onSuccess: () => void; onClose: 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="UPID" value={form.upid} onChange={() => {}} />
         <Field label="Nombre UP" value={form.nombre_up || ''} onChange={set('nombre_up')} />
+        <Field label="Nombre Detalle" value={form.nombre_up_detalle || ''} onChange={set('nombre_up_detalle')} />
         <Field label="Estado" value={form.estado || ''} onChange={set('estado')} />
         <Field label="Tipo Intervención" value={form.tipo_intervencion || ''} onChange={set('tipo_intervencion')} />
         <Field label="Tipo Equipamiento" value={form.tipo_equipamiento || ''} onChange={set('tipo_equipamiento')} />
@@ -308,6 +324,7 @@ const SolicitarCambioUPForm: React.FC<{ up: UP; onSuccess: () => void; onClose: 
         <Field label="Frente Activo" value={form.frente_activo || ''} onChange={set('frente_activo')} />
         <Field label="Fuente Financiación" value={form.fuente_financiacion || ''} onChange={set('fuente_financiacion')} />
         <Field label="Dirección" value={form.direccion || ''} onChange={set('direccion')} />
+        <Field label="Año" value={form.ano ?? ''} onChange={(v) => setForm((p) => ({ ...p, ano: Number(v) || undefined }))} type="number" />
         <Field label="Avance Obra (%)" value={form.avance_obra ?? ''} onChange={(v) => setForm((p) => ({ ...p, avance_obra: Number(v) }))} type="number" />
         <Field label="Presupuesto Base" value={form.presupuesto_base ?? ''} onChange={(v) => setForm((p) => ({ ...p, presupuesto_base: Number(v) }))} type="number" />
       </div>
@@ -398,23 +415,54 @@ const SolicitarCambioIntervencionForm: React.FC<{ interv: Intervencion; onSucces
   )
 }
 
+// ─── ProgressBar ──────────────────────────────────────────────────
+
+const ProgressBar: React.FC<{ value: number }> = ({ value }) => {
+  const percentage = Math.min(value, 100)
+  const getColor = (val: number) => {
+    if (val >= 90) return 'from-green-500 to-emerald-600'
+    if (val >= 70) return 'from-blue-500 to-cyan-600'
+    if (val >= 50) return 'from-yellow-500 to-amber-600'
+    if (val >= 30) return 'from-orange-500 to-red-600'
+    return 'from-red-500 to-rose-600'
+  }
+  return (
+    <div className="flex flex-col gap-0.5 w-full">
+      <span className="text-xs font-bold text-center text-gray-700 dark:text-gray-300 leading-none">
+        {percentage.toFixed(0)}%
+      </span>
+      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.5 }}
+          className={`h-full bg-gradient-to-r ${getColor(percentage)}`}
+        />
+      </div>
+    </div>
+  )
+}
+
 // ─── Componente principal ─────────────────────────────────────────
 
 const GestionRegistrosTab: React.FC = () => {
   const [ups, setUps] = useState<UP[]>([])
   const [intervencionesMap, setIntervencionesMap] = useState<Record<string, Intervencion[]>>({})
+  const [loadingIntervUp, setLoadingIntervUp] = useState<Record<string, boolean>>({})
+  const [metrics, setMetrics] = useState<Record<string, { avance: number; presupuesto: number }>>({})
   const [expandedUP, setExpandedUP] = useState<string | null>(null)
-  const [loadingIntervUp, setLoadingIntervUp] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 12
 
   // Modales
   const [showCrearUP, setShowCrearUP] = useState(false)
-  const [showCrearIntervencion, setShowCrearIntervencion] = useState<string | null>(null) // upid destino
+  const [showCrearIntervencion, setShowCrearIntervencion] = useState<string | null>(null)
   const [showModificarUP, setShowModificarUP] = useState<UP | null>(null)
   const [showModificarIntervencion, setShowModificarIntervencion] = useState<Intervencion | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState<{ type: 'up' | 'intervencion'; id: string } | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'up' | 'intervencion'; id: string; upid?: string } | null>(null)
 
   const API_BASE = '/api/proxy'
 
@@ -423,9 +471,35 @@ const GestionRegistrosTab: React.FC = () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API_BASE}/unidades-proyecto?limit=500`)
+      const res = await fetch(`${API_BASE}/unidades-proyecto?limit=10000`)
       const json = await res.json()
-      const items = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []
+      const rawItems = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []
+      // Enriquecer cada UP con datos de su primera intervención (si viene anidada)
+      const items: UP[] = rawItems.map((item: any) => {
+        const intervenciones = item.intervenciones || []
+        const first = intervenciones[0] || {}
+        return {
+          ...item,
+          estado: item.estado || first.estado || '',
+          tipo_intervencion: item.tipo_intervencion || first.tipo_intervencion || '',
+          nombre_centro_gestor: item.nombre_centro_gestor || first.nombre_centro_gestor || '',
+          fuente_financiacion: item.fuente_financiacion || first.fuente_financiacion || '',
+          frente_activo: item.frente_activo || first.frente_activo || '',
+          clase_up: item.clase_up || first.clase_up || '',
+          ano: item.ano || first.ano || undefined,
+          avance_obra: item.avance_obra ?? (intervenciones.length > 0
+            ? intervenciones.reduce((s: number, i: any) => s + (parseFloat(i.avance_obra) || 0), 0) / intervenciones.length
+            : 0),
+          presupuesto_base: item.presupuesto_base ?? intervenciones.reduce((s: number, i: any) => s + (parseFloat(i.presupuesto_base) || 0), 0),
+          fecha_inicio: item.fecha_inicio || first.fecha_inicio || '',
+          fecha_fin: item.fecha_fin || first.fecha_fin || '',
+          identificador: item.identificador || first.identificador || '',
+          descripcion_intervencion: item.descripcion_intervencion || first.descripcion_intervencion || '',
+          referencia_contrato: item.referencia_contrato || first.referencia_contrato || '',
+          referencia_proceso: item.referencia_proceso || first.referencia_proceso || '',
+          url_proceso: item.url_proceso || first.url_proceso || '',
+        }
+      })
       setUps(items)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar UPs')
@@ -434,33 +508,89 @@ const GestionRegistrosTab: React.FC = () => {
     }
   }, [])
 
-  useEffect(() => {
-    loadUPs()
-  }, [loadUPs])
+  useEffect(() => { loadUPs() }, [loadUPs])
 
-  // Cargar intervenciones de una UP
-  const loadIntervenciones = async (upid: string) => {
-    if (intervencionesMap[upid]) return
-    setLoadingIntervUp(upid)
+  // Cargar intervenciones + calcular métricas
+  const loadIntervenciones = useCallback(async (upid: string) => {
+    if (intervencionesMap[upid] !== undefined || loadingIntervUp[upid]) return
+    setLoadingIntervUp(prev => ({ ...prev, [upid]: true }))
     try {
       const res = await fetch(`${API_BASE}/intervenciones?upid=${encodeURIComponent(upid)}&limit=10000`)
       const json = await res.json()
-      const items = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []
-      setIntervencionesMap((prev) => ({ ...prev, [upid]: items }))
+      const items: Intervencion[] = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []
+      const avance = items.length > 0 ? items.reduce((s, i) => s + (i.avance_obra || 0), 0) / items.length : 0
+      const presupuesto = items.reduce((s, i) => s + (i.presupuesto_base || 0), 0)
+      setMetrics(prev => ({ ...prev, [upid]: { avance, presupuesto } }))
+      setIntervencionesMap(prev => ({ ...prev, [upid]: items }))
     } catch {
-      setIntervencionesMap((prev) => ({ ...prev, [upid]: [] }))
+      setIntervencionesMap(prev => ({ ...prev, [upid]: [] }))
+      setMetrics(prev => ({ ...prev, [upid]: { avance: 0, presupuesto: 0 } }))
     } finally {
-      setLoadingIntervUp(null)
+      setLoadingIntervUp(prev => { const c = { ...prev }; delete c[upid]; return c })
     }
+  }, [intervencionesMap, loadingIntervUp])
+
+  // Filtrar + paginar
+  const filteredUPs = useMemo(() => {
+    if (!search.trim()) return ups
+    const term = search.toLowerCase()
+    return ups.filter(u =>
+      u.upid.toLowerCase().includes(term) ||
+      u.nombre_up?.toLowerCase().includes(term) ||
+      u.nombre_centro_gestor?.toLowerCase().includes(term)
+    )
+  }, [ups, search])
+
+  const totalPages = Math.ceil(filteredUPs.length / ITEMS_PER_PAGE)
+  const paginatedUPs = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return filteredUPs.slice(start, start + ITEMS_PER_PAGE)
+  }, [filteredUPs, currentPage])
+
+  // Auto-cargar métricas para la página actual
+  useEffect(() => {
+    paginatedUPs.forEach(up => {
+      if (intervencionesMap[up.upid] === undefined && !loadingIntervUp[up.upid]) {
+        loadIntervenciones(up.upid)
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginatedUPs])
+
+  // Paginación — páginas visibles
+  const getVisiblePages = (): Array<number | 'ellipsis'> => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+    const pages: Array<number | 'ellipsis'> = []
+    const start = Math.max(2, currentPage - 1)
+    const end = Math.min(totalPages - 1, currentPage + 1)
+    pages.push(1)
+    if (start > 2) pages.push('ellipsis')
+    for (let p = start; p <= end; p++) pages.push(p)
+    if (end < totalPages - 1) pages.push('ellipsis')
+    pages.push(totalPages)
+    return pages
+  }
+
+  // Helpers consolidados
+  const getEstadoConsolidado = (intervs: Intervencion[]): string => {
+    if (!intervs.length) return '-'
+    const estados = new Set(intervs.map(i => i.estado).filter(Boolean))
+    return estados.size === 1 ? Array.from(estados)[0]! : 'Varios estados'
+  }
+  const getTipoConsolidado = (intervs: Intervencion[]): string => {
+    if (!intervs.length) return '-'
+    const tipos = new Set(intervs.map(i => i.tipo_intervencion).filter(Boolean))
+    return tipos.size === 1 ? Array.from(tipos)[0]! : 'Varios tipos'
+  }
+  const getCentroConsolidado = (intervs: Intervencion[]): string => {
+    if (!intervs.length) return '-'
+    const centros = new Set(intervs.map(i => i.nombre_centro_gestor).filter(Boolean))
+    return centros.size === 1 ? Array.from(centros)[0]! : 'Varios organismos'
   }
 
   const toggleExpand = (upid: string) => {
-    if (expandedUP === upid) {
-      setExpandedUP(null)
-    } else {
-      setExpandedUP(upid)
-      loadIntervenciones(upid)
-    }
+    setExpandedUP(prev => prev === upid ? null : upid)
+    loadIntervenciones(upid)
   }
 
   // Eliminar
@@ -469,37 +599,20 @@ const GestionRegistrosTab: React.FC = () => {
     try {
       if (confirmDelete.type === 'up') {
         await eliminarUnidadProyecto(confirmDelete.id)
+        await loadUPs()
       } else {
         await eliminarIntervencion(confirmDelete.id)
+        if (confirmDelete.upid) {
+          setIntervencionesMap(prev => { const c = { ...prev }; delete c[confirmDelete.upid!]; return c })
+          setMetrics(prev => { const c = { ...prev }; delete c[confirmDelete.upid!]; return c })
+          loadIntervenciones(confirmDelete.upid)
+        }
       }
       setConfirmDelete(null)
-      // Refresh
-      if (confirmDelete.type === 'intervencion') {
-        // Limpiar cache de intervenciones para que se recarguen
-        setIntervencionesMap((prev) => {
-          const copy = { ...prev }
-          Object.keys(copy).forEach((k) => {
-            copy[k] = copy[k].filter((i) => i.intervencion_id !== confirmDelete.id)
-          })
-          return copy
-        })
-      } else {
-        await loadUPs()
-      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error al eliminar')
     }
   }
-
-  // Filtrar
-  const filteredUPs = search.trim()
-    ? ups.filter(
-        (u) =>
-          u.upid.toLowerCase().includes(search.toLowerCase()) ||
-          u.nombre_up?.toLowerCase().includes(search.toLowerCase()) ||
-          u.nombre_centro_gestor?.toLowerCase().includes(search.toLowerCase())
-      )
-    : ups
 
   return (
     <div className="space-y-4">
@@ -512,7 +625,7 @@ const GestionRegistrosTab: React.FC = () => {
               type="text"
               placeholder="Buscar por UPID, nombre, centro gestor…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1) }}
               className="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -521,16 +634,10 @@ const GestionRegistrosTab: React.FC = () => {
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowCrearUP(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
+          <button onClick={() => setShowCrearUP(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
             <Plus className="w-4 h-4" /> Nueva UP
           </button>
-          <button
-            onClick={() => setShowCrearIntervencion('')}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
-          >
+          <button onClick={() => setShowCrearIntervencion('')} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
             <Plus className="w-4 h-4" /> Nueva Intervención
           </button>
         </div>
@@ -543,130 +650,263 @@ const GestionRegistrosTab: React.FC = () => {
         </div>
       )}
 
-      {/* Lista */}
+      {/* Tabla */}
       {loading && ups.length === 0 ? (
         <div className="flex items-center justify-center py-12">
           <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
         </div>
-      ) : filteredUPs.length === 0 ? (
-        <div className="text-center py-12 text-slate-500 dark:text-slate-400 text-sm">
-          No se encontraron unidades de proyecto
-        </div>
       ) : (
-        <div className="space-y-2">
-          {filteredUPs.map((up) => {
-            const isExpanded = expandedUP === up.upid
-            const intervenciones = intervencionesMap[up.upid] || []
-            const isLoadingInterv = loadingIntervUp === up.upid
-
-            return (
-              <div key={up.upid} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                {/* Fila UP */}
-                <div
-                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                  onClick={() => toggleExpand(up.upid)}
-                >
-                  <button className="flex-shrink-0">
-                    {isExpanded ? <ChevronDown className="w-4 h-4 text-blue-600" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-blue-600 dark:text-blue-400 text-sm">{up.upid}</span>
-                      <span className="text-sm text-slate-900 dark:text-white truncate">{up.nombre_up}</span>
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {up.nombre_centro_gestor || '-'} • {up.estado || '-'} • {up.tipo_intervencion || '-'}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => setShowModificarUP(up)}
-                      className="p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
-                      title="Solicitar cambio"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete({ type: 'up', id: up.upid })}
-                      className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                      title="Eliminar UP"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Intervenciones */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="border-t border-slate-200 dark:border-slate-700"
-                    >
-                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/50">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Intervenciones</span>
-                          <button
-                            onClick={() => setShowCrearIntervencion(up.upid)}
-                            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
-                          >
-                            <Plus className="w-3 h-3" /> Agregar
-                          </button>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm table-fixed">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+                  <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 w-5 sm:w-6"></th>
+                  <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-[68px] sm:w-[78px]">UPID</th>
+                  <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-[128px] sm:w-[148px] md:w-[184px] lg:w-[202px]">Nombre</th>
+                  <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-20 md:w-24 lg:w-28">Centro</th>
+                  <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-16 md:w-20 lg:w-24">Estado</th>
+                  <th className="hidden lg:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-16 md:w-20 lg:w-24">Tipo</th>
+                  <th className="px-0 sm:px-0.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-[64px] sm:w-[72px] md:w-[80px] lg:w-[88px]">Avance</th>
+                  <th className="hidden md:table-cell px-1 sm:px-2 py-2 sm:py-2.5 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 w-24 md:w-28 lg:w-32">Presupuesto</th>
+                  <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-20 lg:w-24">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <AnimatePresence mode="popLayout">
+                  {paginatedUPs.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center">
+                        <div className="flex flex-col items-center gap-2 text-gray-500">
+                          <AlertCircle className="w-5 h-5" />
+                          <p className="text-xs sm:text-sm">No se encontraron unidades de proyecto</p>
                         </div>
+                      </td>
+                    </tr>
+                  ) : paginatedUPs.map((up) => {
+                    const isExpanded = expandedUP === up.upid
+                    const intervenciones = intervencionesMap[up.upid] || []
+                    const isLoadingInterv = !!loadingIntervUp[up.upid]
+                    const itemMetrics = metrics[up.upid] || { avance: 0, presupuesto: 0 }
 
-                        {isLoadingInterv ? (
-                          <div className="flex items-center gap-2 py-2 text-xs text-slate-500">
-                            <RefreshCw className="w-3 h-3 animate-spin" /> Cargando…
-                          </div>
-                        ) : intervenciones.length === 0 ? (
-                          <p className="text-xs text-slate-500 py-2">Sin intervenciones</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {intervenciones.map((interv) => (
-                              <div
-                                key={interv.intervencion_id}
-                                className="flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2"
+                    return (
+                      <React.Fragment key={up.upid}>
+                        {/* Fila UP */}
+                        <motion.tr
+                          layout
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                          onClick={() => toggleExpand(up.upid)}
+                        >
+                          {/* Expandir */}
+                          <td className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-center">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleExpand(up.upid) }}
+                              className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                            >
+                              {isExpanded
+                                ? <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                : <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
+                            </button>
+                          </td>
+                          {/* UPID */}
+                          <td className="px-1 sm:px-1.5 py-2 sm:py-2.5 whitespace-nowrap">
+                            <span className="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm leading-none">
+                              {up.upid}
+                            </span>
+                          </td>
+                          {/* Nombre */}
+                          <td className="px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
+                            <div className="space-y-0.5">
+                              <p className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">{up.nombre_up}</p>
+                              {(up.barrio_vereda || up.comuna_corregimiento) && (
+                                <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                  <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                                  <span>
+                                    {up.barrio_vereda && up.comuna_corregimiento
+                                      ? `${up.barrio_vereda} • ${up.comuna_corregimiento}`
+                                      : up.barrio_vereda || up.comuna_corregimiento}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          {/* Centro */}
+                          <td className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
+                            <span className="text-xs text-gray-700 dark:text-gray-300 block">{getCentroConsolidado(intervenciones)}</span>
+                          </td>
+                          {/* Estado */}
+                          <td className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
+                            <span className="text-xs text-gray-700 dark:text-gray-300 block">{getEstadoConsolidado(intervenciones)}</span>
+                          </td>
+                          {/* Tipo */}
+                          <td className="hidden lg:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
+                            <span className="text-xs text-gray-700 dark:text-gray-300 block">{getTipoConsolidado(intervenciones)}</span>
+                          </td>
+                          {/* Avance */}
+                          <td className="px-0 sm:px-0.5 py-2 sm:py-2.5">
+                            <ProgressBar value={itemMetrics.avance} />
+                          </td>
+                          {/* Presupuesto */}
+                          <td className="hidden md:table-cell px-1 sm:px-2 pr-2 sm:pr-2.5 py-2 sm:py-2.5 text-right">
+                            <span className="inline-block font-bold text-green-600 dark:text-green-400 text-xs sm:text-sm whitespace-nowrap tabular-nums">
+                              {formatCurrencyFull(itemMetrics.presupuesto)}
+                            </span>
+                          </td>
+                          {/* Acciones */}
+                          <td className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => setShowModificarUP(up)}
+                                className="p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                                title="Editar UP"
                               >
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-medium text-slate-900 dark:text-white">{interv.intervencion_id}</span>
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                                      {interv.estado || 'Sin estado'}
-                                    </span>
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setConfirmDelete({ type: 'up', id: up.upid })}
+                                className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                title="Eliminar UP"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </motion.tr>
+
+                        {/* Fila expandida — sub-tabla de intervenciones */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <tr className="bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/5 dark:to-blue-900/0">
+                              <td colSpan={9} className="px-2 sm:px-3 py-2 sm:py-3">
+                                {isLoadingInterv ? (
+                                  <div className="flex items-center justify-center gap-2 py-2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">Cargando intervenciones…</span>
                                   </div>
-                                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                    {interv.tipo_intervencion || '-'} • Avance: {interv.avance_obra ?? 0}%
+                                ) : intervenciones.length === 0 ? (
+                                  <div className="flex items-center justify-between py-1">
+                                    <span className="text-xs text-gray-500">Sin intervenciones</span>
+                                    <button
+                                      onClick={() => setShowCrearIntervencion(up.upid)}
+                                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded hover:bg-emerald-200"
+                                    >
+                                      <Plus className="w-3 h-3" /> Agregar
+                                    </button>
                                   </div>
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <button
-                                    onClick={() => setShowModificarIntervencion(interv)}
-                                    className="p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
-                                    title="Solicitar cambio"
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => setConfirmDelete({ type: 'intervencion', id: interv.intervencion_id })}
-                                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                                    title="Eliminar intervención"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
+                                ) : (
+                                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                        {intervenciones.length} intervención{intervenciones.length !== 1 ? 'es' : ''}
+                                      </span>
+                                      <button
+                                        onClick={() => setShowCrearIntervencion(up.upid)}
+                                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
+                                      >
+                                        <Plus className="w-3 h-3" /> Agregar
+                                      </button>
+                                    </div>
+                                    <div className="overflow-x-auto rounded-lg border border-blue-200 dark:border-blue-700">
+                                      <table className="w-full text-xs">
+                                        <thead>
+                                          <tr className="bg-blue-100 dark:bg-blue-900/30">
+                                            <th className="px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300 w-32">ID Intervención</th>
+                                            <th className="px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300">Tipo</th>
+                                            <th className="hidden sm:table-cell px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300">Estado</th>
+                                            <th className="px-2 py-1.5 text-center font-semibold text-blue-700 dark:text-blue-300 w-20">Avance</th>
+                                            <th className="hidden md:table-cell px-2 py-1.5 text-right font-semibold text-blue-700 dark:text-blue-300 w-28">Presupuesto</th>
+                                            <th className="px-2 py-1.5 text-center font-semibold text-blue-700 dark:text-blue-300 w-20">Acciones</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-blue-100 dark:divide-blue-800">
+                                          {intervenciones.map(interv => (
+                                            <tr key={interv.intervencion_id} className="bg-white dark:bg-slate-800 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors">
+                                              <td className="px-2 py-1.5 font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">{interv.intervencion_id}</td>
+                                              <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300 truncate max-w-[120px]">{interv.tipo_intervencion || '-'}</td>
+                                              <td className="hidden sm:table-cell px-2 py-1.5 text-gray-700 dark:text-gray-300">{interv.estado || '-'}</td>
+                                              <td className="px-2 py-1.5"><ProgressBar value={interv.avance_obra || 0} /></td>
+                                              <td className="hidden md:table-cell px-2 py-1.5 text-right font-semibold text-green-600 dark:text-green-400 whitespace-nowrap tabular-nums">
+                                                {formatCurrencyFull(interv.presupuesto_base || 0)}
+                                              </td>
+                                              <td className="px-2 py-1.5">
+                                                <div className="flex items-center justify-center gap-1">
+                                                  <button
+                                                    onClick={() => setShowModificarIntervencion(interv)}
+                                                    className="p-1 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded transition-colors"
+                                                    title="Editar intervención"
+                                                  >
+                                                    <Edit3 className="w-3 h-3" />
+                                                  </button>
+                                                  <button
+                                                    onClick={() => setConfirmDelete({ type: 'intervencion', id: interv.intervencion_id, upid: up.upid })}
+                                                    className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                    title="Eliminar intervención"
+                                                  >
+                                                    <Trash2 className="w-3 h-3" />
+                                                  </button>
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </AnimatePresence>
+                      </React.Fragment>
+                    )
+                  })}
                 </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {filteredUPs.length} registros · página {currentPage} de {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40">
+                  <ChevronsLeft className="w-4 h-4" />
+                </button>
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {getVisiblePages().map((page, i) =>
+                  page === 'ellipsis' ? (
+                    <span key={`e-${i}`} className="px-2 text-gray-400 text-xs">…</span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page as number)}
+                      className={`min-w-[28px] h-7 text-xs rounded transition-colors ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white font-medium'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40">
+                  <ChevronRightIcon className="w-4 h-4" />
+                </button>
+                <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40">
+                  <ChevronsRight className="w-4 h-4" />
+                </button>
               </div>
-            )
-          })}
+            </div>
+          )}
         </div>
       )}
 
@@ -685,13 +925,9 @@ const GestionRegistrosTab: React.FC = () => {
             <CrearIntervencionForm
               defaultUpid={showCrearIntervencion}
               onSuccess={() => {
-                // Limpiar cache de esa UP para recargar
                 if (showCrearIntervencion) {
-                  setIntervencionesMap((prev) => {
-                    const copy = { ...prev }
-                    delete copy[showCrearIntervencion]
-                    return copy
-                  })
+                  setIntervencionesMap(prev => { const c = { ...prev }; delete c[showCrearIntervencion]; return c })
+                  setMetrics(prev => { const c = { ...prev }; delete c[showCrearIntervencion]; return c })
                   loadIntervenciones(showCrearIntervencion)
                 }
               }}
@@ -715,12 +951,11 @@ const GestionRegistrosTab: React.FC = () => {
             <SolicitarCambioIntervencionForm
               interv={showModificarIntervencion}
               onSuccess={() => {
-                setIntervencionesMap((prev) => {
-                  const copy = { ...prev }
-                  if (showModificarIntervencion?.upid) delete copy[showModificarIntervencion.upid]
-                  return copy
-                })
-                if (showModificarIntervencion?.upid) loadIntervenciones(showModificarIntervencion.upid)
+                if (showModificarIntervencion?.upid) {
+                  setIntervencionesMap(prev => { const c = { ...prev }; delete c[showModificarIntervencion.upid!]; return c })
+                  setMetrics(prev => { const c = { ...prev }; delete c[showModificarIntervencion.upid!]; return c })
+                  loadIntervenciones(showModificarIntervencion.upid)
+                }
               }}
               onClose={() => setShowModificarIntervencion(null)}
             />
@@ -728,28 +963,17 @@ const GestionRegistrosTab: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Confirmación de eliminación */}
       <AnimatePresence>
         {confirmDelete && (
           <Modal title="Confirmar Eliminación" onClose={() => setConfirmDelete(null)}>
             <div className="space-y-4">
               <p className="text-sm text-slate-700 dark:text-slate-300">
-                ¿Estás seguro de que deseas eliminar {confirmDelete.type === 'up' ? 'la Unidad de Proyecto' : 'la Intervención'}{' '}
+                ¿Estás seguro de eliminar {confirmDelete.type === 'up' ? 'la Unidad de Proyecto' : 'la Intervención'}{' '}
                 <span className="font-bold">{confirmDelete.id}</span>? Esta acción no se puede deshacer.
               </p>
               <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="px-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                >
-                  Eliminar
-                </button>
+                <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">Cancelar</button>
+                <button onClick={handleDelete} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">Eliminar</button>
               </div>
             </div>
           </Modal>

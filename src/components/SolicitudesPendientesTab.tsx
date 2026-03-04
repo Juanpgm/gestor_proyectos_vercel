@@ -15,10 +15,9 @@ import {
 import {
   fetchSolicitudesCambiosUP,
   fetchSolicitudesCambiosIntervencion,
-  modificarUnidadProyecto,
-  modificarIntervencion,
   type SolicitudCambio,
 } from '@/services/unidades-proyecto.service'
+import { actualizarEstadoSolicitud, aplicarCambiosFirestore } from '@/lib/firebase'
 
 // ─── Componente principal ─────────────────────────────────────────
 
@@ -41,20 +40,19 @@ const SolicitudesPendientesTab: React.FC = () => {
         fetchSolicitudesCambiosIntervencion(),
       ])
 
+      // Solo mostrar solicitudes que NO tengan estado_decision (pendientes)
       const upList =
         upRes.status === 'fulfilled'
-          ? (Array.isArray(upRes.value) ? upRes.value : []).map((s) => ({
-              ...s,
-              tipo: 'unidad_proyecto' as const,
-            }))
+          ? (Array.isArray(upRes.value) ? upRes.value : [])
+              .map((s) => ({ ...s, tipo: 'unidad_proyecto' as const }))
+              .filter((s) => !(s as any).estado_decision)
           : []
 
       const intervList =
         intervRes.status === 'fulfilled'
-          ? (Array.isArray(intervRes.value) ? intervRes.value : []).map((s) => ({
-              ...s,
-              tipo: 'intervencion' as const,
-            }))
+          ? (Array.isArray(intervRes.value) ? intervRes.value : [])
+              .map((s) => ({ ...s, tipo: 'intervencion' as const }))
+              .filter((s) => !(s as any).estado_decision)
           : []
 
       setSolicitudesUP(upList)
@@ -75,20 +73,36 @@ const SolicitudesPendientesTab: React.FC = () => {
     loadSolicitudes()
   }, [loadSolicitudes])
 
-  // Aprobar
+  // Campos de metadatos a excluir al extraer datos de cambio
+  const METADATA_KEYS = new Set(['id', 'tipo', 'created_at', 'updated_at', 'upid', 'intervencion_id', 'estado_decision', 'decision_at'])
+
+  // Extraer solo los campos de datos (no metadatos) de una solicitud plana
+  const extractCambios = (sol: SolicitudCambio) => {
+    const cambios: Record<string, any> = {}
+    for (const [k, v] of Object.entries(sol)) {
+      if (!METADATA_KEYS.has(k)) cambios[k] = v
+    }
+    return cambios
+  }
+
+  // Aprobar: aplica cambios directamente en Firestore + marca solicitud como aprobada
   const handleAprobar = async (solicitud: SolicitudCambio) => {
     setProcessingId(solicitud.id)
     try {
-      const cambios = solicitud.datos_cambio || solicitud
+      const cambios = extractCambios(solicitud)
 
       if (solicitud.tipo === 'unidad_proyecto') {
-        const upid = solicitud.upid || cambios.upid
+        const upid = solicitud.upid
         if (!upid) throw new Error('Falta el UPID en la solicitud')
-        await modificarUnidadProyecto({ upid, ...cambios })
+        // Aplicar cambios directamente en Firestore (el PUT del backend no persiste)
+        await aplicarCambiosFirestore('unidad_proyecto', { upid }, cambios)
+        // Marcar solicitud como aprobada
+        await actualizarEstadoSolicitud('solicitudes_cambios_unidades_proyecto', solicitud.id, 'aprobada')
       } else {
-        const intervencionId = solicitud.intervencion_id || cambios.intervencion_id
+        const intervencionId = solicitud.intervencion_id
         if (!intervencionId) throw new Error('Falta el intervencion_id en la solicitud')
-        await modificarIntervencion({ intervencion_id: intervencionId, ...cambios })
+        await aplicarCambiosFirestore('intervencion', { intervencion_id: intervencionId }, cambios)
+        await actualizarEstadoSolicitud('solicitudes_cambios_intervenciones', solicitud.id, 'aprobada')
       }
 
       // Remover de la lista local
@@ -104,13 +118,22 @@ const SolicitudesPendientesTab: React.FC = () => {
     }
   }
 
-  // Rechazar — simplemente se descarta
-  const handleRechazar = (solicitud: SolicitudCambio) => {
-    if (!confirm('¿Deseas rechazar (descartar) esta solicitud de cambio?')) return
-    if (solicitud.tipo === 'unidad_proyecto') {
-      setSolicitudesUP((prev) => prev.filter((s) => s.id !== solicitud.id))
-    } else {
-      setSolicitudesIntervencion((prev) => prev.filter((s) => s.id !== solicitud.id))
+  // Rechazar: marca en Firestore como rechazada (NO aplica cambios en la UP)
+  const handleRechazar = async (solicitud: SolicitudCambio) => {
+    if (!confirm('¿Deseas rechazar esta solicitud de cambio? Se marcará como rechazada en el sistema.')) return
+    setProcessingId(solicitud.id)
+    try {
+      if (solicitud.tipo === 'unidad_proyecto') {
+        await actualizarEstadoSolicitud('solicitudes_cambios_unidades_proyecto', solicitud.id, 'rechazada')
+        setSolicitudesUP((prev) => prev.filter((s) => s.id !== solicitud.id))
+      } else {
+        await actualizarEstadoSolicitud('solicitudes_cambios_intervenciones', solicitud.id, 'rechazada')
+        setSolicitudesIntervencion((prev) => prev.filter((s) => s.id !== solicitud.id))
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al rechazar solicitud')
+    } finally {
+      setProcessingId(null)
     }
   }
 
@@ -125,7 +148,7 @@ const SolicitudesPendientesTab: React.FC = () => {
       s.id?.toLowerCase().includes(term) ||
       s.upid?.toLowerCase().includes(term) ||
       s.intervencion_id?.toLowerCase().includes(term) ||
-      JSON.stringify(s.datos_cambio || {}).toLowerCase().includes(term)
+      JSON.stringify(s).toLowerCase().includes(term)
     )
   })
 
@@ -182,9 +205,8 @@ const SolicitudesPendientesTab: React.FC = () => {
           {allSolicitudes.map((sol) => {
             const isExpanded = expandedId === sol.id
             const isProcessing = processingId === sol.id
-            const datos = sol.datos_cambio || {}
-            const entries = Object.entries(datos).filter(
-              ([k]) => !['id', 'tipo', 'estado_solicitud', 'fecha_solicitud', 'solicitado_por'].includes(k)
+            const entries = Object.entries(sol).filter(
+              ([k]) => !METADATA_KEYS.has(k)
             )
 
             return (
@@ -220,10 +242,9 @@ const SolicitudesPendientesTab: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {sol.fecha_solicitud
-                        ? new Date(sol.fecha_solicitud).toLocaleString('es-CO')
+                      {sol.created_at
+                        ? new Date(sol.created_at).toLocaleString('es-CO')
                         : 'Fecha no disponible'}
-                      {sol.solicitado_por && ` • por ${sol.solicitado_por}`}
                     </div>
                   </div>
 

@@ -57,6 +57,7 @@ const HistorialSolicitudesTab: React.FC = () => {
           ? (Array.isArray(upRes.value) ? upRes.value : []).map((s) => ({
               ...s,
               tipo: 'unidad_proyecto' as const,
+              estadoEfectivo: s.estado_decision || 'pendiente',
             }))
           : []
 
@@ -65,13 +66,14 @@ const HistorialSolicitudesTab: React.FC = () => {
           ? (Array.isArray(intervRes.value) ? intervRes.value : []).map((s) => ({
               ...s,
               tipo: 'intervencion' as const,
+              estadoEfectivo: s.estado_decision || 'pendiente',
             }))
           : []
 
       // Combinar y ordenar por fecha descendente
       const all = [...upList, ...intervList].sort((a, b) => {
-        const da = a.fecha_solicitud ? new Date(a.fecha_solicitud).getTime() : 0
-        const db = b.fecha_solicitud ? new Date(b.fecha_solicitud).getTime() : 0
+        const da = a.created_at ? new Date(a.created_at).getTime() : 0
+        const db = b.created_at ? new Date(b.created_at).getTime() : 0
         return db - da
       })
 
@@ -97,14 +99,14 @@ const HistorialSolicitudesTab: React.FC = () => {
       if (filterTipo === 'up' && s.tipo !== 'unidad_proyecto') return false
       if (filterTipo === 'intervencion' && s.tipo !== 'intervencion') return false
     }
-    if (filterEstado !== 'all' && s.estado !== filterEstado) return false
+    if (filterEstado !== 'all' && s.estadoEfectivo !== filterEstado) return false
     if (search.trim()) {
       const term = search.toLowerCase()
       return (
         s.id?.toLowerCase().includes(term) ||
         s.upid?.toLowerCase().includes(term) ||
         s.intervencion_id?.toLowerCase().includes(term) ||
-        JSON.stringify(s.datos_cambio || {}).toLowerCase().includes(term)
+        JSON.stringify(s).toLowerCase().includes(term)
       )
     }
     return true
@@ -172,11 +174,11 @@ const HistorialSolicitudesTab: React.FC = () => {
         <div className="space-y-2">
           {filtered.map((sol) => {
             const isExpanded = expandedId === sol.id
-            const badge = estadoBadge(sol.estado)
+            const badge = estadoBadge(sol.estadoEfectivo)
             const BadgeIcon = badge.icon
-            const datos = sol.datos_cambio || {}
-            const entries = Object.entries(datos).filter(
-              ([k]) => !['id', 'tipo', 'estado_solicitud', 'fecha_solicitud', 'solicitado_por'].includes(k)
+            const METADATA_KEYS = new Set(['id', 'tipo', 'created_at', 'updated_at', 'upid', 'intervencion_id', 'estado', 'estadoEfectivo', 'estado_decision', 'decision_at'])
+            const entries = Object.entries(sol).filter(
+              ([k]) => !METADATA_KEYS.has(k)
             )
 
             return (
@@ -212,10 +214,9 @@ const HistorialSolicitudesTab: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {sol.fecha_solicitud
-                        ? new Date(sol.fecha_solicitud).toLocaleString('es-CO')
+                      {sol.created_at
+                        ? new Date(sol.created_at).toLocaleString('es-CO')
                         : 'Fecha no disponible'}
-                      {sol.solicitado_por && ` • por ${sol.solicitado_por}`}
                     </div>
                   </div>
                 </div>

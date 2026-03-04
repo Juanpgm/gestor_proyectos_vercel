@@ -1,5 +1,6 @@
 import { initializeApp, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, doc, updateDoc, collection as firestoreCollection, query, where, getDocs, Firestore } from 'firebase/firestore';
 
 // Configuración de Firebase desde variables de entorno
 const firebaseConfig = {
@@ -40,6 +41,7 @@ if (!hasRealConfig && typeof window !== 'undefined') {
 
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
+let db: Firestore | undefined;
 
 try {
   // Solo inicializar Firebase si tenemos configuración real
@@ -57,6 +59,9 @@ try {
 
     // Obtener instancia de Auth
     auth = getAuth(app);
+
+    // Obtener instancia de Firestore
+    db = getFirestore(app);
   }
 } catch (error) {
   // Silenciar errores durante el build
@@ -168,9 +173,89 @@ export async function signOutWIF(): Promise<void> {
   }
 }
 
+/**
+ * Actualiza el estado de decisión de una solicitud de cambio directamente en Firestore.
+ * Colecciones: solicitudes_cambios_unidades_proyecto | solicitudes_cambios_intervenciones
+ */
+export async function actualizarEstadoSolicitud(
+  collectionName: 'solicitudes_cambios_unidades_proyecto' | 'solicitudes_cambios_intervenciones',
+  docId: string,
+  estado: 'aprobada' | 'rechazada',
+): Promise<void> {
+  if (!db) {
+    console.warn('Firestore no configurado, no se puede persistir estado de solicitud');
+    return;
+  }
+  try {
+    const ref = doc(db, collectionName, docId);
+    await updateDoc(ref, {
+      estado_decision: estado,
+      decision_at: new Date().toISOString(),
+    });
+    console.log(`✅ Solicitud ${docId} marcada como ${estado}`);
+  } catch (error) {
+    console.error(`❌ Error actualizando solicitud ${docId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Aplica cambios a un documento de UP o Intervención directamente en Firestore.
+ * Busca por upid o intervencion_id ya que el doc ID de Firestore puede no coincidir.
+ */
+export async function aplicarCambiosFirestore(
+  tipo: 'unidad_proyecto' | 'intervencion',
+  identificador: { upid?: string; intervencion_id?: string },
+  cambios: Record<string, any>,
+): Promise<void> {
+  if (!db) {
+    throw new Error('Firestore no configurado. No se pueden aplicar cambios.');
+  }
+
+  const collectionName = tipo === 'unidad_proyecto' ? 'unidades_proyecto' : 'intervenciones_unidades_proyecto';
+  const fieldName = tipo === 'unidad_proyecto' ? 'upid' : 'intervencion_id';
+  const fieldValue = tipo === 'unidad_proyecto' ? identificador.upid : identificador.intervencion_id;
+
+  if (!fieldValue) {
+    throw new Error(`Falta el ${fieldName} para identificar el documento`);
+  }
+
+  try {
+    // Buscar el documento por campo identificador
+    const colRef = firestoreCollection(db, collectionName);
+    const q = query(colRef, where(fieldName, '==', fieldValue));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      throw new Error(`No se encontró ${fieldName}=${fieldValue} en ${collectionName}`);
+    }
+
+    // Actualizar el primer documento encontrado
+    const docRef = snapshot.docs[0].ref;
+    // Filtrar campos vacíos/nulos para no sobreescribir con basura
+    const updates: Record<string, any> = {};
+    for (const [k, v] of Object.entries(cambios)) {
+      if (v !== undefined && v !== null && v !== '') {
+        updates[k] = v;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      console.warn('No hay campos válidos para actualizar');
+      return;
+    }
+
+    await updateDoc(docRef, updates);
+    console.log(`✅ ${collectionName}/${fieldValue} actualizado:`, Object.keys(updates));
+  } catch (error) {
+    console.error(`❌ Error aplicando cambios a ${collectionName}/${fieldValue}:`, error);
+    throw error;
+  }
+}
+
 // Configurar persistencia de sesión
 // Por defecto, Firebase usa 'local' que persiste incluso después de cerrar el navegador
 // Esto es parte del sistema WIF para mantener la autenticación automática
 
-export { app, auth };
+export { app, auth, db };
 export default app;

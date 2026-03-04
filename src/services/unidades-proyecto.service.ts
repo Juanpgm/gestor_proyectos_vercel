@@ -1015,13 +1015,12 @@ export interface ModificarIntervencionPayload {
 /** Interfaz de una solicitud de cambio (devuelta por GET) */
 export interface SolicitudCambio {
   id: string;
-  tipo: 'unidad_proyecto' | 'intervencion';
-  estado: 'pendiente' | 'aprobada' | 'rechazada';
-  fecha_solicitud: string;
-  solicitado_por?: string;
-  datos_cambio: Record<string, any>;
+  tipo?: 'unidad_proyecto' | 'intervencion';
   upid?: string;
   intervencion_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Todos los demás campos vienen planos según lo que se solicitó cambiar
   [key: string]: any;
 }
 
@@ -1049,6 +1048,23 @@ async function proxyPut<T = MutationResponse>(
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  return json as T;
+}
+
+/** PUT con query params (para /modificar/unidad_proyecto que usa query) */
+async function proxyPutParams<T = MutationResponse>(
+  path: string,
+  params: Record<string, string>,
+  body?: Record<string, any>,
+): Promise<T> {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${PROXY_BASE}/${path}?${qs}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`);
@@ -1113,23 +1129,42 @@ export const crearSolicitudCambioUP = (data: SolicitudCambioUPPayload) =>
 export const crearSolicitudCambioIntervencion = (data: SolicitudCambioIntervencionPayload) =>
   proxyPost('solicitudes_cambios_intervencion', data);
 
-/** GET /solicitudes_cambios_unidad_proyecto (listado para validadores) */
-export const fetchSolicitudesCambiosUP = (params?: Record<string, string>) =>
-  proxyGet<SolicitudCambio[]>('solicitudes_cambios_unidad_proyecto', params);
+/** GET /solicitudes_cambios_unidades_proyecto (listado para validadores) */
+export const fetchSolicitudesCambiosUP = async (params?: Record<string, string>): Promise<SolicitudCambio[]> => {
+  const res = await proxyGet<any>('solicitudes_cambios_unidades_proyecto', { limit: '10000', ...params });
+  return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+}
 
-/** GET /solicitudes_cambios_intervencion (listado para validadores) */
-export const fetchSolicitudesCambiosIntervencion = (params?: Record<string, string>) =>
-  proxyGet<SolicitudCambio[]>('solicitudes_cambios_intervencion', params);
+/** GET /solicitudes_cambios_intervenciones (listado para validadores) */
+export const fetchSolicitudesCambiosIntervencion = async (params?: Record<string, string>): Promise<SolicitudCambio[]> => {
+  const res = await proxyGet<any>('solicitudes_cambios_intervenciones', { limit: '10000', ...params });
+  return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+}
 
-// ── Aprobación (Validador) ───────────────────────────────────────
+// ── Aprobación / Rechazo (Validador) ─────────────────────────────
 
-/** PUT /modificar/unidad_proyecto — el validador aprueba y aplica el cambio */
-export const modificarUnidadProyecto = (data: ModificarUPPayload) =>
-  proxyPut('modificar/unidad_proyecto', data);
+/** PUT /modificar/unidad_proyecto — aprobar: aplica cambios + aprobado=true (query params) */
+export const modificarUnidadProyecto = (data: ModificarUPPayload) => {
+  const { upid, geometry, extra_data, ...rest } = data;
+  const params: Record<string, string> = { upid, aprobado: 'true', extra_data_: '{}' };
+  for (const [k, v] of Object.entries(rest)) {
+    if (v !== undefined && v !== null) params[k] = String(v);
+  }
+  const body = (geometry || extra_data) ? { geometry, extra_data } : undefined;
+  return proxyPutParams('modificar/unidad_proyecto', params, body);
+}
 
-/** PUT /modificar/intervencion — el validador aprueba y aplica el cambio */
+/** PUT /modificar/unidad_proyecto con aprobado=false — rechazar solicitud UP */
+export const rechazarUnidadProyecto = (upid: string) =>
+  proxyPutParams('modificar/unidad_proyecto', { upid, aprobado: 'false', extra_data_: '{}' });
+
+/** PUT /modificar/intervencion — aprobar: aplica cambios + aprobado=true (body) */
 export const modificarIntervencion = (data: ModificarIntervencionPayload) =>
-  proxyPut('modificar/intervencion', data);
+  proxyPut('modificar/intervencion', { ...data, aprobado: true });
+
+/** PUT /modificar/intervencion con aprobado=false — rechazar solicitud intervención */
+export const rechazarIntervencion = (intervencion_id: string) =>
+  proxyPut('modificar/intervencion', { intervencion_id, aprobado: false });
 
 // ── Export XLSX ──────────────────────────────────────────────────
 
