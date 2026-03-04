@@ -192,15 +192,35 @@ export async function fetchWithErrorHandling<T>(
     
     clearTimeout(timeoutId);
     
+    const rawResponse = await response.text().catch(() => '');
+    const trimmedResponse = rawResponse?.trim?.() || '';
+
+    const parsedResponse = (() => {
+      if (!trimmedResponse) return null;
+      try {
+        return JSON.parse(trimmedResponse);
+      } catch {
+        return trimmedResponse;
+      }
+    })();
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const error = new Error(errorData.message || `HTTP Error: ${response.status}`);
+      const errorData =
+        parsedResponse && typeof parsedResponse === 'object'
+          ? parsedResponse
+          : { message: typeof parsedResponse === 'string' ? parsedResponse : '' };
+
+      const error = new Error((errorData as any).message || `HTTP Error: ${response.status}`);
       (error as any).status = response.status;
       (error as any).data = errorData;
       throw error;
     }
-    
-    return await response.json();
+
+    if (!trimmedResponse || response.status === 204 || response.status === 205 || response.status === 304) {
+      return {} as T;
+    }
+
+    return parsedResponse as T;
   } catch (error) {
     clearTimeout(timeoutId);
     throw handleApiError(error, url);

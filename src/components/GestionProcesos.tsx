@@ -31,6 +31,9 @@ import AgregarProcesoModal from './AgregarProcesoModal'
 import TiendaVirtualTable from './TiendaVirtualTable'
 import ConveniosTable from './ConveniosTable'
 import ModificarProcesoSecopModal from './ModificarProcesoSecopModal'
+import ManagementFeatureTour from './ManagementFeatureTour'
+import { deleteProcesoWithFallback } from '@/utils/procesoDeleteFallback'
+import { isProcesoRefDeletedLocally } from '@/utils/procesosDeleteLocalStore'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
@@ -305,6 +308,22 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
     procesosRef.current = procesos
   }, [procesos])
 
+  const filterDeletedProcesos = (records: ProcesoEmprestito[]): ProcesoEmprestito[] => {
+    return records.filter((record) => {
+      const referencia = String(
+        record.referencia_proceso ||
+        (record as any).proceso_numero ||
+        (record as any).referencia ||
+        (record as any).numero_proceso ||
+        (record as any).id_proceso ||
+        record.id ||
+        ''
+      ).trim()
+
+      return !isProcesoRefDeletedLocally(referencia)
+    })
+  }
+
   const columns = useMemo(() => [
     { key: 'referencia_proceso', label: 'Referencia del Proceso', isSortable: true },
     { key: 'nombre_resumido_proceso', label: 'Nombre Resumido del Proceso', isSortable: true },
@@ -465,7 +484,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
           if (result.records.length > 0 || result.explicitApiEmpty) {
             if (!isLatestRequest()) return
-            setProcesos(result.records)
+            setProcesos(filterDeletedProcesos(result.records))
             loaded = true
             break
           }
@@ -474,7 +493,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         if (!loaded && lastResult) {
           if (!isLatestRequest()) return
           console.warn('⚠️ API de procesos respondió sin registros; se mostrará tabla vacía')
-          setProcesos(lastResult.records)
+          setProcesos(filterDeletedProcesos(lastResult.records))
           loaded = true
         }
 
@@ -497,7 +516,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
               const retryNormalized = normalizeProcesosResponse(retryPayload).map((item, index) => normalizeProcesoRecord(item, index))
               if (retryNormalized.length > 0 || Array.isArray(retryPayload?.data)) {
                 if (!isLatestRequest()) return
-                setProcesos(retryNormalized)
+                setProcesos(filterDeletedProcesos(retryNormalized))
                 return
               }
             }
@@ -533,7 +552,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                 const directNormalized = normalizeProcesosResponse(directParsed)
                 if (directNormalized.length > 0 || Array.isArray(directParsed?.data)) {
                   if (!isLatestRequest()) return
-                  setProcesos(directNormalized)
+                  setProcesos(filterDeletedProcesos(directNormalized))
                   return
                 }
               }
@@ -765,60 +784,17 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
       console.log('🗑️ Eliminando proceso:', referencia)
 
-      const response = await fetch(`/api/proxy/emprestito/proceso/${encodeURIComponent(referencia)}`, {
-        method: 'DELETE'
-      })
+      const { endpoint, data: result, mode, message } = await deleteProcesoWithFallback(proceso as Record<string, any>, referencia)
 
-      console.log('📡 Status de respuesta:', response.status)
-
-      if (!response.ok) {
-        let errorMsg = `Error ${response.status}: ${response.statusText}`
-        try {
-          const rawError = await response.text()
-          const errorData = rawError ? JSON.parse(rawError) : null
-          console.error('❌ Respuesta de error completa:', JSON.stringify(errorData, null, 2))
-          
-          if (errorData?.detail) {
-            if (typeof errorData.detail === 'string') {
-              errorMsg = errorData.detail
-            } else if (Array.isArray(errorData.detail)) {
-              // Si es un array de errores de validación
-              errorMsg = errorData.detail.map((err: any) => {
-                if (typeof err === 'string') return err
-                if (err?.msg) return `${err.msg}`
-                return JSON.stringify(err)
-              }).join('; ')
-            } else if (typeof errorData.detail === 'object') {
-              // Si es un objeto, convertirlo a string
-              errorMsg = JSON.stringify(errorData.detail)
-            }
-          } else if (errorData?.error) {
-            errorMsg = errorData.error
-          } else if (errorData?.message) {
-            errorMsg = errorData.message
-          }
-        } catch (e) {
-          console.error('No se pudo parsear la respuesta de error:', e)
-        }
-        throw new Error(errorMsg)
-      }
-
-      const rawResult = await response.text()
-      let result: any = null
-
-      if (rawResult?.trim()) {
-        try {
-          result = JSON.parse(rawResult)
-        } catch {
-          result = rawResult
-        }
-      }
-
-      console.log('✅ Proceso eliminado:', result)
+      console.log('✅ Proceso eliminado vía:', endpoint, result)
       
       // Recargar datos
       await fetchProcesos()
       setDeleteConfirm(null)
+
+      if (mode === 'local') {
+        alert(message)
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
       console.error('❌ Error al eliminar proceso:', errorMessage)
@@ -1278,6 +1254,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white shadow-lg"
+        data-tour-id="mgmt-procesos-header"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-4">
@@ -1291,13 +1268,16 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
               </p>
             </div>
           </div>
-          <button
-            onClick={onNavigateHome}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Volver al Dashboard</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ManagementFeatureTour moduleKey="procesos" />
+            <button
+              onClick={onNavigateHome}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver al Dashboard</span>
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -1307,6 +1287,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        data-tour-id="mgmt-procesos-tabs"
       >
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           <button
@@ -1357,6 +1338,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
         className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
+        data-tour-id="mgmt-procesos-stats"
       >
         <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-3 shadow border border-indigo-400">
           <div className="flex items-center justify-between">
@@ -1563,6 +1545,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+          data-tour-id="mgmt-procesos-filters"
         >
           <div className="flex flex-col md:flex-row gap-4">
             {/* Búsqueda global */}
@@ -1706,6 +1689,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          data-tour-id="mgmt-procesos-table"
         >
           <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
             <table className="w-full text-sm">

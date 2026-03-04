@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import AgregarConvenioTransferenciaModal from '@/components/AgregarConvenioTransferenciaModal'
 import CargarRPCModal from '@/components/CargarRPCModal'
+import ManagementFeatureTour from './ManagementFeatureTour'
 
 // Interfaz para RPC
 interface RPC {
@@ -723,6 +724,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-6 text-white shadow-lg"
+        data-tour-id="mgmt-contratos-header"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-4">
@@ -736,13 +738,16 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
               </p>
             </div>
           </div>
-          <button
-            onClick={onNavigateHome}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Volver al Dashboard</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ManagementFeatureTour moduleKey="contratos" />
+            <button
+              onClick={onNavigateHome}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver al Dashboard</span>
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -791,6 +796,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"
+          data-tour-id="mgmt-contratos-stats"
         >
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
@@ -917,6 +923,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+        data-tour-id="mgmt-contratos-filters"
       >
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -1050,6 +1057,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        data-tour-id="mgmt-contratos-table"
       >
         <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
           <table className="w-full text-sm">

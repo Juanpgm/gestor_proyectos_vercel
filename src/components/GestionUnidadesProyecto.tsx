@@ -23,6 +23,7 @@ import {
 import { SummaryView, RecordsView, StatsView } from './QualityControlViews'
 import { ChangelogView, ByCentroGestorView, MetadataView } from './QualityControlViewsExtended'
 import { MultiSelect } from './MultiSelect'
+import ManagementFeatureTour from './ManagementFeatureTour'
 
 // Interfaces específicas para cada endpoint
 interface ChangeMetric {
@@ -845,7 +846,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   return (
     <div className="h-full w-full flex flex-col bg-slate-50 dark:bg-slate-900">
       {/* Header - Compacto */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex-shrink-0">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex-shrink-0" data-tour-id="mgmt-unidades-header">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -866,6 +867,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
           </div>
 
           <div className="flex items-center gap-2">
+            <ManagementFeatureTour moduleKey="unidades" />
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
@@ -897,6 +899,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
           className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-4 flex-shrink-0"
+          data-tour-id="mgmt-unidades-filters"
         >
           <div className="space-y-4">
             {/* Search Bar */}
@@ -966,7 +969,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       )}
 
       {/* Tabs - Horizontal Scroll en móvil */}
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex-shrink-0" data-tour-id="mgmt-unidades-tabs">
         <div className="flex overflow-x-auto scrollbar-hide px-4">
           {tabs.map((tab) => {
             const Icon = tab.icon
@@ -992,7 +995,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       </div>
 
       {/* Contenido Principal - Usa TODO el espacio disponible */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col" data-tour-id="mgmt-unidades-content">
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, y: 10 }}

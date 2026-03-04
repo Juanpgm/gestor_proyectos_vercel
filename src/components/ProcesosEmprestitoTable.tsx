@@ -26,6 +26,8 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
+import { deleteProcesoWithFallback } from '@/utils/procesoDeleteFallback'
+import { isProcesoRefDeletedLocally } from '@/utils/procesosDeleteLocalStore'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
@@ -167,31 +169,17 @@ const ProcesosEmprestitoTable: React.FC = () => {
 
       console.log(`🗑️ Eliminando proceso: ${referencia}`)
 
-      const response = await fetch(`/api/proxy/emprestito/proceso/${encodeURIComponent(referencia)}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        const rawError = await response.text().catch(() => '')
-        const errorData = rawError ? JSON.parse(rawError) : null
-        throw new Error(errorData?.detail || `Error ${response.status}: ${response.statusText}`)
-      }
-
-      const rawResult = await response.text().catch(() => '')
-      let result: any = null
-      if (rawResult?.trim()) {
-        try {
-          result = JSON.parse(rawResult)
-        } catch {
-          result = rawResult
-        }
-      }
-      console.log('✅ Proceso eliminado:', result)
+      const { endpoint, data: result, mode, message } = await deleteProcesoWithFallback(procesoToDelete as Record<string, any>, referencia)
+      console.log('✅ Proceso eliminado vía:', endpoint, result)
 
       // Cerrar modal y recargar lista
       setShowDeleteModal(false)
       setProcesoToDelete(null)
       await fetchProcesos()
+
+      if (mode === 'local') {
+        alert(message)
+      }
 
     } catch (error) {
       console.error('❌ Error al eliminar proceso:', error)
@@ -214,7 +202,13 @@ const ProcesosEmprestitoTable: React.FC = () => {
         120000 // 2 minutos de timeout
       )
 
-      setProcesos(extractArrayPayload<ProcesoEmprestito>(data))
+      const records = extractArrayPayload<ProcesoEmprestito>(data)
+      const filteredRecords = records.filter((record) => {
+        const referencia = resolveProcesoReferencia(record)
+        return !isProcesoRefDeletedLocally(referencia)
+      })
+
+      setProcesos(filteredRecords)
     } catch (error) {
       console.error('Error al cargar procesos:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')
