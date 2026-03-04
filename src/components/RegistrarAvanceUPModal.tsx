@@ -193,35 +193,47 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
               <TrendingUp className="w-4 h-4 text-blue-500" />
               Avance de Intervención (%) *
             </label>
-            <div className="relative">
+            <div className="flex items-center gap-3">
+              <div className="relative w-28 flex-shrink-0">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={formData.avance_fisico}
+                  onChange={(e) => {
+                    const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                    setFormData(prev => ({ ...prev, avance_fisico: val, avance_financiero: val }));
+                  }}
+                  className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
+                    errors.avance_fisico ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+              </div>
               <input
-                type="number"
+                type="range"
                 min={0}
                 max={100}
                 step={0.1}
                 value={formData.avance_fisico}
                 onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
+                  const val = parseFloat(e.target.value);
                   setFormData(prev => ({ ...prev, avance_fisico: val, avance_financiero: val }));
                 }}
-                className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
-                  errors.avance_fisico ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                }`}
+                className="flex-1 h-2 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: (() => {
+                    const pct = formData.avance_fisico;
+                    const color = pct >= 70 ? '#22c55e' : pct >= 40 ? '#eab308' : '#ef4444';
+                    return `linear-gradient(to right, ${color} 0%, ${color} ${pct}%, #e5e7eb ${pct}%, #e5e7eb 100%)`;
+                  })()
+                }}
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
             </div>
             {errors.avance_fisico && (
               <p className="text-xs text-red-500 mt-1">{errors.avance_fisico}</p>
             )}
-            <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all ${
-                  formData.avance_fisico >= 70 ? 'bg-green-500' :
-                  formData.avance_fisico >= 40 ? 'bg-yellow-500' : 'bg-red-500'
-                }`}
-                style={{ width: `${Math.min(formData.avance_fisico, 100)}%` }}
-              />
-            </div>
           </div>
 
           {/* Observaciones */}

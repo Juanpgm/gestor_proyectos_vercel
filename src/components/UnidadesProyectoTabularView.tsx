@@ -796,7 +796,24 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
             avanceActual={modalAvance.avance}
             presupuesto={modalAvance.presupuesto}
             onClose={() => setModalAvance(null)}
-            onSuccess={() => setModalAvance(null)}
+            onSuccess={() => {
+              // Limpiar cache de esa UP para que se recarguen las intervenciones
+              // con el avance_obra actualizado y se recalculen las métricas de la tabla
+              const upid = modalAvance!.upid;
+              setIntervencionesCache(prev => {
+                const copy = { ...prev };
+                delete copy[upid];
+                return copy;
+              });
+              setMetrics(prev => {
+                const copy = { ...prev };
+                delete copy[upid];
+                return copy;
+              });
+              // Recargar intervenciones para recalcular la barra de avance
+              void loadIntervenciones(upid);
+              setModalAvance(null);
+            }}
           />
         )}
       </AnimatePresence>

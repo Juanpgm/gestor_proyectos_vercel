@@ -244,7 +244,7 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
         return false;
       }
       if (!formData.archivos || formData.archivos.length === 0) {
-        setState(prev => ({ ...prev, error: 'Debes adjuntar al menos una evidencia fotográfica' }));
+        setState(prev => ({ ...prev, error: 'Debes adjuntar al menos una evidencia' }));
         return false;
       }
 
@@ -270,6 +270,20 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
       if (!apiResponse.ok) {
         const errorData = await apiResponse.json().catch(() => ({}));
         throw new Error(errorData?.detail || errorData?.error || `Error ${apiResponse.status} al registrar avance`);
+      }
+
+      // Actualizar avance_obra oficial de la intervención con el nuevo valor reportado
+      try {
+        await fetch('/api/proxy/modificar/intervencion', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            intervencion_id: intervencionId,
+            avance_obra: formData.avance_fisico,
+          }),
+        });
+      } catch (updateError) {
+        console.warn('⚠️ No se pudo actualizar avance_obra en la intervención:', updateError);
       }
 
       // Recargar avances desde la API para reflejar el estado real
