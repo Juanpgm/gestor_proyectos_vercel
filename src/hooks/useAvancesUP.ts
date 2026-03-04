@@ -272,34 +272,8 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
         throw new Error(errorData?.detail || errorData?.error || `Error ${apiResponse.status} al registrar avance`);
       }
 
-      const nuevoAvance: AvanceUP = {
-        id: generateId(),
-        upid,
-        fecha_reporte: formData.fecha_reporte,
-        avance_fisico: formData.avance_fisico,
-        avance_financiero: formData.avance_financiero,
-        valor_ejecutado: formData.valor_ejecutado,
-        observaciones: formData.observaciones,
-        estado_reporte: 'enviado',
-        reportado_por: 'Usuario actual', // TODO: Integrar con auth
-        archivos: formData.archivos.map(f => ({
-          id: generateId(),
-          nombre: f.name,
-          tipo: f.type,
-          tamaño: f.size
-        })),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      const allData = loadFromStorage();
-      const avancesUP = allData[upid] || [];
-      avancesUP.push(nuevoAvance);
-      allData[upid] = avancesUP;
-      saveToStorage(allData);
-
-      const resumen = calcularResumen(avancesUP, upid);
-      setState({ avances: avancesUP, loading: false, error: null, resumen });
+      // Recargar avances desde la API para reflejar el estado real
+      await loadAvances();
       return true;
     } catch (error) {
       setState(prev => ({ 
@@ -308,7 +282,7 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
       }));
       return false;
     }
-  }, [getIntervencionIdByUpid, upid]);
+  }, [getIntervencionIdByUpid, upid, loadAvances]);
 
   // Editar avance existente
   const editAvance = useCallback((avanceId: string, formData: Partial<AvanceUPFormData>): boolean => {

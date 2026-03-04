@@ -21,7 +21,6 @@ import dynamic from 'next/dynamic';
 
 // Componentes dinámicos para modales de avances
 const RegistrarAvanceUPModal = dynamic(() => import('./RegistrarAvanceUPModal'), { ssr: false });
-const EditarInfoUPModal = dynamic(() => import('./EditarInfoUPModal'), { ssr: false });
 const HistorialAvancesUP = dynamic(() => import('./HistorialAvancesUP'), { ssr: false });
 
 interface IntervencionData {
@@ -282,7 +281,6 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
 
   // Estado para modales de avances y edición
   const [modalAvance, setModalAvance] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
-  const [modalEditar, setModalEditar] = useState<AttributeData | null>(null);
   const [modalHistorial, setModalHistorial] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
 
   // Filtrar datos
@@ -622,13 +620,29 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setModalEditar(item);
+                                  // Si ya tenemos 1 sola intervención cargada, abrir modal directo
+                                  const cached = intervencionesCache[item.upid];
+                                  if (cached && cached.length === 1) {
+                                    const interv = cached[0];
+                                    setModalAvance({
+                                      upid: item.upid,
+                                      intervencionId: interv.intervencion_id,
+                                      nombre: `${item.nombre_up} · ${interv.intervencion_id}`,
+                                      avance: interv.avance_obra || 0,
+                                      presupuesto: interv.presupuesto_base || 0,
+                                    });
+                                  } else {
+                                    // Expandir para que elija la intervención
+                                    if (!expandedUPs.has(item.upid)) {
+                                      toggleExpand(item.upid);
+                                    }
+                                  }
                                 }}
-                                className="inline-flex items-center px-2 py-1.5 text-sm font-medium text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 rounded hover:bg-orange-200 dark:hover:bg-orange-900/70 transition-colors shadow-sm ring-1 ring-orange-300/70 dark:ring-orange-700/70"
-                                title="Editar información"
+                                className="inline-flex items-center px-2 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 rounded hover:bg-emerald-200 dark:hover:bg-emerald-900/70 transition-colors shadow-sm ring-1 ring-emerald-300/70 dark:ring-emerald-700/70"
+                                title="Registrar avance"
                               >
-                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                <span className="hidden lg:inline">Editar</span>
+                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                                <span className="hidden lg:inline">Avance</span>
                               </button>
                             </div>
                           </td>
@@ -783,15 +797,6 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
             presupuesto={modalAvance.presupuesto}
             onClose={() => setModalAvance(null)}
             onSuccess={() => setModalAvance(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {modalEditar && (
-          <EditarInfoUPModal
-            item={modalEditar}
-            onClose={() => setModalEditar(null)}
           />
         )}
       </AnimatePresence>

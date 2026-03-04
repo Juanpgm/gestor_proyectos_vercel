@@ -899,5 +899,254 @@ export const filterAttributeData = (
   return filtered;
 };
 
+// ────────────────────────────────────────────────────────────────
+// CRUD y Solicitudes de Cambio – usan el proxy de Next.js
+// ────────────────────────────────────────────────────────────────
+
+const PROXY_BASE = '/api/proxy';
+
+/** Tipo genérico para la respuesta de mutaciones del backend */
+export interface MutationResponse {
+  success?: boolean;
+  message?: string;
+  detail?: string;
+  error?: string;
+  [key: string]: any;
+}
+
+/** Datos para crear una Unidad de Proyecto */
+export interface CrearUnidadProyectoPayload {
+  nombre_up?: string;
+  nombre_up_detalle?: string;
+  estado?: string;
+  tipo_intervencion?: string;
+  tipo_equipamiento?: string;
+  clase_up?: string;
+  nombre_centro_gestor?: string;
+  comuna_corregimiento?: string;
+  barrio_vereda?: string;
+  frente_activo?: string;
+  fuente_financiacion?: string;
+  direccion?: string;
+  ano?: number;
+  avance_obra?: number;
+  presupuesto_base?: number;
+  geometry?: any;
+}
+
+/** Datos para crear una Intervención */
+export interface CrearIntervencionPayload {
+  upid: string;
+  avance_obra?: number;
+  bpin?: string | number;
+  cantidad?: number;
+  clase_up?: string;
+  estado?: string;
+  fecha_fin?: string;
+  fecha_inicio?: string;
+  fuente_financiacion?: string;
+  identificador?: string;
+  nombre_centro_gestor?: string;
+  presupuesto_base?: number;
+  referencia_contrato?: string;
+  referencia_proceso?: string;
+  tipo_intervencion?: string;
+  unidad?: string;
+  url_proceso?: string;
+  descripcion_intervencion?: string;
+}
+
+/** Datos para solicitud de cambio de UP */
+export interface SolicitudCambioUPPayload {
+  upid: string;
+  nombre_centro_gestor?: string;
+  tipo_intervencion?: string;
+  estado?: string;
+  clase_up?: string;
+  tipo_equipamiento?: string;
+  comuna_corregimiento?: string;
+  barrio_vereda?: string;
+  frente_activo?: string;
+  fuente_financiacion?: string;
+  direccion?: string;
+  ano?: number;
+  avance_obra?: number;
+  presupuesto_base?: number;
+  nombre_up?: string;
+  nombre_up_detalle?: string;
+  geometry?: any;
+}
+
+/** Datos para solicitud de cambio de Intervención */
+export interface SolicitudCambioIntervencionPayload {
+  intervencion_id: string;
+  upid?: string;
+  avance_obra?: number;
+  bpin?: string | number;
+  cantidad?: number;
+  clase_up?: string;
+  estado?: string;
+  fecha_fin?: string;
+  fecha_inicio?: string;
+  fuente_financiacion?: string;
+  identificador?: string;
+  nombre_centro_gestor?: string;
+  presupuesto_base?: number;
+  referencia_contrato?: string;
+  referencia_proceso?: string;
+  tipo_intervencion?: string;
+  unidad?: string;
+  url_proceso?: string;
+  descripcion_intervencion?: string;
+}
+
+/** Datos para modificar una UP (validador aprueba) */
+export interface ModificarUPPayload {
+  upid: string;
+  [key: string]: any;
+}
+
+/** Datos para modificar una Intervención (validador aprueba) */
+export interface ModificarIntervencionPayload {
+  intervencion_id: string;
+  [key: string]: any;
+}
+
+/** Interfaz de una solicitud de cambio (devuelta por GET) */
+export interface SolicitudCambio {
+  id: string;
+  tipo: 'unidad_proyecto' | 'intervencion';
+  estado: 'pendiente' | 'aprobada' | 'rechazada';
+  fecha_solicitud: string;
+  solicitado_por?: string;
+  datos_cambio: Record<string, any>;
+  upid?: string;
+  intervencion_id?: string;
+  [key: string]: any;
+}
+
+// ── helpers internos ─────────────────────────────────────────────
+
+async function proxyPost<T = MutationResponse>(
+  path: string,
+  body: Record<string, any>,
+): Promise<T> {
+  const res = await fetch(`${PROXY_BASE}/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  return json as T;
+}
+
+async function proxyPut<T = MutationResponse>(
+  path: string,
+  body: Record<string, any>,
+): Promise<T> {
+  const res = await fetch(`${PROXY_BASE}/${path}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  return json as T;
+}
+
+async function proxyDelete<T = MutationResponse>(
+  path: string,
+  params: Record<string, string>,
+): Promise<T> {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${PROXY_BASE}/${path}?${qs}`, {
+    method: 'DELETE',
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  return json as T;
+}
+
+async function proxyGet<T = any>(
+  path: string,
+  params?: Record<string, string>,
+): Promise<T> {
+  const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
+  const res = await fetch(`${PROXY_BASE}/${path}${qs}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  return json as T;
+}
+
+// ── CRUD: Unidades de Proyecto ───────────────────────────────────
+
+/** POST /crear_unidad_proyecto */
+export const crearUnidadProyecto = (data: CrearUnidadProyectoPayload) =>
+  proxyPost('crear_unidad_proyecto', data);
+
+/** DELETE /eliminar_unidad_proyecto?upid=... */
+export const eliminarUnidadProyecto = (upid: string) =>
+  proxyDelete('eliminar_unidad_proyecto', { upid });
+
+// ── CRUD: Intervenciones ─────────────────────────────────────────
+
+/** POST /crear_intervencion */
+export const crearIntervencion = (data: CrearIntervencionPayload) =>
+  proxyPost('crear_intervencion', data);
+
+/** DELETE /eliminar_intervencion?intervencion_id=... */
+export const eliminarIntervencion = (intervencionId: string) =>
+  proxyDelete('eliminar_intervencion', { intervencion_id: intervencionId });
+
+/** GET /intervenciones (con filtros opcionales) */
+export const fetchIntervenciones = (params?: Record<string, string>) =>
+  proxyGet<any[]>('intervenciones', params);
+
+// ── Solicitudes de Cambio ────────────────────────────────────────
+
+/** POST /solicitudes_cambios_unidad_proyecto */
+export const crearSolicitudCambioUP = (data: SolicitudCambioUPPayload) =>
+  proxyPost('solicitudes_cambios_unidad_proyecto', data);
+
+/** POST /solicitudes_cambios_intervencion */
+export const crearSolicitudCambioIntervencion = (data: SolicitudCambioIntervencionPayload) =>
+  proxyPost('solicitudes_cambios_intervencion', data);
+
+/** GET /solicitudes_cambios_unidad_proyecto (listado para validadores) */
+export const fetchSolicitudesCambiosUP = (params?: Record<string, string>) =>
+  proxyGet<SolicitudCambio[]>('solicitudes_cambios_unidad_proyecto', params);
+
+/** GET /solicitudes_cambios_intervencion (listado para validadores) */
+export const fetchSolicitudesCambiosIntervencion = (params?: Record<string, string>) =>
+  proxyGet<SolicitudCambio[]>('solicitudes_cambios_intervencion', params);
+
+// ── Aprobación (Validador) ───────────────────────────────────────
+
+/** PUT /modificar/unidad_proyecto — el validador aprueba y aplica el cambio */
+export const modificarUnidadProyecto = (data: ModificarUPPayload) =>
+  proxyPut('modificar/unidad_proyecto', data);
+
+/** PUT /modificar/intervencion — el validador aprueba y aplica el cambio */
+export const modificarIntervencion = (data: ModificarIntervencionPayload) =>
+  proxyPut('modificar/intervencion', data);
+
+// ── Export XLSX ──────────────────────────────────────────────────
+
+/** GET /unidades-proyecto/intervenciones/export-xlsx — descarga un blob XLSX */
+export const exportarIntervencionesXLSX = async (
+  filters?: Record<string, string>,
+): Promise<Blob> => {
+  const qs = filters ? `?${new URLSearchParams(filters).toString()}` : '';
+  const res = await fetch(
+    `${API_CONFIG.BASE_URL}/unidades-proyecto/intervenciones/export-xlsx${qs}`,
+  );
+  if (!res.ok) {
+    const errText = await res.text().catch(() => 'Error desconocido');
+    throw new Error(`Error al exportar XLSX: ${errText}`);
+  }
+  return res.blob();
+};
+
 // Exportar configuración para uso en otros lugares
 export { API_CONFIG };

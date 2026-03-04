@@ -18,11 +18,19 @@ import {
   Database,
   TrendingUp,
   Filter,
-  FilterX
+  FilterX,
+  FilePenLine,
+  ShieldCheck,
+  Archive,
 } from 'lucide-react'
 import { SummaryView, RecordsView, StatsView } from './QualityControlViews'
 import { ChangelogView, ByCentroGestorView, MetadataView } from './QualityControlViewsExtended'
 import { MultiSelect } from './MultiSelect'
+import dynamic from 'next/dynamic'
+
+const GestionRegistrosTab = dynamic(() => import('./GestionRegistrosTab'), { ssr: false })
+const SolicitudesPendientesTab = dynamic(() => import('./SolicitudesPendientesTab'), { ssr: false })
+const HistorialSolicitudesTab = dynamic(() => import('./HistorialSolicitudesTab'), { ssr: false })
 
 // Interfaces específicas para cada endpoint
 interface ChangeMetric {
@@ -198,6 +206,9 @@ type TabType =
   | 'by-centro-gestor' 
   | 'metadata' 
   | 'stats'
+  | 'gestionar-registros'
+  | 'solicitudes-pendientes'
+  | 'historial-solicitudes'
 
 const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNavigateHome }) => {
   // Estado para tabs
@@ -274,6 +285,27 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       icon: TrendingUp,
       endpoint: '/unidades-proyecto/quality-control/stats',
       description: 'Estadísticas de control de calidad'
+    },
+    {
+      id: 'gestionar-registros' as TabType,
+      label: 'Gestionar Registros',
+      icon: FilePenLine,
+      endpoint: '',
+      description: 'Crear, eliminar y solicitar cambios de UPs e intervenciones'
+    },
+    {
+      id: 'solicitudes-pendientes' as TabType,
+      label: 'Solicitudes Pendientes',
+      icon: ShieldCheck,
+      endpoint: '',
+      description: 'Revisar y aprobar/rechazar solicitudes de cambio'
+    },
+    {
+      id: 'historial-solicitudes' as TabType,
+      label: 'Historial Solicitudes',
+      icon: Archive,
+      endpoint: '',
+      description: 'Ver todas las solicitudes de cambio (pendientes, aprobadas, rechazadas)'
     }
   ]
 
@@ -666,6 +698,10 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
   // Función para cargar datos según el tab activo
   const loadData = async () => {
+    // Los tabs con componentes autónomos no necesitan cargar datos aquí
+    const autonomousTabs: TabType[] = ['gestionar-registros', 'solicitudes-pendientes', 'historial-solicitudes']
+    if (autonomousTabs.includes(activeTab)) return
+
     setLoading(true)
     setError(null)
 
@@ -675,32 +711,17 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
         throw new Error('Tab no válido')
       }
 
-      let result: any = null
-      let usedEndpoint = `${API_BASE_URL}${currentTab.endpoint}`
-
+      // Fuente única: /unidades-proyecto/calidad-datos
       const calidadDatosUrl = `${API_BASE_URL}${CALIDAD_DATOS_ENDPOINT}`
-      try {
-        const calidadDatosResult: any = await fetchJson(calidadDatosUrl)
-        const adapted = extractTabDataFromCalidadDatos(calidadDatosResult, activeTab)
+      const calidadDatosResult: any = await fetchJson(calidadDatosUrl)
+      const adapted = extractTabDataFromCalidadDatos(calidadDatosResult, activeTab)
 
-        if (adapted.found) {
-          result = adapted.payload
-          usedEndpoint = calidadDatosUrl
-          console.log('✅ Datos adaptados desde /unidades-proyecto/calidad-datos para tab:', activeTab)
-        } else {
-          console.warn('⚠️ /unidades-proyecto/calidad-datos no trajo sección para tab', activeTab, '- fallback a endpoint legacy')
-        }
-      } catch (calidadError) {
-        console.warn('⚠️ Error consultando /unidades-proyecto/calidad-datos, usando fallback legacy:', calidadError)
+      if (!adapted.found || !adapted.payload) {
+        throw new Error(`No se encontraron datos de "${currentTab.label}" en calidad-datos`)
       }
 
-      if (!result) {
-        const legacyUrl = `${API_BASE_URL}${currentTab.endpoint}`
-        result = await fetchJson(legacyUrl)
-        usedEndpoint = legacyUrl
-      }
-
-      console.log('📊 Respuesta recibida para', activeTab, 'desde', usedEndpoint, ':', result)
+      const result: any = adapted.payload
+      console.log('✅ Datos adaptados desde /unidades-proyecto/calidad-datos para tab:', activeTab)
 
       // Manejar diferentes estructuras según el endpoint
       if (activeTab === 'stats') {
@@ -1047,6 +1068,29 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
               {activeTab === 'records' && (
                 <>
+                  <div className="flex justify-end mb-3">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { exportarIntervencionesXLSX } = await import('@/services/unidades-proyecto.service')
+                          const blob = await exportarIntervencionesXLSX()
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `intervenciones_${new Date().toISOString().slice(0, 10)}.xlsx`
+                          a.click()
+                          URL.revokeObjectURL(url)
+                        } catch (err) {
+                          console.error('Error al exportar XLSX:', err)
+                          alert('No se pudo descargar el archivo XLSX. Intenta de nuevo.')
+                        }
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-colors ring-1 ring-green-300/70 dark:ring-green-700/70"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Exportar XLSX
+                    </button>
+                  </div>
                   {paginatedData.length > 0 ? (
                     <RecordsView records={paginatedData} />
                   ) : (
@@ -1104,6 +1148,12 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
                   )}
                 </>
               )}
+
+              {activeTab === 'gestionar-registros' && <GestionRegistrosTab />}
+
+              {activeTab === 'solicitudes-pendientes' && <SolicitudesPendientesTab />}
+
+              {activeTab === 'historial-solicitudes' && <HistorialSolicitudesTab />}
 
               {/* Paginación solo para records */}
               {activeTab === 'records' && filteredData.length > itemsPerPage && (
