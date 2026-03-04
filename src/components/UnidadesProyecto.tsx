@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { CSS_UTILS } from '@/lib/design-system';
 import dynamic from 'next/dynamic';
+import { useAuth } from '@/context/AuthContext';
 
 // Componentes dinámicos para evitar problemas de SSR
 const UnidadesProyectoMapSimple = dynamic(() => import('./UnidadesProyectoMapSimple'), { ssr: false });
@@ -503,6 +504,8 @@ const CompactMetrics: React.FC<{
 
 // Componente principal
 const UnidadesProyecto: React.FC = () => {
+  const { hasRole } = useAuth();
+
   // Estados locales
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [showFilters, setShowFilters] = useState(true);
@@ -510,6 +513,12 @@ const UnidadesProyecto: React.FC = () => {
   const [showOnlyFocused, setShowOnlyFocused] = useState(false);
   const [selectedItemForModal, setSelectedItemForModal] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+
+  const canExportFilteredData =
+    hasRole('admin_centro_gestor') ||
+    hasRole('analista') ||
+    hasRole('admin_general') ||
+    hasRole('super_admin');
 
   // Hook principal con configuración mejorada
   const {
@@ -740,16 +749,18 @@ const UnidadesProyecto: React.FC = () => {
 
             {/* Controles de vista y acciones */}
             <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
-              <button
-                onClick={handleExportFilteredData}
-                disabled={isExporting}
-                className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
-                title="Descargar datos filtrados"
-              >
-                <Download className="w-3 h-3 md:w-4 md:h-4" />
-                <span className="hidden sm:inline">{isExporting ? 'Descargando...' : 'Descargar datos filtrados'}</span>
-                <span className="inline sm:hidden">{isExporting ? '...' : 'XLSX'}</span>
-              </button>
+              {canExportFilteredData && (
+                <button
+                  onClick={handleExportFilteredData}
+                  disabled={isExporting}
+                  className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                  title="Descargar datos filtrados"
+                >
+                  <Download className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">{isExporting ? 'Descargando...' : 'Descargar datos filtrados'}</span>
+                  <span className="inline sm:hidden">{isExporting ? '...' : 'XLSX'}</span>
+                </button>
+              )}
 
               {/* Selector de vista */}
               <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
