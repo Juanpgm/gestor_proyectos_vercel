@@ -588,10 +588,6 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-<<<<<<< HEAD
-=======
-        className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white"
->>>>>>> 1f3d6a5 (Mejoré el tema de accesibilidad pro roles a funciones transaccionales)
         data-tour-id="mgmt-proyecciones-header"
         className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white"
       >
