@@ -90,6 +90,11 @@ export interface FilterParams {
   ano?: string; // Cambiar a string para consistencia con la API
   proyectos_estrategicos?: string; // Nuevos proyectos estratégicos
   search?: string;
+  nombre_up?: string;
+  presupuesto_base?: number;
+  avance_obra?: number;
+  presupuesto_min?: number;
+  avance_min?: number;
   // Campos para filtros múltiples
   estado_multiple?: string[];
   tipo_intervencion_multiple?: string[];
@@ -115,7 +120,7 @@ export interface ApiResponse<T> {
 
 // Configuración de la API  
 const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || '',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://gestorproyectoapi-production.up.railway.app',
   ENDPOINT: '/unidades-proyecto', // Endpoint unificado simplificado
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,
@@ -210,7 +215,9 @@ const FILTER_KEY_MAP: Record<string, string> = {
   'centro_gestor': 'nombre_centro_gestor',
   'centro_gestor_multiple': 'nombre_centro_gestor',
   'comuna_corregimiento': 'comuna_corregimiento',
-  'comuna_corregimiento_multiple': 'comuna_corregimiento'
+  'comuna_corregimiento_multiple': 'comuna_corregimiento',
+  'presupuesto_min': 'presupuesto_base',
+  'avance_min': 'avance_obra'
 };
 
 // Función optimizada para construir query string de filtros
@@ -245,6 +252,25 @@ const buildFilterQuery = (filters: FilterParams, verbose: boolean = false): stri
   }
   
   return queryString;
+};
+
+export const exportIntervencionesXlsx = async (filters: FilterParams = {}): Promise<Blob> => {
+  const queryString = buildFilterQuery(filters, false);
+  const url = `${API_CONFIG.BASE_URL}/unidades-proyecto/intervenciones/export-xlsx${queryString ? `?${queryString}` : ''}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error al exportar XLSX (${response.status})`);
+  }
+
+  return response.blob();
 };
 
 // Funciones del servicio usando programación funcional

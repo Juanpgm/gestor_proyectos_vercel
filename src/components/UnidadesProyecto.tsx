@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RefreshCw, 
   Calendar,
+  Download,
   AlertCircle,
   Map,
   Filter as FilterIcon,
@@ -33,7 +34,7 @@ const UnidadesProyectoTabularView = dynamic(() => import('./UnidadesProyectoTabu
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
 
 // Tipos
-import { type FilterParams } from '@/services/unidades-proyecto.service';
+import { type FilterParams, exportIntervencionesXlsx } from '@/services/unidades-proyecto.service';
 import { type AttributeData } from '@/hooks/useUnidadesProyecto';
 import { formatDate, formatDateRange } from '@/types/unidades-proyecto';
 
@@ -508,6 +509,7 @@ const UnidadesProyecto: React.FC = () => {
   const [focusedItem, setFocusedItem] = useState<string | null>(null);
   const [showOnlyFocused, setShowOnlyFocused] = useState(false);
   const [selectedItemForModal, setSelectedItemForModal] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Hook principal con configuración mejorada
   const {
@@ -614,6 +616,39 @@ const UnidadesProyecto: React.FC = () => {
     refetchDashboard();
   };
 
+  const handleExportFilteredData = async () => {
+    if (isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const { searchTerm, ...currentFilters } = filters;
+      const exportFilters: FilterParams = { ...currentFilters };
+
+      if (searchTerm && searchTerm.trim() !== '') {
+        const normalizedSearch = searchTerm.trim();
+        exportFilters.search = normalizedSearch;
+        exportFilters.nombre_up = normalizedSearch;
+      }
+
+      const blob = await exportIntervencionesXlsx(exportFilters);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateTag = new Date().toISOString().slice(0, 10);
+
+      link.href = url;
+      link.download = `intervenciones_filtradas_${dateTag}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('❌ Error al descargar XLSX filtrado:', error);
+      window.alert('No se pudo descargar el archivo XLSX. Inténtalo nuevamente.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Handlers para enfoque
   const handleItemFocus = (upid: string) => {
     if (upid === '') {
@@ -705,6 +740,17 @@ const UnidadesProyecto: React.FC = () => {
 
             {/* Controles de vista y acciones */}
             <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+              <button
+                onClick={handleExportFilteredData}
+                disabled={isExporting}
+                className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                title="Descargar datos filtrados"
+              >
+                <Download className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">{isExporting ? 'Descargando...' : 'Descargar datos filtrados'}</span>
+                <span className="inline sm:hidden">{isExporting ? '...' : 'XLSX'}</span>
+              </button>
+
               {/* Selector de vista */}
               <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                 <button

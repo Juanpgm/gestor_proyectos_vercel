@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import LoginPage from '@/components/LoginPage'
 import { ROLES_CONFIG } from '@/types/admin'
@@ -12,6 +12,7 @@ interface AuthWrapperProps {
 export default function AuthWrapper({ children }: AuthWrapperProps) {
   const { state, validateSession } = useAuth()
   const sessionCheckRef = useRef<string | null>(null)
+  const [isRevalidatingSession, setIsRevalidatingSession] = useState(false)
 
   useEffect(() => {
     const shouldHydrate =
@@ -21,6 +22,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
     if (!shouldHydrate) {
       sessionCheckRef.current = null
+      setIsRevalidatingSession(false)
       return
     }
 
@@ -30,13 +32,14 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     }
 
     sessionCheckRef.current = userId
-    validateSession().catch(() => {
-      sessionCheckRef.current = null
+    setIsRevalidatingSession(true)
+    validateSession().finally(() => {
+      setIsRevalidatingSession(false)
     })
   }, [state.isAuthenticated, state.user?.uid, state.user?.session_valid, validateSession])
 
   // Si está cargando, mostrar loading
-  if (state.isLoading || (state.isAuthenticated && state.user?.session_valid !== true)) {
+  if (state.isLoading || isRevalidatingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -49,6 +52,11 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
   // Si no está autenticado, mostrar login
   if (!state.isAuthenticated) {
+    return <LoginPage />
+  }
+
+  // Si no se confirmó la sesión luego de revalidar, volver a login para evitar loop
+  if (state.user?.session_valid !== true) {
     return <LoginPage />
   }
 

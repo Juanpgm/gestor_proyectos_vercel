@@ -230,69 +230,92 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
     setSuccess(false)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://gestorproyectoapi-production.up.railway.app'
       if (!apiUrl) {
         throw new Error('URL de API no configurada')
       }
 
-      // Preparar los datos para enviar con FormData (multipart/form-data)
-      const dataToSend = new FormData()
-      
-      // Si es edición, agregar el ID del documento
-      if (esEdicion && rpcExistente?.id) {
-        dataToSend.append('doc_id', rpcExistente.id)
-      }
-      
-      // Campos obligatorios
-      dataToSend.append('numero_rpc', formData.numero_rpc)
-      dataToSend.append('beneficiario_id', formData.beneficiario_id)
-      dataToSend.append('beneficiario_nombre', formData.beneficiario_nombre)
-      dataToSend.append('descripcion_rpc', formData.descripcion_rpc)
-      dataToSend.append('fecha_contabilizacion', formData.fecha_contabilizacion)
-      dataToSend.append('fecha_impresion', formData.fecha_impresion)
-      dataToSend.append('estado_liberacion', formData.estado_liberacion)
-      dataToSend.append('bp', formData.bp)
-      dataToSend.append('valor_rpc', formData.valor_rpc)
-      dataToSend.append('nombre_centro_gestor', formData.nombre_centro_gestor)
-      dataToSend.append('referencia_contrato', formData.referencia_contrato)
-      
-      // CDPs asociados (puede ser string separado por comas o JSON array)
-      if (cdps.length > 0) {
-        const cdpsValidos = cdps.filter(cdp => cdp.numero.trim())
-        if (cdpsValidos.length > 0) {
-          const cdpsArray = cdpsValidos.map(cdp => cdp.numero)
-          // Enviar como JSON array string según la API
-          dataToSend.append('cdp_asociados', JSON.stringify(cdpsArray))
-          console.log('CDPs a enviar:', cdpsArray)
+      const cdpsValidos = cdps
+        .map(cdp => cdp.numero?.trim())
+        .filter(Boolean) as string[]
+
+      const pagosValidos = pagosProgramados.filter(p => p.mes && p.anio && p.valor)
+      const programacionObj: {[key: string]: string} = {}
+      pagosValidos.forEach(pago => {
+        const key = `${pago.mes}-${pago.anio}`
+        programacionObj[key] = pago.valor
+      })
+
+      let response: Response
+
+      if (esEdicion) {
+        const numeroRpc = formData.numero_rpc?.trim() || rpcExistente?.numero_rpc?.trim()
+
+        if (!numeroRpc) {
+          throw new Error('No se encontró el número RPC para actualizar')
         }
-      }
-      
-      // Programación PAC (objeto JSON en formato string)
-      if (pagosProgramados.length > 0) {
-        const pagosValidos = pagosProgramados.filter(p => p.mes && p.anio && p.valor)
-        if (pagosValidos.length > 0) {
-          const programacionObj: {[key: string]: string} = {}
-          pagosValidos.forEach(pago => {
-            const key = `${pago.mes}-${pago.anio}`
-            programacionObj[key] = pago.valor
-          })
+
+        const valorRpcNumerico = Number(formData.valor_rpc)
+        const datosActualizacion: Record<string, any> = {
+          beneficiario_id: formData.beneficiario_id,
+          beneficiario_nombre: formData.beneficiario_nombre,
+          descripcion_rpc: formData.descripcion_rpc,
+          fecha_contabilizacion: formData.fecha_contabilizacion,
+          fecha_impresion: formData.fecha_impresion,
+          estado_liberacion: formData.estado_liberacion,
+          bp: formData.bp,
+          nombre_centro_gestor: formData.nombre_centro_gestor,
+          referencia_contrato: formData.referencia_contrato,
+          ...(Number.isFinite(valorRpcNumerico) ? { valor_rpc: valorRpcNumerico } : {}),
+          ...(cdpsValidos.length > 0 ? { cdp_asociados: cdpsValidos } : {}),
+          ...(Object.keys(programacionObj).length > 0 ? { programacion_pac: programacionObj } : {}),
+        }
+
+        const payload = new URLSearchParams()
+        payload.append('numero_rpc', numeroRpc)
+        payload.append('datos_actualizacion', JSON.stringify(datosActualizacion))
+
+        if (uploadedFiles.length > 0) {
+          console.warn('⚠️ El endpoint modificar-rpc no procesa documentos; se ignorarán los archivos seleccionados en modo edición.')
+        }
+
+        console.log('Enviando PUT request a:', `${apiUrl}/emprestito/modificar-rpc`)
+        console.log('Payload modificar-rpc:', { numero_rpc: numeroRpc, datos_actualizacion: datosActualizacion })
+
+        response = await fetch(`${apiUrl}/emprestito/modificar-rpc`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: payload.toString()
+        })
+      } else {
+        // Preparar los datos para enviar con FormData (multipart/form-data)
+        const dataToSend = new FormData()
+
+        // Campos obligatorios
+        dataToSend.append('numero_rpc', formData.numero_rpc)
+        dataToSend.append('beneficiario_id', formData.beneficiario_id)
+        dataToSend.append('beneficiario_nombre', formData.beneficiario_nombre)
+        dataToSend.append('descripcion_rpc', formData.descripcion_rpc)
+        dataToSend.append('fecha_contabilizacion', formData.fecha_contabilizacion)
+        dataToSend.append('fecha_impresion', formData.fecha_impresion)
+        dataToSend.append('estado_liberacion', formData.estado_liberacion)
+        dataToSend.append('bp', formData.bp)
+        dataToSend.append('valor_rpc', formData.valor_rpc)
+        dataToSend.append('nombre_centro_gestor', formData.nombre_centro_gestor)
+        dataToSend.append('referencia_contrato', formData.referencia_contrato)
+
+        if (cdpsValidos.length > 0) {
+          dataToSend.append('cdp_asociados', JSON.stringify(cdpsValidos))
+          console.log('CDPs a enviar:', cdpsValidos)
+        }
+
+        if (Object.keys(programacionObj).length > 0) {
           dataToSend.append('programacion_pac', JSON.stringify(programacionObj))
           console.log('Programación PAC a enviar:', programacionObj)
         }
-      }
 
-      // Validar archivos según el modo
-      if (esEdicion) {
-        // En modo edición: Los archivos son opcionales (solo si se quieren reemplazar)
-        if (uploadedFiles.length > 0) {
-          // Si hay nuevos archivos, se envían para reemplazar los existentes
-          uploadedFiles.forEach((file, index) => {
-            dataToSend.append('documentos', file)
-            console.log(`Nuevo documento ${index + 1}:`, file.name, file.size, file.type)
-          })
-        }
-        // Si no hay nuevos archivos, se mantienen los existentes (el backend no los modifica)
-      } else {
         // En modo creación: Validar que haya al menos un documento (OBLIGATORIO)
         if (uploadedFiles.length === 0) {
           throw new Error('Debes cargar al menos un documento de soporte')
@@ -302,26 +325,15 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
           dataToSend.append('documentos', file)
           console.log(`Documento ${index + 1}:`, file.name, file.size, file.type)
         })
-      }
+        console.log('Enviando POST request a:', `${apiUrl}/emprestito/cargar-rpc`)
+        console.log('Total archivos nuevos:', uploadedFiles.length)
 
-      // Determinar endpoint y método según modo
-      const endpoint = esEdicion 
-        ? `${apiUrl}/emprestito/modificar-rpc`
-        : `${apiUrl}/emprestito/cargar-rpc`
-      
-      const method = esEdicion ? 'PUT' : 'POST'
-
-      console.log(`Enviando ${method} request a:`, endpoint)
-      console.log('Total archivos nuevos:', uploadedFiles.length)
-      if (esEdicion && archivosExistentes.length > 0) {
-        console.log('Archivos existentes:', archivosExistentes.length)
+        response = await fetch(`${apiUrl}/emprestito/cargar-rpc`, {
+          method: 'POST',
+          // NO incluir Content-Type header - el navegador lo establece automáticamente con boundary
+          body: dataToSend
+        })
       }
-      
-      const response = await fetch(endpoint, {
-        method: method,
-        // NO incluir Content-Type header - el navegador lo establece automáticamente con boundary
-        body: dataToSend
-      })
 
       console.log('Response status:', response.status)
       console.log('Response headers:', Object.fromEntries(response.headers.entries()))
@@ -687,7 +699,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
                         Archivos actuales ({archivosExistentes.length})
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-300">
-                        {uploadedFiles.length > 0 ? 'Se reemplazarán con los nuevos archivos' : 'Se mantendrán estos archivos'}
+                        {uploadedFiles.length > 0 ? 'Los archivos seleccionados no se envían en Editar RPC' : 'Se mantendrán estos archivos'}
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -730,9 +742,9 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
                   acceptedTypes=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                   maxFiles={5}
                   maxSizeMB={10}
-                  label={esEdicion ? "Nuevos Documentos (Opcional - Reemplazarán los actuales)" : "Documentos de Soporte *"}
+                  label={esEdicion ? "Nuevos Documentos (No se envían en Editar RPC)" : "Documentos de Soporte *"}
                   description={esEdicion 
-                    ? "Sube nuevos archivos solo si deseas reemplazar los actuales. Si no subes nada, se mantendrán los archivos existentes."
+                    ? "El endpoint de edición actualiza datos del RPC pero no reemplaza documentos."
                     : "Arrastra archivos aquí o haz clic para explorar (Obligatorio)"
                   }
                   required={!esEdicion}

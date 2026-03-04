@@ -75,13 +75,68 @@ interface GestionProcesosProps {
   onNavigateHome: () => void
 }
 
-type ProcesosDataSource = 'api' | 'backup'
-
 const normalizeProcesosResponse = (payload: any): ProcesoEmprestito[] => {
   if (!payload) return []
 
+  const parsePossibleJsonString = (value: any): any => {
+    if (typeof value !== 'string') return value
+    const trimmed = value.trim()
+    if (!trimmed) return value
+
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      return value
+    }
+  }
+
+  const findObjectArrayDeep = (value: any, depth = 0): ProcesoEmprestito[] => {
+    if (depth > 4 || value === null || value === undefined) return []
+
+    const parsed = parsePossibleJsonString(value)
+
+    if (Array.isArray(parsed)) {
+      const objectItems = parsed.filter(item => item && typeof item === 'object')
+      if (objectItems.length > 0) {
+        return objectItems as ProcesoEmprestito[]
+      }
+      return []
+    }
+
+    if (typeof parsed !== 'object') return []
+
+    const prioritizedKeys = ['data', 'procesos', 'results', 'items', 'rows', 'records']
+    for (const key of prioritizedKeys) {
+      if (key in parsed) {
+        const nested = findObjectArrayDeep((parsed as any)[key], depth + 1)
+        if (nested.length > 0) return nested
+      }
+    }
+
+    const values = Object.values(parsed)
+    for (const candidate of values) {
+      const nested = findObjectArrayDeep(candidate, depth + 1)
+      if (nested.length > 0) return nested
+    }
+
+    return []
+  }
+
+  payload = parsePossibleJsonString(payload)
+
   if (Array.isArray(payload)) {
     return payload
+  }
+
+  if (payload?.data && typeof payload.data === 'string') {
+    const parsedData = parsePossibleJsonString(payload.data)
+    if (Array.isArray(parsedData)) {
+      return parsedData as ProcesoEmprestito[]
+    }
+    if (parsedData && typeof parsedData === 'object') {
+      const nestedFromStringData = findObjectArrayDeep(parsedData)
+      if (nestedFromStringData.length > 0) return nestedFromStringData
+    }
   }
 
   if (Array.isArray(payload.data)) {
@@ -114,34 +169,27 @@ const normalizeProcesosResponse = (payload: any): ProcesoEmprestito[] => {
     }
   }
 
+  const deepDetected = findObjectArrayDeep(payload)
+  if (deepDetected.length > 0) {
+    return deepDetected
+  }
+
   return []
 }
 
-const normalizeBackupProcesos = (payload: any): ProcesoEmprestito[] => {
-  const records = Array.isArray(payload) ? payload : []
+const normalizeProcesoRecord = (record: ProcesoEmprestito, index: number): ProcesoEmprestito => {
+  const fallbackReferencia =
+    record.referencia_proceso ||
+    record.id?.toString?.() ||
+    ((record as any).urlproceso?.url || (record as any).urlproceso) ||
+    `${record.bp || 'sin-bp'}-${record.nombre_resumido_proceso || 'proceso'}-${index}`
 
-  return records
-    .filter((item) => item && typeof item === 'object')
-    .map((item) => ({
-      id: item.id?.toString?.() || item.id,
-      referencia_proceso: item.referencia_proceso || '',
-      nombre_proceso: item.objeto || item.descripcion || item.nombre_proceso || '',
-      nombre_resumido_proceso: item.descripcion || item.nombre_resumido_proceso || '',
-      valor_proyectado: Number(item.valor_total ?? item.valor_proyectado ?? 0),
-      valor_publicacion: Number(item.valor_plataforma ?? item.valor_publicacion ?? item.valor_total ?? 0),
-      nombre_centro_gestor: item.nombre_centro_gestor || '',
-      estado_proceso: item.estado_proceso_secop || item.estado_proceso || '',
-      fecha_publicacion: item.planeado || item.fecha_publicacion || '',
-      modalidad_contratacion: item.modalidad || item.modalidad_contratacion || '',
-      tipo_contrato: item.tipo_contrato || '',
-      nombre_banco: item.banco || item.nombre_banco || '',
-      bp: item.bp || '',
-      id_paa: item.id_paa || '',
-      descripcion_proceso: item.objeto || item.descripcion || '',
-      plataforma: item.plataforma || 'SECOP',
-      ...item,
-    }))
-    .filter((item) => Boolean(item.referencia_proceso))
+  return {
+    ...record,
+    referencia_proceso: fallbackReferencia,
+    nombre_banco: record.nombre_banco || (record as any).banco || '',
+    valor_publicacion: Number(record.valor_publicacion ?? (record as any).valor_total ?? 0),
+  }
 }
 
 const extractArrayPayload = <T = any>(payload: any): T[] => {
@@ -201,7 +249,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [dataSource, setDataSource] = useState<ProcesosDataSource>('api')
   
   // Estados para datos agregados de otros tabs
   const [ordenesCompra, setOrdenesCompra] = useState<any[]>([])
@@ -252,11 +299,11 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
   const procesosRequestIdRef = React.useRef(0)
   const procesosAbortRef = React.useRef<AbortController | null>(null)
-  const loadingRef = React.useRef(false)
+  const procesosRef = React.useRef<ProcesoEmprestito[]>([])
 
   useEffect(() => {
-    loadingRef.current = loading
-  }, [loading])
+    procesosRef.current = procesos
+  }, [procesos])
 
   const columns = useMemo(() => [
     { key: 'referencia_proceso', label: 'Referencia del Proceso', isSortable: true },
@@ -369,52 +416,88 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
             throw new Error(parsedBody?.error || parsedBody?.message || 'El endpoint de procesos respondió con error')
           }
 
-          const normalized = normalizeProcesosResponse(parsedBody)
+          const normalized = normalizeProcesosResponse(parsedBody).map((item, index) => normalizeProcesoRecord(item, index))
           const explicitApiEmpty =
             Array.isArray(parsedBody?.data) && parsedBody.data.length === 0 && normalized.length === 0
 
           return { records: normalized, explicitApiEmpty }
         }
 
-        let normalizedResponse = await fetchAndNormalize('/api/proxy/procesos_emprestito_all')
+        const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-        if (normalizedResponse.records.length === 0) {
-          // Reintento único sin caché de proxy para evitar datos transitoriamente vacíos
-          normalizedResponse = await fetchAndNormalize(`/api/proxy/procesos_emprestito_all?bypass_cache=1&_t=${Date.now()}`)
-        }
+        const fetchWithRetries = async (url: string, retries: number): Promise<{ records: ProcesoEmprestito[]; explicitApiEmpty: boolean }> => {
+          let lastError: unknown
 
-        if (normalizedResponse.records.length === 0) {
-          if (normalizedResponse.explicitApiEmpty) {
-            if (!isLatestRequest()) return
-            setProcesos([])
-            setDataSource('api')
-            return
+          for (let attempt = 1; attempt <= retries; attempt++) {
+            if (signal.aborted || !isLatestRequest()) {
+              throw new Error('Request aborted')
+            }
+
+            try {
+              return await fetchAndNormalize(url)
+            } catch (error) {
+              lastError = error
+
+              if (attempt < retries) {
+                const delay = 500 * attempt
+                console.warn(`⚠️ Reintento ${attempt}/${retries - 1} para procesos_emprestito_all en ${delay}ms`, error)
+                await wait(delay)
+                continue
+              }
+            }
           }
 
-          throw new Error('La API respondió sin registros de procesos válidos')
+          throw lastError instanceof Error ? lastError : new Error('Fallo al consultar procesos_emprestito_all')
         }
 
-        if (!isLatestRequest()) return
-        setProcesos(normalizedResponse.records)
-        setDataSource('api')
+        const candidateUrls = [
+          '/api/proxy/procesos_emprestito_all',
+          `/api/proxy/procesos_emprestito_all?bypass_cache=1&_t=${Date.now()}`,
+          `/api/proxy/emprestito/obtener-procesos-bp?bypass_cache=1&_t=${Date.now()}`,
+        ]
+
+        let lastResult: { records: ProcesoEmprestito[]; explicitApiEmpty: boolean } | null = null
+        let loaded = false
+
+        for (const url of candidateUrls) {
+          const result = await fetchWithRetries(url, 3)
+          lastResult = result
+
+          if (result.records.length > 0 || result.explicitApiEmpty) {
+            if (!isLatestRequest()) return
+            setProcesos(result.records)
+            loaded = true
+            break
+          }
+        }
+
+        if (!loaded && lastResult) {
+          if (!isLatestRequest()) return
+          console.warn('⚠️ API de procesos respondió sin registros; se mostrará tabla vacía')
+          setProcesos(lastResult.records)
+          loaded = true
+        }
+
+        if (!loaded) {
+          throw new Error('No se pudo obtener respuesta válida del endpoint de procesos')
+        }
       } catch (primaryError) {
         if (signal.aborted || !isLatestRequest()) return
-        console.warn('⚠️ Fallback a datos locales de procesos por falla del backend:', primaryError)
+        console.warn('⚠️ Error consultando procesos_emprestito_all (API):', primaryError)
 
         // Reintento rápido adicional para errores transitorios antes de usar respaldo local
         try {
           await new Promise(resolve => setTimeout(resolve, 1200))
           if (signal.aborted || !isLatestRequest()) return
 
-          const retryResponse = await fetch(`/api/proxy/procesos_emprestito_all?bypass_cache=1&_t=${Date.now()}`, { cache: 'no-store', signal })
+          const retryResponse = await fetch(`/api/proxy/emprestito/obtener-procesos-bp?bypass_cache=1&_t=${Date.now()}`, { cache: 'no-store', signal })
           if (retryResponse.ok) {
             const retryPayload = await retryResponse.json()
             if (retryPayload?.success !== false) {
-              const retryNormalized = normalizeProcesosResponse(retryPayload)
+              const retryNormalized = normalizeProcesosResponse(retryPayload).map((item, index) => normalizeProcesoRecord(item, index))
               if (retryNormalized.length > 0 || Array.isArray(retryPayload?.data)) {
                 if (!isLatestRequest()) return
                 setProcesos(retryNormalized)
-                setDataSource('api')
                 return
               }
             }
@@ -451,35 +534,28 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                 if (directNormalized.length > 0 || Array.isArray(directParsed?.data)) {
                   if (!isLatestRequest()) return
                   setProcesos(directNormalized)
-                  setDataSource('api')
                   return
                 }
               }
             }
           }
         } catch (directError) {
-          console.warn('⚠️ Fallback directo al backend también falló:', directError)
+          console.warn('⚠️ Consulta directa a procesos_emprestito_all también falló:', directError)
         }
 
-        const backupResponse = await fetch('/data/emprestito/emp_procesos.json', { cache: 'no-store', signal })
-        if (!backupResponse.ok) {
-          throw primaryError
-        }
-
-        const backupData = await backupResponse.json()
-        const normalizedBackup = normalizeBackupProcesos(backupData)
-
-        if (normalizedBackup.length === 0) {
-          throw primaryError
-        }
-
-        if (!isLatestRequest()) return
-        setProcesos(normalizedBackup)
-        setDataSource('backup')
+        throw primaryError
       }
     } catch (error) {
       if (signal.aborted || !isLatestRequest()) return
       console.error('Error fetching procesos:', error)
+
+      const hasPreviousData = Array.isArray(procesosRef.current) && procesosRef.current.length > 0
+      if (hasPreviousData) {
+        console.warn('⚠️ Se conserva el último dataset de procesos por fallo transitorio de API')
+        setError(null)
+        return
+      }
+
       setError(error instanceof Error ? error.message : 'Error desconocido')
       setProcesos([])
     } finally {
@@ -503,22 +579,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       }
     }
   }, [])
-
-  useEffect(() => {
-    if (dataSource !== 'backup') {
-      return
-    }
-
-    const intervalId = setInterval(() => {
-      if (!loadingRef.current) {
-        fetchProcesos()
-      }
-    }, 20000)
-
-    return () => {
-      clearInterval(intervalId)
-    }
-  }, [dataSource])
   
   // Función para cargar órdenes de compra
   const fetchOrdenesCompra = async () => {
@@ -584,6 +644,32 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const handleEditProceso = (proceso: ProcesoEmprestito) => {
     setEditingData(proceso)
     setShowAgregarModal(true)
+  }
+
+  const resolveProcesoReferencia = (proceso: Partial<ProcesoEmprestito> | null | undefined): string => {
+    if (!proceso) return ''
+
+    const fallbackFromUrlProceso =
+      typeof (proceso as any).urlproceso === 'string'
+        ? (proceso as any).urlproceso
+        : (proceso as any).urlproceso?.url
+
+    const candidates = [
+      proceso.referencia_proceso,
+      (proceso as any).proceso_numero,
+      (proceso as any).referencia,
+      (proceso as any).numero_proceso,
+      (proceso as any).id_proceso,
+      proceso.id,
+      fallbackFromUrlProceso
+    ]
+
+    for (const candidate of candidates) {
+      const value = String(candidate || '').trim()
+      if (value) return value
+    }
+
+    return ''
   }
 
   // Función para actualizar proceso vía API
@@ -669,9 +755,9 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   }
 
   // Función para eliminar proceso
-  const handleDeleteProceso = async (referenciaProceso: string) => {
+  const handleDeleteProceso = async (proceso: ProcesoEmprestito) => {
     try {
-      const referencia = referenciaProceso?.trim()
+      const referencia = resolveProcesoReferencia(proceso)
 
       if (!referencia) {
         throw new Error('No se encontró la referencia_proceso para eliminar')
@@ -688,7 +774,8 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       if (!response.ok) {
         let errorMsg = `Error ${response.status}: ${response.statusText}`
         try {
-          const errorData = await response.json()
+          const rawError = await response.text()
+          const errorData = rawError ? JSON.parse(rawError) : null
           console.error('❌ Respuesta de error completa:', JSON.stringify(errorData, null, 2))
           
           if (errorData?.detail) {
@@ -716,7 +803,17 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         throw new Error(errorMsg)
       }
 
-      const result = await response.json()
+      const rawResult = await response.text()
+      let result: any = null
+
+      if (rawResult?.trim()) {
+        try {
+          result = JSON.parse(rawResult)
+        } catch {
+          result = rawResult
+        }
+      }
+
       console.log('✅ Proceso eliminado:', result)
       
       // Recargar datos
@@ -1203,12 +1300,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           </button>
         </div>
       </motion.div>
-
-      {dataSource === 'backup' && activeTab === 'secop' && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
-          Mostrando respaldo local de procesos por una falla temporal del backend principal.
-        </div>
-      )}
 
       {/* Tabs - Immediately after header */}
       <motion.div
@@ -1872,7 +1963,11 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-              onClick={() => setDeleteConfirm(null)}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setDeleteConfirm(null)
+                }
+              }}
             >
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
@@ -1885,20 +1980,36 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                   Eliminar Proceso
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                  ¿Está seguro que desea eliminar el proceso <strong>{deleteConfirm.referencia_proceso}</strong>? Esta acción no se puede deshacer.
+                  ¿Está seguro que desea eliminar el proceso <strong>{resolveProcesoReferencia(deleteConfirm)}</strong>? Esta acción no se puede deshacer.
                 </p>
                 <div className="flex justify-end space-x-3">
                   <button
+                    type="button"
                     onClick={() => setDeleteConfirm(null)}
                     className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
-                    onClick={async () => {
-                      if (deleteConfirm?.referencia_proceso) {
-                        await handleDeleteProceso(deleteConfirm.referencia_proceso)
+                    type="button"
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+
+                      console.log('🖱️ Click en botón Eliminar confirmado')
+
+                      if (!deleteConfirm) {
+                        alert('No se encontró el proceso seleccionado para eliminar.')
+                        return
                       }
+
+                      const referencia = resolveProcesoReferencia(deleteConfirm)
+                      if (!referencia) {
+                        alert('No se encontró la referencia del proceso para eliminar.')
+                        return
+                      }
+
+                      await handleDeleteProceso(deleteConfirm)
                     }}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
                   >
