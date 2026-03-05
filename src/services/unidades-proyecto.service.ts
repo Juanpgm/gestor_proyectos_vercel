@@ -960,11 +960,59 @@ export interface CrearUnidadProyectoPayload {
   geometry?: any;
 }
 
+const CREAR_UP_ALLOWED_KEYS: Array<keyof CrearUnidadProyectoPayload> = [
+  'nombre_up',
+  'nombre_up_detalle',
+  'estado',
+  'tipo_intervencion',
+  'tipo_equipamiento',
+  'clase_up',
+  'nombre_centro_gestor',
+  'comuna_corregimiento',
+  'barrio_vereda',
+  'frente_activo',
+  'fuente_financiacion',
+  'direccion',
+  'ano',
+  'avance_obra',
+  'presupuesto_base',
+  'geometry',
+];
+
+function sanitizeCrearUnidadProyectoPayload(
+  data: CrearUnidadProyectoPayload,
+): CrearUnidadProyectoPayload {
+  const payload: CrearUnidadProyectoPayload = {};
+
+  for (const key of CREAR_UP_ALLOWED_KEYS) {
+    const rawValue = data[key];
+
+    if (rawValue === undefined || rawValue === null) continue;
+
+    if (typeof rawValue === 'string') {
+      const trimmed = rawValue.trim();
+      if (!trimmed) continue;
+      (payload as any)[key] = trimmed;
+      continue;
+    }
+
+    if (typeof rawValue === 'number') {
+      if (!Number.isFinite(rawValue)) continue;
+      (payload as any)[key] = rawValue;
+      continue;
+    }
+
+    (payload as any)[key] = rawValue;
+  }
+
+  return payload;
+}
+
 /** Datos para crear una Intervención */
 export interface CrearIntervencionPayload {
   upid: string;
   avance_obra?: number;
-  bpin?: string | number;
+  bpin?: number;
   cantidad?: number;
   clase_up?: string;
   estado?: string;
@@ -982,9 +1030,60 @@ export interface CrearIntervencionPayload {
   descripcion_intervencion?: string;
 }
 
+const CREAR_INTERVENCION_ALLOWED_KEYS: Array<keyof CrearIntervencionPayload> = [
+  'upid',
+  'avance_obra',
+  'bpin',
+  'cantidad',
+  'clase_up',
+  'estado',
+  'fecha_fin',
+  'fecha_inicio',
+  'fuente_financiacion',
+  'identificador',
+  'nombre_centro_gestor',
+  'presupuesto_base',
+  'referencia_contrato',
+  'referencia_proceso',
+  'tipo_intervencion',
+  'unidad',
+  'url_proceso',
+  'descripcion_intervencion',
+];
+
+function sanitizeCrearIntervencionPayload(
+  data: CrearIntervencionPayload,
+): CrearIntervencionPayload {
+  const payload: CrearIntervencionPayload = { upid: '' };
+
+  for (const key of CREAR_INTERVENCION_ALLOWED_KEYS) {
+    const rawValue = data[key];
+
+    if (rawValue === undefined || rawValue === null) continue;
+
+    if (typeof rawValue === 'string') {
+      const trimmed = rawValue.trim();
+      if (!trimmed) continue;
+      (payload as any)[key] = trimmed;
+      continue;
+    }
+
+    if (typeof rawValue === 'number') {
+      if (!Number.isFinite(rawValue)) continue;
+      (payload as any)[key] = rawValue;
+      continue;
+    }
+
+    (payload as any)[key] = rawValue;
+  }
+
+  return payload;
+}
+
 /** Datos para solicitud de cambio de UP */
 export interface SolicitudCambioUPPayload {
   upid: string;
+  aprobado?: boolean;
   nombre_centro_gestor?: string;
   tipo_intervencion?: string;
   estado?: string;
@@ -1024,12 +1123,6 @@ export interface SolicitudCambioIntervencionPayload {
   unidad?: string;
   url_proceso?: string;
   descripcion_intervencion?: string;
-}
-
-/** Datos para modificar una UP (validador aprueba) */
-export interface ModificarUPPayload {
-  upid: string;
-  [key: string]: any;
 }
 
 /** Datos para modificar una Intervención (validador aprueba) */
@@ -1125,7 +1218,7 @@ async function proxyGet<T = any>(
 
 /** POST /crear_unidad_proyecto */
 export const crearUnidadProyecto = (data: CrearUnidadProyectoPayload) =>
-  proxyPost('crear_unidad_proyecto', data);
+  proxyPost('crear_unidad_proyecto', sanitizeCrearUnidadProyectoPayload(data));
 
 /** DELETE /eliminar_unidad_proyecto?upid=... */
 export const eliminarUnidadProyecto = (upid: string) =>
@@ -1135,7 +1228,7 @@ export const eliminarUnidadProyecto = (upid: string) =>
 
 /** POST /crear_intervencion */
 export const crearIntervencion = (data: CrearIntervencionPayload) =>
-  proxyPost('crear_intervencion', data);
+  proxyPost('crear_intervencion', sanitizeCrearIntervencionPayload(data));
 
 /** DELETE /eliminar_intervencion?intervencion_id=... */
 export const eliminarIntervencion = (intervencionId: string) =>
@@ -1148,8 +1241,36 @@ export const fetchIntervenciones = (params?: Record<string, string>) =>
 // ── Solicitudes de Cambio ────────────────────────────────────────
 
 /** POST /solicitudes_cambios_unidad_proyecto */
-export const crearSolicitudCambioUP = (data: SolicitudCambioUPPayload) =>
-  proxyPost('solicitudes_cambios_unidad_proyecto', data);
+export const crearSolicitudCambioUP = (data: SolicitudCambioUPPayload) => {
+  const allowedKeys: Array<keyof SolicitudCambioUPPayload> = [
+    'upid',
+    'aprobado',
+    'nombre_up',
+    'nombre_up_detalle',
+    'tipo_equipamiento',
+    'clase_up',
+    'direccion',
+    'geometry',
+  ];
+
+  const payload: Record<string, any> = {
+    aprobado: data.aprobado ?? true,
+  };
+
+  for (const key of allowedKeys) {
+    const value = data[key];
+    if (value === undefined || value === null) continue;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) continue;
+      payload[key] = trimmed;
+      continue;
+    }
+    payload[key] = value;
+  }
+
+  return proxyPost('solicitudes_cambios_unidad_proyecto', payload);
+};
 
 /** POST /solicitudes_cambios_intervencion */
 export const crearSolicitudCambioIntervencion = (data: SolicitudCambioIntervencionPayload) =>
@@ -1168,17 +1289,6 @@ export const fetchSolicitudesCambiosIntervencion = async (params?: Record<string
 }
 
 // ── Aprobación / Rechazo (Validador) ─────────────────────────────
-
-/** PUT /modificar/unidad_proyecto — aprobar: aplica cambios + aprobado=true (query params) */
-export const modificarUnidadProyecto = (data: ModificarUPPayload) => {
-  const { upid, geometry, extra_data, ...rest } = data;
-  const params: Record<string, string> = { upid, aprobado: 'true', extra_data_: '{}' };
-  for (const [k, v] of Object.entries(rest)) {
-    if (v !== undefined && v !== null) params[k] = String(v);
-  }
-  const body = (geometry || extra_data) ? { geometry, extra_data } : undefined;
-  return proxyPutParams('modificar/unidad_proyecto', params, body);
-}
 
 /** PUT /modificar/unidad_proyecto con aprobado=false — rechazar solicitud UP */
 export const rechazarUnidadProyecto = (upid: string) =>

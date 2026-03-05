@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   ClipboardList,
   History,
-  Database,
   TrendingUp,
   Filter,
   FilterX,
@@ -24,7 +23,7 @@ import {
   Archive,
 } from 'lucide-react'
 import { SummaryView, RecordsView, StatsView } from './QualityControlViews'
-import { ChangelogView, ByCentroGestorView, MetadataView } from './QualityControlViewsExtended'
+import { ChangelogView, ByCentroGestorView } from './QualityControlViewsExtended'
 import { MultiSelect } from './MultiSelect'
 import dynamic from 'next/dynamic'
 import ManagementFeatureTour from './ManagementFeatureTour'
@@ -200,12 +199,26 @@ interface GestionUnidadesProyectoProps {
   onNavigateHome: () => void
 }
 
+type GlobalFilterOptions = {
+  centros_gestores: string[]
+  estados: string[]
+  tipos_intervencion: string[]
+}
+
+declare global {
+  interface Window {
+    UNIDADES_PROYECTO_FILTERS_GLOBAL?: Partial<GlobalFilterOptions>
+    CENTROS_GESTORES?: string[]
+    ESTADOS?: string[]
+    TIPOS_INTERVENCION?: string[]
+  }
+}
+
 type TabType = 
   | 'summary' 
   | 'records' 
   | 'changelog' 
   | 'by-centro-gestor' 
-  | 'metadata' 
   | 'stats'
   | 'gestionar-registros'
   | 'solicitudes-pendientes'
@@ -243,6 +256,101 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   const API_BASE_URL = '/api/proxy' // Usar el proxy de Next.js para evitar CORS
   const CALIDAD_DATOS_ENDPOINT = '/unidades-proyecto/calidad-datos'
 
+  const normalizeOptions = (values: unknown): string[] => {
+    if (!Array.isArray(values)) return []
+    return Array.from(
+      new Set(values.map((value) => String(value || '').trim()).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, 'es'))
+  }
+
+  const readGlobalFilterOptions = (): GlobalFilterOptions => {
+    if (typeof window === 'undefined') {
+      return { centros_gestores: [], estados: [], tipos_intervencion: [] }
+    }
+
+    const globalObject = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {}
+    return {
+      centros_gestores: normalizeOptions(
+        globalObject.centros_gestores && globalObject.centros_gestores.length > 0
+          ? globalObject.centros_gestores
+          : window.CENTROS_GESTORES
+      ),
+      estados: normalizeOptions(
+        globalObject.estados && globalObject.estados.length > 0
+          ? globalObject.estados
+          : window.ESTADOS
+      ),
+      tipos_intervencion: normalizeOptions(
+        globalObject.tipos_intervencion && globalObject.tipos_intervencion.length > 0
+          ? globalObject.tipos_intervencion
+          : window.TIPOS_INTERVENCION
+      )
+    }
+  }
+
+  const publishGlobalFilterOptions = (options: GlobalFilterOptions) => {
+    if (typeof window === 'undefined') return
+    window.UNIDADES_PROYECTO_FILTERS_GLOBAL = options
+    window.CENTROS_GESTORES = options.centros_gestores
+    window.ESTADOS = options.estados
+    window.TIPOS_INTERVENCION = options.tipos_intervencion
+  }
+
+  useEffect(() => {
+    const globalOptions = readGlobalFilterOptions()
+    if (globalOptions.centros_gestores.length > 0) setAvailableCentrosGestores(globalOptions.centros_gestores)
+    if (globalOptions.estados.length > 0) setAvailableSeverities(globalOptions.estados)
+    if (globalOptions.tipos_intervencion.length > 0) setAvailablePriorities(globalOptions.tipos_intervencion)
+  }, [])
+
+  useEffect(() => {
+    const hydrateGlobalOptionsFromRecords = async () => {
+      const globalOptions = readGlobalFilterOptions()
+      const hasAllGlobalOptions =
+        globalOptions.centros_gestores.length > 0 &&
+        globalOptions.estados.length > 0 &&
+        globalOptions.tipos_intervencion.length > 0
+
+      if (hasAllGlobalOptions) return
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/intervenciones?limit=10000`)
+        if (!response.ok) return
+
+        const json = await response.json()
+        const records = Array.isArray(json)
+          ? json
+          : Array.isArray(json?.data)
+            ? json.data
+            : []
+
+        const merged: GlobalFilterOptions = {
+          centros_gestores: normalizeOptions([
+            ...globalOptions.centros_gestores,
+            ...records.map((item: any) => item?.nombre_centro_gestor || item?.centro_gestor)
+          ]),
+          estados: normalizeOptions([
+            ...globalOptions.estados,
+            ...records.map((item: any) => item?.estado)
+          ]),
+          tipos_intervencion: normalizeOptions([
+            ...globalOptions.tipos_intervencion,
+            ...records.map((item: any) => item?.tipo_intervencion)
+          ]),
+        }
+
+        publishGlobalFilterOptions(merged)
+        setAvailableCentrosGestores(merged.centros_gestores)
+        setAvailableSeverities(merged.estados)
+        setAvailablePriorities(merged.tipos_intervencion)
+      } catch {
+        // Fallback silencioso: la UI mantiene placeholders hasta siguiente carga.
+      }
+    }
+
+    hydrateGlobalOptionsFromRecords()
+  }, [API_BASE_URL])
+
   // Definición de tabs - quality-control endpoints de la API
   const tabs = [
     {
@@ -272,13 +380,6 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       icon: Building2,
       endpoint: '/unidades-proyecto/quality-control/by-centro-gestor',
       description: 'Control de calidad agrupado por centro gestor'
-    },
-    {
-      id: 'metadata' as TabType,
-      label: 'Metadatos',
-      icon: Database,
-      endpoint: '/unidades-proyecto/quality-control/metadata',
-      description: 'Metadatos de control de calidad'
     },
     {
       id: 'stats' as TabType,
@@ -311,6 +412,29 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   ]
 
   const pickFirst = (...values: any[]) => values.find((value) => value !== undefined && value !== null)
+
+  const normalizeLookupKey = (key: string) =>
+    String(key || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+
+  const pickFromSourceByAliases = (source: any, aliases: string[]) => {
+    if (!source || typeof source !== 'object') return undefined
+
+    for (const alias of aliases) {
+      if (Object.prototype.hasOwnProperty.call(source, alias)) {
+        return source[alias]
+      }
+    }
+
+    const aliasSet = new Set(aliases.map((alias) => normalizeLookupKey(alias)))
+    const sourceEntries = Object.entries(source)
+    const match = sourceEntries.find(([key]) => aliasSet.has(normalizeLookupKey(key)))
+
+    return match ? match[1] : undefined
+  }
 
   const mapSeverityCode = (code?: string) => {
     const normalized = String(code || '').toUpperCase()
@@ -952,10 +1076,12 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
     const stats = [
       source.stats,
+      source.estadisticas_globales,
       source.estadisticas,
       source.metrics,
       source.metricas,
-      source.kpis
+      source.kpis,
+      pickFromSourceByAliases(source, ['Estadisticas', 'Estadísticas', 'estadisticas_globales', 'estadísticas_globales'])
     ]
 
     if (tab === 'summary') {
@@ -1065,50 +1191,36 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
         } else {
           throw new Error(result.message || 'No se recibieron datos de summary')
         }
-      } else if (activeTab === 'metadata') {
-        // Metadata puede devolver un objeto o array
-        if (result.success) {
-          const metadataArray = Array.isArray(result.data) ? result.data : [result.data]
-          console.log('✅ Cargando metadata:', metadataArray.length, 'registros')
-          setData(metadataArray)
-        } else {
-          throw new Error(result.message || 'No se recibieron datos de metadata')
-        }
       } else if (result.success && result.data) {
         // Otros endpoints (records, changelog, by-centro-gestor) devuelven arrays
         const dataArray = Array.isArray(result.data) ? result.data : []
         console.log('✅ Cargando datos:', dataArray.length, 'registros')
         setData(dataArray)
         
-        // Extraer valores únicos para los filtros solo si hay datos
-        if (dataArray.length > 0) {
-          // Extraer centros gestores únicos
-          const centroGestorSet = new Set(
-            dataArray
-              .map((item: any) => item.nombre_centro_gestor || item.centro_gestor)
-              .filter(Boolean)
-          )
-          const centros = Array.from(centroGestorSet) as string[]
-          setAvailableCentrosGestores(centros.sort())
-          
-          // Extraer severidades únicas
-          const severitiesSet = new Set(
-            dataArray
-              .map((item: any) => item.max_severity || item.severity)
-              .filter(Boolean)
-          )
-          const severities = Array.from(severitiesSet) as string[]
-          setAvailableSeverities(severities.sort())
-          
-          // Extraer prioridades únicas
-          const prioritiesSet = new Set(
-            dataArray
-              .map((item: any) => item.priority)
-              .filter(Boolean)
-          )
-          const priorities = Array.from(prioritiesSet) as string[]
-          setAvailablePriorities(priorities.sort())
+        // Cargar opciones para dropdowns desde variables globales de Gestionar UP.
+        // Si no existen, generarlas desde los registros cargados y publicarlas globalmente.
+        const globalOptions = readGlobalFilterOptions()
+
+        const fallbackCentros = normalizeOptions(
+          dataArray.map((item: any) => item.nombre_centro_gestor || item.centro_gestor)
+        )
+        const fallbackEstados = normalizeOptions(
+          dataArray.map((item: any) => item.estado || item.max_severity || item.severity)
+        )
+        const fallbackTipos = normalizeOptions(
+          dataArray.map((item: any) => item.tipo_intervencion || item.priority)
+        )
+
+        const finalOptions: GlobalFilterOptions = {
+          centros_gestores: globalOptions.centros_gestores.length > 0 ? globalOptions.centros_gestores : fallbackCentros,
+          estados: globalOptions.estados.length > 0 ? globalOptions.estados : fallbackEstados,
+          tipos_intervencion: globalOptions.tipos_intervencion.length > 0 ? globalOptions.tipos_intervencion : fallbackTipos,
         }
+
+        setAvailableCentrosGestores(finalOptions.centros_gestores)
+        setAvailableSeverities(finalOptions.estados)
+        setAvailablePriorities(finalOptions.tipos_intervencion)
+        publishGlobalFilterOptions(finalOptions)
       } else {
         throw new Error(result.message || 'No se pudieron cargar los datos')
       }
@@ -1143,14 +1255,16 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     if (selectedSeverities.length > 0) {
       filtered = filtered.filter(item => 
         selectedSeverities.includes(item.max_severity) || 
-        selectedSeverities.includes(item.severity)
+        selectedSeverities.includes(item.severity) ||
+        selectedSeverities.includes(item.estado)
       )
     }
 
     // Filtro por prioridad (selección múltiple)
     if (selectedPriorities.length > 0) {
       filtered = filtered.filter(item => 
-        selectedPriorities.includes(item.priority)
+        selectedPriorities.includes(item.priority) ||
+        selectedPriorities.includes(item.tipo_intervencion)
       )
     }
 
@@ -1275,7 +1389,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
               />
               <MultiSelect
                 label="Estado"
-                options={availableSeverities}
+                options={Array.from(new Set([...availableSeverities, 'Varios estados']))}
                 selected={selectedSeverities}
                 onChange={setSelectedSeverities}
                 placeholder="Todos los estados"
@@ -1444,18 +1558,6 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
                   ) : (
                     <div className="p-8 text-center text-slate-500 dark:text-slate-400">
                       No hay datos por centro gestor
-                    </div>
-                  )}
-                </>
-              )}
-
-              {activeTab === 'metadata' && (
-                <>
-                  {(Array.isArray(data) && data.length > 0) || (typeof data === 'object' && data !== null) ? (
-                    <MetadataView metadata={data} />
-                  ) : (
-                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-                      No hay metadatos disponibles
                     </div>
                   )}
                 </>

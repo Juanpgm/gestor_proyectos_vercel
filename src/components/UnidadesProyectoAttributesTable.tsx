@@ -522,7 +522,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         }
         
         const data = await response.json();
-        const intervenciones: IntervencionData[] = data.data || [];
+        const intervencionesRaw: IntervencionData[] = Array.isArray(data?.data) ? data.data : [];
+        const intervenciones = intervencionesRaw.filter(
+          (intervencion) => String(intervencion?.upid || '').trim() === String(upid).trim()
+        );
         
         console.log(`✅ Loaded ${intervenciones.length} intervenciones for UP ${upid}`);
         
@@ -609,7 +612,10 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
           }
           
           const data = await response.json();
-          const intervenciones: IntervencionData[] = data.data || [];
+          const intervencionesRaw: IntervencionData[] = Array.isArray(data?.data) ? data.data : [];
+          const intervenciones = intervencionesRaw.filter(
+            (intervencion) => String(intervencion?.upid || '').trim() === String(upid).trim()
+          );
           
           // Calcular variables sintéticas
           const avance = intervenciones.length > 0
@@ -1191,7 +1197,9 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                 const item = row as AttributeData;
                 const isFocused = focusedItem === item.upid;
                 const isExpanded = expandedUPs.has(item.upid);
-                const intervenciones = intervencionesCache[item.upid] || [];
+                const intervenciones = (intervencionesCache[item.upid] || []).filter(
+                  (intervencion) => String(intervencion?.upid || '').trim() === String(item.upid).trim()
+                );
                 const isLoadingIntervs = loadingIntervenciones.has(item.upid);
                 
                 return (
@@ -1442,7 +1450,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     {!isLoadingIntervs && intervenciones.length === 0 && (
                       <tr className="bg-gray-50 dark:bg-gray-700/30">
                         <td colSpan={Object.values(visibleColumns).filter(Boolean).length} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                          No hay intervenciones registradas para esta unidad de proyecto
+                          Sin intervenciones asignadas
                         </td>
                       </tr>
                     )}

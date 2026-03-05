@@ -8,6 +8,92 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, RefreshCw, X, ChevronDown, Check, DollarSign, TrendingUp } from 'lucide-react';
 import { type FilterData, type FilterParams } from '@/services/unidades-proyecto.service';
 
+type GlobalFilterOptions = {
+  centros_gestores: string[];
+  estados: string[];
+  tipos_intervencion: string[];
+  fuentes_financiacion: string[];
+};
+
+declare global {
+  interface Window {
+    UNIDADES_PROYECTO_FILTERS_GLOBAL?: Partial<GlobalFilterOptions>;
+    CENTROS_GESTORES?: string[];
+    ESTADOS?: string[];
+    ESTADOS_UP?: string[];
+    TIPOS_INTERVENCION?: string[];
+    TIPOS_INTERVENCIONES?: string[];
+    FUENTES_FINANCIACION?: string[];
+  }
+}
+
+const ESTADOS_UP_DEFAULT: string[] = [
+  'En alistamiento',
+  'En ejecución',
+  'Suspendido',
+  'Terminado',
+  'Inaugurado',
+];
+
+const TIPOS_INTERVENCIONES_DEFAULT: string[] = [
+  'Obra nueva',
+  'Adecuaciones',
+  'Rehabilitación / Reforzamiento',
+  'Demolición',
+  'Mantenimiento',
+  'Estudios y diseños',
+  'Transferencia directa',
+];
+
+const FUENTES_FINANCIACION_DEFAULT: string[] = [
+  'Empréstito',
+  'Ingresos libre destinación',
+  'Ingresos con destinación específica',
+  'Cooperación Internacional - donaciones',
+  'Presupuesto Participativo',
+  'Otros créditos (vigencias anteriores)',
+];
+
+const normalizeOptions = (values: unknown): string[] => {
+  if (!Array.isArray(values)) return [];
+  return Array.from(new Set(values
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, 'es'));
+};
+
+const readGlobalOptions = (): Partial<GlobalFilterOptions> => {
+  if (typeof window === 'undefined') return {};
+  const globalObject = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {};
+
+  return {
+    centros_gestores: normalizeOptions(
+      globalObject.centros_gestores && globalObject.centros_gestores.length > 0
+        ? globalObject.centros_gestores
+        : window.CENTROS_GESTORES
+    ),
+    estados: normalizeOptions(
+      globalObject.estados && globalObject.estados.length > 0
+        ? globalObject.estados
+        : (window.ESTADOS_UP && window.ESTADOS_UP.length > 0
+          ? window.ESTADOS_UP
+          : window.ESTADOS)
+    ),
+    tipos_intervencion: normalizeOptions(
+      globalObject.tipos_intervencion && globalObject.tipos_intervencion.length > 0
+        ? globalObject.tipos_intervencion
+        : (window.TIPOS_INTERVENCIONES && window.TIPOS_INTERVENCIONES.length > 0
+          ? window.TIPOS_INTERVENCIONES
+          : window.TIPOS_INTERVENCION)
+    ),
+    fuentes_financiacion: normalizeOptions(
+      globalObject.fuentes_financiacion && globalObject.fuentes_financiacion.length > 0
+        ? globalObject.fuentes_financiacion
+        : window.FUENTES_FINANCIACION
+    )
+  };
+};
+
 interface UnidadesProyectoFiltersProps {
   filterData: FilterData | null;
   filters: FilterParams & { 
@@ -424,6 +510,67 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   // Toggle entre modo single y multi-select - habilitado por defecto
   const [isMultiMode, setIsMultiMode] = useState(true);
 
+  const fallbackOptions = useMemo<GlobalFilterOptions>(() => ({
+    centros_gestores: normalizeOptions(filterData?.centros_gestores || []),
+    estados: normalizeOptions(ESTADOS_UP_DEFAULT),
+    tipos_intervencion: normalizeOptions(TIPOS_INTERVENCIONES_DEFAULT),
+    fuentes_financiacion: normalizeOptions(FUENTES_FINANCIACION_DEFAULT)
+  }), [filterData?.centros_gestores]);
+
+  const dropdownOptions = useMemo<GlobalFilterOptions>(() => {
+    const globalOptions = readGlobalOptions();
+    return {
+      centros_gestores: (globalOptions.centros_gestores && globalOptions.centros_gestores.length > 0)
+        ? globalOptions.centros_gestores
+        : fallbackOptions.centros_gestores,
+      estados: (globalOptions.estados && globalOptions.estados.length > 0)
+        ? globalOptions.estados
+        : fallbackOptions.estados,
+      tipos_intervencion: (globalOptions.tipos_intervencion && globalOptions.tipos_intervencion.length > 0)
+        ? globalOptions.tipos_intervencion
+        : fallbackOptions.tipos_intervencion,
+      fuentes_financiacion: (globalOptions.fuentes_financiacion && globalOptions.fuentes_financiacion.length > 0)
+        ? globalOptions.fuentes_financiacion
+        : fallbackOptions.fuentes_financiacion
+    };
+  }, [fallbackOptions]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const currentGlobal = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {};
+    const nextGlobal: GlobalFilterOptions = {
+      centros_gestores: normalizeOptions(
+        (currentGlobal.centros_gestores && currentGlobal.centros_gestores.length > 0)
+          ? currentGlobal.centros_gestores
+          : fallbackOptions.centros_gestores
+      ),
+      estados: normalizeOptions(
+        (currentGlobal.estados && currentGlobal.estados.length > 0)
+          ? currentGlobal.estados
+          : fallbackOptions.estados
+      ),
+      tipos_intervencion: normalizeOptions(
+        (currentGlobal.tipos_intervencion && currentGlobal.tipos_intervencion.length > 0)
+          ? currentGlobal.tipos_intervencion
+          : fallbackOptions.tipos_intervencion
+      ),
+      fuentes_financiacion: normalizeOptions(
+        (currentGlobal.fuentes_financiacion && currentGlobal.fuentes_financiacion.length > 0)
+          ? currentGlobal.fuentes_financiacion
+          : fallbackOptions.fuentes_financiacion
+      )
+    };
+
+    window.UNIDADES_PROYECTO_FILTERS_GLOBAL = nextGlobal;
+    window.CENTROS_GESTORES = nextGlobal.centros_gestores;
+    window.ESTADOS_UP = nextGlobal.estados;
+    window.ESTADOS = nextGlobal.estados;
+    window.TIPOS_INTERVENCIONES = nextGlobal.tipos_intervencion;
+    window.TIPOS_INTERVENCION = nextGlobal.tipos_intervencion;
+    window.FUENTES_FINANCIACION = nextGlobal.fuentes_financiacion;
+  }, [fallbackOptions]);
+
   const handleFilterChange = (key: keyof FilterParams, value: string) => {
     onFiltersChange({
       ...filters,
@@ -631,7 +778,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Estado"
             value={filters.estado}
             onChange={(value) => handleFilterChange('estado', value)}
-            options={filterData?.estados || []}
+            options={dropdownOptions.estados}
             placeholder="Todos los estados"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -644,7 +791,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Tipo de Intervención"
             value={filters.tipo_intervencion}
             onChange={(value) => handleFilterChange('tipo_intervencion', value)}
-            options={filterData?.tipos_intervencion || []}
+            options={dropdownOptions.tipos_intervencion}
             placeholder="Todos los tipos"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -683,7 +830,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Centro Gestor"
             value={filters.centro_gestor}
             onChange={(value) => handleFilterChange('centro_gestor', value)}
-            options={filterData?.centros_gestores || []}
+            options={dropdownOptions.centros_gestores}
             placeholder="Todos los centros"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -722,7 +869,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Fuente de Financiación"
             value={filters.fuente_financiacion}
             onChange={(value) => handleFilterChange('fuente_financiacion', value)}
-            options={filterData?.fuentes_financiacion || []}
+            options={dropdownOptions.fuentes_financiacion}
             placeholder="Todas las fuentes"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -839,22 +986,6 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
           </div>
         )}
 
-        {/* Información de resultados */}
-        {!isLoading && filterData && (
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
-              <span>Estados: {filterData.estados.length}</span>
-              <span>Tipos: {filterData.tipos_intervencion.length}</span>
-              <span>Equipamientos: {filterData.tipos_equipamiento.length}</span>
-              <span>Frentes: {filterData.frentes_activos.length}</span>
-              <span>Centros: {filterData.centros_gestores.length}</span>
-              <span>Comunas: {filterData.comunas.length}</span>
-              <span>Barrios: {filterData.barrios_veredas.length}</span>
-              <span>Años: {filterData.anos.length}</span>
-              <span>Proyectos: {filterData.proyectos_estrategicos?.length || 1}</span>
-            </div>
-          </div>
-        )}
       </div>
     </motion.div>
   );

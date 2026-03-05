@@ -19,6 +19,45 @@ import {
 } from '@/services/unidades-proyecto.service'
 import { actualizarEstadoSolicitud, aplicarCambiosFirestore } from '@/lib/firebase'
 
+const formatRequestedValue = (value: unknown): string => {
+  if (value === null || value === undefined) return 'Sin cambios'
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : 'Sin cambios'
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0 ? JSON.stringify(value) : 'Sin cambios'
+  }
+
+  if (typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>).length > 0
+      ? JSON.stringify(value)
+      : 'Sin cambios'
+  }
+
+  return String(value)
+}
+
+const formatServerTimestampToColombia = (value?: string): string => {
+  if (!value) return 'Fecha no disponible'
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return 'Fecha no disponible'
+
+  return parsed.toLocaleString('es-CO', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  })
+}
+
 // ─── Componente principal ─────────────────────────────────────────
 
 const SolicitudesPendientesTab: React.FC = () => {
@@ -30,6 +69,30 @@ const SolicitudesPendientesTab: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'up' | 'intervencion'>('all')
+
+  const getSolicitudId = (sol: SolicitudCambio): string => {
+    const raw =
+      (sol as any).id ??
+      (sol as any).solicitud_id ??
+      (sol as any)._id ??
+      (sol as any).document_id ??
+      ''
+    return String(raw || '').trim()
+  }
+
+  const removeSolicitudFromList = (list: SolicitudCambio[], solicitud: SolicitudCambio): SolicitudCambio[] => {
+    const targetId = getSolicitudId(solicitud)
+
+    return list.filter((item) => {
+      const currentId = getSolicitudId(item)
+
+      // Prioridad 1: remover por ID estable
+      if (targetId && currentId) return currentId !== targetId
+
+      // Prioridad 2: fallback por referencia cuando no hay ID utilizable
+      return item !== solicitud
+    })
+  }
 
   const loadSolicitudes = useCallback(async () => {
     setLoading(true)
@@ -87,29 +150,32 @@ const SolicitudesPendientesTab: React.FC = () => {
 
   // Aprobar: aplica cambios directamente en Firestore + marca solicitud como aprobada
   const handleAprobar = async (solicitud: SolicitudCambio) => {
-    setProcessingId(solicitud.id)
+    const solicitudId = getSolicitudId(solicitud)
+    setProcessingId(solicitudId)
     try {
       const cambios = extractCambios(solicitud)
 
       if (solicitud.tipo === 'unidad_proyecto') {
         const upid = solicitud.upid
         if (!upid) throw new Error('Falta el UPID en la solicitud')
+        if (!solicitudId) throw new Error('Falta el ID de la solicitud')
         // Aplicar cambios directamente en Firestore (el PUT del backend no persiste)
         await aplicarCambiosFirestore('unidad_proyecto', { upid }, cambios)
         // Marcar solicitud como aprobada
-        await actualizarEstadoSolicitud('solicitudes_cambios_unidades_proyecto', solicitud.id, 'aprobada')
+        await actualizarEstadoSolicitud('solicitudes_cambios_unidades_proyecto', solicitudId, 'aprobada')
       } else {
         const intervencionId = solicitud.intervencion_id
         if (!intervencionId) throw new Error('Falta el intervencion_id en la solicitud')
+        if (!solicitudId) throw new Error('Falta el ID de la solicitud')
         await aplicarCambiosFirestore('intervencion', { intervencion_id: intervencionId }, cambios)
-        await actualizarEstadoSolicitud('solicitudes_cambios_intervenciones', solicitud.id, 'aprobada')
+        await actualizarEstadoSolicitud('solicitudes_cambios_intervenciones', solicitudId, 'aprobada')
       }
 
       // Remover de la lista local
       if (solicitud.tipo === 'unidad_proyecto') {
-        setSolicitudesUP((prev) => prev.filter((s) => s.id !== solicitud.id))
+        setSolicitudesUP((prev) => removeSolicitudFromList(prev, solicitud))
       } else {
-        setSolicitudesIntervencion((prev) => prev.filter((s) => s.id !== solicitud.id))
+        setSolicitudesIntervencion((prev) => removeSolicitudFromList(prev, solicitud))
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error al aprobar solicitud')
@@ -121,14 +187,17 @@ const SolicitudesPendientesTab: React.FC = () => {
   // Rechazar: marca en Firestore como rechazada (NO aplica cambios en la UP)
   const handleRechazar = async (solicitud: SolicitudCambio) => {
     if (!confirm('¿Deseas rechazar esta solicitud de cambio? Se marcará como rechazada en el sistema.')) return
-    setProcessingId(solicitud.id)
+    const solicitudId = getSolicitudId(solicitud)
+    setProcessingId(solicitudId)
     try {
+      if (!solicitudId) throw new Error('Falta el ID de la solicitud')
+
       if (solicitud.tipo === 'unidad_proyecto') {
-        await actualizarEstadoSolicitud('solicitudes_cambios_unidades_proyecto', solicitud.id, 'rechazada')
-        setSolicitudesUP((prev) => prev.filter((s) => s.id !== solicitud.id))
+        await actualizarEstadoSolicitud('solicitudes_cambios_unidades_proyecto', solicitudId, 'rechazada')
+        setSolicitudesUP((prev) => removeSolicitudFromList(prev, solicitud))
       } else {
-        await actualizarEstadoSolicitud('solicitudes_cambios_intervenciones', solicitud.id, 'rechazada')
-        setSolicitudesIntervencion((prev) => prev.filter((s) => s.id !== solicitud.id))
+        await actualizarEstadoSolicitud('solicitudes_cambios_intervenciones', solicitudId, 'rechazada')
+        setSolicitudesIntervencion((prev) => removeSolicitudFromList(prev, solicitud))
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Error al rechazar solicitud')
@@ -146,6 +215,7 @@ const SolicitudesPendientesTab: React.FC = () => {
     const term = search.toLowerCase()
     return (
       s.id?.toLowerCase().includes(term) ||
+      getSolicitudId(s).toLowerCase().includes(term) ||
       s.upid?.toLowerCase().includes(term) ||
       s.intervencion_id?.toLowerCase().includes(term) ||
       JSON.stringify(s).toLowerCase().includes(term)
@@ -202,21 +272,22 @@ const SolicitudesPendientesTab: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-2">
-          {allSolicitudes.map((sol) => {
-            const isExpanded = expandedId === sol.id
-            const isProcessing = processingId === sol.id
+          {allSolicitudes.map((sol, index) => {
+            const solId = getSolicitudId(sol)
+            const isExpanded = expandedId === solId
+            const isProcessing = processingId === solId
             const entries = Object.entries(sol).filter(
               ([k]) => !METADATA_KEYS.has(k)
             )
 
             return (
               <div
-                key={sol.id}
+                key={solId || `${sol.tipo}-${sol.upid || sol.intervencion_id || index}`}
                 className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden"
               >
                 <div
                   className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                  onClick={() => setExpandedId(isExpanded ? null : sol.id)}
+                  onClick={() => setExpandedId(isExpanded ? null : solId)}
                 >
                   <button className="flex-shrink-0">
                     {isExpanded ? (
@@ -238,13 +309,11 @@ const SolicitudesPendientesTab: React.FC = () => {
                         {sol.tipo === 'unidad_proyecto' ? 'UP' : 'Intervención'}
                       </span>
                       <span className="font-medium text-sm text-slate-900 dark:text-white truncate">
-                        {sol.upid || sol.intervencion_id || sol.id}
+                        {sol.upid || sol.intervencion_id || solId || 'Solicitud sin ID'}
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {sol.created_at
-                        ? new Date(sol.created_at).toLocaleString('es-CO')
-                        : 'Fecha no disponible'}
+                      {formatServerTimestampToColombia(sol.created_at)}
                     </div>
                   </div>
 
@@ -292,7 +361,7 @@ const SolicitudesPendientesTab: React.FC = () => {
                               <div key={key} className="flex flex-col bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700">
                                 <span className="text-xs text-slate-500 dark:text-slate-400">{key}</span>
                                 <span className="text-sm font-medium text-slate-900 dark:text-white break-words">
-                                  {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '-')}
+                                  {formatRequestedValue(value)}
                                 </span>
                               </div>
                             ))}

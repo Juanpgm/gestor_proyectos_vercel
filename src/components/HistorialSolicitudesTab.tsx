@@ -32,6 +32,27 @@ const estadoBadge = (estado?: string) => {
   }
 }
 
+const formatRequestedValue = (value: unknown): string => {
+  if (value === null || value === undefined) return 'Sin cambios'
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : 'Sin cambios'
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0 ? JSON.stringify(value) : 'Sin cambios'
+  }
+
+  if (typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>).length > 0
+      ? JSON.stringify(value)
+      : 'Sin cambios'
+  }
+
+  return String(value)
+}
+
 // ─── Componente principal ─────────────────────────────────────────
 
 const HistorialSolicitudesTab: React.FC = () => {
@@ -245,7 +266,7 @@ const HistorialSolicitudesTab: React.FC = () => {
                               >
                                 <span className="text-xs text-slate-500 dark:text-slate-400">{key}</span>
                                 <span className="text-sm font-medium text-slate-900 dark:text-white break-words">
-                                  {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '-')}
+                                  {formatRequestedValue(value)}
                                 </span>
                               </div>
                             ))}

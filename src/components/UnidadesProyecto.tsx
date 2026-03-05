@@ -39,6 +39,27 @@ import { type FilterParams, exportIntervencionesXlsx } from '@/services/unidades
 import { type AttributeData } from '@/hooks/useUnidadesProyecto';
 import { formatDate, formatDateRange } from '@/types/unidades-proyecto';
 
+type GlobalFilterOptions = {
+  centros_gestores: string[];
+  estados: string[];
+  tipos_intervencion: string[];
+};
+
+declare global {
+  interface Window {
+    UNIDADES_PROYECTO_FILTERS_GLOBAL?: Partial<GlobalFilterOptions>;
+    CENTROS_GESTORES?: string[];
+    ESTADOS?: string[];
+    TIPOS_INTERVENCION?: string[];
+  }
+}
+
+const normalizeOptions = (values: unknown): string[] => {
+  if (!Array.isArray(values)) return [];
+  return Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, 'es'));
+};
+
 
 // Estados de vista
 type ViewMode = 'map' | 'split';
@@ -601,6 +622,39 @@ const UnidadesProyecto: React.FC = () => {
       }
     }
   }, [state.attributeData]);
+
+  // Publicar catálogos globales de filtros para la sección "Gestionar Unidades de Proyecto"
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const currentGlobal = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {};
+    const centrosGestores = normalizeOptions(
+      (state.filterData?.centros_gestores && state.filterData.centros_gestores.length > 0)
+        ? state.filterData.centros_gestores
+        : currentGlobal.centros_gestores
+    );
+    const estados = normalizeOptions(
+      (state.filterData?.estados && state.filterData.estados.length > 0)
+        ? state.filterData.estados
+        : currentGlobal.estados
+    );
+    const tiposIntervencion = normalizeOptions(
+      (state.filterData?.tipos_intervencion && state.filterData.tipos_intervencion.length > 0)
+        ? state.filterData.tipos_intervencion
+        : currentGlobal.tipos_intervencion
+    );
+
+    const nextGlobal: GlobalFilterOptions = {
+      centros_gestores: centrosGestores,
+      estados,
+      tipos_intervencion: tiposIntervencion,
+    };
+
+    window.UNIDADES_PROYECTO_FILTERS_GLOBAL = nextGlobal;
+    window.CENTROS_GESTORES = centrosGestores;
+    window.ESTADOS = estados;
+    window.TIPOS_INTERVENCION = tiposIntervencion;
+  }, [state.filterData]);
 
   // Handlers de eventos
   const handleFiltersChange = (newFilters: FilterParams) => {
