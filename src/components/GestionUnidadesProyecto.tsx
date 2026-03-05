@@ -27,6 +27,7 @@ import { ChangelogView, ByCentroGestorView } from './QualityControlViewsExtended
 import { MultiSelect } from './MultiSelect'
 import dynamic from 'next/dynamic'
 import ManagementFeatureTour from './ManagementFeatureTour'
+import { useAuth } from '@/context/AuthContext'
 
 const GestionRegistrosTab = dynamic(() => import('./GestionRegistrosTab'), { ssr: false })
 const SolicitudesPendientesTab = dynamic(() => import('./SolicitudesPendientesTab'), { ssr: false })
@@ -224,6 +225,10 @@ type TabType =
   | 'historial-solicitudes'
 
 const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNavigateHome }) => {
+  const { hasRole } = useAuth()
+
+  const canViewSolicitudesTabs = hasRole('super_admin') || hasRole('admin_general')
+
   // Estado para tabs
   const [activeTab, setActiveTab] = useState<TabType>('summary')
   
@@ -394,21 +399,35 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       endpoint: '',
       description: 'Crear, eliminar y solicitar cambios de UPs e intervenciones'
     },
-    {
-      id: 'solicitudes-pendientes' as TabType,
-      label: 'Solicitudes Pendientes',
-      icon: ShieldCheck,
-      endpoint: '',
-      description: 'Revisar y aprobar/rechazar solicitudes de cambio'
-    },
-    {
-      id: 'historial-solicitudes' as TabType,
-      label: 'Historial Solicitudes',
-      icon: Archive,
-      endpoint: '',
-      description: 'Ver todas las solicitudes de cambio (pendientes, aprobadas, rechazadas)'
-    }
+    ...(canViewSolicitudesTabs
+      ? [
+          {
+            id: 'solicitudes-pendientes' as TabType,
+            label: 'Solicitudes Pendientes',
+            icon: ShieldCheck,
+            endpoint: '',
+            description: 'Revisar y aprobar/rechazar solicitudes de cambio'
+          },
+          {
+            id: 'historial-solicitudes' as TabType,
+            label: 'Historial Solicitudes',
+            icon: Archive,
+            endpoint: '',
+            description: 'Ver todas las solicitudes de cambio (pendientes, aprobadas, rechazadas)'
+          }
+        ]
+      : [])
   ]
+
+  useEffect(() => {
+    if (
+      !canViewSolicitudesTabs &&
+      (activeTab === 'solicitudes-pendientes' || activeTab === 'historial-solicitudes')
+    ) {
+      setActiveTab('summary')
+      setCurrentPage(1)
+    }
+  }, [activeTab, canViewSolicitudesTabs])
 
   const pickFirst = (...values: any[]) => values.find((value) => value !== undefined && value !== null)
 
@@ -1569,9 +1588,9 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
               {activeTab === 'gestionar-registros' && <GestionRegistrosTab />}
 
-              {activeTab === 'solicitudes-pendientes' && <SolicitudesPendientesTab />}
+              {canViewSolicitudesTabs && activeTab === 'solicitudes-pendientes' && <SolicitudesPendientesTab />}
 
-              {activeTab === 'historial-solicitudes' && <HistorialSolicitudesTab />}
+              {canViewSolicitudesTabs && activeTab === 'historial-solicitudes' && <HistorialSolicitudesTab />}
 
               {/* Paginación solo para records */}
               {activeTab === 'records' && filteredData.length > itemsPerPage && (

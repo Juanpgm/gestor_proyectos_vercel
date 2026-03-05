@@ -1618,6 +1618,9 @@ const ProgressBar: React.FC<{ value: number }> = ({ value }) => {
 // ─── Componente principal ─────────────────────────────────────────
 
 const GestionRegistrosTab: React.FC = () => {
+  const { hasRole } = useAuth()
+  const canDeleteRecords = hasRole('super_admin') || hasRole('admin_general')
+
   const [ups, setUps] = useState<UP[]>([])
   const [intervencionesMap, setIntervencionesMap] = useState<Record<string, Intervencion[]>>({})
   const [intervencionesCountByUpid, setIntervencionesCountByUpid] = useState<Record<string, number>>({})
@@ -1994,6 +1997,12 @@ const GestionRegistrosTab: React.FC = () => {
 
   // Eliminar
   const handleDelete = async () => {
+    if (!canDeleteRecords) {
+      setConfirmDelete(null)
+      alert('No tienes permisos para eliminar registros.')
+      return
+    }
+
     if (!confirmDelete) return
     try {
       if (confirmDelete.type === 'up') {
@@ -2180,13 +2189,15 @@ const GestionRegistrosTab: React.FC = () => {
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
-                              <button
-                                onClick={() => setConfirmDelete({ type: 'up', id: up.upid })}
-                                className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                title="Eliminar UP"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {canDeleteRecords && (
+                                <button
+                                  onClick={() => setConfirmDelete({ type: 'up', id: up.upid })}
+                                  className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                  title="Eliminar UP"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </motion.tr>
@@ -2269,13 +2280,15 @@ const GestionRegistrosTab: React.FC = () => {
                                                   >
                                                     <Edit3 className="w-3 h-3" />
                                                   </button>
-                                                  <button
-                                                    onClick={() => setConfirmDelete({ type: 'intervencion', id: interv.intervencion_id, upid: up.upid })}
-                                                    className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                                    title="Eliminar intervención"
-                                                  >
-                                                    <Trash2 className="w-3 h-3" />
-                                                  </button>
+                                                  {canDeleteRecords && (
+                                                    <button
+                                                      onClick={() => setConfirmDelete({ type: 'intervencion', id: interv.intervencion_id, upid: up.upid })}
+                                                      className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                      title="Eliminar intervención"
+                                                    >
+                                                      <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                  )}
                                                 </div>
                                               </td>
                                             </tr>
@@ -2441,7 +2454,7 @@ const GestionRegistrosTab: React.FC = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {confirmDelete && (
+        {canDeleteRecords && confirmDelete && (
           <Modal title="Confirmar Eliminación" onClose={() => setConfirmDelete(null)}>
             <div className="space-y-4">
               <p className="text-sm text-slate-700 dark:text-slate-300">
