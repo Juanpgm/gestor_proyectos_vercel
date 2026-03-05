@@ -1140,19 +1140,27 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   }
 
   const fetchJson = async (url: string) => {
-    const response = await fetch(url, {
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
+
+    try {
+      const response = await fetch(url, {
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
-    })
 
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
+      return response.json()
+    } finally {
+      clearTimeout(timeoutId)
     }
-
-    return response.json()
   }
 
   // Función para cargar datos según el tab activo
@@ -1236,7 +1244,9 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
         throw new Error(result.message || 'No se pudieron cargar los datos')
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
+      const errorMessage = err instanceof Error
+        ? (err.name === 'AbortError' ? 'Timeout al cargar datos (20s)' : err.message)
+        : 'Error desconocido'
       console.error('❌ Error cargando datos:', errorMessage)
       setError(`Error al cargar datos: ${errorMessage}`)
     } finally {

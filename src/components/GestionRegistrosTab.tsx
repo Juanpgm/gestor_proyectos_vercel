@@ -1618,7 +1618,7 @@ const ProgressBar: React.FC<{ value: number }> = ({ value }) => {
 // ─── Componente principal ─────────────────────────────────────────
 
 const GestionRegistrosTab: React.FC = () => {
-  const { hasRole } = useAuth()
+  const { hasRole, state: authState } = useAuth()
   const canDeleteRecords = hasRole('super_admin') || hasRole('admin_general')
 
   const [ups, setUps] = useState<UP[]>([])
@@ -1653,6 +1653,26 @@ const GestionRegistrosTab: React.FC = () => {
     if (Array.isArray(payload?.results)) return payload.results
     return []
   }, [])
+
+  const normalizeCentro = useCallback((value: unknown): string =>
+    String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim(),
+  [])
+
+  const userCentroGestorRaw = useMemo(
+    () => authState.user?.nombre_centro_gestor || authState.user?.centro_gestor_assigned || '',
+    [authState.user?.centro_gestor_assigned, authState.user?.nombre_centro_gestor],
+  )
+
+  const userCentroGestor = useMemo(() => normalizeCentro(userCentroGestorRaw), [normalizeCentro, userCentroGestorRaw])
+  const canViewAllCentros = useMemo(
+    () => userCentroGestor === '' || userCentroGestor === 'calitrack' || userCentroGestor === 'otro',
+    [userCentroGestor],
+  )
 
   const toTimestamp = useCallback((row: any): number => {
     const candidates = [row?.updated_at, row?.fecha_reporte, row?.created_at, row?.fecha, row?.timestamp]
@@ -1811,11 +1831,13 @@ const GestionRegistrosTab: React.FC = () => {
       const res = await fetch(`${API_BASE}/unidades-proyecto?limit=10000`)
       const json = await res.json()
       const rawItems = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []
+
       // Enriquecer cada UP con datos de su primera intervención (si viene anidada)
-      const items: UP[] = rawItems.map((item: any) => {
-        const intervenciones = item.intervenciones || []
+      const normalizedItems: Array<{ up: UP; intervenciones: any[] }> = rawItems.map((item: any) => {
+        const intervenciones = Array.isArray(item.intervenciones) ? item.intervenciones : []
         const first = intervenciones[0] || {}
-        return {
+
+        const up: UP = {
           ...item,
           estado: item.estado || first.estado || '',
           tipo_intervencion: item.tipo_intervencion || first.tipo_intervencion || '',
@@ -1836,15 +1858,80 @@ const GestionRegistrosTab: React.FC = () => {
           referencia_proceso: item.referencia_proceso || first.referencia_proceso || '',
           url_proceso: item.url_proceso || first.url_proceso || '',
         }
+
+        return { up, intervenciones }
       })
-      setUps(items)
-      void loadIntervencionesSummary(items)
+
+      const matchesCentro = (candidate: unknown): boolean => {
+        const normalizedCandidate = normalizeCentro(candidate)
+        if (!normalizedCandidate || !userCentroGestor) return false
+        return (
+          normalizedCandidate === userCentroGestor ||
+          normalizedCandidate.includes(userCentroGestor) ||
+          userCentroGestor.includes(normalizedCandidate)
+        )
+      }
+
+      let filteredItems: UP[] = canViewAllCentros
+        ? normalizedItems.map(({ up }) => up)
+        : normalizedItems
+            .filter(({ up, intervenciones }) => {
+              const topLevelCandidates = [
+                up.nombre_centro_gestor,
+                (up as any)?.centro_gestor,
+                (up as any)?.responsible,
+              ]
+
+              const intervencionCandidates = intervenciones.flatMap((interv: any) => [
+                interv?.nombre_centro_gestor,
+                interv?.centro_gestor,
+                interv?.responsible,
+              ])
+
+              return [...topLevelCandidates, ...intervencionCandidates].some(matchesCentro)
+            })
+            .map(({ up }) => up)
+
+      // Fallback robusto: si el endpoint de UP no trae centros consistentes,
+      // usar /intervenciones para mapear UPID permitidos por centro gestor.
+      if (!canViewAllCentros && filteredItems.length === 0 && userCentroGestor) {
+        try {
+          const intervRes = await fetch(`${API_BASE}/intervenciones?limit=10000`)
+          const intervJson = await intervRes.json()
+          const intervRows = parseListPayload(intervJson)
+
+          const allowedUpids = new Set(
+            intervRows
+              .filter((row: any) => {
+                const candidates = [
+                  row?.nombre_centro_gestor,
+                  row?.centro_gestor,
+                  row?.responsible,
+                ]
+                return candidates.some(matchesCentro)
+              })
+              .map((row: any) => String(row?.upid || '').trim())
+              .filter(Boolean)
+          )
+
+          if (allowedUpids.size > 0) {
+            filteredItems = normalizedItems
+              .filter(({ up }) => allowedUpids.has(String(up.upid || '').trim()))
+              .map(({ up }) => up)
+          }
+        } catch {
+          // Si falla el fallback, mantener resultado actual y mostrar estado vacío controlado.
+        }
+      }
+
+      setUps(filteredItems)
+      void loadIntervencionesSummary(filteredItems)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar UPs')
     } finally {
       setLoading(false)
     }
-  }, [loadIntervencionesSummary])
+  }, [API_BASE, canViewAllCentros, loadIntervencionesSummary, normalizeCentro, parseListPayload, userCentroGestor])
 
   useEffect(() => { loadUPs() }, [loadUPs])
 
@@ -2059,6 +2146,16 @@ const GestionRegistrosTab: React.FC = () => {
           {upsSinIntervencionesCount} UP{upsSinIntervencionesCount !== 1 ? 's' : ''} sin intervenciones asociadas aparecen primero para facilitar su gestión.
         </div>
       )}
+
+      <div className="flex items-center gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+        <span className="font-medium">Filtro de centro gestor:</span>
+        <span className="font-semibold">
+          {canViewAllCentros ? 'Sin restricción (Calitrack/Otro)' : (userCentroGestorRaw || 'No definido')}
+        </span>
+        {!canViewAllCentros && (
+          <span className="text-slate-500 dark:text-slate-400">· {ups.length} registros visibles</span>
+        )}
+      </div>
 
       {/* Tabla */}
       {loading && ups.length === 0 ? (
