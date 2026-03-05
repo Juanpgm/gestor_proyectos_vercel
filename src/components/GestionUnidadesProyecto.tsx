@@ -314,10 +314,24 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
   const mapSeverityCode = (code?: string) => {
     const normalized = String(code || '').toUpperCase()
+    if (normalized === 'CRITICAL' || normalized === 'HIGH' || normalized === 'MEDIUM' || normalized === 'LOW') return normalized
+    if (normalized === 'ALTA') return 'HIGH'
+    if (normalized === 'MEDIA') return 'MEDIUM'
+    if (normalized === 'BAJA') return 'LOW'
     if (normalized === 'S1') return 'CRITICAL'
     if (normalized === 'S2') return 'HIGH'
     if (normalized === 'S3') return 'MEDIUM'
     return 'LOW'
+  }
+
+  const mapPriorityCode = (value: any) => {
+    const normalized = String(value || '').toUpperCase()
+    if (normalized === 'P0' || normalized === 'P1' || normalized === 'P2' || normalized === 'P3') return normalized
+    if (normalized === 'URGENT') return 'P0'
+    if (normalized === 'HIGH' || normalized === 'ALTA') return 'P1'
+    if (normalized === 'MEDIUM' || normalized === 'MEDIA') return 'P2'
+    if (normalized === 'LOW' || normalized === 'BAJA') return 'P3'
+    return 'P3'
   }
 
   const toNumber = (value: any, fallback: number = 0): number => {
@@ -334,10 +348,127 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     return 'P3'
   }
 
+  const normalizeDimensionLabel = (value: any) => {
+    const raw = String(value || '').trim()
+    return raw || 'no_clasificado'
+  }
+
+  const getRecordsArrayFromCalidadDatos = (source: any): any[] => {
+    const recordsRoot = pickFirst(source.registros, source.records, source.data_records, source.detalle_registros, source.issues)
+
+    const isRecordLike = (item: any) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return false
+      const keys = Object.keys(item)
+      return (
+        keys.includes('upid') ||
+        keys.includes('intervencion_id') ||
+        keys.includes('nombre_up') ||
+        keys.includes('nombre_intervencion') ||
+        keys.includes('diagnostico') ||
+        keys.includes('diagnostico_calidad') ||
+        keys.includes('quality_diagnostics') ||
+        keys.includes('issues') ||
+        keys.includes('hallazgos') ||
+        keys.includes('problemas')
+      )
+    }
+
+    const normalizeEntryArray = (entry: any, collectionKey?: string): any[] => {
+      let rawList: any[] = []
+
+      if (Array.isArray(entry)) {
+        rawList = entry
+      } else if (entry && typeof entry === 'object') {
+        if (Array.isArray(entry.items)) rawList = entry.items
+        else if (Array.isArray(entry.records)) rawList = entry.records
+        else if (Array.isArray(entry.data)) rawList = entry.data
+        else if (isRecordLike(entry)) rawList = [entry]
+      }
+
+      return rawList
+        .filter((item) => isRecordLike(item))
+        .map((item) => ({
+          ...item,
+          __collection_key: collectionKey || item?.__collection_key
+        }))
+    }
+
+    if (Array.isArray(recordsRoot)) return normalizeEntryArray(recordsRoot)
+    if (recordsRoot && Array.isArray(recordsRoot.items)) return normalizeEntryArray(recordsRoot.items)
+    if (recordsRoot && Array.isArray(recordsRoot.records)) return normalizeEntryArray(recordsRoot.records)
+    if (recordsRoot && Array.isArray(recordsRoot.data)) return normalizeEntryArray(recordsRoot.data)
+
+    if (recordsRoot && typeof recordsRoot === 'object') {
+      const merged: any[] = []
+      Object.entries(recordsRoot).forEach(([key, value]) => {
+        if (key === 'rules' || key === 'count') return
+        merged.push(...normalizeEntryArray(value, key))
+      })
+      if (merged.length > 0) return merged
+    }
+
+    if (source.collections && typeof source.collections === 'object') {
+      const mergedFromCollections: any[] = []
+      Object.entries(source.collections).forEach(([key, value]) => {
+        mergedFromCollections.push(...normalizeEntryArray(value, key))
+      })
+      if (mergedFromCollections.length > 0) return mergedFromCollections
+    }
+
+    return []
+  }
+
+  const mapIssueFromDiagnostico = (issue: any, fallbackIndex: number) => {
+    const severity = mapSeverityCode(pickFirst(issue?.severity, issue?.nivel, issue?.severity_code, issue?.criticality, issue?.criticidad))
+    const dimension = normalizeDimensionLabel(pickFirst(issue?.dimension, issue?.dimension_name, issue?.categoria, issue?.tipo))
+
+    return {
+      rule_id: String(pickFirst(issue?.rule_id, issue?.codigo_regla, issue?.id, issue?.code, `R-${fallbackIndex + 1}`)),
+      rule_name: String(pickFirst(issue?.rule_name, issue?.regla, issue?.nombre, issue?.name, 'Regla de calidad')),
+      dimension,
+      severity,
+      field_name: String(pickFirst(issue?.field_name, issue?.campo, issue?.field, issue?.atributo, 'N/A')),
+      current_value: pickFirst(issue?.current_value, issue?.valor_actual, issue?.actual, issue?.value),
+      expected_value: pickFirst(issue?.expected_value, issue?.valor_esperado, issue?.expected),
+      suggestion: String(pickFirst(issue?.suggestion, issue?.sugerencia, issue?.recommendation, issue?.accion_recomendada, 'Revisar y corregir el dato en origen')),
+      details: String(pickFirst(issue?.details, issue?.detalle, issue?.description, issue?.mensaje, issue?.message, 'Sin detalles'))
+    }
+  }
+
+  const aggregateCountsFromIssues = (issues: any[]) => {
+    const severityCounts: Record<string, number> = {}
+    const dimensionCounts: Record<string, number> = {}
+
+    issues.forEach((issue) => {
+      const severity = mapSeverityCode(issue?.severity)
+      const dimension = normalizeDimensionLabel(issue?.dimension)
+      severityCounts[severity] = (severityCounts[severity] || 0) + 1
+      dimensionCounts[dimension] = (dimensionCounts[dimension] || 0) + 1
+    })
+
+    return { severityCounts, dimensionCounts }
+  }
+
   const buildSummaryFromCalidadDatos = (source: any) => {
     const resumen = pickFirst(source.resumen, source.summary, source.resumen_ejecutivo, source.metricas_generales) || {}
     const overall = source.overall || {}
     const rules = Array.isArray(source.rules) ? source.rules : []
+    const records = buildRecordsFromCalidadDatos(source)
+    const recordsWithIssues = records.filter((record: any) => toNumber(record.total_issues) > 0)
+
+    const severityFromRecords = records.reduce((acc: Record<string, number>, record: any) => {
+      Object.entries(record?.severity_counts || {}).forEach(([severity, count]) => {
+        acc[severity] = (acc[severity] || 0) + toNumber(count)
+      })
+      return acc
+    }, {})
+
+    const dimensionFromRecords = records.reduce((acc: Record<string, number>, record: any) => {
+      Object.entries(record?.dimension_counts || {}).forEach(([dimension, count]) => {
+        acc[dimension] = (acc[dimension] || 0) + toNumber(count)
+      })
+      return acc
+    }, {})
 
     const severityDistribution = rules.reduce((acc: Record<string, number>, rule: any) => {
       const severity = mapSeverityCode(rule?.severity?.code)
@@ -365,14 +496,14 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       report_timestamp: source.generated_at || resumen.generated_at,
       global_quality_score: toNumber(resumen.data_quality_score, toNumber(overall.quality_score)),
       error_rate: toNumber(resumen.error_rate, 100 - toNumber(resumen.data_quality_score, toNumber(overall.quality_score))),
-      total_records_validated: toNumber(resumen.total_registros, overall.total_records),
-      records_with_issues: toNumber(resumen.registros_con_problemas, overall.total_issues),
-      records_without_issues: Math.max(0, toNumber(resumen.total_registros, overall.total_records) - toNumber(resumen.registros_con_problemas)),
-      total_issues_found: toNumber(resumen.total_hallazgos, overall.total_issues),
+      total_records_validated: toNumber(resumen.total_registros, toNumber(overall.total_records, records.length)),
+      records_with_issues: toNumber(resumen.registros_con_problemas, recordsWithIssues.length),
+      records_without_issues: Math.max(0, toNumber(resumen.total_registros, toNumber(overall.total_records, records.length)) - toNumber(resumen.registros_con_problemas, recordsWithIssues.length)),
+      total_issues_found: toNumber(resumen.total_hallazgos, toNumber(overall.total_issues, records.reduce((acc: number, record: any) => acc + toNumber(record.total_issues), 0))),
       system_status: (resumen?.clasificacion?.status || source?.overall?.classification?.status || 'NORMAL').toUpperCase(),
       requires_immediate_action: ['CRITICAL', 'WARNING', 'ACEPTABLE'].includes((resumen?.clasificacion?.status || '').toUpperCase()),
-      severity_distribution: severityDistribution,
-      dimension_distribution: dimensionDistribution,
+      severity_distribution: Object.keys(severityDistribution).length > 0 ? severityDistribution : severityFromRecords,
+      dimension_distribution: Object.keys(dimensionDistribution).length > 0 ? dimensionDistribution : dimensionFromRecords,
       top_quality_centros: [],
       top_problematic_centros: [],
       recommendations,
@@ -384,17 +515,105 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   }
 
   const buildRecordsFromCalidadDatos = (source: any) => {
-    const recordsRoot = pickFirst(source.registros, source.records, source.data_records, source.detalle_registros, source.issues)
-    const rulesArray = Array.isArray(recordsRoot?.rules)
-      ? recordsRoot.rules
-      : Array.isArray(recordsRoot)
-        ? recordsRoot
-        : []
+    const registros = getRecordsArrayFromCalidadDatos(source)
+
+    if (registros.length > 0) {
+      return registros.map((registro: any, index: number) => {
+        const diagnostico = pickFirst(registro?.diagnostico, registro?.diagnostico_calidad, registro?.quality_diagnostics, registro?.quality, {}) || {}
+        const rawIssues = pickFirst(
+          diagnostico?.issues,
+          diagnostico?.hallazgos,
+          diagnostico?.problemas,
+          registro?.issues,
+          registro?.hallazgos,
+          registro?.problemas,
+          []
+        )
+
+        const issues = Array.isArray(rawIssues)
+          ? rawIssues.map((issue: any, issueIndex: number) => mapIssueFromDiagnostico(issue, issueIndex))
+          : (rawIssues && typeof rawIssues === 'object')
+            ? Object.entries(rawIssues)
+              .filter(([, value]) => toNumber((value as any)?.count ?? value) > 0)
+              .map(([key, value], issueIndex) => mapIssueFromDiagnostico({
+                rule_id: key,
+                rule_name: key,
+                field_name: key,
+                details: typeof value === 'object' ? JSON.stringify(value) : `Hallazgo detectado: ${key}`,
+                current_value: value,
+                severity: pickFirst((value as any)?.severity, diagnostico?.max_severity, registro?.max_severity),
+                dimension: pickFirst((value as any)?.dimension, 'no_clasificado')
+              }, issueIndex))
+            : []
+
+        const fallbackCounts = aggregateCountsFromIssues(issues)
+        const severityCounts = Object.keys(fallbackCounts.severityCounts).length > 0
+          ? fallbackCounts.severityCounts
+          : (diagnostico?.severity_counts || diagnostico?.by_severity || registro?.severity_counts || {})
+
+        const dimensionCounts = Object.keys(fallbackCounts.dimensionCounts).length > 0
+          ? fallbackCounts.dimensionCounts
+          : (diagnostico?.dimension_counts || diagnostico?.by_dimension || registro?.dimension_counts || {})
+
+        const totalIssues = toNumber(
+          pickFirst(
+            diagnostico?.total_issues,
+            diagnostico?.issues_count,
+            diagnostico?.total_hallazgos,
+            registro?.total_issues,
+            registro?.issues_count,
+            issues.length
+          )
+        )
+
+        const maxSeverity = mapSeverityCode(
+          pickFirst(
+            diagnostico?.max_severity,
+            diagnostico?.severidad_maxima,
+            registro?.max_severity,
+            registro?.severity,
+            issues[0]?.severity
+          )
+        )
+
+        const priority = mapPriorityCode(
+          pickFirst(
+            diagnostico?.priority,
+            diagnostico?.prioridad,
+            registro?.priority,
+            registro?.prioridad
+          )
+        )
+
+        const affectedFields = Array.from(new Set(
+          issues
+            .map((issue) => issue.field_name)
+            .filter(Boolean)
+        ))
+
+        return {
+          id: String(pickFirst(registro?.id, registro?.upid, registro?.document_id, `registro-${index}`)),
+          upid: String(pickFirst(registro?.upid, registro?.intervencion_id, registro?.id, registro?.codigo, `UP-${index + 1}`)),
+          nombre_up: String(pickFirst(registro?.nombre_up, registro?.nombre_intervencion, registro?.nombre, registro?.nombre_proyecto, 'Registro de calidad')),
+          nombre_centro_gestor: String(pickFirst(registro?.nombre_centro_gestor, registro?.centro_gestor, registro?.organismo, 'Centro no especificado')),
+          total_issues: totalIssues,
+          max_severity: maxSeverity,
+          priority,
+          issues,
+          affected_fields: affectedFields,
+          severity_counts: severityCounts,
+          dimension_counts: dimensionCounts,
+          source_record: registro
+        }
+      })
+    }
+
+    const rulesArray = Array.isArray(source?.rules) ? source.rules : []
 
     return rulesArray.map((rule: any, index: number) => {
       const affected = toNumber(rule?.scope?.affected_records)
       const evaluated = toNumber(rule?.scope?.evaluated_records)
-      const priorityCode = String(rule?.priority?.code || 'P3').toUpperCase()
+      const priorityCode = mapPriorityCode(rule?.priority?.code)
       const severity = mapSeverityCode(rule?.severity?.code)
 
       return {
@@ -437,6 +656,65 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     const centros = Array.isArray(root.centros)
       ? root.centros
       : (Array.isArray(root) ? root : [])
+
+    if (centros.length === 0) {
+      const records = buildRecordsFromCalidadDatos(source)
+      if (records.length === 0) return []
+
+      const grouped = new Map<string, any[]>()
+      records.forEach((record: any) => {
+        const centro = String(record?.nombre_centro_gestor || 'Centro no especificado')
+        const current = grouped.get(centro) || []
+        current.push(record)
+        grouped.set(centro, current)
+      })
+
+      return Array.from(grouped.entries()).map(([nombreCentro, centroRecords], index) => {
+        const totalRecords = centroRecords.length
+        const recordsWithIssues = centroRecords.filter((record) => toNumber(record.total_issues) > 0).length
+        const totalIssues = centroRecords.reduce((acc, record) => acc + toNumber(record.total_issues), 0)
+        const qualityScore = totalRecords > 0 ? Number(((1 - (recordsWithIssues / totalRecords)) * 100).toFixed(2)) : 100
+
+        const severityCounts: Record<string, number> = {}
+        const dimensionCounts: Record<string, number> = {}
+        const fieldCounts: Record<string, number> = {}
+
+        centroRecords.forEach((record) => {
+          Object.entries(record?.severity_counts || {}).forEach(([severity, count]) => {
+            severityCounts[severity] = (severityCounts[severity] || 0) + toNumber(count)
+          })
+          Object.entries(record?.dimension_counts || {}).forEach(([dimension, count]) => {
+            dimensionCounts[dimension] = (dimensionCounts[dimension] || 0) + toNumber(count)
+          })
+          ;(record?.affected_fields || []).forEach((field: string) => {
+            fieldCounts[field] = (fieldCounts[field] || 0) + 1
+          })
+        })
+
+        const topProblematicFields = Object.entries(fieldCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([field, count]) => ({ field, count }))
+
+        return {
+          id: `${nombreCentro}-${index}`,
+          nombre_centro_gestor: nombreCentro,
+          total_records: totalRecords,
+          records_with_issues: recordsWithIssues,
+          records_without_issues: Math.max(0, totalRecords - recordsWithIssues),
+          total_issues: totalIssues,
+          quality_score: qualityScore,
+          error_rate: totalRecords > 0 ? Number(((recordsWithIssues / totalRecords) * 100).toFixed(2)) : 0,
+          status: qualityScore >= 95 ? 'OPTIMO' : qualityScore >= 85 ? 'ACEPTABLE' : 'CRITICAL',
+          requires_attention: qualityScore < 85,
+          severity_counts: severityCounts,
+          dimension_counts: dimensionCounts,
+          top_violated_rules: [],
+          top_problematic_fields: topProblematicFields,
+          affected_records_sample: centroRecords.slice(0, 10).map((record) => String(record.upid))
+        }
+      })
+    }
 
     return centros.map((centro: any, index: number) => {
       const totalRecords = toNumber(centro?.total_intervenciones)
@@ -500,6 +778,8 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     const overall = source.overall || {}
     const centrosRoot = source.por_centro_gestor || {}
     const totalCentros = toNumber(centrosRoot.total_centros)
+    const records = buildRecordsFromCalidadDatos(source)
+    const recordsWithIssues = records.filter((record: any) => toNumber(record.total_issues) > 0).length
 
     return {
       id: source.report_id || 'calidad-datos-metadata',
@@ -507,10 +787,10 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       version: source.framework || 'ISO/DAMA',
       generated_at: source.generated_at || new Date().toISOString(),
       counts: {
-        total_records: toNumber(overall.total_records),
-        total_centros: totalCentros,
+        total_records: toNumber(overall.total_records, records.length),
+        total_centros: totalCentros || new Set(records.map((record: any) => record.nombre_centro_gestor).filter(Boolean)).size,
         total_issues: toNumber(overall.total_issues),
-        records_with_issues: toNumber(overall.total_issues),
+        records_with_issues: recordsWithIssues,
         centros_require_attention: 0
       },
       filters: {
@@ -537,13 +817,15 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     const byCollection = stats.by_collection || {}
 
     const byCollectionTotal = Object.values(byCollection).reduce((acc: number, entry: any) => acc + toNumber(entry?.total), 0)
+    const records = buildRecordsFromCalidadDatos(source)
+    const recordsWithIssues = records.filter((record: any) => toNumber(record.total_issues) > 0).length
 
     return {
       timestamp: source.generated_at || new Date().toISOString(),
       data: {
         overall: {
           collection: 'overall',
-          count: toNumber(overall.total_records)
+          count: toNumber(overall.total_records, records.length)
         },
         by_dimension: {
           collection: 'by_dimension',
@@ -551,7 +833,15 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
         },
         by_collection: {
           collection: 'by_collection',
-          count: byCollectionTotal
+          count: byCollectionTotal || records.length
+        },
+        registros_con_problemas: {
+          collection: 'records_with_issues',
+          count: recordsWithIssues
+        },
+        total_hallazgos: {
+          collection: 'total_issues',
+          count: records.reduce((acc: number, record: any) => acc + toNumber(record.total_issues), 0)
         }
       },
       raw: stats
@@ -564,28 +854,54 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       ? historialRoot.items
       : (Array.isArray(historialRoot) ? historialRoot : [])
 
-    return items.map((item: any, index: number) => {
-      const next = items[index + 1]
-      return {
-        id: item?.report_id || `history-${index}`,
-        upid: item?.report_id || `history-${index}`,
-        document_id: item?.report_id || `history-${index}`,
-        action: 'updated',
-        timestamp: item?.generated_at || source.generated_at,
-        old_report_id: next?.report_id || item?.report_id || 'N/A',
-        new_report_id: item?.report_id || 'N/A',
-        changes: {
-          dqs_score: {
-            old: next?.dqs_score ?? item?.dqs_score,
-            new: item?.dqs_score
-          },
-          total_issues: {
-            old: next?.total_issues ?? item?.total_issues,
-            new: item?.total_issues
+    if (items.length > 0) {
+      return items.map((item: any, index: number) => {
+        const next = items[index + 1]
+        return {
+          id: item?.report_id || `history-${index}`,
+          upid: item?.report_id || `history-${index}`,
+          document_id: item?.report_id || `history-${index}`,
+          action: 'updated',
+          timestamp: item?.generated_at || source.generated_at,
+          old_report_id: next?.report_id || item?.report_id || 'N/A',
+          new_report_id: item?.report_id || 'N/A',
+          changes: {
+            dqs_score: {
+              old: next?.dqs_score ?? item?.dqs_score,
+              new: item?.dqs_score
+            },
+            total_issues: {
+              old: next?.total_issues ?? item?.total_issues,
+              new: item?.total_issues
+            }
           }
         }
-      }
-    })
+      })
+    }
+
+    const records = buildRecordsFromCalidadDatos(source)
+    return records
+      .filter((record: any) => toNumber(record.total_issues) > 0)
+      .slice(0, 100)
+      .map((record: any, index: number) => ({
+        id: `record-change-${record.id || index}`,
+        upid: record.upid,
+        document_id: record.id || record.upid,
+        action: 'updated',
+        timestamp: source.generated_at || new Date().toISOString(),
+        old_report_id: source.report_id || 'N/A',
+        new_report_id: source.report_id || 'N/A',
+        changes: {
+          diagnostico_total_issues: {
+            old: 0,
+            new: toNumber(record.total_issues)
+          },
+          severidad_maxima: {
+            old: 'N/A',
+            new: record.max_severity || 'LOW'
+          }
+        }
+      }))
   }
 
   const extractTabDataFromCalidadDatos = (result: any, tab: TabType) => {
@@ -643,38 +959,43 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     ]
 
     if (tab === 'summary') {
-      const hasSummary = Boolean(pickFirst(...summaries))
+      const hasSummary = Boolean(pickFirst(...summaries, source.overall))
       if (!hasSummary) return { found: false, payload: null }
       return { found: true, payload: { success: true, data: buildSummaryFromCalidadDatos(source) } }
     }
 
     if (tab === 'records') {
       const payload = pickFirst(...records)
-      if (!payload) return { found: false, payload: null }
+      const hasRules = Array.isArray(source?.rules) && source.rules.length > 0
+      if (!payload && !hasRules) return { found: false, payload: null }
       return { found: true, payload: { success: true, data: buildRecordsFromCalidadDatos(source) } }
     }
 
     if (tab === 'changelog') {
       const payload = pickFirst(...changelog)
-      if (!payload) return { found: false, payload: null }
+      const hasRecords = getRecordsArrayFromCalidadDatos(source).length > 0
+      if (!payload && !hasRecords) return { found: false, payload: null }
       return { found: true, payload: { success: true, data: buildChangelogFromCalidadDatos(source) } }
     }
 
     if (tab === 'by-centro-gestor') {
       const payload = pickFirst(...byCentro)
-      if (!payload) return { found: false, payload: null }
+      const hasRecords = getRecordsArrayFromCalidadDatos(source).length > 0
+      if (!payload && !hasRecords) return { found: false, payload: null }
       return { found: true, payload: { success: true, data: buildCentrosFromCalidadDatos(source) } }
     }
 
     if (tab === 'metadata') {
       const payload = pickFirst(...metadata)
-      if (!payload) return { found: false, payload: null }
+      const hasRecords = getRecordsArrayFromCalidadDatos(source).length > 0
+      if (!payload && !hasRecords) return { found: false, payload: null }
       return { found: true, payload: { success: true, data: [buildMetadataFromCalidadDatos(source)] } }
     }
 
     if (tab === 'stats') {
       const payload = pickFirst(...stats)
-      if (!payload || typeof payload !== 'object') return { found: false, payload: null }
+      const hasRecords = getRecordsArrayFromCalidadDatos(source).length > 0
+      if ((!payload || typeof payload !== 'object') && !hasRecords) return { found: false, payload: null }
       return { found: true, payload: buildStatsFromCalidadDatos(source) }
     }
 
