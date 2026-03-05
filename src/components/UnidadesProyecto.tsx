@@ -47,7 +47,6 @@ type GlobalFilterOptions = {
 
 declare global {
   interface Window {
-    UNIDADES_PROYECTO_FILTERS_GLOBAL?: Partial<GlobalFilterOptions>;
     CENTROS_GESTORES?: string[];
     ESTADOS?: string[];
     TIPOS_INTERVENCION?: string[];

@@ -102,9 +102,6 @@ declare global {
     FUENTES_FINANCIACION?: string[]
     ESTADOS_UP?: string[]
     CENTROS_GESTORES?: string[]
-    UNIDADES_PROYECTO_FILTERS_GLOBAL?: {
-      centros_gestores?: string[]
-    }
   }
 }
 

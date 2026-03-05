@@ -207,7 +207,6 @@ type GlobalFilterOptions = {
 
 declare global {
   interface Window {
-    UNIDADES_PROYECTO_FILTERS_GLOBAL?: Partial<GlobalFilterOptions>
     CENTROS_GESTORES?: string[]
     ESTADOS?: string[]
     TIPOS_INTERVENCION?: string[]
@@ -1109,13 +1108,6 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       const hasRecords = getRecordsArrayFromCalidadDatos(source).length > 0
       if (!payload && !hasRecords) return { found: false, payload: null }
       return { found: true, payload: { success: true, data: buildCentrosFromCalidadDatos(source) } }
-    }
-
-    if (tab === 'metadata') {
-      const payload = pickFirst(...metadata)
-      const hasRecords = getRecordsArrayFromCalidadDatos(source).length > 0
-      if (!payload && !hasRecords) return { found: false, payload: null }
-      return { found: true, payload: { success: true, data: [buildMetadataFromCalidadDatos(source)] } }
     }
 
     if (tab === 'stats') {
