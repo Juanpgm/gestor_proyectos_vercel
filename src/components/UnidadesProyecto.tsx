@@ -26,10 +26,38 @@ import { CSS_UTILS } from '@/lib/design-system';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/context/AuthContext';
 
+const CHUNK_ERROR_PATTERN = /ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module/i;
+
+const dynamicImportWithRetry = <TProps extends object>(
+  moduleName: string,
+  importer: () => Promise<{ default: React.ComponentType<TProps> }>
+) =>
+  dynamic(async () => {
+    try {
+      return await importer();
+    } catch (error) {
+      // In dev/hot-reload sessions a stale chunk can 404; retry once via full reload.
+      if (typeof window !== 'undefined') {
+        const retryKey = `chunk-retry:${moduleName}`;
+        const alreadyRetried = window.sessionStorage.getItem(retryKey) === '1';
+        const message = error instanceof Error ? error.message : String(error ?? '');
+
+        if (!alreadyRetried && CHUNK_ERROR_PATTERN.test(message)) {
+          window.sessionStorage.setItem(retryKey, '1');
+          window.location.reload();
+        } else {
+          window.sessionStorage.removeItem(retryKey);
+        }
+      }
+
+      throw error;
+    }
+  }, { ssr: false });
+
 // Componentes dinámicos para evitar problemas de SSR
-const UnidadesProyectoMapSimple = dynamic(() => import('./UnidadesProyectoMapSimple'), { ssr: false });
-const UnidadesProyectoFilters = dynamic(() => import('./UnidadesProyectoFilters'), { ssr: false });
-const UnidadesProyectoTabularView = dynamic(() => import('./UnidadesProyectoTabularView'), { ssr: false });
+const UnidadesProyectoMapSimple = dynamicImportWithRetry('UnidadesProyectoMapSimple', () => import('./UnidadesProyectoMapSimple'));
+const UnidadesProyectoFilters = dynamicImportWithRetry('UnidadesProyectoFilters', () => import('./UnidadesProyectoFilters'));
+const UnidadesProyectoTabularView = dynamicImportWithRetry('UnidadesProyectoTabularView', () => import('./UnidadesProyectoTabularView'));
 
 // Hooks mejorados
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';

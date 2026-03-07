@@ -457,7 +457,7 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
 
       let lastError = 'No se pudo eliminar el avance';
 
-      for (const query of queryCandidates) {
+      for (const query of Array.from(queryCandidates)) {
         const response = await fetch(`${AVANCES_UNIDADES_PROYECTO_ENDPOINT}?${query}`, {
           method: 'DELETE',
           cache: 'no-store',
