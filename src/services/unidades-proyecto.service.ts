@@ -812,7 +812,7 @@ export const filterAttributeData = (
     console.log('📊 Filtering:', data.length, 'items |', activeFilters.join(', '));
   }
 
-  const filtered = consolidatedData.filter(item => {
+  const matchesAllFiltersForRow = (item: AttributeData): boolean => {
     try {
       // Filtro de búsqueda por texto
       if (filters.searchTerm && filters.searchTerm.trim() !== '') {
@@ -868,6 +868,24 @@ export const filterAttributeData = (
                 return item.proyectos_estrategicos ? valueInArray(item.proyectos_estrategicos, multipleValues) : false;
               case 'ano':
                 return multipleValues.map((v: any) => String(v).replace('.0', '')).includes(String(item.ano).replace('.0', ''));
+              case 'presupuesto':
+              case 'presupuesto_base': {
+                const budgetMin = typeof (filters as any).presupuesto_min === 'number' ? (filters as any).presupuesto_min : undefined;
+                const budgetMax = typeof (filters as any).presupuesto_max === 'number' ? (filters as any).presupuesto_max : undefined;
+                const value = Number(item.presupuesto_base || 0);
+                if (budgetMin !== undefined && value < budgetMin) return false;
+                if (budgetMax !== undefined && value > budgetMax) return false;
+                return true;
+              }
+              case 'avance':
+              case 'avance_obra': {
+                const progressMin = typeof (filters as any).avance_min === 'number' ? (filters as any).avance_min : undefined;
+                const progressMax = typeof (filters as any).avance_max === 'number' ? (filters as any).avance_max : undefined;
+                const value = Number(item.avance_obra || 0);
+                if (progressMin !== undefined && value < progressMin) return false;
+                if (progressMax !== undefined && value > progressMax) return false;
+                return true;
+              }
               default:
                 return true;
             }
@@ -897,6 +915,24 @@ export const filterAttributeData = (
                 return String(item.ano).replace('.0', '') === String(singleValue).replace('.0', '');
               case 'proyectos_estrategicos':
                 return item.proyectos_estrategicos ? stringsMatch(item.proyectos_estrategicos, singleValue) : false;
+              case 'presupuesto':
+              case 'presupuesto_base': {
+                const budgetMin = typeof (filters as any).presupuesto_min === 'number' ? (filters as any).presupuesto_min : undefined;
+                const budgetMax = typeof (filters as any).presupuesto_max === 'number' ? (filters as any).presupuesto_max : undefined;
+                const value = Number(item.presupuesto_base || 0);
+                if (budgetMin !== undefined && value < budgetMin) return false;
+                if (budgetMax !== undefined && value > budgetMax) return false;
+                return true;
+              }
+              case 'avance':
+              case 'avance_obra': {
+                const progressMin = typeof (filters as any).avance_min === 'number' ? (filters as any).avance_min : undefined;
+                const progressMax = typeof (filters as any).avance_max === 'number' ? (filters as any).avance_max : undefined;
+                const value = Number(item.avance_obra || 0);
+                if (progressMin !== undefined && value < progressMin) return false;
+                if (progressMax !== undefined && value > progressMax) return false;
+                return true;
+              }
               default:
                 return true;
             }
@@ -915,7 +951,18 @@ export const filterAttributeData = (
       console.warn('⚠️ Error filtering item:', itemError, item);
       return true; // En caso de error, incluir el item
     }
-  });
+  };
+
+  // Aplicar filtros sobre filas reales (intervenciones) para no perder coincidencias
+  // cuando una UP tiene valores heterogéneos y luego consolidar a nivel UPID.
+  const matchingUpids = new Set(
+    data
+      .filter(matchesAllFiltersForRow)
+      .map((row) => normalizeString(row.upid))
+      .filter(Boolean)
+  );
+
+  const filtered = consolidatedData.filter(item => matchingUpids.has(normalizeString(item.upid)));
   
   // Log del resultado final
   if (activeFilters.length > 0) {

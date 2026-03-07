@@ -3,7 +3,8 @@
  * Con searchbars y dropdown mejorados (manteniendo compatibilidad con FilterParams)
  */
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, RefreshCw, X, ChevronDown, Check, DollarSign, TrendingUp } from 'lucide-react';
 import { type FilterData, type FilterParams } from '@/services/unidades-proyecto.service';
@@ -142,6 +143,36 @@ const EnhancedFilterSelect: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
+  const updateDropdownPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropdownHeight = 256; // max-h-64
+    const openUpward = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+    setDropdownStyle({
+      position: 'fixed',
+      left: rect.left,
+      width: rect.width,
+      zIndex: 99999,
+      ...(openUpward
+        ? { bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    updateDropdownPosition();
+    window.addEventListener('scroll', updateDropdownPosition, true);
+    window.addEventListener('resize', updateDropdownPosition);
+    return () => {
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+      window.removeEventListener('resize', updateDropdownPosition);
+    };
+  }, [isOpen, updateDropdownPosition]);
   
   // Convert value to string for consistent handling
   const stringValue = value?.toString() || '';
@@ -178,7 +209,10 @@ const EnhancedFilterSelect: React.FC<{
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedInsideDropdown = dropdownRef.current && dropdownRef.current.contains(target);
+      const clickedTrigger = triggerRef.current && triggerRef.current.contains(target);
+      if (!clickedInsideDropdown && !clickedTrigger) {
         setIsOpen(false);
         setSearchTerm(''); // Clear search when closing
       }
@@ -226,13 +260,14 @@ const EnhancedFilterSelect: React.FC<{
   }, [multiSelect, selectedItems, stringValue, placeholder]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
         {label}
       </label>
       
       {/* Trigger button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -244,16 +279,17 @@ const EnhancedFilterSelect: React.FC<{
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown via portal to escape overflow/stacking context */}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && typeof document !== 'undefined' && createPortal(
           <motion.div
+            ref={dropdownRef}
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-64 overflow-hidden"
-            style={{ zIndex: 10001 }}
+            className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-64 overflow-hidden"
+            style={dropdownStyle}
           >
             {/* Search bar */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
@@ -358,7 +394,8 @@ const EnhancedFilterSelect: React.FC<{
                 })
               )}
             </div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
     </div>

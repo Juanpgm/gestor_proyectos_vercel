@@ -169,7 +169,7 @@ async function handleRequest(request: NextRequest, method: string) {
     }
 
     const incomingContentType = request.headers.get('content-type')
-    if (incomingContentType && ['POST', 'PUT', 'PATCH'].includes(method)) {
+    if (incomingContentType && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       forwardedHeaders['Content-Type'] = incomingContentType
     }
 
@@ -185,8 +185,8 @@ async function handleRequest(request: NextRequest, method: string) {
       cache: 'no-store',
     }
     
-    // Add body for POST, PUT, PATCH requests
-    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    // Add body for POST, PUT, PATCH, DELETE requests when present
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       try {
         const body = await request.text()
         if (body) {

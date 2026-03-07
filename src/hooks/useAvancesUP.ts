@@ -6,7 +6,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { 
-  AvanceUP, 
+  AvanceUP,
+  ArchivoAvance,
+  SoporteUP,
   AvanceUPFormData, 
   EditInfoUPFormData,
   ResumenAvancesUP,
@@ -48,22 +50,90 @@ const mapApiAvanceToAvanceUP = (apiAvance: Record<string, any>, upid: string): A
     ? apiAvance.observaciones
     : '';
 
-  const urls = Array.isArray(apiAvance?.registro_fotografico_urls)
-    ? apiAvance.registro_fotografico_urls
+  // New schema: soportes[] with tipo: "imagen" | "documento"
+  const soportes: SoporteUP[] = Array.isArray(apiAvance?.soportes)
+    ? apiAvance.soportes
+        .filter((s: unknown): s is Record<string, any> => typeof s === 'object' && s !== null)
+        .map((s: Record<string, any>) => {
+          // Prefer presigned URL (direct S3 access) over raw URL
+          const effectiveUrl: string =
+            (typeof s.url_presigned === 'string' && s.url_presigned.trim() ? s.url_presigned.trim() : '') ||
+            (typeof s.presigned_url === 'string' && s.presigned_url.trim() ? s.presigned_url.trim() : '') ||
+            String(s.url ?? '');
+          // Extract s3_key from s3_key field or derive from url_directa
+          const urlDirecta: string | undefined = typeof s.url_directa === 'string' && s.url_directa.trim() ? s.url_directa.trim() : undefined;
+          const derivedKey = typeof s.s3_key === 'string' && s.s3_key.trim()
+            ? s.s3_key.trim()
+            : urlDirecta
+              ? urlDirecta.replace(/^https?:\/\/[^/]+\//, '')
+              : undefined;
+          return {
+            indice: Number(s.indice ?? 0),
+            tipo: s.tipo === 'imagen' ? 'imagen' : 'documento',
+            nombre_original: String(s.nombre_original ?? ''),
+            extension: String(s.extension ?? ''),
+            content_type: String(s.content_type ?? ''),
+            s3_key: derivedKey,
+            url: effectiveUrl,
+            url_directa: urlDirecta,
+            url_presigned: typeof s.url_presigned === 'string' ? s.url_presigned : undefined,
+            presigned_url: typeof s.presigned_url === 'string' ? s.presigned_url : undefined,
+            uploaded_at: String(s.uploaded_at ?? createdAt),
+          };
+        })
     : [];
 
-  const archivos = urls
-    .filter((url: unknown): url is string => typeof url === 'string' && url.length > 0)
-    .map((url: string, index: number) => {
-      const filename = url.split('/').pop() || `foto-${index + 1}`;
-      return {
-        id: `${apiAvance?.id || 'avance'}-file-${index + 1}`,
-        nombre: decodeURIComponent(filename),
-        tipo: 'image/*',
+  // imagenes_urls: prefer new field, fall back to legacy
+  // If soportes have presigned URLs, derive imagenes_urls from them
+  const imagenes_urls: string[] = (() => {
+    if (soportes.length > 0) {
+      const fromSoportes = soportes
+        .filter(s => s.tipo === 'imagen' && s.url)
+        .map(s => s.url);
+      if (fromSoportes.length > 0) return fromSoportes;
+    }
+    if (Array.isArray(apiAvance?.imagenes_urls))
+      return apiAvance.imagenes_urls.filter((u: unknown): u is string => typeof u === 'string' && u.length > 0);
+    if (Array.isArray(apiAvance?.registro_fotografico_urls))
+      return apiAvance.registro_fotografico_urls.filter((u: unknown): u is string => typeof u === 'string' && u.length > 0);
+    return [];
+  })();
+
+  // documentos_urls: prefer new field, fall back to legacy
+  // If soportes have presigned URLs, derive documentos_urls from them
+  const documentos_urls: string[] = (() => {
+    if (soportes.length > 0) {
+      const fromSoportes = soportes
+        .filter(s => s.tipo === 'documento' && s.url)
+        .map(s => s.url);
+      if (fromSoportes.length > 0) return fromSoportes;
+    }
+    if (Array.isArray(apiAvance?.documentos_urls))
+      return apiAvance.documentos_urls.filter((u: unknown): u is string => typeof u === 'string' && u.length > 0);
+    if (Array.isArray(apiAvance?.documentos_soporte_urls))
+      return apiAvance.documentos_soporte_urls.filter((u: unknown): u is string => typeof u === 'string' && u.length > 0);
+    return [];
+  })();
+
+  // Build archivos from soportes (preferred) or flat URL lists (fallback)
+  const archivos: ArchivoAvance[] = soportes.length > 0
+    ? soportes.map(s => ({
+        id: `${apiAvance?.id || 'avance'}-soporte-${s.indice}`,
+        nombre: s.nombre_original,
+        tipo: s.content_type || s.tipo,
         tamaño: 0,
-        url,
-      };
-    });
+        url: s.url,
+      }))
+    : [...imagenes_urls, ...documentos_urls].map((url, index) => {
+        const filename = url.split('/').pop() || `archivo-${index + 1}`;
+        return {
+          id: `${apiAvance?.id || 'avance'}-file-${index + 1}`,
+          nombre: decodeURIComponent(filename),
+          tipo: imagenes_urls.includes(url) ? 'image/*' : 'application/octet-stream',
+          tamaño: 0,
+          url,
+        };
+      });
 
   return {
     id: String(apiAvance?.id || generateId()),
@@ -74,8 +144,11 @@ const mapApiAvanceToAvanceUP = (apiAvance: Record<string, any>, upid: string): A
     valor_ejecutado: 0,
     observaciones,
     estado_reporte: 'enviado',
-    reportado_por: 'Sistema',
+    reportado_por: typeof apiAvance?.registrado_por === 'string' ? apiAvance.registrado_por : 'Sistema',
     archivos,
+    soportes,
+    imagenes_urls,
+    documentos_urls,
     created_at: createdAt,
     updated_at: typeof apiAvance?.updated_at === 'string' ? apiAvance.updated_at : createdAt,
   };
@@ -243,11 +316,6 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
         setState(prev => ({ ...prev, error: 'Las observaciones son obligatorias' }));
         return false;
       }
-      if (!formData.archivos || formData.archivos.length === 0) {
-        setState(prev => ({ ...prev, error: 'Debes adjuntar al menos una evidencia' }));
-        return false;
-      }
-
       const intervencionId = await getIntervencionIdByUpid();
       if (!intervencionId) {
         setState(prev => ({ ...prev, error: 'No se pudo determinar la intervención asociada a esta UP' }));
@@ -258,9 +326,11 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
       payload.append('intervencion_id', intervencionId);
       payload.append('avance_obra', String(formData.avance_fisico));
       payload.append('observaciones', formData.observaciones.trim());
-      formData.archivos.forEach((file) => {
-        payload.append('registro_fotografico', file);
-      });
+      if (formData.archivos && formData.archivos.length > 0) {
+        formData.archivos.forEach((file) => {
+          payload.append('soportes', file);
+        });
+      }
 
       const apiResponse = await fetch(REGISTRAR_AVANCE_ENDPOINT, {
         method: 'POST',
@@ -332,23 +402,112 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
     }
   }, [upid]);
 
-  // Eliminar avance
-  const deleteAvance = useCallback((avanceId: string): boolean => {
-    try {
-      const allData = loadFromStorage();
-      const avancesUP = allData[upid] || [];
-      const filtered = avancesUP.filter(a => a.id !== avanceId);
-      allData[upid] = filtered;
-      saveToStorage(allData);
-
-      const resumen = calcularResumen(filtered, upid);
-      setState({ avances: filtered, loading: false, error: null, resumen });
-      return true;
-    } catch (error) {
-      setState(prev => ({ ...prev, error: 'Error al eliminar el avance' }));
+  // Eliminar avance (API + fallback local para registros legacy)
+  const deleteAvance = useCallback(async (avanceId: string): Promise<boolean> => {
+    const normalizedId = String(avanceId || '').trim();
+    if (!normalizedId) {
+      setState(prev => ({ ...prev, error: 'ID de avance inválido para eliminar' }));
       return false;
     }
-  }, [upid]);
+
+    const deleteFromLocalStorage = (): boolean => {
+      try {
+        const allData = loadFromStorage();
+        const avancesUP = allData[upid] || [];
+        const filtered = avancesUP.filter(a => a.id !== normalizedId);
+        allData[upid] = filtered;
+        saveToStorage(allData);
+
+        const resumen = calcularResumen(filtered, upid);
+        setState({ avances: filtered, loading: false, error: null, resumen });
+        return true;
+      } catch {
+        setState(prev => ({ ...prev, error: 'Error al eliminar el avance localmente' }));
+        return false;
+      }
+    };
+
+    try {
+      setState(prev => ({ ...prev, error: null }));
+
+      const resolvedIntervencionId = await getIntervencionIdByUpid();
+      const queryCandidates = new Set<string>([
+        `id=${encodeURIComponent(normalizedId)}`,
+        `avance_id=${encodeURIComponent(normalizedId)}`,
+      ]);
+
+      if (resolvedIntervencionId) {
+        queryCandidates.add(`id=${encodeURIComponent(normalizedId)}&intervencion_id=${encodeURIComponent(resolvedIntervencionId)}`);
+        queryCandidates.add(`avance_id=${encodeURIComponent(normalizedId)}&intervencion_id=${encodeURIComponent(resolvedIntervencionId)}`);
+      }
+
+      let lastError = 'No se pudo eliminar el avance';
+
+      for (const query of queryCandidates) {
+        const response = await fetch(`${AVANCES_UNIDADES_PROYECTO_ENDPOINT}?${query}`, {
+          method: 'DELETE',
+          cache: 'no-store',
+        });
+
+        if (response.ok) {
+          await loadAvances();
+          return true;
+        }
+
+        const rawError = await response.text().catch(() => '');
+        lastError = rawError?.trim() || `Error ${response.status} al eliminar avance`;
+
+        // 400/404/422 suelen indicar parámetro no reconocido o registro no encontrado;
+        // intentamos el siguiente candidato antes de fallar.
+        if (![400, 404, 422].includes(response.status)) {
+          break;
+        }
+      }
+
+      // Compatibilidad con implementaciones que esperan JSON en el body de DELETE.
+      const bodyResponse = await fetch(AVANCES_UNIDADES_PROYECTO_ENDPOINT, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: normalizedId,
+          avance_id: normalizedId,
+          intervencion_id: resolvedIntervencionId || undefined,
+        }),
+        cache: 'no-store',
+      });
+
+      if (bodyResponse.ok) {
+        await loadAvances();
+        return true;
+      }
+
+      const rawBodyError = await bodyResponse.text().catch(() => '');
+      lastError = rawBodyError?.trim() || `Error ${bodyResponse.status} al eliminar avance`;
+
+      // Fallback local: solo para IDs legacy generados en cliente.
+      if (normalizedId.startsWith('avance-')) {
+        return deleteFromLocalStorage();
+      }
+
+      setState(prev => ({
+        ...prev,
+        error: lastError,
+      }));
+      return false;
+    } catch (error) {
+      if (normalizedId.startsWith('avance-')) {
+        return deleteFromLocalStorage();
+      }
+
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Error al eliminar el avance',
+      }));
+      return false;
+    }
+  }, [getIntervencionIdByUpid, loadAvances, upid]);
 
   // Limpiar error
   const clearError = useCallback(() => {

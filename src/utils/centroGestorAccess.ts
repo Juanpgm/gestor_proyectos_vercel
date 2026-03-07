@@ -21,6 +21,19 @@ const OPEN_ACCESS_CENTROS = new Set([
 
 const normalizeValue = (value: unknown): string => String(value || '').trim().toLowerCase()
 
+const normalizeRole = (role: unknown): string =>
+  String(role || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[-\s]+/g, '_')
+
+const PRIVILEGED_ROLES = new Set([
+  'super_admin',
+  'superadmin',
+  'admin_general',
+  'admin'
+])
+
 const extractUserCentroGestor = (sessionPayload: any): string | null => {
   const value =
     sessionPayload?.user?.nombre_centro_gestor ||
@@ -32,6 +45,25 @@ const extractUserCentroGestor = (sessionPayload: any): string | null => {
   if (!value || typeof value !== 'string') return null
   const normalized = value.trim()
   return normalized.length > 0 ? normalized : null
+}
+
+const extractUserRoles = (sessionPayload: any): string[] => {
+  const roleCandidates = [
+    sessionPayload?.user?.roles,
+    sessionPayload?.user?.role,
+    sessionPayload?.user?.primary_role,
+    sessionPayload?.roles,
+    sessionPayload?.role,
+    sessionPayload?.primary_role
+  ]
+
+  const flatRoles = roleCandidates.flatMap((candidate) => {
+    if (Array.isArray(candidate)) return candidate
+    if (typeof candidate === 'string') return [candidate]
+    return []
+  })
+
+  return Array.from(new Set(flatRoles.map(normalizeRole).filter((role) => role.length > 0)))
 }
 
 export const isOpenCentroGestor = (centroGestor: string | null | undefined): boolean => {
@@ -63,6 +95,16 @@ export const getCentroGestorAccessFromSession = (): CentroGestorAccess => {
 
     const parsedSession = JSON.parse(rawSession)
     const userCentroGestor = extractUserCentroGestor(parsedSession)
+    const userRoles = extractUserRoles(parsedSession)
+    const hasPrivilegedRole = userRoles.some((role) => PRIVILEGED_ROLES.has(role))
+
+    if (hasPrivilegedRole) {
+      return {
+        userCentroGestor,
+        canViewAll: true,
+        isRestricted: false
+      }
+    }
 
     if (!userCentroGestor || isOpenCentroGestor(userCentroGestor)) {
       return {

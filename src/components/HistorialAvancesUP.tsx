@@ -16,7 +16,12 @@ import {
   ChevronRight,
   AlertCircle,
   BarChart3,
-  User
+  User,
+  ImageIcon,
+  ZoomIn,
+  ExternalLink,
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import { useAvancesUP } from '@/hooks/useAvancesUP';
 import { formatCurrency, formatCurrencyFull } from '@/utils/formatCurrency';
@@ -46,12 +51,114 @@ const AvanceCard: React.FC<{
   avance: AvanceUP;
   isLatest: boolean;
   prevAvance?: AvanceUP;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
 }> = ({ avance, isLatest, prevAvance, onDelete }) => {
   const [expanded, setExpanded] = useState(isLatest);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
+  const [directImageFallback, setDirectImageFallback] = useState<Set<number>>(new Set());
+
+  const markBroken = (index: number) =>
+    setBrokenImages(prev => new Set(prev).add(index));
+
+  // The backend currently returns SigV2 presigned URLs that fail on S3.
+  // Prefer regenerating SigV4 URLs in /api/proxy/s3-file using a resolvable S3 key.
+  const s3FileUrl = (s3Key: string) =>
+    `/api/proxy/s3-file?key=${encodeURIComponent(s3Key)}&inline=1`;
+
+  const s3DownloadUrl = (s3Key: string, nombre: string) =>
+    `/api/proxy/s3-file?key=${encodeURIComponent(s3Key)}&name=${encodeURIComponent(nombre)}`;
+
+  const normalizeUrlPath = (value?: string): string => {
+    if (!value) return '';
+    try {
+      const parsed = new URL(value);
+      return decodeURIComponent(parsed.pathname.replace(/\/+$/, ''));
+    } catch {
+      return value.split('?')[0].replace(/\/+$/, '');
+    }
+  };
+
+  const extractS3Key = (value?: string): string | undefined => {
+    if (!value) return undefined;
+    try {
+      const parsed = new URL(value);
+      const host = parsed.hostname.toLowerCase();
+      const path = parsed.pathname.replace(/^\/+/, '');
+      if (host.includes('.s3.') || host.endsWith('.s3.amazonaws.com')) {
+        return decodeURIComponent(path);
+      }
+      if (host.startsWith('s3.') || host === 's3.amazonaws.com') {
+        const segments = path.split('/');
+        if (segments.length >= 2) {
+          return decodeURIComponent(segments.slice(1).join('/'));
+        }
+      }
+      return decodeURIComponent(path);
+    } catch {
+      return undefined;
+    }
+  };
+
+  const findSoporteByUrl = (
+    tipo: 'imagen' | 'documento',
+    url: string,
+    index: number
+  ) => {
+    const byType = avance.soportes.filter((s) => s.tipo === tipo);
+    const targetPath = normalizeUrlPath(url);
+    const byPath = byType.find((s) => {
+      const candidates = [s.url, s.url_presigned, s.presigned_url, s.url_directa]
+        .filter((candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0)
+        .map(normalizeUrlPath);
+      return candidates.includes(targetPath);
+    });
+    if (byPath) return byPath;
+    return byType[index];
+  };
+
+  const imgUrl = (url: string, index: number) => {
+    if (directImageFallback.has(index)) return url;
+
+    const soporte = findSoporteByUrl('imagen', url, index);
+    const key = soporte?.s3_key || extractS3Key(soporte?.url_directa) || extractS3Key(url);
+    if (key) return s3FileUrl(key);
+    return `/api/proxy/fetch-file?url=${btoa(url)}&inline=1`;
+  };
+
+  const handleImageError = (index: number) => {
+    // First failure retries using direct presigned URL from backend.
+    if (!directImageFallback.has(index)) {
+      setDirectImageFallback(prev => new Set(prev).add(index));
+      return;
+    }
+
+    markBroken(index);
+  };
+
+  const docProxyUrl = (url: string, nombre: string, index: number) => {
+    const soporte = findSoporteByUrl('documento', url, index);
+    const key = soporte?.s3_key || extractS3Key(soporte?.url_directa) || extractS3Key(url);
+    if (key) return s3DownloadUrl(key, nombre);
+    return `/api/proxy/fetch-file?url=${btoa(url)}&name=${encodeURIComponent(nombre)}`;
+  };
 
   const diffAvance = prevAvance ? avance.avance_fisico - prevAvance.avance_fisico : 0;
+
+  const handleDeleteConfirm = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (isDeleting) return;
+
+    setIsDeleting(true);
+    const success = await onDelete(avance.id);
+    setIsDeleting(false);
+
+    if (success) {
+      setConfirmDelete(false);
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     try {
@@ -185,25 +292,190 @@ const AvanceCard: React.FC<{
                 </div>
               )}
 
-              {/* Archivos adjuntos */}
-              {avance.archivos.length > 0 && (
+              {/* Fotografías */}
+              {avance.imagenes_urls.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Fotografías ({avance.imagenes_urls.length})
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {avance.imagenes_urls.map((url, i) => {
+                      const soporte = findSoporteByUrl('imagen', url, i);
+                      const label = soporte?.nombre_original || `Fotografía ${i + 1}`;
+                      const proxied = imgUrl(url, i);
+                      if (brokenImages.has(i)) {
+                        return (
+                          <a
+                            key={i}
+                            href={proxied}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex flex-col items-center justify-center gap-1 rounded-lg border border-blue-200 dark:border-blue-800 aspect-square bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors p-2"
+                            title={`Abrir ${label}`}
+                          >
+                            <ImageIcon className="w-6 h-6 text-blue-400" />
+                            <span className="text-[10px] text-blue-500 dark:text-blue-400 text-center line-clamp-2 leading-tight">{label}</span>
+                          </a>
+                        );
+                      }
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setViewingImage(url); }}
+                          className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 aspect-square bg-gray-100 dark:bg-gray-700"
+                          title={label}
+                        >
+                          <img
+                            src={proxied}
+                            alt={label}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            onError={() => handleImageError(i)}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+                            <ZoomIn className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Documentos */}
+              {avance.documentos_urls.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Documentos ({avance.documentos_urls.length})
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {avance.documentos_urls.map((url, i) => {
+                      const soporte = findSoporteByUrl('documento', url, i);
+                      const nombre = soporte?.nombre_original
+                        || decodeURIComponent(url.split('/').pop() || `Documento ${i + 1}`);
+                      const proxyUrl = docProxyUrl(url, nombre, i);
+                      return (
+                        <div key={i} className="flex items-center gap-1">
+                          <a
+                            href={proxyUrl}
+                            download={nombre}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 px-3 py-2 flex-1 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors text-sm text-amber-800 dark:text-amber-200"
+                            title={`Descargar ${nombre}`}
+                          >
+                            <FileText className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                            <span className="truncate flex-1">{nombre}</span>
+                            <Download className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
+                          </a>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                            title="Abrir en nueva pestaña"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Archivos adjuntos (legacy: sin soportes ni urls tipadas) */}
+              {avance.imagenes_urls.length === 0 && avance.documentos_urls.length === 0 && avance.archivos.length > 0 && (
                 <div>
                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                     Archivos adjuntos ({avance.archivos.length})
                   </span>
                   <div className="mt-1 flex flex-wrap gap-2">
                     {avance.archivos.map(archivo => (
-                      <span
-                        key={archivo.id}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-300"
-                      >
-                        <FileText className="w-3 h-3" />
-                        {archivo.nombre}
-                      </span>
+                      archivo.url ? (
+                        <a
+                          key={archivo.id}
+                          href={archivo.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-xs text-gray-600 dark:text-gray-300 transition-colors"
+                        >
+                          <FileText className="w-3 h-3" />
+                          {archivo.nombre}
+                        </a>
+                      ) : (
+                        <span
+                          key={archivo.id}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-300"
+                        >
+                          <FileText className="w-3 h-3" />
+                          {archivo.nombre}
+                        </span>
+                      )
                     ))}
                   </div>
                 </div>
               )}
+
+              {/* Lightbox de imagen */}
+              <AnimatePresence>
+                {viewingImage && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+                    onClick={() => setViewingImage(null)}
+                  >
+                    <motion.div
+                      initial={{ scale: 0.85, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.85, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="relative max-w-4xl max-h-[90vh] p-2 flex flex-col items-center gap-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <img
+                        src={imgUrl(viewingImage, Math.max(0, avance.imagenes_urls.indexOf(viewingImage)))}
+                        alt="Vista completa"
+                        className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl"
+                        onError={() => {
+                          const idx = Math.max(0, avance.imagenes_urls.indexOf(viewingImage));
+                          handleImageError(idx);
+                        }}
+                      />
+                      <div className="flex items-center gap-3">
+                        <a
+                          href={viewingImage}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full text-white text-sm transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Abrir en nueva pestaña
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setViewingImage(null)}
+                          className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full text-white text-sm transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                          Cerrar
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Metadata */}
               <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
@@ -218,13 +490,15 @@ const AvanceCard: React.FC<{
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-red-500">¿Eliminar?</span>
                       <button
-                        onClick={(e) => { e.stopPropagation(); onDelete(avance.id); }}
-                        className="px-2 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded transition-colors"
+                        onClick={handleDeleteConfirm}
+                        disabled={isDeleting}
+                        className="px-2 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed rounded transition-colors"
                       >
-                        Sí
+                        {isDeleting ? 'Borrando...' : 'Sí'}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
+                        disabled={isDeleting}
                         className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded transition-colors"
                       >
                         No
@@ -233,6 +507,7 @@ const AvanceCard: React.FC<{
                   ) : (
                     <button
                       onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+                      disabled={isDeleting}
                       className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors"
                       title="Eliminar avance"
                     >
@@ -257,7 +532,7 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
   onClose,
   onRegistrarAvance
 }) => {
-  const { avances, loading, error, resumen, deleteAvance } = useAvancesUP(upid, intervencionId);
+  const { avances, loading, error, resumen, deleteAvance, refresh } = useAvancesUP(upid, intervencionId);
 
   return (
     <motion.div
@@ -287,12 +562,22 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-          >
-            <X className="w-5 h-5 text-white" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={refresh}
+              disabled={loading}
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-50"
+              title="Recargar avances (actualiza enlaces de archivos)"
+            >
+              <RefreshCw className={`w-4 h-4 text-white ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
         </div>
 
         {/* Resumen */}

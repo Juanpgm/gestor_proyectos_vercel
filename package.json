@@ -11,6 +11,7 @@
     "start:dev": "cross-env NODE_ENV=development next start",
     "lint": "next lint",
     "test": "vitest --environment jsdom",
+    "test:avances-media": "node test-avances-unidades-proyecto-media.js",
     "build:vercel": "cross-env NODE_ENV=production NEXT_PUBLIC_APP_ENV=production next build",
     "preview": "npm run build && npm run start",
     "preview:dev": "npm run build:dev && npm run start:dev",
@@ -28,6 +29,8 @@
     "setup:env": "cp .env.example .env.local && echo '✅ Archivo .env.local creado. Por favor edítalo con tus valores reales.'"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.0",
     "@radix-ui/react-dialog": "^1.0.5",

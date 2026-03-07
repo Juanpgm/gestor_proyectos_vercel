@@ -40,6 +40,127 @@ const formatRequestedValue = (value: unknown): string => {
   return String(value)
 }
 
+const normalizeComparableValue = (value: unknown): unknown => {
+  if (value === null || value === undefined) return null
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return ''
+
+    const numeric = Number(trimmed)
+    if (!Number.isNaN(numeric) && /^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+      return numeric
+    }
+
+    return trimmed
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (typeof value === 'boolean') return value
+
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeComparableValue(item))
+  }
+
+  if (typeof value === 'object') {
+    const normalizedEntries = Object.entries(value as Record<string, unknown>)
+      .map(([k, v]) => [k, normalizeComparableValue(v)] as const)
+      .sort(([a], [b]) => a.localeCompare(b))
+    return Object.fromEntries(normalizedEntries)
+  }
+
+  return value
+}
+
+const areFieldValuesEqual = (a: unknown, b: unknown): boolean => {
+  return JSON.stringify(normalizeComparableValue(a)) === JSON.stringify(normalizeComparableValue(b))
+}
+
+const extractChangePair = (
+  key: string,
+  requestedValue: unknown,
+  currentRecord?: Record<string, unknown> | null,
+) => {
+  const rawValue = requestedValue as Record<string, unknown> | unknown
+
+  if (
+    rawValue &&
+    typeof rawValue === 'object' &&
+    !Array.isArray(rawValue)
+  ) {
+    const valueObj = rawValue as Record<string, unknown>
+    const prevExplicit =
+      valueObj.anterior ??
+      valueObj.valor_anterior ??
+      valueObj.old ??
+      valueObj.before ??
+      valueObj.previo ??
+      valueObj.previous
+    const nextExplicit =
+      valueObj.nuevo ??
+      valueObj.valor_nuevo ??
+      valueObj.new ??
+      valueObj.after ??
+      valueObj.solicitado ??
+      valueObj.requested ??
+      valueObj.propuesto
+
+    const hasExplicitPair = prevExplicit !== undefined || nextExplicit !== undefined
+
+    if (hasExplicitPair) {
+      const previous = prevExplicit ?? currentRecord?.[key] ?? null
+      const requested = nextExplicit ?? null
+      return {
+        previous,
+        requested,
+        changed: !areFieldValuesEqual(previous, requested),
+      }
+    }
+  }
+
+  const previous = currentRecord?.[key] ?? null
+  return {
+    previous,
+    requested: requestedValue,
+    changed: !areFieldValuesEqual(previous, requestedValue),
+  }
+}
+
+const extractFirstRecordFromPayload = (payload: any): Record<string, unknown> | null => {
+  if (!payload) return null
+
+  if (Array.isArray(payload)) {
+    const first = payload[0]
+    return first && typeof first === 'object' ? first : null
+  }
+
+  if (Array.isArray(payload?.data)) {
+    const first = payload.data[0]
+    return first && typeof first === 'object' ? first : null
+  }
+
+  if (Array.isArray(payload?.items)) {
+    const first = payload.items[0]
+    return first && typeof first === 'object' ? first : null
+  }
+
+  if (Array.isArray(payload?.features)) {
+    const first = payload.features[0]
+    if (!first || typeof first !== 'object') return null
+    if (first.properties && typeof first.properties === 'object') return first.properties
+    return first
+  }
+
+  if (typeof payload === 'object') {
+    return payload
+  }
+
+  return null
+}
+
 const formatServerTimestampToColombia = (value?: string): string => {
   if (!value) return 'Fecha no disponible'
 
@@ -69,6 +190,8 @@ const SolicitudesPendientesTab: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'up' | 'intervencion'>('all')
+  const [currentDataCache, setCurrentDataCache] = useState<Record<string, Record<string, unknown> | null>>({})
+  const [loadingCurrentData, setLoadingCurrentData] = useState<Set<string>>(new Set())
 
   const getSolicitudId = (sol: SolicitudCambio): string => {
     const raw =
@@ -131,6 +254,52 @@ const SolicitudesPendientesTab: React.FC = () => {
       setLoading(false)
     }
   }, [])
+
+  const getComparisonKey = (sol: SolicitudCambio) => {
+    const stableId = getSolicitudId(sol)
+    if (stableId) return `${sol.tipo || 'sol'}:${stableId}`
+    return `${sol.tipo || 'sol'}:${sol.upid || sol.intervencion_id || 'unknown'}`
+  }
+
+  const fetchCurrentRecord = useCallback(async (sol: SolicitudCambio) => {
+    const cacheKey = getComparisonKey(sol)
+    if (cacheKey in currentDataCache || loadingCurrentData.has(cacheKey)) return
+
+    setLoadingCurrentData((prev) => new Set(prev).add(cacheKey))
+
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '')
+    const isUP = sol.tipo === 'unidad_proyecto'
+    const identifier = isUP ? sol.upid : sol.intervencion_id
+    const query = isUP
+      ? `upid=${encodeURIComponent(identifier || '')}`
+      : `intervencion_id=${encodeURIComponent(identifier || '')}`
+    const endpoint = isUP ? 'unidades-proyecto' : 'intervenciones'
+    const candidates = [
+      apiUrl ? `${apiUrl}/${endpoint}?${query}&limit=1` : '',
+      `/api/proxy/${endpoint}?${query}&limit=1`,
+    ].filter(Boolean)
+
+    let found: Record<string, unknown> | null = null
+
+    for (const url of candidates) {
+      try {
+        const response = await fetch(url, { method: 'GET', cache: 'no-store' })
+        if (!response.ok) continue
+        const payload = await response.json()
+        found = extractFirstRecordFromPayload(payload)
+        if (found) break
+      } catch {
+        continue
+      }
+    }
+
+    setCurrentDataCache((prev) => ({ ...prev, [cacheKey]: found }))
+    setLoadingCurrentData((prev) => {
+      const next = new Set(prev)
+      next.delete(cacheKey)
+      return next
+    })
+  }, [currentDataCache, loadingCurrentData])
 
   useEffect(() => {
     loadSolicitudes()
@@ -276,6 +445,9 @@ const SolicitudesPendientesTab: React.FC = () => {
             const solId = getSolicitudId(sol)
             const isExpanded = expandedId === solId
             const isProcessing = processingId === solId
+            const comparisonKey = getComparisonKey(sol)
+            const currentRecord = currentDataCache[comparisonKey]
+            const isLoadingComparison = loadingCurrentData.has(comparisonKey)
             const entries = Object.entries(sol).filter(
               ([k]) => !METADATA_KEYS.has(k)
             )
@@ -287,7 +459,14 @@ const SolicitudesPendientesTab: React.FC = () => {
               >
                 <div
                   className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                  onClick={() => setExpandedId(isExpanded ? null : solId)}
+                  onClick={() => {
+                    if (isExpanded) {
+                      setExpandedId(null)
+                    } else {
+                      setExpandedId(solId)
+                      void fetchCurrentRecord(sol)
+                    }
+                  }}
                 >
                   <button className="flex-shrink-0">
                     {isExpanded ? (
@@ -353,18 +532,41 @@ const SolicitudesPendientesTab: React.FC = () => {
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
                           Campos solicitados para cambio:
                         </p>
+                        {isLoadingComparison && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Cargando valores actuales para comparación...</p>
+                        )}
                         {entries.length === 0 ? (
                           <p className="text-xs text-slate-500">Sin datos de cambio disponibles.</p>
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {entries.map(([key, value]) => (
-                              <div key={key} className="flex flex-col bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700">
-                                <span className="text-xs text-slate-500 dark:text-slate-400">{key}</span>
-                                <span className="text-sm font-medium text-slate-900 dark:text-white break-words">
-                                  {formatRequestedValue(value)}
-                                </span>
-                              </div>
-                            ))}
+                            {entries.map(([key, value]) => {
+                              const { previous, requested, changed } = extractChangePair(key, value, currentRecord)
+
+                              const previousColor = changed
+                                ? 'text-red-700 dark:text-red-300'
+                                : 'text-slate-900 dark:text-white'
+                              const requestedColor = changed
+                                ? 'text-green-700 dark:text-green-300'
+                                : 'text-slate-900 dark:text-white'
+
+                              return (
+                                <div key={key} className="flex flex-col bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-200 dark:border-slate-700 gap-1">
+                                  <span className="text-xs text-slate-500 dark:text-slate-400">{key}</span>
+                                  <div className="text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Anterior:</span>{' '}
+                                    <span className={`font-medium break-words ${previousColor}`}>
+                                      {formatRequestedValue(previous)}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Solicitado:</span>{' '}
+                                    <span className={`font-medium break-words ${requestedColor}`}>
+                                      {formatRequestedValue(requested)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
                           </div>
                         )}
                       </div>

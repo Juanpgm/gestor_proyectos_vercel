@@ -54,4 +54,25 @@ describe('centroGestorAccess', () => {
     expect(access.canViewAll).toBe(false)
     expect(access.isRestricted).toBe(true)
   })
+
+  it.each(['super_admin', 'admin_general'])(
+    'permite ver todo para rol privilegiado %s aunque el centro gestor sea restringido',
+    (role) => {
+      localStorage.setItem(
+        'auth_session',
+        JSON.stringify({
+          user: {
+            nombre_centro_gestor: 'Secretaría de Infraestructura',
+            roles: [role]
+          }
+        })
+      )
+
+      const access = getCentroGestorAccessFromSession()
+
+      expect(access.userCentroGestor).toBe('Secretaría de Infraestructura')
+      expect(access.canViewAll).toBe(true)
+      expect(access.isRestricted).toBe(false)
+    }
+  )
 })

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -48,7 +48,9 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -70,10 +72,12 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
 
     if (!validate()) return;
 
+    setIsSubmitting(true);
     const result = await addAvance({
       ...formData,
       archivos: selectedFiles
     });
+    setIsSubmitting(false);
 
     if (result) {
       setSuccess(true);
@@ -129,7 +133,8 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+            disabled={isSubmitting}
+            className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <X className="w-5 h-5 text-white" />
           </button>
@@ -177,6 +182,43 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
           )}
         </AnimatePresence>
 
+        {/* Barra de progreso de carga */}
+        <AnimatePresence>
+          {isSubmitting && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="px-6 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex-shrink-0 w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  Registrando avance{selectedFiles.length > 0 ? ` y subiendo ${selectedFiles.length} archivo${selectedFiles.length > 1 ? 's' : ''}` : ''}...
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden relative">
+                <div
+                  className="absolute inset-y-0 left-0 bg-blue-500 rounded-full"
+                  style={{
+                    width: '45%',
+                    animation: 'slideProgress 1.4s ease-in-out infinite'
+                  }}
+                />
+              </div>
+              <style>{`
+                @keyframes slideProgress {
+                  0% { left: -45%; }
+                  100% { left: 100%; }
+                }
+              `}</style>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5">
+                Por favor espera y no cierres esta ventana
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Error state */}
         {hookError && (
           <div className="px-6 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 flex items-center gap-2">
@@ -186,7 +228,7 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+        <form onSubmit={handleSubmit} className={`flex-1 overflow-y-auto p-6 space-y-5 ${isSubmitting ? 'pointer-events-none select-none opacity-60' : ''}`}>
           {/* Avance de Intervención */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -256,15 +298,16 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               <Upload className="w-4 h-4 text-indigo-500" />
               Evidencia (Archivos)
+              <span className="text-xs font-normal text-gray-400">(Opcional)</span>
             </label>
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors">
               <input
+                ref={fileInputRef}
                 type="file"
                 multiple
                 onChange={handleFileChange}
                 className="hidden"
                 id="file-upload"
-                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
               />
               <label htmlFor="file-upload" className="cursor-pointer">
                 <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -272,7 +315,7 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
                   Haz clic para subir archivos
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  Imágenes, PDF, Word, Excel
+                  Cualquier tipo de archivo
                 </p>
               </label>
             </div>
@@ -313,18 +356,28 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+            disabled={isSubmitting}
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancelar
           </button>
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={success}
+            disabled={success || isSubmitting}
             className="flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
-            <Save className="w-4 h-4" />
-            Guardar Avance
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Guardar Avance
+              </>
+            )}
           </button>
         </div>
       </motion.div>

@@ -32,7 +32,6 @@ import dynamic from 'next/dynamic';
 
 // Componentes dinámicos para modales de avances
 const RegistrarAvanceUPModal = dynamic(() => import('./RegistrarAvanceUPModal'), { ssr: false });
-const EditarInfoUPModal = dynamic(() => import('./EditarInfoUPModal'), { ssr: false });
 const HistorialAvancesUP = dynamic(() => import('./HistorialAvancesUP'), { ssr: false });
 
 const ACTION_BUTTON_BASE_CLASS = 'inline-flex items-center px-2.5 py-1.5 text-sm font-medium rounded-lg transition-colors shadow-md ring-1';
@@ -40,7 +39,6 @@ const ACTION_BUTTON_ICON_CLASS = 'w-4 h-4 mr-1.5';
 const ACTION_BUTTON_VARIANTS = {
   avance: 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/70 ring-emerald-300/70 dark:ring-emerald-700/70',
   historial: 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 hover:bg-purple-200 dark:hover:bg-purple-900/70 ring-purple-300/70 dark:ring-purple-700/70',
-  editar: 'text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 hover:bg-orange-200 dark:hover:bg-orange-900/70 ring-orange-300/70 dark:ring-orange-700/70',
 };
 
 // Tipo para intervenciones
@@ -249,7 +247,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   
   // Estado para modales de avances y edición
   const [modalAvance, setModalAvance] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
-  const [modalEditar, setModalEditar] = useState<AttributeData | null>(null);
   const [modalHistorial, setModalHistorial] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
 
   const [visibleColumns, setVisibleColumns] = useState({
@@ -1416,18 +1413,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   {visibleColumns.acciones && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-1.5">
-                        {/* Botón Editar Info */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setModalEditar(item);
-                          }}
-                          className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.editar}`}
-                          title="Editar información de esta UP"
-                        >
-                          <FileText className={ACTION_BUTTON_ICON_CLASS} />
-                          Editar
-                        </button>
                       </div>
                     </td>
                   )}
@@ -1839,15 +1824,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
             presupuesto={modalAvance.presupuesto}
             onClose={() => setModalAvance(null)}
             onSuccess={() => setModalAvance(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {modalEditar && (
-          <EditarInfoUPModal
-            item={modalEditar}
-            onClose={() => setModalEditar(null)}
           />
         )}
       </AnimatePresence>

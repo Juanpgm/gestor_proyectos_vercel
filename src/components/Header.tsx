@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Settings, User, Sun, Moon, Menu } from 'lucide-react'
+import { Bell, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { UserProfile } from '@/components/AuthWrapper'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
@@ -10,6 +10,7 @@ import { useRecentNotificationCount } from '@/hooks/useNotifications'
 import NotificationPanel from '@/components/NotificationPanel'
 import { useAuth } from '@/context/AuthContext'
 import RoleFeatureTour from '@/components/RoleFeatureTour'
+import GearMenu from '@/components/GearMenu'
 
 interface HeaderProps {
   onToggleSidebar?: () => void
@@ -110,16 +111,8 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               )}
             </motion.button>
 
-            {/* Settings - Visible en tablets */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className={`${CSS_UTILS.iconButton} tablet-interactive p-2 tablet:p-3 rounded-lg tablet:rounded-xl ${CATEGORIES.contracts.className.text} hidden tablet:flex md:flex`}
-              title="Configuración"
-              data-tour-id="header-settings"
-            >
-              <Settings className="w-5 h-5 tablet:w-6 tablet:h-6" />
-            </motion.button>
+            {/* Settings menu - Visible en tablets */}
+            <GearMenu />
 
             {/* User Profile - Componente de autenticación con mejor espaciado */}
             <motion.div

@@ -22,7 +22,6 @@ import dynamic from 'next/dynamic';
 // Componentes dinámicos para modales de avances
 const RegistrarAvanceUPModal = dynamic(() => import('./RegistrarAvanceUPModal'), { ssr: false });
 const HistorialAvancesUP = dynamic(() => import('./HistorialAvancesUP'), { ssr: false });
-const EditarInfoUPModal = dynamic(() => import('./EditarInfoUPModal'), { ssr: false });
 
 interface IntervencionData {
   intervencion_id: string;
@@ -282,7 +281,6 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
 
   // Estado para modales de avances y edición
   const [modalAvance, setModalAvance] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
-  const [modalEditar, setModalEditar] = useState<AttributeData | null>(null);
   const [modalHistorial, setModalHistorial] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
 
   const extractArrayPayload = (payload: any): any[] => {
@@ -585,7 +583,7 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                 {/* UPID - siempre visible */}
                 <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-[68px] sm:w-[78px]">UPID</th>
                 {/* Nombre / Ubicación - siempre visible */}
-                <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-[128px] sm:w-[148px] md:w-[184px] lg:w-[202px]">Nombre</th>
+                <th className="px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-[128px] sm:w-[260px] md:w-[296px] lg:w-[346px]">Nombre</th>
                 {/* Centro Gestor - oculto en móvil, visible desde tablet */}
                 <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-20 md:w-24 lg:w-28">Centro</th>
                 {/* Estado - oculto en móvil, visible desde tablet */}
@@ -593,11 +591,10 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                 {/* Tipo - oculto en móvil y tablet, visible desde desktop */}
                 <th className="hidden lg:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-16 md:w-20 lg:w-24">Tipo</th>
                 {/* Avance - siempre visible */}
-                <th className="px-0 sm:px-0.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-[64px] sm:w-[72px] md:w-[80px] lg:w-[88px]">Avance</th>
+                <th className="px-0 sm:px-0.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-[52px] sm:w-[58px] md:w-[64px] lg:w-[72px]">Avance</th>
                 {/* Presupuesto - oculto en móvil y tablet, visible desde desktop */}
-                <th className="hidden md:table-cell px-1 sm:px-2 py-2 sm:py-2.5 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 w-24 md:w-28 lg:w-32">Presupuesto</th>
-                {/* Acciones - oculto en móvil, visible desde tablet */}
-                <th className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-28 lg:w-36">Acciones</th>
+                <th className="hidden md:table-cell px-2 sm:px-3 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-24 md:w-28 lg:w-32">Presupuesto</th>
+
               </tr>
             </thead>
 
@@ -605,7 +602,7 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
               <AnimatePresence mode="popLayout">
                 {paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-1 sm:px-1.5 py-4 sm:py-6 text-center">
+                    <td colSpan={8} className="px-1 sm:px-1.5 py-4 sm:py-6 text-center">
                       <div className="flex flex-col items-center gap-2 text-gray-500">
                         <AlertCircle className="w-5 h-5" />
                         <p className="text-xs sm:text-sm">No hay resultados</p>
@@ -711,35 +708,20 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                           </td>
 
                           {/* Presupuesto - oculto en móvil y tablet */}
-                          <td className="hidden md:table-cell px-1 sm:px-2 pr-2 sm:pr-2.5 py-2 sm:py-2.5 text-right">
+                          <td className="hidden md:table-cell px-2 sm:px-3 py-2 sm:py-2.5 text-center">
                             <span className="inline-block font-bold text-green-600 dark:text-green-400 text-xs sm:text-sm whitespace-nowrap tabular-nums">
                               {formatCurrencyFull(itemMetrics.presupuesto)}
                             </span>
                           </td>
 
-                          {/* Acciones - oculto en móvil */}
-                          <td className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setModalEditar(item);
-                                }}
-                                className="inline-flex items-center px-2 py-1.5 text-sm font-medium text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 rounded hover:bg-orange-200 dark:hover:bg-orange-900/70 transition-colors shadow-sm ring-1 ring-orange-300/70 dark:ring-orange-700/70"
-                                title="Editar información de esta UP"
-                              >
-                                <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                                <span className="hidden lg:inline">Editar</span>
-                              </button>
-                            </div>
-                          </td>
+
                         </motion.tr>
 
                         {/* Intervenciones Expandidas - Fichas Resumen */}
                         <AnimatePresence>
                           {isExpanded && (
                             <tr className="bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/5 dark:to-blue-900/0">
-                              <td colSpan={9} className="px-1 sm:px-1.5 py-2 sm:py-3">
+                              <td colSpan={8} className="px-1 sm:px-1.5 py-2 sm:py-3">
                                 {isLoading ? (
                                   <div className="flex items-center justify-center gap-2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -901,15 +883,6 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
               void loadIntervenciones(upid);
               setModalAvance(null);
             }}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {modalEditar && (
-          <EditarInfoUPModal
-            item={modalEditar}
-            onClose={() => setModalEditar(null)}
           />
         )}
       </AnimatePresence>

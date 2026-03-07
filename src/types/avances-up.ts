@@ -1,7 +1,21 @@
 /**
  * Tipos para la gestión de avances de Unidades de Proyecto
- * Fase inicial: datos mockeados con localStorage
  */
+
+// Soporte (imagen o documento) adjunto a un avance — nuevo schema API
+export interface SoporteUP {
+  indice: number;
+  tipo: 'imagen' | 'documento';
+  nombre_original: string;
+  extension: string;
+  content_type: string;
+  s3_key?: string;         // S3 object key (used to generate SigV4 presigned URLs)
+  url: string;
+  url_directa?: string;    // Raw S3 URL without auth params
+  url_presigned?: string;  // S3 presigned URL from backend (SigV2 — may be invalid)
+  presigned_url?: string;  // alias alternativo del backend
+  uploaded_at: string;
+}
 
 // Reporte de avance individual
 export interface AvanceUP {
@@ -14,12 +28,15 @@ export interface AvanceUP {
   observaciones: string;
   estado_reporte: 'borrador' | 'enviado' | 'aprobado' | 'rechazado';
   reportado_por: string;
-  archivos: ArchivoAvance[];
+  archivos: ArchivoAvance[]; // backward compat
+  soportes: SoporteUP[]; // nuevo schema: array tipado de soportes
+  imagenes_urls: string[]; // URLs de imágenes listas para <img>
+  documentos_urls: string[]; // URLs de documentos para descarga/visualización
   created_at: string;
   updated_at: string;
 }
 
-// Archivo adjunto a un avance
+// Archivo adjunto a un avance (legacy / compat)
 export interface ArchivoAvance {
   id: string;
   nombre: string;

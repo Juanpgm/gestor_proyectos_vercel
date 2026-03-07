@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import {
@@ -325,6 +326,35 @@ const SearchableSelectField: React.FC<{
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState(value || '')
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
+
+  const updateDropdownPosition = useCallback(() => {
+    if (!triggerRef.current) return
+    const rect = triggerRef.current.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const dropdownHeight = 260
+    const openUpward = spaceBelow < dropdownHeight && rect.top > dropdownHeight
+    setDropdownStyle({
+      position: 'fixed',
+      left: rect.left,
+      width: rect.width,
+      zIndex: 99999,
+      ...(openUpward ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    updateDropdownPosition()
+    window.addEventListener('scroll', updateDropdownPosition, true)
+    window.addEventListener('resize', updateDropdownPosition)
+    return () => {
+      window.removeEventListener('scroll', updateDropdownPosition, true)
+      window.removeEventListener('resize', updateDropdownPosition)
+    }
+  }, [isOpen, updateDropdownPosition])
 
   useEffect(() => {
     setSearchTerm(value || '')
@@ -332,8 +362,10 @@ const SearchableSelectField: React.FC<{
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (!containerRef.current) return
-      if (!containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const clickedInsideDropdown = dropdownRef.current && dropdownRef.current.contains(target)
+      const clickedTrigger = triggerRef.current && triggerRef.current.contains(target)
+      if (!clickedInsideDropdown && !clickedTrigger) {
         setIsOpen(false)
       }
     }
@@ -363,6 +395,7 @@ const SearchableSelectField: React.FC<{
       <input type="hidden" value={value} required={required} disabled={disabled} readOnly />
 
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => {
           if (disabled) return
@@ -381,8 +414,12 @@ const SearchableSelectField: React.FC<{
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
-        <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 shadow-lg p-2">
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          style={dropdownStyle}
+          className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 shadow-lg p-2"
+        >
           <input
             type="text"
             value={searchTerm}
@@ -407,7 +444,8 @@ const SearchableSelectField: React.FC<{
               <div className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">Sin resultados</div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -1554,7 +1592,6 @@ const SolicitarCambioIntervencionForm: React.FC<{ interv: Intervencion; onSucces
           placeholder="Selecciona un tipo"
         />
         <Field label="Centro Gestor" value={form.nombre_centro_gestor || ''} onChange={set('nombre_centro_gestor')} />
-        <Field label="Avance Obra (%)" value={form.avance_obra ?? ''} onChange={(v) => setForm((p) => ({ ...p, avance_obra: Number(v) }))} type="number" />
         <Field label="Presupuesto Base" value={form.presupuesto_base ?? ''} onChange={(v) => setForm((p) => ({ ...p, presupuesto_base: Number(v) }))} type="number" />
         <Field label="Fecha Inicio" value={form.fecha_inicio || ''} onChange={set('fecha_inicio')} type="date" />
         <Field label="Fecha Fin" value={form.fecha_fin || ''} onChange={set('fecha_fin')} type="date" />
@@ -1613,6 +1650,47 @@ const ProgressBar: React.FC<{ value: number }> = ({ value }) => {
       </div>
     </div>
   )
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+const parseDateOnlyAsUtc = (value?: string): Date | null => {
+  if (!value) return null
+
+  const trimmed = String(value).trim()
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed)
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1])
+    const month = Number(dateOnlyMatch[2]) - 1
+    const day = Number(dateOnlyMatch[3])
+    return new Date(Date.UTC(year, month, day))
+  }
+
+  const parsed = new Date(trimmed)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const formatIntervDate = (value?: string): string => {
+  const parsed = parseDateOnlyAsUtc(value)
+  if (!parsed) return '-'
+  return parsed.toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'UTC',
+  })
+}
+
+const getEstimatedDuration = (start?: string, end?: string): string => {
+  const startDate = parseDateOnlyAsUtc(start)
+  const endDate = parseDateOnlyAsUtc(end)
+
+  if (!startDate || !endDate) return '-'
+
+  const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY)
+  if (diffDays < 0) return '-'
+
+  return `${diffDays} día${diffDays === 1 ? '' : 's'}`
 }
 
 // ─── Componente principal ─────────────────────────────────────────
@@ -2242,6 +2320,11 @@ const GestionRegistrosTab: React.FC = () => {
                           <td className="px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
                             <div className="space-y-0.5">
                               <p className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">{up.nombre_up}</p>
+                              {up.nombre_up_detalle && (
+                                <p className="font-normal italic text-gray-900 dark:text-white text-[11px] sm:text-xs leading-tight">
+                                  {up.nombre_up_detalle}
+                                </p>
+                              )}
                               {(up.barrio_vereda || up.comuna_corregimiento) && (
                                 <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                                   <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
@@ -2333,29 +2416,42 @@ const GestionRegistrosTab: React.FC = () => {
                                       </button>
                                     </div>
                                     <div className="overflow-x-auto rounded-lg border border-blue-200 dark:border-blue-700">
-                                      <table className="w-full text-xs">
+                                      <table className="w-full table-fixed text-xs min-w-[760px] md:min-w-0">
                                         <thead>
                                           <tr className="bg-blue-100 dark:bg-blue-900/30">
                                             <th className="px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300 w-32">ID Intervención</th>
-                                            <th className="px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300">Tipo</th>
-                                            <th className="hidden sm:table-cell px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300">Estado</th>
+                                            <th className="px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300 w-36">Tipo</th>
+                                            <th className="hidden sm:table-cell px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300 w-36">Estado</th>
+                                            <th className="hidden md:table-cell px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300 w-24">Fecha Inicio</th>
+                                            <th className="hidden md:table-cell px-2 py-1.5 text-left font-semibold text-blue-700 dark:text-blue-300 w-24">Fecha Fin</th>
+                                            <th className="hidden md:table-cell px-2 py-1.5 text-center font-semibold text-blue-700 dark:text-blue-300 w-24">Duración estimada</th>
                                             <th className="px-2 py-1.5 text-center font-semibold text-blue-700 dark:text-blue-300 w-20">Avance</th>
-                                            <th className="hidden md:table-cell px-2 py-1.5 text-right font-semibold text-blue-700 dark:text-blue-300 w-28">Presupuesto</th>
-                                            <th className="px-2 py-1.5 text-center font-semibold text-blue-700 dark:text-blue-300 w-28">Acciones</th>
+                                            <th className="hidden lg:table-cell px-2 py-1.5 text-right font-semibold text-blue-700 dark:text-blue-300 w-28">Presupuesto</th>
+                                            <th className="px-2 py-1.5 text-center font-semibold text-blue-700 dark:text-blue-300 w-24">Acciones</th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-blue-100 dark:divide-blue-800">
                                           {intervenciones.map(interv => (
                                             <tr key={interv.intervencion_id} className="bg-white dark:bg-slate-800 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors">
                                               <td className="px-2 py-1.5 font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">{interv.intervencion_id}</td>
-                                              <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300 truncate max-w-[120px]">{interv.tipo_intervencion || '-'}</td>
-                                              <td className="hidden sm:table-cell px-2 py-1.5 text-gray-700 dark:text-gray-300">{interv.estado || '-'}</td>
+                                              <td className="px-2 py-1.5 text-gray-700 dark:text-gray-300 w-36">
+                                                <div className="truncate">{interv.tipo_intervencion || '-'}</div>
+                                                <div className="mt-0.5 space-y-0.5 text-[10px] leading-tight text-slate-500 dark:text-slate-400 md:hidden">
+                                                  <div><span className="font-medium">Inicio:</span> {formatIntervDate(interv.fecha_inicio)}</div>
+                                                  <div><span className="font-medium">Fin:</span> {formatIntervDate(interv.fecha_fin)}</div>
+                                                  <div><span className="font-medium">Duración:</span> {getEstimatedDuration(interv.fecha_inicio, interv.fecha_fin)}</div>
+                                                </div>
+                                              </td>
+                                              <td className="hidden sm:table-cell px-2 py-1.5 text-gray-700 dark:text-gray-300 w-36 truncate">{interv.estado || '-'}</td>
+                                              <td className="hidden md:table-cell px-2 py-1.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatIntervDate(interv.fecha_inicio)}</td>
+                                              <td className="hidden md:table-cell px-2 py-1.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatIntervDate(interv.fecha_fin)}</td>
+                                              <td className="hidden md:table-cell px-2 py-1.5 text-center text-gray-700 dark:text-gray-300 whitespace-nowrap">{getEstimatedDuration(interv.fecha_inicio, interv.fecha_fin)}</td>
                                               <td className="px-2 py-1.5"><ProgressBar value={interv.avance_obra || 0} /></td>
-                                              <td className="hidden md:table-cell px-2 py-1.5 text-right font-semibold text-green-600 dark:text-green-400 whitespace-nowrap tabular-nums">
+                                              <td className="hidden lg:table-cell px-2 py-1.5 text-right font-semibold text-green-600 dark:text-green-400 whitespace-nowrap tabular-nums">
                                                 {formatCurrencyFull(interv.presupuesto_base || 0)}
                                               </td>
                                               <td className="px-2 py-1.5">
-                                                <div className="flex items-center justify-center gap-1">
+                                                <div className="flex items-center justify-center gap-0.5">
                                                   <button
                                                     onClick={() => handleOpenAvance(up, interv)}
                                                     className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
