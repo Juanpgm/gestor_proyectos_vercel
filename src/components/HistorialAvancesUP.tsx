@@ -81,6 +81,20 @@ const AvanceCard: React.FC<{
     }
   };
 
+  const getFileNameFromUrl = (value: string, fallback: string): string => {
+    if (!value) return fallback;
+
+    try {
+      const parsed = new URL(value);
+      const last = parsed.pathname.split('/').filter(Boolean).pop();
+      return last ? decodeURIComponent(last) : fallback;
+    } catch {
+      const withoutQuery = value.split('?')[0].split('#')[0];
+      const last = withoutQuery.split('/').filter(Boolean).pop();
+      return last ? decodeURIComponent(last) : fallback;
+    }
+  };
+
   const extractS3Key = (value?: string): string | undefined => {
     if (!value) return undefined;
     try {
@@ -98,7 +112,15 @@ const AvanceCard: React.FC<{
       }
       return decodeURIComponent(path);
     } catch {
-      return undefined;
+      // Some backends return values like "file.jpg?X-Amz-..." (without scheme/host).
+      // In that case, recover the object key from the URL-like prefix.
+      const withoutQuery = value.split('?')[0].split('#')[0].replace(/^\/+/, '');
+      if (!withoutQuery) return undefined;
+      try {
+        return decodeURIComponent(withoutQuery);
+      } catch {
+        return withoutQuery;
+      }
     }
   };
 
@@ -143,6 +165,13 @@ const AvanceCard: React.FC<{
     const key = soporte?.s3_key || extractS3Key(soporte?.url_directa) || extractS3Key(url);
     if (key) return s3DownloadUrl(key, nombre);
     return `/api/proxy/fetch-file?url=${btoa(url)}&name=${encodeURIComponent(nombre)}`;
+  };
+
+  const docInlineUrl = (url: string, index: number) => {
+    const soporte = findSoporteByUrl('documento', url, index);
+    const key = soporte?.s3_key || extractS3Key(soporte?.url_directa) || extractS3Key(url);
+    if (key) return s3FileUrl(key);
+    return `/api/proxy/fetch-file?url=${btoa(url)}&inline=1`;
   };
 
   const diffAvance = prevAvance ? avance.avance_fisico - prevAvance.avance_fisico : 0;
@@ -359,8 +388,9 @@ const AvanceCard: React.FC<{
                     {avance.documentos_urls.map((url, i) => {
                       const soporte = findSoporteByUrl('documento', url, i);
                       const nombre = soporte?.nombre_original
-                        || decodeURIComponent(url.split('/').pop() || `Documento ${i + 1}`);
+                        || getFileNameFromUrl(url, `Documento ${i + 1}`);
                       const proxyUrl = docProxyUrl(url, nombre, i);
+                      const openUrl = docInlineUrl(url, i);
                       return (
                         <div key={i} className="flex items-center gap-1">
                           <a
@@ -375,7 +405,7 @@ const AvanceCard: React.FC<{
                             <Download className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
                           </a>
                           <a
-                            href={url}
+                            href={openUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}

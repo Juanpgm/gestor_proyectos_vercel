@@ -14,7 +14,18 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import adminService from '@/services/admin.service'
-import { AdminUser, Role, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo, SystemStats } from '@/types/admin'
+import {
+  AdminUser,
+  Role,
+  RoleId,
+  ROLES_CONFIG,
+  getHighestRole,
+  getRoleInfo,
+  SystemStats,
+  ReporteBugRecord,
+  SolicitudEscaladaRecord,
+  RecomendacionRecord
+} from '@/types/admin'
 import { useAuth } from '@/context/AuthContext'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, LabelList } from 'recharts'
 import UserList from './UserList'
@@ -22,6 +33,7 @@ import UserEditModal from './UserEditModal'
 import RoleAssignmentModal from './RoleAssignmentModal'
 import UserDetailsViewer from './UserDetailsViewer'
 import ManagementFeatureTour from '@/components/ManagementFeatureTour'
+import RecordsCrudPanel, { CrudFieldConfig } from './RecordsCrudPanel'
 
 interface UserManagementPageProps {
   currentUserRole?: RoleId
@@ -34,6 +46,8 @@ interface EndpointDiagnosticItem {
   status: number | null
   message: string
 }
+
+type AdminTab = 'permisos' | 'bugs' | 'escaladas' | 'recomendaciones'
 
 export default function UserManagementPage({
   currentUserRole
@@ -81,6 +95,35 @@ export default function UserManagementPage({
   const [endpointDiagnosticsUpdatedAt, setEndpointDiagnosticsUpdatedAt] = useState<string | null>(null)
 
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
+  const [activeTab, setActiveTab] = useState<AdminTab>('permisos')
+
+  const [bugReports, setBugReports] = useState<ReporteBugRecord[]>([])
+  const [bugReportsLoading, setBugReportsLoading] = useState(false)
+
+  const [escalationRequests, setEscalationRequests] = useState<SolicitudEscaladaRecord[]>([])
+  const [escalationRequestsLoading, setEscalationRequestsLoading] = useState(false)
+
+  const [recommendations, setRecommendations] = useState<RecomendacionRecord[]>([])
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false)
+
+  const bugFields: CrudFieldConfig[] = [
+    { key: 'reportado_por', label: 'Reportado por' },
+    { key: 'descripcion_bug', label: 'Descripcion del bug', multiline: true },
+    { key: 'contexto_adicional_bug', label: 'Contexto adicional', multiline: true }
+  ]
+
+  const escaladaFields: CrudFieldConfig[] = [
+    { key: 'reportado_por', label: 'Solicitante' },
+    { key: 'rol_solicitado', label: 'Rol solicitado' },
+    { key: 'motivo_solicitud', label: 'Motivo', multiline: true },
+    { key: 'justificacion_escalada', label: 'Justificacion', multiline: true }
+  ]
+
+  const recomendacionFields: CrudFieldConfig[] = [
+    { key: 'reportado_por', label: 'Reportado por', requiredOnCreate: true },
+    { key: 'recomendacion_sugerencia', label: 'Recomendacion', requiredOnCreate: true, multiline: true },
+    { key: 'beneficio_esperado', label: 'Beneficio esperado', requiredOnCreate: true, multiline: true }
+  ]
 
   const centroGestorOptions = useMemo(() => {
     const normalize = (value: any): string => (typeof value === 'string' ? value.trim() : '')
@@ -758,7 +801,71 @@ export default function UserManagementPage({
     }
 
     await Promise.all([loadUsers(), loadGovernance(), loadEndpointDiagnostics()])
+
+    if (activeTab === 'bugs') await loadBugReports()
+    if (activeTab === 'escaladas') await loadEscalationRequests()
+    if (activeTab === 'recomendaciones') await loadRecommendations()
   }
+
+  const loadBugReports = async () => {
+    if (!authReady) return
+
+    try {
+      setBugReportsLoading(true)
+      const data = await adminService.listReportesBug(undefined, 200)
+      setBugReports(data)
+    } catch (err: any) {
+      setError(err.message || 'No se pudieron cargar reportes de bug')
+    } finally {
+      setBugReportsLoading(false)
+    }
+  }
+
+  const loadEscalationRequests = async () => {
+    if (!authReady) return
+
+    try {
+      setEscalationRequestsLoading(true)
+      const data = await adminService.listSolicitudesEscalada(undefined, 200)
+      setEscalationRequests(data)
+    } catch (err: any) {
+      setError(err.message || 'No se pudieron cargar solicitudes de escalada')
+    } finally {
+      setEscalationRequestsLoading(false)
+    }
+  }
+
+  const loadRecommendations = async () => {
+    if (!authReady) return
+
+    try {
+      setRecommendationsLoading(true)
+      const data = await adminService.listRecomendaciones(undefined, 200)
+      setRecommendations(data)
+    } catch (err: any) {
+      setError(err.message || 'No se pudieron cargar recomendaciones')
+    } finally {
+      setRecommendationsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!authReady) return
+
+    if (activeTab === 'bugs') {
+      loadBugReports()
+      return
+    }
+
+    if (activeTab === 'escaladas') {
+      loadEscalationRequests()
+      return
+    }
+
+    if (activeTab === 'recomendaciones') {
+      loadRecommendations()
+    }
+  }, [activeTab, authReady])
 
   if (!canManageUsers && !isAdminGeneral) {
     return (
@@ -819,6 +926,134 @@ export default function UserManagementPage({
           </motion.button>
         </div>
       </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          {[
+            { key: 'permisos', label: 'Permisos y Privilegios' },
+            { key: 'bugs', label: 'Reportes de Bugs' },
+            { key: 'escaladas', label: 'Solicitudes de Aumento de Privilegios' },
+            { key: 'recomendaciones', label: 'Recomendaciones' }
+          ].map((tab) => {
+            const selected = activeTab === tab.key
+
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as AdminTab)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selected
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {activeTab === 'bugs' && (
+        <RecordsCrudPanel
+          title="Gestion de Reportes de Bugs"
+          subtitle="CRUD sobre /reportar-bug y /reportar-bug/{registro_id}"
+          records={bugReports as Array<Record<string, unknown>>}
+          fields={bugFields}
+          loading={bugReportsLoading}
+          canManage={isSuperAdmin}
+          onRefresh={loadBugReports}
+          onCreate={async (payload) => {
+            await adminService.createReporteBug({
+              reportado_por: String(payload.reportado_por || ''),
+              descripcion_bug: String(payload.descripcion_bug || ''),
+              contexto_adicional_bug: String(payload.contexto_adicional_bug || '')
+            })
+            await loadBugReports()
+          }}
+          onUpdate={async (registroId, payload) => {
+            await adminService.updateReporteBug(registroId, {
+              reportado_por: payload.reportado_por ? String(payload.reportado_por) : undefined,
+              descripcion_bug: payload.descripcion_bug ? String(payload.descripcion_bug) : undefined,
+              contexto_adicional_bug: payload.contexto_adicional_bug ? String(payload.contexto_adicional_bug) : undefined
+            })
+            await loadBugReports()
+          }}
+          onDelete={async (registroId) => {
+            await adminService.deleteReporteBug(registroId)
+            await loadBugReports()
+          }}
+        />
+      )}
+
+      {activeTab === 'escaladas' && (
+        <RecordsCrudPanel
+          title="Gestion de Solicitudes de Escalada"
+          subtitle="CRUD sobre /solicitar-escalada-privilegios y /solicitar-escalada-privilegios/{registro_id}"
+          records={escalationRequests as Array<Record<string, unknown>>}
+          fields={escaladaFields}
+          loading={escalationRequestsLoading}
+          canManage={isSuperAdmin}
+          onRefresh={loadEscalationRequests}
+          onCreate={async (payload) => {
+            await adminService.createSolicitudEscalada({
+              reportado_por: String(payload.reportado_por || ''),
+              rol_solicitado: String(payload.rol_solicitado || ''),
+              motivo_solicitud: String(payload.motivo_solicitud || ''),
+              justificacion_escalada: String(payload.justificacion_escalada || '')
+            })
+            await loadEscalationRequests()
+          }}
+          onUpdate={async (registroId, payload) => {
+            await adminService.updateSolicitudEscalada(registroId, {
+              reportado_por: payload.reportado_por ? String(payload.reportado_por) : undefined,
+              rol_solicitado: payload.rol_solicitado ? String(payload.rol_solicitado) : undefined,
+              motivo_solicitud: payload.motivo_solicitud ? String(payload.motivo_solicitud) : undefined,
+              justificacion_escalada: payload.justificacion_escalada ? String(payload.justificacion_escalada) : undefined
+            })
+            await loadEscalationRequests()
+          }}
+          onDelete={async (registroId) => {
+            await adminService.deleteSolicitudEscalada(registroId)
+            await loadEscalationRequests()
+          }}
+        />
+      )}
+
+      {activeTab === 'recomendaciones' && (
+        <RecordsCrudPanel
+          title="Gestion de Recomendaciones"
+          subtitle="CRUD sobre /realizar-recomendacion y /realizar-recomendacion/{registro_id}"
+          records={recommendations as Array<Record<string, unknown>>}
+          fields={recomendacionFields}
+          loading={recommendationsLoading}
+          canManage={isSuperAdmin}
+          onRefresh={loadRecommendations}
+          onCreate={async (payload) => {
+            await adminService.createRecomendacion({
+              reportado_por: String(payload.reportado_por || ''),
+              recomendacion_sugerencia: String(payload.recomendacion_sugerencia || ''),
+              beneficio_esperado: String(payload.beneficio_esperado || '')
+            })
+            await loadRecommendations()
+          }}
+          onUpdate={async (registroId, payload) => {
+            await adminService.updateRecomendacion(registroId, {
+              reportado_por: payload.reportado_por ? String(payload.reportado_por) : undefined,
+              recomendacion_sugerencia: payload.recomendacion_sugerencia ? String(payload.recomendacion_sugerencia) : undefined,
+              beneficio_esperado: payload.beneficio_esperado ? String(payload.beneficio_esperado) : undefined
+            })
+            await loadRecommendations()
+          }}
+          onDelete={async (registroId) => {
+            await adminService.deleteRecomendacion(registroId)
+            await loadRecommendations()
+          }}
+        />
+      )}
+
+      {activeTab === 'permisos' && (
+        <>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" data-tour-id="mgmt-usuarios-stats">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
@@ -1187,7 +1422,10 @@ export default function UserManagementPage({
         </div>
       )}
 
-      {showEditModal && selectedUser && (
+        </>
+      )}
+
+      {showEditModal && selectedUser && activeTab === 'permisos' && (
         <UserEditModal
           user={selectedUser}
           onClose={() => setShowEditModal(false)}
@@ -1196,7 +1434,7 @@ export default function UserManagementPage({
         />
       )}
 
-      {showRoleModal && selectedUser && (
+      {showRoleModal && selectedUser && activeTab === 'permisos' && (
         <RoleAssignmentModal
           user={selectedUser}
           rolesCatalog={rolesCatalog}
@@ -1205,14 +1443,14 @@ export default function UserManagementPage({
         />
       )}
 
-      {showPermissionViewer && selectedUser && (
+      {showPermissionViewer && selectedUser && activeTab === 'permisos' && (
         <UserDetailsViewer
           user={selectedUser}
           onClose={() => setShowPermissionViewer(false)}
         />
       )}
 
-      {deleteUserTarget && (
+      {deleteUserTarget && activeTab === 'permisos' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl p-5">
             <div className="flex items-start justify-between gap-3 mb-4">
@@ -1245,7 +1483,7 @@ export default function UserManagementPage({
         </div>
       )}
 
-      {grantPermissionTarget && (
+      {grantPermissionTarget && activeTab === 'permisos' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl p-5">
             <div className="flex items-start justify-between gap-3 mb-4">
@@ -1308,7 +1546,7 @@ export default function UserManagementPage({
         </div>
       )}
 
-      {revokePermissionTarget && (
+      {revokePermissionTarget && activeTab === 'permisos' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl p-5">
             <div className="flex items-start justify-between gap-3 mb-4">

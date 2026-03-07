@@ -41,6 +41,20 @@ const saveToStorage = (data: Record<string, AvanceUP[]>) => {
 
 const generateId = () => `avance-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+const getFileNameFromUrl = (value: string, fallback: string): string => {
+  if (!value) return fallback;
+
+  try {
+    const parsed = new URL(value);
+    const last = parsed.pathname.split('/').filter(Boolean).pop();
+    return last ? decodeURIComponent(last) : fallback;
+  } catch {
+    const withoutQuery = value.split('?')[0].split('#')[0];
+    const last = withoutQuery.split('/').filter(Boolean).pop();
+    return last ? decodeURIComponent(last) : fallback;
+  }
+};
+
 const mapApiAvanceToAvanceUP = (apiAvance: Record<string, any>, upid: string): AvanceUP => {
   const createdAt = typeof apiAvance?.created_at === 'string'
     ? apiAvance.created_at
@@ -125,10 +139,10 @@ const mapApiAvanceToAvanceUP = (apiAvance: Record<string, any>, upid: string): A
         url: s.url,
       }))
     : [...imagenes_urls, ...documentos_urls].map((url, index) => {
-        const filename = url.split('/').pop() || `archivo-${index + 1}`;
+        const filename = getFileNameFromUrl(url, `archivo-${index + 1}`);
         return {
           id: `${apiAvance?.id || 'avance'}-file-${index + 1}`,
-          nombre: decodeURIComponent(filename),
+          nombre: filename,
           tipo: imagenes_urls.includes(url) ? 'image/*' : 'application/octet-stream',
           tamaño: 0,
           url,

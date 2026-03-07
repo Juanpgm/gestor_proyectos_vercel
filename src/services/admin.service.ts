@@ -25,7 +25,15 @@ import {
   Role,
   ListAuditLogsParams,
   ListAuditLogsResponse,
-  SystemStats
+  SystemStats,
+  ReporteBugPayload,
+  ReporteBugRecord,
+  SolicitudEscaladaPayload,
+  SolicitudEscaladaRecord,
+  RecomendacionPayload,
+  ActualizarRecomendacionPayload,
+  RecomendacionRecord,
+  GenericCrudResponse
 } from '@/types/admin'
 
 class AdminService {
@@ -208,6 +216,17 @@ class AdminService {
     }
   }
 
+  private extractCollection<TRecord>(response: any): TRecord[] {
+    if (Array.isArray(response?.data)) return response.data as TRecord[]
+    if (Array.isArray(response?.items)) return response.items as TRecord[]
+    if (Array.isArray(response?.results)) return response.results as TRecord[]
+    if (Array.isArray(response?.records)) return response.records as TRecord[]
+    if (Array.isArray(response)) return response as TRecord[]
+    if (response?.data && typeof response.data === 'object') return [response.data as TRecord]
+    if (response && typeof response === 'object') return [response as TRecord]
+    return []
+  }
+
   /**
    * Listar usuarios por endpoint principal
    * Endpoint: GET /auth/admin/users
@@ -248,29 +267,34 @@ class AdminService {
 
   async listAllUsers(limitPerRequest: number = 500): Promise<AdminUser[]> {
     const safeLimit = Math.max(1, Math.min(500, limitPerRequest))
-    const users: AdminUser[] = []
+    const usersByUid = new Map<string, AdminUser>()
     let page = 1
     let hasMore = true
+    let consecutiveNoGrowth = 0
+    const MAX_PAGES = 200
 
-    while (hasMore) {
+    while (hasMore && page <= MAX_PAGES) {
       const response = await this.listUsers({ page, limit: safeLimit })
-      users.push(...response.users)
-
       const received = response.users.length
+      const sizeBefore = usersByUid.size
+
+      response.users.forEach((user) => {
+        if (user?.uid) usersByUid.set(user.uid, user)
+      })
+
+      const grew = usersByUid.size > sizeBefore
+      consecutiveNoGrowth = grew ? 0 : consecutiveNoGrowth + 1
+
       const reachedTotal = typeof response.total === 'number' && response.total > 0
-        ? users.length >= response.total
+        ? usersByUid.size >= response.total
         : false
 
-      hasMore = received === safeLimit && !reachedTotal
+      const backendSuggestsMore = received === safeLimit && !reachedTotal
+      hasMore = backendSuggestsMore && consecutiveNoGrowth < 2
       page += 1
     }
 
-    const uniqueByUid = new Map<string, AdminUser>()
-    users.forEach((user) => {
-      uniqueByUid.set(user.uid, user)
-    })
-
-    return Array.from(uniqueByUid.values())
+    return Array.from(usersByUid.values())
   }
 
   async diagnoseUsersEndpoints(uid?: string): Promise<Array<{
@@ -603,6 +627,135 @@ class AdminService {
         .map((value) => (typeof value === 'string' ? value.trim() : ''))
         .filter(Boolean)
     )).sort((a, b) => a.localeCompare(b, 'es'))
+  }
+
+  async listReportesBug(registroId?: string, limit: number = 50): Promise<ReporteBugRecord[]> {
+    const queryParams = new URLSearchParams()
+    const safeLimit = Math.max(1, Math.min(200, limit))
+    queryParams.append('limit', safeLimit.toString())
+    if (registroId?.trim()) queryParams.append('registro_id', registroId.trim())
+
+    const response = await apiClient.get<any>(`/reportar-bug?${queryParams.toString()}`)
+    return this.extractCollection<ReporteBugRecord>(response)
+  }
+
+  async createReporteBug(payload: ReporteBugPayload): Promise<GenericCrudResponse<ReporteBugRecord>> {
+    const response = await apiClient.post<any>('/reportar-bug', payload)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
+  }
+
+  async updateReporteBug(registroId: string, payload: ReporteBugPayload): Promise<GenericCrudResponse<ReporteBugRecord>> {
+    const response = await apiClient.put<any>(`/reportar-bug/${encodeURIComponent(registroId)}`, payload)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
+  }
+
+  async deleteReporteBug(registroId: string): Promise<GenericCrudResponse<ReporteBugRecord>> {
+    const response = await apiClient.delete<any>(`/reportar-bug/${encodeURIComponent(registroId)}`)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
+  }
+
+  async listSolicitudesEscalada(registroId?: string, limit: number = 50): Promise<SolicitudEscaladaRecord[]> {
+    const queryParams = new URLSearchParams()
+    const safeLimit = Math.max(1, Math.min(200, limit))
+    queryParams.append('limit', safeLimit.toString())
+    if (registroId?.trim()) queryParams.append('registro_id', registroId.trim())
+
+    const response = await apiClient.get<any>(`/solicitar-escalada-privilegios?${queryParams.toString()}`)
+    return this.extractCollection<SolicitudEscaladaRecord>(response)
+  }
+
+  async createSolicitudEscalada(payload: SolicitudEscaladaPayload): Promise<GenericCrudResponse<SolicitudEscaladaRecord>> {
+    const response = await apiClient.post<any>('/solicitar-escalada-privilegios', payload)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
+  }
+
+  async updateSolicitudEscalada(registroId: string, payload: SolicitudEscaladaPayload): Promise<GenericCrudResponse<SolicitudEscaladaRecord>> {
+    const response = await apiClient.put<any>(`/solicitar-escalada-privilegios/${encodeURIComponent(registroId)}`, payload)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
+  }
+
+  async deleteSolicitudEscalada(registroId: string): Promise<GenericCrudResponse<SolicitudEscaladaRecord>> {
+    const response = await apiClient.delete<any>(`/solicitar-escalada-privilegios/${encodeURIComponent(registroId)}`)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
+  }
+
+  async listRecomendaciones(registroId?: string, limit: number = 50): Promise<RecomendacionRecord[]> {
+    const queryParams = new URLSearchParams()
+    const safeLimit = Math.max(1, Math.min(200, limit))
+    queryParams.append('limit', safeLimit.toString())
+    if (registroId?.trim()) queryParams.append('registro_id', registroId.trim())
+
+    const response = await apiClient.get<any>(`/realizar-recomendacion?${queryParams.toString()}`)
+    return this.extractCollection<RecomendacionRecord>(response)
+  }
+
+  async createRecomendacion(payload: RecomendacionPayload): Promise<GenericCrudResponse<RecomendacionRecord>> {
+    const response = await apiClient.post<any>('/realizar-recomendacion', payload)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
+  }
+
+  async updateRecomendacion(registroId: string, payload: ActualizarRecomendacionPayload): Promise<GenericCrudResponse<RecomendacionRecord>> {
+    const response = await apiClient.put<any>(`/realizar-recomendacion/${encodeURIComponent(registroId)}`, payload)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
+  }
+
+  async deleteRecomendacion(registroId: string): Promise<GenericCrudResponse<RecomendacionRecord>> {
+    const response = await apiClient.delete<any>(`/realizar-recomendacion/${encodeURIComponent(registroId)}`)
+    return {
+      success: response?.success !== false,
+      message: response?.message,
+      data: response?.data,
+      count: response?.count,
+      ...response
+    }
   }
 }
 

@@ -168,6 +168,64 @@ export interface DeleteUserResponse {
 }
 
 // ============================================================================
+// GESTION DE REPORTES Y SOLICITUDES (CRUD)
+// ============================================================================
+
+export interface ReporteBugPayload {
+  reportado_por?: string
+  descripcion_bug?: string
+  contexto_adicional_bug?: string
+}
+
+export interface ReporteBugRecord extends ReporteBugPayload {
+  registro_id?: string
+  created_at?: string
+  updated_at?: string
+  [key: string]: unknown
+}
+
+export interface SolicitudEscaladaPayload {
+  reportado_por?: string
+  rol_solicitado?: string
+  motivo_solicitud?: string
+  justificacion_escalada?: string
+}
+
+export interface SolicitudEscaladaRecord extends SolicitudEscaladaPayload {
+  registro_id?: string
+  created_at?: string
+  updated_at?: string
+  [key: string]: unknown
+}
+
+export interface RecomendacionPayload {
+  reportado_por: string
+  recomendacion_sugerencia: string
+  beneficio_esperado: string
+}
+
+export interface ActualizarRecomendacionPayload {
+  reportado_por?: string
+  recomendacion_sugerencia?: string
+  beneficio_esperado?: string
+}
+
+export interface RecomendacionRecord extends ActualizarRecomendacionPayload {
+  registro_id?: string
+  created_at?: string
+  updated_at?: string
+  [key: string]: unknown
+}
+
+export interface GenericCrudResponse<TRecord> {
+  success: boolean
+  message?: string
+  data?: TRecord | TRecord[]
+  count?: number
+  [key: string]: unknown
+}
+
+// ============================================================================
 // AUDIT LOGS
 // ============================================================================
 

@@ -30,6 +30,7 @@ import ManagementFeatureTour from './ManagementFeatureTour'
 import { useAuth } from '@/context/AuthContext'
 
 const GestionRegistrosTab = dynamic(() => import('./GestionRegistrosTab'), { ssr: false })
+const AvancesUPTab = dynamic(() => import('./AvancesUPTab'), { ssr: false })
 const SolicitudesPendientesTab = dynamic(() => import('./SolicitudesPendientesTab'), { ssr: false })
 const HistorialSolicitudesTab = dynamic(() => import('./HistorialSolicitudesTab'), { ssr: false })
 
@@ -221,6 +222,7 @@ type TabType =
   | 'by-centro-gestor' 
   | 'stats'
   | 'gestionar-registros'
+  | 'avances-up'
   | 'solicitudes-pendientes'
   | 'historial-solicitudes'
 
@@ -398,6 +400,13 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       icon: FilePenLine,
       endpoint: '',
       description: 'Crear, eliminar y solicitar cambios de UPs e intervenciones'
+    },
+    {
+      id: 'avances-up' as TabType,
+      label: 'Avances UP',
+      icon: FileText,
+      endpoint: '/avances_unidades_proyecto',
+      description: 'Consulta tabular de avances con fotos, documentos y trazabilidad por intervencion_id / upid'
     },
     ...(canViewSolicitudesTabs
       ? [
@@ -1166,7 +1175,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   // Función para cargar datos según el tab activo
   const loadData = async () => {
     // Los tabs con componentes autónomos no necesitan cargar datos aquí
-    const autonomousTabs: TabType[] = ['gestionar-registros', 'solicitudes-pendientes', 'historial-solicitudes']
+    const autonomousTabs: TabType[] = ['gestionar-registros', 'avances-up', 'solicitudes-pendientes', 'historial-solicitudes']
     if (autonomousTabs.includes(activeTab)) return
 
     setLoading(true)
@@ -1597,6 +1606,8 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
               )}
 
               {activeTab === 'gestionar-registros' && <GestionRegistrosTab />}
+
+              {activeTab === 'avances-up' && <AvancesUPTab />}
 
               {canViewSolicitudesTabs && activeTab === 'solicitudes-pendientes' && <SolicitudesPendientesTab />}
 
