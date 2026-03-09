@@ -5,10 +5,40 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
-const FASTAPI_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.API_BASE_URL;
+const FASTAPI_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL;
+
+const normalizeFilterResponse = (payload: any): Record<string, unknown> => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return {};
+  }
+
+  const normalized = { ...payload } as Record<string, unknown>;
+
+  // Keep backward compatibility with historical alias keys.
+  if (!Array.isArray(normalized.comunas) && Array.isArray(normalized.comunas_corregimientos)) {
+    normalized.comunas = normalized.comunas_corregimientos;
+  }
+
+  if (!Array.isArray(normalized.centros_gestores) && Array.isArray(normalized.nombre_centro_gestor)) {
+    normalized.centros_gestores = normalized.nombre_centro_gestor;
+  }
+
+  if (Array.isArray(normalized.anos)) {
+    normalized.anos = normalized.anos.map((year) => String(year));
+  }
+
+  return normalized;
+};
 
 export async function GET(request: NextRequest) {
   try {
+    if (!FASTAPI_BASE_URL) {
+      throw new Error('API base URL is not configured');
+    }
+
     const { searchParams } = new URL(request.url);
     // Agregar timestamp único para evitar cache
     searchParams.set('_nocache', Date.now().toString());
@@ -36,11 +66,19 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    // Unwrap FastAPI response
+    // Unwrap FastAPI response from known shapes.
     let actualData = data;
-    if (data?.success === true && data.filters) {
-      actualData = data.filters;
+    if (data?.success === true) {
+      if (data?.filters && typeof data.filters === 'object') {
+        actualData = data.filters;
+      } else if (data?.data?.filters && typeof data.data.filters === 'object') {
+        actualData = data.data.filters;
+      } else if (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+        actualData = data.data;
+      }
     }
+
+    actualData = normalizeFilterResponse(actualData);
     
     console.log(`✅ [filters] Loaded filter options`);
     

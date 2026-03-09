@@ -82,6 +82,7 @@ export interface FilterParams {
   estado?: string;
   tipo_intervencion?: string;
   tipo_equipamiento?: string;
+  clase_up?: string;
   frente_activo?: string;
   centro_gestor?: string;
   comuna_corregimiento?: string;
@@ -99,6 +100,7 @@ export interface FilterParams {
   estado_multiple?: string[];
   tipo_intervencion_multiple?: string[];
   tipo_equipamiento_multiple?: string[];
+  clase_up_multiple?: string[];
   frente_activo_multiple?: string[];
   centro_gestor_multiple?: string[];
   comuna_corregimiento_multiple?: string[];
@@ -323,6 +325,26 @@ const fetchUnidadesProyectoRaw = async (filters: FilterParams = {}): Promise<any
     if (!rawData.success || !Array.isArray(rawData.data)) {
       console.error('❌ Invalid API response structure:', rawData);
       throw new Error('Respuesta inválida: se esperaba { success: true, data: [...] }');
+    }
+
+    const totalCount = Number(rawData.count ?? rawData.total ?? rawData.data.length);
+    const returnedCount = rawData.data.length;
+    if (returnedCount >= 10000 && totalCount > returnedCount) {
+      const warning = {
+        warning: 'Possible truncation due to limit=10000',
+        returnedCount,
+        totalCount,
+        timestamp: new Date().toISOString(),
+      };
+      console.warn('⚠️ fetchUnidadesProyectoRaw:', warning);
+
+      if (typeof window !== 'undefined') {
+        const currentDebug = (window as any).__UP_FILTER_DEBUG__ || {};
+        (window as any).__UP_FILTER_DEBUG__ = {
+          ...currentDebug,
+          dataLimitWarning: warning,
+        };
+      }
     }
     
     console.log(`📊 fetchUnidadesProyectoRaw: Converting ${rawData.data.length} items to GeoJSON FeatureCollection`);

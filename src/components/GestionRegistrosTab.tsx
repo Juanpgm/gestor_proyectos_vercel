@@ -103,6 +103,19 @@ declare global {
     FUENTES_FINANCIACION?: string[]
     ESTADOS_UP?: string[]
     CENTROS_GESTORES?: string[]
+    UNIDADES_PROYECTO_FILTERS_GLOBAL?: {
+      centros_gestores?: string[]
+      estados?: string[]
+      tipos_intervencion?: string[]
+      tipos_equipamiento?: string[]
+      clases_up?: string[]
+      frentes_activos?: string[]
+      comunas_corregimientos?: string[]
+      barrios_veredas?: string[]
+      fuentes_financiacion?: string[]
+      anos?: string[]
+      proyectos_estrategicos?: string[]
+    }
   }
 }
 
@@ -241,7 +254,9 @@ const getCentroGestorOptions = (): string[] => {
       ...fromGlobalVar.map((item) => String(item || '').trim()).filter(Boolean),
     ])).sort((a, b) => a.localeCompare(b, 'es'))
 
-    window.CENTROS_GESTORES = [...base]
+    if (base.length > 0) {
+      window.CENTROS_GESTORES = [...base]
+    }
   }
 
   return base
@@ -894,16 +909,17 @@ const CrearIntervencionForm: React.FC<{ defaultUpid?: string; onSuccess: (upids?
   const [bulkRows, setBulkRows] = useState<Array<CrearIntervencionPayload & { _rowId: string }>>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [globalFiltersVersion, setGlobalFiltersVersion] = useState(0)
   const claseUpOptions = useMemo(() => getClaseUpOptions(form.clase_up), [form.clase_up])
   const tipoIntervencionOptions = useMemo(() => getTipoIntervencionOptions(form.tipo_intervencion), [form.tipo_intervencion])
   const fuentesFinanciacionOptions = useMemo(() => getFuentesFinanciacionOptions(form.fuente_financiacion), [form.fuente_financiacion])
   const estadosUpOptions = useMemo(() => getEstadosUpOptions(form.estado), [form.estado])
-  const centroGestorOptions = useMemo(() => getCentroGestorOptions(), [form.nombre_centro_gestor])
+  const centroGestorOptions = useMemo(() => getCentroGestorOptions(), [form.nombre_centro_gestor, globalFiltersVersion])
   const bulkClaseUpOptions = useMemo(() => getClaseUpOptions(), [])
   const bulkTipoIntervencionOptions = useMemo(() => getTipoIntervencionOptions(), [])
   const bulkFuentesFinanciacionOptions = useMemo(() => getFuentesFinanciacionOptions(), [])
   const bulkEstadosUpOptions = useMemo(() => getEstadosUpOptions(), [])
-  const bulkCentroGestorOptions = useMemo(() => getCentroGestorOptions(), [bulkRows])
+  const bulkCentroGestorOptions = useMemo(() => getCentroGestorOptions(), [bulkRows, globalFiltersVersion])
   const bulkRowSeqRef = useRef(1)
   const userCentroGestor = useMemo(() => {
     return String(
@@ -912,6 +928,19 @@ const CrearIntervencionForm: React.FC<{ defaultUpid?: string; onSuccess: (upids?
       ''
     ).trim()
   }, [authState.user?.nombre_centro_gestor, authState.user?.centro_gestor_assigned])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const onGlobalFiltersUpdated = () => {
+      setGlobalFiltersVersion((prev) => prev + 1)
+    }
+
+    window.addEventListener('up-filters-updated', onGlobalFiltersUpdated)
+    return () => {
+      window.removeEventListener('up-filters-updated', onGlobalFiltersUpdated)
+    }
+  }, [])
 
   useEffect(() => {
     if (!userCentroGestor) return

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_ENV=development NEXT_PUBLIC_APP_ENV=development next dev",
+    "dev:stable": "node scripts/dev-stable.js",
     "dev:production": "cross-env NODE_ENV=production NEXT_PUBLIC_APP_ENV=production next dev",
     "build": "cross-env NODE_ENV=production next build",
     "build:dev": "cross-env NODE_ENV=development next build",

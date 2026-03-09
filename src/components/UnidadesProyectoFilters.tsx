@@ -13,7 +13,14 @@ type GlobalFilterOptions = {
   centros_gestores: string[];
   estados: string[];
   tipos_intervencion: string[];
+  tipos_equipamiento: string[];
+  clases_up: string[];
+  frentes_activos: string[];
+  comunas_corregimientos: string[];
+  barrios_veredas: string[];
   fuentes_financiacion: string[];
+  anos: string[];
+  proyectos_estrategicos: string[];
 };
 
 declare global {
@@ -24,7 +31,16 @@ declare global {
     ESTADOS_UP?: string[];
     TIPOS_INTERVENCION?: string[];
     TIPOS_INTERVENCIONES?: string[];
+    TIPOS_EQUIPAMIENTO?: string[];
+    CLASES_UP?: string[];
+    FRENTES_ACTIVOS?: string[];
+    COMUNAS_CORREGIMIENTOS?: string[];
+    BARRIOS_VEREDAS?: string[];
     FUENTES_FINANCIACION?: string[];
+    ANOS?: string[];
+    PROYECTOS_ESTRATEGICOS?: string[];
+    __UP_FILTER_DEBUG__?: Record<string, unknown>;
+    __UP_FILTER_TIMELINE__?: Array<Record<string, unknown>>;
   }
 }
 
@@ -55,12 +71,252 @@ const FUENTES_FINANCIACION_DEFAULT: string[] = [
   'Otros créditos (vigencias anteriores)',
 ];
 
+const CLASES_UP_DEFAULT: string[] = [
+  'Interventoria',
+  'Estudios y diseños',
+  'Obras equipamientos',
+  'Obra vial',
+  'Adquisición predial',
+  'Subsidios',
+  'Demarcación vial',
+  'Dotaciones',
+  'Obras de Arte (civil)',
+];
+
+const TIPOS_EQUIPAMIENTO_DEFAULT: string[] = [
+  'Instituciones Educativas',
+  'Parques y zonas verdes',
+  'Fuentes y monumentos',
+  'CALIS',
+  'Centro Cultural',
+  'Estaciones de policia',
+  'Vivienda mejoramiento',
+  'Estaciones MIO',
+  'Casa de Justicia',
+  'Bibliotecas',
+  'IPS',
+  'Jardines',
+  'Reducción del riesgo',
+  'Vivienda nueva',
+  'UTS',
+  'Canchas',
+  'Eco parques',
+  'CAD',
+  'Infraestructura vial',
+  'Infraestructura recreativa',
+  'Infraestructura recreo deportiva',
+  'Adquisición predios',
+  'Infraestructura cultural',
+  'Señalización vial',
+  'Infraestructura de servicios publicos',
+];
+
+const CENTROS_GESTORES_DEFAULT: string[] = [
+  'Departamento Administrativo de Contratación Pública',
+  'Departamento Administrativo de Control Disciplinario Interno',
+  'Departamento Administrativo de Control Interno',
+  'Departamento Administrativo de Desarrollo e Innovación Institucional',
+  'Departamento Administrativo de Gestión Jurídica Pública',
+  'Departamento Administrativo de Gestión del Medio Ambiente',
+  'Departamento Administrativo de Hacienda',
+  'Departamento Administrativo de Planeación Municipal',
+  'Departamento Administrativo de Tecnologías de la Información y las Comunicaciones',
+  'Secretaría de Bienestar Social',
+  'Secretaría de Cultura',
+  'Secretaría de Desarrollo Económico',
+  'Secretaría de Desarrollo Territorial y Participación Ciudadana',
+  'Secretaría de Educación',
+  'Secretaría de Gestión del Riesgo de Emergencias y Desastres',
+  'Secretaría de Gobierno',
+  'Secretaría de Infraestructura',
+  'Secretaría de Movilidad',
+  'Secretaría de Paz y Cultura Ciudadana',
+  'Secretaría de Salud Pública',
+  'Secretaría de Seguridad y Justicia',
+  'Secretaría de Turismo',
+  'Secretaría de Vivienda Social y Hábitat',
+  'Secretaría del Deporte y la Recreación',
+  'Unidad Administrativa Especial de Gestión de Bienes y Servicios',
+  'Unidad Administrativa Especial de Protección Animal',
+  'Unidad Administrativa Especial de Servicios Públicos',
+];
+
+const COMUNAS_CORREGIMIENTOS_DEFAULT: string[] = [
+  'COMUNA 01', 'COMUNA 02', 'COMUNA 03', 'COMUNA 04', 'COMUNA 05',
+  'COMUNA 06', 'COMUNA 07', 'COMUNA 08', 'COMUNA 09', 'COMUNA 10',
+  'COMUNA 11', 'COMUNA 12', 'COMUNA 13', 'COMUNA 14', 'COMUNA 15',
+  'COMUNA 16', 'COMUNA 17', 'COMUNA 18', 'COMUNA 19', 'COMUNA 20',
+  'COMUNA 21', 'COMUNA 22',
+  'El Hormiguero', 'El Saladito', 'Felidia', 'Golondrinas',
+  'La Buitrera', 'La Castilla', 'La Elvira', 'La Leonera', 'La Paz',
+  'Los Andes', 'Montebello', 'Navarro', 'Pance', 'Pichinde', 'Villacarmelo',
+];
+
+const BARRIOS_VEREDAS_DEFAULT: string[] = [
+  '20 de Julio', '3 de Julio', 'Acueducto de la Reforma', 'Aguablanca', 'Aguacatal',
+  'Alameda', 'Alfonso Barberena A.', 'Alfonso Bonilla Aragón', 'Alfonso Lopez P. 1a Etapa',
+  'Alfonso Lopez P. 2a Etapa', 'Alfonso Lopez P. 3a Etapa', 'Alférez Real',
+  'Alirio Mora Beltrán', 'Alto Aguacatal', 'Alto de Los Mangos', 'Alto del Cerro Normandia',
+  'Alto Nápoles', 'Altos de Menga', 'Antonio Nariño', 'Aranjuez', 'Arboledas',
+  'Asturias', 'Atanasio Girardot', 'Atenas', 'Barrio Obrero', 'Base Aérea',
+  'Belalcázar', 'Belisario Caicedo', 'Bella Suiza', 'Bellavista', 'Bello Horizonte',
+  'Belén', 'Benjamín Herrera', 'Bolivariano', 'Bosques del Limonar', 'Bretaña',
+  'Brisas de Los Alamos', 'Brisas de los Cristales', 'Brisas de Mayo',
+  'Brisas de Montebello', 'Brisas del Limonar', 'Buenos Aires', 'Buitrera (Cabecera)',
+  'Caldas', 'Calima', 'Calimio Desepaz', 'Calipso',
+  'Camino Real - Joaquin Borrero Sinisterra', 'Camino Real - Los Fundadores',
+  'Campoalegre', 'Caney', 'Carpatos', 'Cascajal', 'Cauca Viejo',
+  'Cañaveral', 'Cañaveralejo - Seguros Patria', 'Cañaverales - Los Samanes',
+  'Centenario', 'Champagnat', 'Chapinero', 'Charco Azul',
+  'Chiminangos I', 'Chiminangos II', 'Chipichape', 'Ciudad 2000',
+  'Ciudad Campestre', 'Ciudad Capri', 'Ciudad Córdoba', 'Ciudad de Los Alamos',
+  'Ciudad Talanga', 'Ciudad Universitaria', 'Ciudadela Comfandi',
+  'Ciudadela del Rio - CVC', 'Ciudadela Floralia', 'Ciudadela Pasoancho',
+  'Club Campestre', 'Colinas del Sur', 'Colseguros Andes', 'Compartir',
+  'Cristo Rey - La Hamaca', 'Cristóbal Colón', 'Cuarteles de Nápoles',
+  'Cuarto de Legua - Guadalupe', 'Departamental', 'Desepaz Invicali',
+  'Dinastia Ventiaderos', 'Doce de Octubre', 'Dos Quebradas',
+  'Ecoparque Cristo Rey', 'Eduardo Santos', 'El Banqueo', 'El Bosque',
+  'El Calvario', 'El Carmen', 'El Cedro', 'El Cerezo', 'El Cortijo',
+  'El Diamante', 'El Dorado', 'El Estero', 'El Faro', 'El Futuro',
+  'El Gran Limonar', 'El Gran Limonar - Cataya', 'El Guabal', 'El Hoyo',
+  'El Ingenio', 'El Jardin', 'El Jardín', 'El Jordán', 'El Lido',
+  'El Limonar', 'El Mango - La Reforma', 'El Morichal', 'El Mortiñal',
+  'El Nacional', 'El Otoño', 'El Pajuil', 'El Palomar', 'El Paraíso',
+  'El Pato', 'El Peon', 'El Peñón', 'El Piloto', 'El Pinar',
+  'El Poblado I', 'El Poblado II', 'El Pondaje', 'El Porvenir', 'El Prado',
+  'El Recuerdo', 'El Refugio', 'El Remanso', 'El Retiro', 'El Rodeo',
+  'El Rosario', 'El Saladito (Cabecera)', 'El Sena', 'El Troncal',
+  'El Trébol', 'El Vallado', 'El Vergel', 'Eucaristico', 'Evaristo Garcia',
+  'Felidia (Cabecera)', 'Fenalco Kennedy', 'Fepicol', 'Flora Industrial',
+  'Fonaviemcali', 'Francisco Eladio Ramírez', 'Fátima', 'Galeras',
+  'Golondrinas (Cabecera)', 'Granada', 'Guayaquil', 'Guillermo Valencia',
+  'Horizontes', 'Hormiguero (Cabecera)', 'Ignacio Rengifo',
+  'Industria de Licores', 'Industrial', 'Jorge Eliécer Gaitán',
+  'Jorge Isaacs', 'Jorge Zawadsky', 'José Holguín Garcés',
+  'José Manuel Marroquín I', 'José Manuel Marroquín II',
+  'José María Córdoba', 'Juanambú', 'Julio Rincón', 'Junín', 'Km 18',
+  'La Alborada', 'La Alianza', 'La Base', 'La Cajita', 'La Campiña',
+  'La Candelaria', 'La Carolina - Andes Bajo', 'La Cascada',
+  'La Castilla (Cabecera)', 'La Elvira (Cabecera)', 'La Esmeralda',
+  'La Esperanza', 'La Flora', 'La Floresta', 'La Fonda', 'La Fortaleza',
+  'La Gran Colombia', 'La Hacienda', 'La Independencia', 'La Isla',
+  'La Leonera (Cabecera)', 'La Libertad', 'La Luisa', 'La María',
+  'La Mariaa', 'La Merced', 'La Paila', 'La Paz', 'La Paz (Cabecera)',
+  'La Playa', 'La Rivera I', 'La Riverita', 'La Selva', 'La Sirena',
+  'La Sultana', 'La Viga', 'La Voragine', 'Las Acacias', 'Las Américas',
+  'Las Brisas', 'Las Ceibas', 'Las Delicias', 'Las Granjas', 'Las Nieves',
+  'Las Orquídeas', 'Las Palmas', 'Las Quintas de Don Simón',
+  'Laureano Gómez', 'León XIII', 'Lili', 'Limones', 'Lleras Camargo',
+  'Lleras Restrepo', 'Lleras Restrepo II', 'Lomitas', 'Los Alcazares',
+  'Los Andes', 'Los Andes (Cabecera)', 'Los Andes B - La Riviera',
+  'Los Arrayanes - Los Pinos', 'Los Chorros', 'Los Comuneros I',
+  'Los Comuneros II', 'Los Conquistadores', 'Los Cámbulos',
+  'Los Farallones', 'Los Guaduales', 'Los Guayacanes', 'Los Lagos',
+  'Los Laureles', 'Los Libertadores', 'Los Lideres', 'Los Naranjos',
+  'Los Naranjos II', 'Los Parques Barranquilla', 'Los Pinos',
+  'Los Portales - Nuevo Rey', 'Los Robles', 'Los Sauces', 'Lourdes',
+  'Mameyal', 'Manuel Maria Buenaventura', 'Manuela Beltrán',
+  'Manzanares', 'Maracaibo', 'Marco Fidel Suárez', 'Mariano Ramos',
+  'Mario Correa Rengifo', 'Marroquín III', 'Mayapan - Las Vegas',
+  'Meléndez', 'Menga', 'Metropolitano del Norte', 'Miraflores',
+  'Mojica', 'Monaco', 'Montañitas', 'Montañuelas',
+  'Montebello (Cabecera)', 'Morgan', 'Municipal',
+  'Navarro - La Chanca', 'Navarro (Cabecera)', 'Normandia',
+  'Nueva Floresta', 'Nueva Tequendama', 'Nápoles', 'Olaya Herrera',
+  'Olímpico', 'Omar Torrijos', 'Pampa Linda', 'Panamericano',
+  'Pance (Cabecera)', 'Parcelaciones Pance', 'Parque de la Caña',
+  'Parque Ecológico CVC', 'Parque La Bandera', 'Paseo de Los Almendros',
+  'Paso del Comercio', 'Pasoancho', 'Peñas Blancas',
+  'Petecuy Primera Etapa', 'Petecuy Segunda Etapa', 'Petecuy Tercera Etapa',
+  'Pichinde (Cabecera)', 'Pico de Aguila', 'Pilas del Cabuyal',
+  'Pizamos I', 'Pizamos II', 'Pizamos III - Las Dalias',
+  'Planta de Tratamiento', 'Playa Renaciente', 'Polvorines',
+  'Popular', 'Porvenir', 'Potrero Grande', 'Prados de Oriente',
+  'Prados del Limonar', 'Prados del Norte', 'Prados del Sur',
+  'Primavera', 'Primero de Mayo', 'Primitivo Crespo',
+  'Promociones Populares B', 'Pueblo Joven', 'Pueblo Nuevo',
+  'Puerta del Sol', 'Puerto Mallarino', 'Puerto Nuevo',
+  'Quebrada Honda', 'Rafael Uribe Uribe', 'República de Israel',
+  'Ricardo Balcázar', 'Rodrigo Lara Bonilla', 'Saavedra Galindo',
+  'Salomia', 'Samanes del Cauca', 'San Antonio', 'San Benito',
+  'San Carlos', 'San Cayetano', 'San Cristóbal', 'San Fernando Nuevo',
+  'San Fernando Viejo', 'San Francisco', 'San Juan Bosco',
+  'San Judas Tadeo I', 'San Judas Tadeo II', 'San Luis', 'San Luis II',
+  'San Marino', 'San Miguel', 'San Nicolás', 'San Pablo', 'San Pascual',
+  'San Pedro', 'San Pedro Claver', 'San Vicente',
+  'Santa Anita - La Selva', 'Santa Bárbara', 'Santa Elena', 'Santa Fé',
+  'Santa Helena', 'Santa Isabel', 'Santa Mónica',
+  'Santa Mónica Belalcázar', 'Santa Mónica Popular', 'Santa Rita',
+  'Santa Rosa', 'Santa Teresita', 'Santander', 'Santo Domingo',
+  'Sector Alto de los Chorros', 'Sector Alto Jordán',
+  'Sector Altos de Santa Isabel', 'Sector Asprosocial - Diamante',
+  'Sector Cañaveralejo Guadalupe', 'Sector Geográfico Tres Cruces',
+  'Sector Laguna del Pondaje', 'Sector Meléndez',
+  'Sector Patio Bonito', 'Sector Puente del Comercio',
+  'Senderos de La Flora', 'Siete de Agosto', 'Siloé',
+  'Simón Bolívar', 'Sindical', 'Sucre',
+  'Sultana - Berlín - San Francisco', 'Tejares - Cristales',
+  'Terron Colorado', 'Tierra Blanca', 'Torres de Comfandi',
+  'U. D. A. Galindo Plaza de Toros', 'Ulpiano Lloreda',
+  'Unicentro Cali', 'Unidad Residencial Bueno Madrid',
+  'Unidad Residencial El Coliseo', 'Unidad Residencial Santiago de Cali',
+  'Unión de Vivienda Popular', 'Urbanización Boyaca',
+  'Urbanización Calimio', 'Urbanización Ciudad Jardín',
+  'Urbanización Colseguros', 'Urbanización El Angel del Hogar',
+  'Urbanización La Flora', 'Urbanización La Merced',
+  'Urbanización La Nueva Base', 'Urbanización Militar',
+  'Urbanización Nueva Granada', 'Urbanización Rio Lili',
+  'Urbanización San Joaquin', 'Urbanización Tequendama',
+  'Valle del Lili', 'Valle Grande', 'Vendimia',
+  'Venezuela - Urbanización Cañaveralejo', 'Versalles',
+  'Villa Colombia', 'Villa del Lago', 'Villa del Prado - El Guabito',
+  'Villa del Rosario', 'Villa del Sol', 'Villa del Sur', 'Villablanca',
+  'Villacarmelo (Cabecera)', 'Villamercedes I - Villa Luz - Las Garzas',
+  'Villanueva', 'Vipasa', 'Vista Hermosa', 'Yira Castro',
+];
+
 const normalizeOptions = (values: unknown): string[] => {
   if (!Array.isArray(values)) return [];
   return Array.from(new Set(values
     .map((value) => String(value || '').trim())
     .filter(Boolean)))
     .sort((a, b) => a.localeCompare(b, 'es'));
+};
+
+const asText = (value: unknown): string => String(value ?? '').trim();
+
+const pickFirstNonEmpty = (...sources: unknown[]): string[] => {
+  for (const source of sources) {
+    const normalized = normalizeOptions(source);
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+  return [];
+};
+
+const extractFromRecords = (
+  records: Array<Record<string, unknown>>,
+  keys: string[]
+): string[] => {
+  if (!Array.isArray(records) || records.length === 0) return [];
+
+  const values = records
+    .map((record) => {
+      const recordProperties = (record.properties && typeof record.properties === 'object')
+        ? (record.properties as Record<string, unknown>)
+        : undefined;
+
+      for (const key of keys) {
+        const value = asText(record[key] ?? recordProperties?.[key]);
+        if (value) return value;
+      }
+      return '';
+    })
+    .filter(Boolean);
+
+  return normalizeOptions(values);
 };
 
 const readGlobalOptions = (): Partial<GlobalFilterOptions> => {
@@ -87,16 +343,24 @@ const readGlobalOptions = (): Partial<GlobalFilterOptions> => {
           ? window.TIPOS_INTERVENCIONES
           : window.TIPOS_INTERVENCION)
     ),
+    tipos_equipamiento: normalizeOptions(globalObject.tipos_equipamiento || window.TIPOS_EQUIPAMIENTO),
+    clases_up: normalizeOptions(globalObject.clases_up || window.CLASES_UP),
+    frentes_activos: normalizeOptions(globalObject.frentes_activos || window.FRENTES_ACTIVOS),
+    comunas_corregimientos: normalizeOptions(globalObject.comunas_corregimientos || window.COMUNAS_CORREGIMIENTOS),
+    barrios_veredas: normalizeOptions(globalObject.barrios_veredas || window.BARRIOS_VEREDAS),
     fuentes_financiacion: normalizeOptions(
       globalObject.fuentes_financiacion && globalObject.fuentes_financiacion.length > 0
         ? globalObject.fuentes_financiacion
         : window.FUENTES_FINANCIACION
-    )
+    ),
+    anos: normalizeOptions(globalObject.anos || window.ANOS),
+    proyectos_estrategicos: normalizeOptions(globalObject.proyectos_estrategicos || window.PROYECTOS_ESTRATEGICOS)
   };
 };
 
 interface UnidadesProyectoFiltersProps {
   filterData: FilterData | null;
+  records?: Array<Record<string, unknown>>;
   filters: FilterParams & { 
     searchTerm: string;
     presupuesto_min?: number;
@@ -280,17 +544,12 @@ const EnhancedFilterSelect: React.FC<{
       </button>
 
       {/* Dropdown via portal to escape overflow/stacking context */}
-      <AnimatePresence>
-        {isOpen && typeof document !== 'undefined' && createPortal(
-          <motion.div
-            ref={dropdownRef}
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-64 overflow-hidden"
-            style={dropdownStyle}
-          >
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl max-h-64 overflow-hidden"
+          style={dropdownStyle}
+        >
             {/* Search bar */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
@@ -394,10 +653,9 @@ const EnhancedFilterSelect: React.FC<{
                 })
               )}
             </div>
-          </motion.div>,
-          document.body
-        )}
-      </AnimatePresence>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
@@ -510,6 +768,7 @@ const RangeFilter: React.FC<{
 // Componente principal de filtros
 const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   filterData,
+  records = [],
   filters,
   onFiltersChange,
   onSearchChange,
@@ -524,6 +783,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     estados: string[];
     tipos_intervencion: string[];
     tipos_equipamiento: string[];
+    clases_up: string[];
     frentes_activos: string[];
     centros_gestores: string[];
     comunas_corregimientos: string[];
@@ -535,6 +795,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     estados: [],
     tipos_intervencion: [],
     tipos_equipamiento: [],
+    clases_up: [],
     frentes_activos: [],
     centros_gestores: [],
     comunas_corregimientos: [],
@@ -546,67 +807,97 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
 
   // Toggle entre modo single y multi-select - habilitado por defecto
   const [isMultiMode, setIsMultiMode] = useState(true);
-
-  const fallbackOptions = useMemo<GlobalFilterOptions>(() => ({
-    centros_gestores: normalizeOptions(filterData?.centros_gestores || []),
-    estados: normalizeOptions(ESTADOS_UP_DEFAULT),
-    tipos_intervencion: normalizeOptions(TIPOS_INTERVENCIONES_DEFAULT),
-    fuentes_financiacion: normalizeOptions(FUENTES_FINANCIACION_DEFAULT)
-  }), [filterData?.centros_gestores]);
-
-  const dropdownOptions = useMemo<GlobalFilterOptions>(() => {
-    const globalOptions = readGlobalOptions();
-    return {
-      centros_gestores: (globalOptions.centros_gestores && globalOptions.centros_gestores.length > 0)
-        ? globalOptions.centros_gestores
-        : fallbackOptions.centros_gestores,
-      estados: (globalOptions.estados && globalOptions.estados.length > 0)
-        ? globalOptions.estados
-        : fallbackOptions.estados,
-      tipos_intervencion: (globalOptions.tipos_intervencion && globalOptions.tipos_intervencion.length > 0)
-        ? globalOptions.tipos_intervencion
-        : fallbackOptions.tipos_intervencion,
-      fuentes_financiacion: (globalOptions.fuentes_financiacion && globalOptions.fuentes_financiacion.length > 0)
-        ? globalOptions.fuentes_financiacion
-        : fallbackOptions.fuentes_financiacion
-    };
-  }, [fallbackOptions]);
+  const [globalVersion, setGlobalVersion] = useState(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const currentGlobal = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {};
-    const nextGlobal: GlobalFilterOptions = {
-      centros_gestores: normalizeOptions(
-        (currentGlobal.centros_gestores && currentGlobal.centros_gestores.length > 0)
-          ? currentGlobal.centros_gestores
-          : fallbackOptions.centros_gestores
-      ),
-      estados: normalizeOptions(
-        (currentGlobal.estados && currentGlobal.estados.length > 0)
-          ? currentGlobal.estados
-          : fallbackOptions.estados
-      ),
-      tipos_intervencion: normalizeOptions(
-        (currentGlobal.tipos_intervencion && currentGlobal.tipos_intervencion.length > 0)
-          ? currentGlobal.tipos_intervencion
-          : fallbackOptions.tipos_intervencion
-      ),
-      fuentes_financiacion: normalizeOptions(
-        (currentGlobal.fuentes_financiacion && currentGlobal.fuentes_financiacion.length > 0)
-          ? currentGlobal.fuentes_financiacion
-          : fallbackOptions.fuentes_financiacion
-      )
+    const onGlobalFiltersUpdated = () => {
+      setGlobalVersion((prev) => prev + 1);
     };
 
-    window.UNIDADES_PROYECTO_FILTERS_GLOBAL = nextGlobal;
-    window.CENTROS_GESTORES = nextGlobal.centros_gestores;
-    window.ESTADOS_UP = nextGlobal.estados;
-    window.ESTADOS = nextGlobal.estados;
-    window.TIPOS_INTERVENCIONES = nextGlobal.tipos_intervencion;
-    window.TIPOS_INTERVENCION = nextGlobal.tipos_intervencion;
-    window.FUENTES_FINANCIACION = nextGlobal.fuentes_financiacion;
-  }, [fallbackOptions]);
+    window.addEventListener('up-filters-updated', onGlobalFiltersUpdated);
+    return () => {
+      window.removeEventListener('up-filters-updated', onGlobalFiltersUpdated);
+    };
+  }, []);
+
+  const recordOptions = useMemo<GlobalFilterOptions>(() => ({
+    centros_gestores: extractFromRecords(records, ['nombre_centro_gestor', 'centro_gestor']),
+    estados: extractFromRecords(records, ['estado']),
+    tipos_intervencion: extractFromRecords(records, ['tipo_intervencion']),
+    tipos_equipamiento: extractFromRecords(records, ['tipo_equipamiento']),
+    clases_up: extractFromRecords(records, ['clase_up']),
+    frentes_activos: extractFromRecords(records, ['frente_activo']),
+    comunas_corregimientos: extractFromRecords(records, ['comuna_corregimiento', 'comuna']),
+    barrios_veredas: extractFromRecords(records, ['barrio_vereda']),
+    fuentes_financiacion: extractFromRecords(records, ['fuente_financiacion']),
+    anos: extractFromRecords(records, ['ano', 'anio']),
+    proyectos_estrategicos: extractFromRecords(records, ['proyectos_estrategicos'])
+  }), [records]);
+
+  const fallbackOptions = useMemo<GlobalFilterOptions>(() => ({
+    centros_gestores: pickFirstNonEmpty(filterData?.centros_gestores, recordOptions.centros_gestores, CENTROS_GESTORES_DEFAULT),
+    estados: pickFirstNonEmpty(filterData?.estados, recordOptions.estados, ESTADOS_UP_DEFAULT),
+    tipos_intervencion: pickFirstNonEmpty(filterData?.tipos_intervencion, recordOptions.tipos_intervencion, TIPOS_INTERVENCIONES_DEFAULT),
+    tipos_equipamiento: pickFirstNonEmpty(filterData?.tipos_equipamiento, recordOptions.tipos_equipamiento, TIPOS_EQUIPAMIENTO_DEFAULT),
+    clases_up: pickFirstNonEmpty(recordOptions.clases_up, CLASES_UP_DEFAULT),
+    frentes_activos: pickFirstNonEmpty(filterData?.frentes_activos, recordOptions.frentes_activos),
+    comunas_corregimientos: pickFirstNonEmpty(filterData?.comunas, recordOptions.comunas_corregimientos, COMUNAS_CORREGIMIENTOS_DEFAULT),
+    barrios_veredas: pickFirstNonEmpty(filterData?.barrios_veredas, recordOptions.barrios_veredas, BARRIOS_VEREDAS_DEFAULT),
+    fuentes_financiacion: pickFirstNonEmpty(filterData?.fuentes_financiacion, recordOptions.fuentes_financiacion, FUENTES_FINANCIACION_DEFAULT),
+    anos: pickFirstNonEmpty(filterData?.anos, recordOptions.anos),
+    proyectos_estrategicos: pickFirstNonEmpty(filterData?.proyectos_estrategicos, recordOptions.proyectos_estrategicos, ['Pulmón de Oriente'])
+  }), [filterData, recordOptions]);
+
+  const dropdownOptions = useMemo<GlobalFilterOptions>(() => {
+    const globalOptions = readGlobalOptions();
+    return {
+      centros_gestores: pickFirstNonEmpty(fallbackOptions.centros_gestores, globalOptions.centros_gestores),
+      estados: pickFirstNonEmpty(fallbackOptions.estados, globalOptions.estados),
+      tipos_intervencion: pickFirstNonEmpty(fallbackOptions.tipos_intervencion, globalOptions.tipos_intervencion),
+      tipos_equipamiento: pickFirstNonEmpty(fallbackOptions.tipos_equipamiento, globalOptions.tipos_equipamiento),
+      clases_up: pickFirstNonEmpty(fallbackOptions.clases_up, globalOptions.clases_up),
+      frentes_activos: pickFirstNonEmpty(fallbackOptions.frentes_activos, globalOptions.frentes_activos),
+      comunas_corregimientos: pickFirstNonEmpty(fallbackOptions.comunas_corregimientos, globalOptions.comunas_corregimientos),
+      barrios_veredas: pickFirstNonEmpty(fallbackOptions.barrios_veredas, globalOptions.barrios_veredas),
+      fuentes_financiacion: pickFirstNonEmpty(fallbackOptions.fuentes_financiacion, globalOptions.fuentes_financiacion),
+      anos: pickFirstNonEmpty(fallbackOptions.anos, globalOptions.anos),
+      proyectos_estrategicos: pickFirstNonEmpty(fallbackOptions.proyectos_estrategicos, globalOptions.proyectos_estrategicos)
+    };
+  }, [fallbackOptions, globalVersion]);
+
+  const resolvedDropdownOptions = useMemo<GlobalFilterOptions>(() => ({
+    centros_gestores: pickFirstNonEmpty(dropdownOptions.centros_gestores, CENTROS_GESTORES_DEFAULT),
+    estados: pickFirstNonEmpty(dropdownOptions.estados, ESTADOS_UP_DEFAULT),
+    tipos_intervencion: pickFirstNonEmpty(dropdownOptions.tipos_intervencion, TIPOS_INTERVENCIONES_DEFAULT),
+    tipos_equipamiento: pickFirstNonEmpty(dropdownOptions.tipos_equipamiento, TIPOS_EQUIPAMIENTO_DEFAULT),
+    clases_up: pickFirstNonEmpty(dropdownOptions.clases_up, CLASES_UP_DEFAULT),
+    frentes_activos: pickFirstNonEmpty(dropdownOptions.frentes_activos),
+    comunas_corregimientos: pickFirstNonEmpty(dropdownOptions.comunas_corregimientos, COMUNAS_CORREGIMIENTOS_DEFAULT),
+    barrios_veredas: pickFirstNonEmpty(dropdownOptions.barrios_veredas, BARRIOS_VEREDAS_DEFAULT),
+    fuentes_financiacion: pickFirstNonEmpty(dropdownOptions.fuentes_financiacion, FUENTES_FINANCIACION_DEFAULT),
+    anos: pickFirstNonEmpty(dropdownOptions.anos),
+    proyectos_estrategicos: pickFirstNonEmpty(dropdownOptions.proyectos_estrategicos, ['Pulmón de Oriente'])
+  }), [dropdownOptions]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const observedGlobal = readGlobalOptions();
+
+    window.__UP_FILTER_DEBUG__ = {
+      ...(window.__UP_FILTER_DEBUG__ || {}),
+      source: 'UnidadesProyectoFilters',
+      globalVersion,
+      recordsCount: records.length,
+      sources: {
+        global: observedGlobal,
+        fallback: fallbackOptions,
+        resolved: resolvedDropdownOptions,
+      }
+    };
+  }, [resolvedDropdownOptions, records.length, fallbackOptions, globalVersion]);
 
   const handleFilterChange = (key: keyof FilterParams, value: string) => {
     onFiltersChange({
@@ -632,6 +923,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
                      key === 'barrios_veredas' ? 'barrio_vereda' :
                      key === 'fuentes_financiacion' ? 'fuente_financiacion' :
                      key === 'tipos_equipamiento' ? 'tipo_equipamiento' :
+                     key === 'clases_up' ? 'clase_up' :
                      key === 'proyectos_estrategicos' ? 'proyectos_estrategicos' :
                      'ano';
     
@@ -698,6 +990,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       estados: [],
       tipos_intervencion: [],
       tipos_equipamiento: [],
+      clases_up: [],
       frentes_activos: [],
       centros_gestores: [],
       comunas_corregimientos: [],
@@ -719,6 +1012,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
         estados: [],
         tipos_intervencion: [],
         tipos_equipamiento: [],
+        clases_up: [],
         frentes_activos: [],
         centros_gestores: [],
         comunas_corregimientos: [],
@@ -729,6 +1023,11 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       });
     }
   };
+
+  const criticalOptionsMissing =
+    resolvedDropdownOptions.centros_gestores.length === 0 &&
+    resolvedDropdownOptions.estados.length === 0 &&
+    resolvedDropdownOptions.tipos_intervencion.length === 0;
 
   return (
     <motion.div
@@ -808,6 +1107,12 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
           </div>
         </div>
 
+        {criticalOptionsMissing && (
+          <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+            No se pudieron cargar opciones de filtros aun. Revisa conexion/API y recarga la pagina.
+          </div>
+        )}
+
         {/* Layout vertical de filtros para mejor legibilidad */}
         <div className={`space-y-4 ${compact ? 'space-y-3' : 'space-y-4'}`}>
           {/* Estado */}
@@ -815,7 +1120,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Estado"
             value={filters.estado}
             onChange={(value) => handleFilterChange('estado', value)}
-            options={dropdownOptions.estados}
+            options={resolvedDropdownOptions.estados}
             placeholder="Todos los estados"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -828,7 +1133,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Tipo de Intervención"
             value={filters.tipo_intervencion}
             onChange={(value) => handleFilterChange('tipo_intervencion', value)}
-            options={dropdownOptions.tipos_intervencion}
+            options={resolvedDropdownOptions.tipos_intervencion}
             placeholder="Todos los tipos"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -841,7 +1146,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Tipo de Equipamiento"
             value={filters.tipo_equipamiento}
             onChange={(value) => handleFilterChange('tipo_equipamiento', value)}
-            options={filterData?.tipos_equipamiento || []}
+            options={resolvedDropdownOptions.tipos_equipamiento}
             placeholder="Todos los equipamientos"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -849,12 +1154,25 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             onMultiChange={(values) => handleMultiFilterChange('tipos_equipamiento', values)}
           />
 
+          {/* Clase UP */}
+          <EnhancedFilterSelect
+            label="Clase UP"
+            value={filters.clase_up}
+            onChange={(value) => handleFilterChange('clase_up', value)}
+            options={resolvedDropdownOptions.clases_up}
+            placeholder="Todas las clases"
+            disabled={isLoading}
+            multiSelect={isMultiMode}
+            selectedItems={multiFilters.clases_up}
+            onMultiChange={(values) => handleMultiFilterChange('clases_up', values)}
+          />
+
           {/* Frente activo */}
           <EnhancedFilterSelect
             label="Frente Activo"
             value={filters.frente_activo}
             onChange={(value) => handleFilterChange('frente_activo', value)}
-            options={filterData?.frentes_activos || []}
+            options={resolvedDropdownOptions.frentes_activos}
             placeholder="Todos los frentes"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -867,7 +1185,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Centro Gestor"
             value={filters.centro_gestor}
             onChange={(value) => handleFilterChange('centro_gestor', value)}
-            options={dropdownOptions.centros_gestores}
+            options={resolvedDropdownOptions.centros_gestores}
             placeholder="Todos los centros"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -880,7 +1198,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Comuna/Corregimiento"
             value={filters.comuna_corregimiento}
             onChange={(value) => handleFilterChange('comuna_corregimiento', value)}
-            options={filterData?.comunas || []}
+            options={resolvedDropdownOptions.comunas_corregimientos}
             placeholder="Todas las comunas"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -893,7 +1211,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Barrio/Vereda"
             value={filters.barrio_vereda}
             onChange={(value) => handleFilterChange('barrio_vereda', value)}
-            options={filterData?.barrios_veredas || []}
+            options={resolvedDropdownOptions.barrios_veredas}
             placeholder="Todos los barrios"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -906,7 +1224,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Fuente de Financiación"
             value={filters.fuente_financiacion}
             onChange={(value) => handleFilterChange('fuente_financiacion', value)}
-            options={dropdownOptions.fuentes_financiacion}
+            options={resolvedDropdownOptions.fuentes_financiacion}
             placeholder="Todas las fuentes"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -919,7 +1237,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Año"
             value={filters.ano}
             onChange={(value) => handleFilterChange('ano', value)}
-            options={filterData?.anos || []}
+            options={resolvedDropdownOptions.anos}
             placeholder="Todos los años"
             disabled={isLoading}
             multiSelect={isMultiMode}
@@ -932,7 +1250,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             label="Proyectos Estratégicos"
             value={filters.proyectos_estrategicos}
             onChange={(value) => handleFilterChange('proyectos_estrategicos', value)}
-            options={filterData?.proyectos_estrategicos || ['Pulmón de Oriente']}
+            options={resolvedDropdownOptions.proyectos_estrategicos}
             placeholder="Todos los proyectos"
             disabled={isLoading}
             multiSelect={isMultiMode}

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   fetchGeometryData, 
   fetchAttributeData, 
-  fetchFilterData,
+  generateFiltersFromData,
   type GeometryData,
   type AttributeData,
   type FilterData,
@@ -52,17 +52,16 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
       console.log('🔄 useUnidadesProyecto: Iniciando carga de datos...');
       
       // Usar el servicio que ahora usa el endpoint unificado internamente
-      const [geometry, attributes, filters] = await Promise.all([
+      const [geometry, attributes] = await Promise.all([
         fetchGeometryData(),
-        fetchAttributeData(),
-        fetchFilterData()
+        fetchAttributeData()
       ]);
       
       console.log('✅ useUnidadesProyecto: Datos cargados exitosamente');
       
       setGeometryData(geometry);
       setAttributeData(attributes);
-      setFilterData(filters);
+      setFilterData(generateFiltersFromData(attributes));
       setLastUpdate(new Date());
     } catch (error) {
       console.error('❌ useUnidadesProyecto: Error al cargar datos', error);

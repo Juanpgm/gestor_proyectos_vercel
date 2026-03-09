@@ -71,13 +71,33 @@ type GlobalFilterOptions = {
   centros_gestores: string[];
   estados: string[];
   tipos_intervencion: string[];
+  tipos_equipamiento: string[];
+  clases_up: string[];
+  frentes_activos: string[];
+  comunas_corregimientos: string[];
+  barrios_veredas: string[];
+  fuentes_financiacion: string[];
+  anos: string[];
+  proyectos_estrategicos: string[];
 };
 
 declare global {
   interface Window {
+    UNIDADES_PROYECTO_FILTERS_GLOBAL?: Partial<GlobalFilterOptions>;
     CENTROS_GESTORES?: string[];
     ESTADOS?: string[];
+    ESTADOS_UP?: string[];
     TIPOS_INTERVENCION?: string[];
+    TIPOS_INTERVENCIONES?: string[];
+    TIPOS_EQUIPAMIENTO?: string[];
+    FRENTES_ACTIVOS?: string[];
+    COMUNAS_CORREGIMIENTOS?: string[];
+    BARRIOS_VEREDAS?: string[];
+    FUENTES_FINANCIACION?: string[];
+    ANOS?: string[];
+    PROYECTOS_ESTRATEGICOS?: string[];
+    __UP_FILTER_DEBUG__?: Record<string, unknown>;
+    __UP_FILTER_TIMELINE__?: Array<Record<string, unknown>>;
   }
 }
 
@@ -85,6 +105,16 @@ const normalizeOptions = (values: unknown): string[] => {
   if (!Array.isArray(values)) return [];
   return Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)))
     .sort((a, b) => a.localeCompare(b, 'es'));
+};
+
+const pickFirstNonEmpty = (...sources: unknown[]): string[] => {
+  for (const source of sources) {
+    const normalized = normalizeOptions(source);
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+  return [];
 };
 
 
@@ -655,32 +685,61 @@ const UnidadesProyecto: React.FC = () => {
     if (typeof window === 'undefined') return;
 
     const currentGlobal = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {};
-    const centrosGestores = normalizeOptions(
-      (state.filterData?.centros_gestores && state.filterData.centros_gestores.length > 0)
-        ? state.filterData.centros_gestores
-        : currentGlobal.centros_gestores
-    );
-    const estados = normalizeOptions(
-      (state.filterData?.estados && state.filterData.estados.length > 0)
-        ? state.filterData.estados
-        : currentGlobal.estados
-    );
-    const tiposIntervencion = normalizeOptions(
-      (state.filterData?.tipos_intervencion && state.filterData.tipos_intervencion.length > 0)
-        ? state.filterData.tipos_intervencion
-        : currentGlobal.tipos_intervencion
-    );
-
     const nextGlobal: GlobalFilterOptions = {
-      centros_gestores: centrosGestores,
-      estados,
-      tipos_intervencion: tiposIntervencion,
+      centros_gestores: pickFirstNonEmpty(state.filterData?.centros_gestores, currentGlobal.centros_gestores),
+      estados: pickFirstNonEmpty(state.filterData?.estados, currentGlobal.estados),
+      tipos_intervencion: pickFirstNonEmpty(state.filterData?.tipos_intervencion, currentGlobal.tipos_intervencion),
+      tipos_equipamiento: pickFirstNonEmpty(state.filterData?.tipos_equipamiento, currentGlobal.tipos_equipamiento),
+      clases_up: pickFirstNonEmpty(currentGlobal.clases_up),
+      frentes_activos: pickFirstNonEmpty(state.filterData?.frentes_activos, currentGlobal.frentes_activos),
+      comunas_corregimientos: pickFirstNonEmpty(state.filterData?.comunas, currentGlobal.comunas_corregimientos),
+      barrios_veredas: pickFirstNonEmpty(state.filterData?.barrios_veredas, currentGlobal.barrios_veredas),
+      fuentes_financiacion: pickFirstNonEmpty(state.filterData?.fuentes_financiacion, currentGlobal.fuentes_financiacion),
+      anos: pickFirstNonEmpty(state.filterData?.anos, currentGlobal.anos),
+      proyectos_estrategicos: pickFirstNonEmpty(state.filterData?.proyectos_estrategicos, currentGlobal.proyectos_estrategicos),
     };
 
     window.UNIDADES_PROYECTO_FILTERS_GLOBAL = nextGlobal;
-    window.CENTROS_GESTORES = centrosGestores;
-    window.ESTADOS = estados;
-    window.TIPOS_INTERVENCION = tiposIntervencion;
+    window.CENTROS_GESTORES = nextGlobal.centros_gestores;
+    window.ESTADOS_UP = nextGlobal.estados;
+    window.ESTADOS = nextGlobal.estados;
+    window.TIPOS_INTERVENCIONES = nextGlobal.tipos_intervencion;
+    window.TIPOS_INTERVENCION = nextGlobal.tipos_intervencion;
+    window.TIPOS_EQUIPAMIENTO = nextGlobal.tipos_equipamiento;
+    window.FRENTES_ACTIVOS = nextGlobal.frentes_activos;
+    window.COMUNAS_CORREGIMIENTOS = nextGlobal.comunas_corregimientos;
+    window.BARRIOS_VEREDAS = nextGlobal.barrios_veredas;
+    window.FUENTES_FINANCIACION = nextGlobal.fuentes_financiacion;
+    window.ANOS = nextGlobal.anos;
+    window.PROYECTOS_ESTRATEGICOS = nextGlobal.proyectos_estrategicos;
+
+    const publishDetail = {
+      source: 'UnidadesProyecto',
+      timestamp: new Date().toISOString(),
+      hasFilterData: Boolean(state.filterData),
+      counts: {
+        centros_gestores: nextGlobal.centros_gestores.length,
+        estados: nextGlobal.estados.length,
+        tipos_intervencion: nextGlobal.tipos_intervencion.length,
+        tipos_equipamiento: nextGlobal.tipos_equipamiento.length,
+        frentes_activos: nextGlobal.frentes_activos.length,
+        comunas_corregimientos: nextGlobal.comunas_corregimientos.length,
+        barrios_veredas: nextGlobal.barrios_veredas.length,
+        fuentes_financiacion: nextGlobal.fuentes_financiacion.length,
+        anos: nextGlobal.anos.length,
+        proyectos_estrategicos: nextGlobal.proyectos_estrategicos.length,
+      }
+    };
+
+    const timeline = Array.isArray(window.__UP_FILTER_TIMELINE__) ? window.__UP_FILTER_TIMELINE__ : [];
+    timeline.push(publishDetail);
+    window.__UP_FILTER_TIMELINE__ = timeline.slice(-50);
+    window.__UP_FILTER_DEBUG__ = {
+      ...(window.__UP_FILTER_DEBUG__ || {}),
+      lastPublish: publishDetail,
+    };
+
+    window.dispatchEvent(new CustomEvent('up-filters-updated', { detail: publishDetail }));
   }, [state.filterData]);
 
   // Handlers de eventos
@@ -915,6 +974,7 @@ const UnidadesProyecto: React.FC = () => {
           >
             <UnidadesProyectoFilters
               filterData={state.filterData}
+              records={state.attributeData as unknown as Array<Record<string, unknown>>}
               filters={filters}
               onFiltersChange={handleFiltersChange}
               onSearchChange={handleSearchChange}
@@ -972,6 +1032,7 @@ const UnidadesProyecto: React.FC = () => {
                       >
                         <UnidadesProyectoFilters
                           filterData={state.filterData}
+                          records={state.attributeData as unknown as Array<Record<string, unknown>>}
                           filters={filters}
                           onFiltersChange={handleFiltersChange}
                           onSearchChange={handleSearchChange}

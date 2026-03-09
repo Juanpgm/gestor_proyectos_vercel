@@ -4,7 +4,7 @@ export interface CentroGestorAccess {
   isRestricted: boolean
 }
 
-const OPEN_ACCESS_CENTROS = new Set([
+const OPEN_ACCESS_CENTROS_RAW = [
   'calitrack',
   'otro',
   'secretaría de gobierno',
@@ -17,9 +17,16 @@ const OPEN_ACCESS_CENTROS = new Set([
   'departamento administrativo de tecnologías de la información y las comunicaciones',
   'departamento administrativo de contratación pública',
   'departamento administrativo de desarrollo e innovación institucional'
-])
+]
 
-const normalizeValue = (value: unknown): string => String(value || '').trim().toLowerCase()
+const normalizeValue = (value: unknown): string =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
+const OPEN_ACCESS_CENTROS = new Set(OPEN_ACCESS_CENTROS_RAW.map(normalizeValue))
 
 const normalizeRole = (role: unknown): string =>
   String(role || '')

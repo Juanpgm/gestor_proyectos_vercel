@@ -97,6 +97,16 @@ const getColorForBank = (banco: string, index: number): string => {
   return BANK_COLORS[banco] || defaultColors[index % defaultColors.length]
 }
 
+const getSafeBpCode = (value: unknown): string => {
+  const bp = (value ?? '').toString().trim()
+  return bp.length > 0 ? bp : 'Sin BP'
+}
+
+const getBpBadge = (value: unknown): string => {
+  const bp = (value ?? '').toString().trim()
+  return bp.length > 0 ? bp.slice(-4) : 'N/A'
+}
+
 // Componente de tarjeta de métrica mejorado
 const MetricCard: React.FC<{
   title: string
@@ -512,19 +522,21 @@ const CentroGestorConBancosAccordion: React.FC<{
                 </div>
               </summary>
               <div className="p-2 space-y-1 bg-gray-50 dark:bg-gray-700/20">
-                {bps.map(bp => {
+                {bps.map((bp, index) => {
                   const porcentajeBP = bp.monto_programado > 0 
                     ? (bp.monto_adjudicado / bp.monto_programado) * 100 
                     : 0
+                  const bpCode = getSafeBpCode(bp.bp)
+                  const bpBadge = getBpBadge(bp.bp)
 
                   return (
-                    <div key={bp.bp} className="flex items-center justify-between py-2 px-3 bg-white dark:bg-gray-800 rounded">
+                    <div key={`${bpCode}-${index}`} className="flex items-center justify-between py-2 px-3 bg-white dark:bg-gray-800 rounded">
                       <div className="flex items-center gap-2 flex-1">
                         <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs">
-                          {bp.bp.slice(-4)}
+                          {bpBadge}
                         </div>
                         <div>
-                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bp.bp}</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bpCode}</span>
                           {bp.contratos.length > 0 && (
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                               {bp.contratos.length} contrato{bp.contratos.length > 1 ? 's' : ''}
@@ -624,17 +636,19 @@ const CentroGestorAccordion: React.FC<{
             className="border-t border-gray-200 dark:border-gray-700"
           >
             <div className="p-4 space-y-2">
-              {bps.map(bp => {
+              {bps.map((bp, index) => {
                 const porcentajeBP = bp.monto_programado > 0 ? (bp.monto_adjudicado / bp.monto_programado) * 100 : 0
+                const bpCode = getSafeBpCode(bp.bp)
+                const bpBadge = getBpBadge(bp.bp)
                 return (
-                  <div key={bp.bp} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                  <div key={`${bpCode}-${index}`} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                          {bp.bp.slice(-4)}
+                          {bpBadge}
                         </div>
                         <div>
-                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bp.bp}</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bpCode}</span>
                           {bp.contratos.length > 0 && (
                             <p className="text-xs text-gray-500">{bp.contratos.length} contrato{bp.contratos.length > 1 ? 's' : ''}</p>
                           )}
@@ -738,17 +752,19 @@ const BancoAccordion: React.FC<{
             className="border-t border-gray-200 dark:border-gray-700"
           >
             <div className="p-4 space-y-2">
-              {bps.map(bp => {
+              {bps.map((bp, index) => {
                 const porcentajeBP = bp.monto_programado > 0 ? (bp.monto_adjudicado / bp.monto_programado) * 100 : 0
+                const bpCode = getSafeBpCode(bp.bp)
+                const bpBadge = getBpBadge(bp.bp)
                 return (
-                  <div key={bp.bp} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                  <div key={`${bpCode}-${index}`} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-                          {bp.bp.slice(-4)}
+                          {bpBadge}
                         </div>
                         <div className="flex-1">
-                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bp.bp}</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bpCode}</span>
                           <p className="text-xs text-gray-500">{bp.nombre_centro_gestor}</p>
                         </div>
                       </div>
@@ -796,6 +812,8 @@ const BPDetailCard: React.FC<{ analisis: AnalisisPorBP }> = React.memo(({ analis
   const porcentaje = analisis.monto_programado > 0 
     ? (analisis.monto_adjudicado / analisis.monto_programado) * 100 
     : 0
+  const bpCode = getSafeBpCode(analisis.bp)
+  const bpBadge = getBpBadge(analisis.bp)
 
   return (
     <motion.div
@@ -811,12 +829,12 @@ const BPDetailCard: React.FC<{ analisis: AnalisisPorBP }> = React.memo(({ analis
         <div className="flex items-center space-x-4 w-full sm:w-auto">
           <div className="flex-shrink-0">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
-              {analisis.bp.slice(-4)}
+              {bpBadge}
             </div>
           </div>
           <div className="text-left flex-1">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              {analisis.bp}
+              {bpCode}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md">
               {analisis.nombre_centro_gestor}
@@ -974,8 +992,13 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
   // Filtrar análisis
   const analisisFiltrado = useMemo(() => {
     return analisisPorBP.filter(analisis => {
-      const matchSearch = analisis.bp.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         analisis.nombre_centro_gestor.toLowerCase().includes(searchTerm.toLowerCase())
+      const normalizedSearch = searchTerm.trim().toLowerCase()
+      const bp = (analisis.bp ?? '').toString().toLowerCase()
+      const centroGestor = (analisis.nombre_centro_gestor ?? '').toString().toLowerCase()
+      const matchSearch =
+        normalizedSearch.length === 0 ||
+        bp.includes(normalizedSearch) ||
+        centroGestor.includes(normalizedSearch)
       
       const matchBanco = selectedBancos.length === 0 || 
                         analisis.participacion_bancos.some(b => selectedBancos.includes(b.banco))
@@ -1718,15 +1741,19 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
                       </div>
                     </summary>
                     <div className="p-3 bg-white dark:bg-gray-800 space-y-2">
-                      {grupo.bps.map(bp => (
-                        <details key={bp.bp} className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                      {grupo.bps.map((bp, index) => {
+                        const bpCode = getSafeBpCode(bp.bp)
+                        const bpBadge = getBpBadge(bp.bp)
+
+                        return (
+                        <details key={`${bpCode}-${index}`} className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
                           <summary className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700/30 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                             <div className="flex items-center gap-2">
                               <ChevronRight className="w-3 h-3 text-gray-500 group-open:rotate-90 transition-transform" />
                               <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white font-bold text-xs">
-                                {bp.bp.slice(-4)}
+                                {bpBadge}
                               </div>
-                              <span className="text-sm text-gray-700 dark:text-gray-300">{bp.bp}</span>
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{bpCode}</span>
                               <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full">
                                 {bp.contratos.length} contrato{bp.contratos.length !== 1 ? 's' : ''}
                               </span>
@@ -1762,7 +1789,7 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
                             })}
                           </div>
                         </details>
-                      ))}
+                      )})}
                     </div>
                   </details>
                 ))

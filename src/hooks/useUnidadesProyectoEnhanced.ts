@@ -7,7 +7,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   fetchGeometryData, 
   fetchAttributeData, 
-  fetchFilterData,
   generateFiltersFromData,
   filterAttributeData,
   consolidateAttributeData,
@@ -17,10 +16,6 @@ import {
   type FilterParams 
 } from '@/services/unidades-proyecto.service';
 import { useDebounce } from './useDebounce';
-import {
-  getCentroGestorAccessFromSession,
-  filterByCentroGestor
-} from '@/utils/centroGestorAccess';
 
 // Estado del hook
 interface UnidadesProyectoState {
@@ -143,7 +138,7 @@ export const useUnidadesProyecto = (
         console.log('🔄 fetchAllData: Loading with', useServerFilters ? 'SERVER-SIDE' : 'CLIENT-SIDE', 'filtering');
       }
 
-      const [geometry, attributes, filterOptions] = await Promise.all([
+      const [geometry, attributes] = await Promise.all([
         fetchGeometryData(serverFilters).catch((error) => {
           console.warn('⚠️ fetchGeometryData failed:', error);
           return null;
@@ -151,49 +146,22 @@ export const useUnidadesProyecto = (
         fetchAttributeData(serverFilters).catch((error) => {
           console.warn('⚠️ fetchAttributeData failed:', error);
           return [];
-        }),
-        fetchFilterData().catch((error) => {
-          console.warn('⚠️ fetchFilterData failed:', error);
-          return null;
         })
       ]);
 
-      // Generar filtros desde datos si no se obtuvieron del servidor
-      const finalFilterData = filterOptions || (attributes.length > 0 ? generateFiltersFromData(attributes) : null);
-
-      const centroGestorAccess = getCentroGestorAccessFromSession();
-      const filteredAttributesByAccess = filterByCentroGestor(
-        attributes,
-        centroGestorAccess,
-        ['nombre_centro_gestor', 'centro_gestor', 'responsible']
-      );
-
-      const allowedUpids = new Set(
-        filteredAttributesByAccess
-          .map((item) => String(item.upid || '').trim().toLowerCase())
-          .filter((value) => value.length > 0)
-      );
-
-      const filteredGeometryByAccess = geometry
-        ? {
-            ...geometry,
-            features: (geometry.features || []).filter((feature) => {
-              const normalizedUpid = String(feature?.properties?.upid || '').trim().toLowerCase();
-              return normalizedUpid.length > 0 && allowedUpids.has(normalizedUpid);
-            })
-          }
-        : geometry;
+      // Los filtros se derivan exclusivamente del dataset cargado en frontend.
+      const finalFilterData = attributes.length > 0 ? generateFiltersFromData(attributes) : null;
 
       if (hasFilters) {
         console.log('✅ Data loaded:', {
-          geometry: filteredGeometryByAccess?.features?.length || 0,
-          attributes: filteredAttributesByAccess.length
+          geometry: geometry?.features?.length || 0,
+          attributes: attributes.length
         });
       }
 
       updateState({
-        geometryData: filteredGeometryByAccess,
-        attributeData: filteredAttributesByAccess,
+        geometryData: geometry,
+        attributeData: attributes,
         filterData: finalFilterData,
         loading: false,
         lastUpdate: new Date()
@@ -544,8 +512,6 @@ export const useUnidadesProyecto = (
         const payload = await response.json();
         const data = Array.isArray(payload?.data) ? payload.data : [];
 
-        const centroGestorAccess = getCentroGestorAccessFromSession();
-
         const mappedIntervenciones = data.map((item: any) => ({
           upid: item?.upid,
           avance_obra: typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0),
@@ -556,12 +522,6 @@ export const useUnidadesProyecto = (
           fuente_financiacion: item?.fuente_financiacion
         }));
 
-        const intervencionesByCentro = filterByCentroGestor(
-          mappedIntervenciones,
-          centroGestorAccess,
-          ['nombre_centro_gestor', 'centro_gestor', 'responsible']
-        );
-
         const allowedUpids = new Set(
           state.attributeData
             .map((item) => String(item?.upid || '').trim().toLowerCase())
@@ -569,10 +529,10 @@ export const useUnidadesProyecto = (
         );
 
         const intervencionesFiltradas = allowedUpids.size > 0
-          ? intervencionesByCentro.filter((item) =>
+          ? mappedIntervenciones.filter((item: IntervencionMetricItem) =>
               allowedUpids.has(String(item?.upid || '').trim().toLowerCase())
             )
-          : intervencionesByCentro;
+          : mappedIntervenciones;
 
         setState(prev => ({
           ...prev,
@@ -614,8 +574,8 @@ export const useUnidadesProyectoFilters = () => {
     setError(null);
 
     try {
-      const data = await fetchFilterData();
-      setFilterData(data);
+      const data = await fetchAttributeData();
+      setFilterData(generateFiltersFromData(data));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {

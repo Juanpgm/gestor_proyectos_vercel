@@ -11,17 +11,13 @@ const CACHE_DIRS = [".next", "node_modules/.cache", ".vercel/.cache"];
 
 const CACHE_FILES = ["tsconfig.tsbuildinfo", ".env.local.cache"];
 
-function deleteFolderRecursive(folderPath) {
-  if (fs.existsSync(folderPath)) {
-    fs.readdirSync(folderPath).forEach((file) => {
-      const curPath = path.join(folderPath, file);
-      if (fs.lstatSync(curPath).isDirectory()) {
-        deleteFolderRecursive(curPath);
-      } else {
-        fs.unlinkSync(curPath);
-      }
-    });
-    fs.rmdirSync(folderPath);
+function removePathSafe(targetPath) {
+  try {
+    fs.rmSync(targetPath, { recursive: true, force: true });
+    return true;
+  } catch (error) {
+    console.warn(`⚠️  No se pudo eliminar ${targetPath}: ${error.message}`);
+    return false;
   }
 }
 
@@ -33,7 +29,7 @@ function clearCache() {
     const fullPath = path.join(process.cwd(), dir);
     if (fs.existsSync(fullPath)) {
       console.log(`🗑️  Eliminando: ${dir}`);
-      deleteFolderRecursive(fullPath);
+      removePathSafe(fullPath);
     } else {
       console.log(`✅ Ya limpio: ${dir}`);
     }
@@ -44,7 +40,7 @@ function clearCache() {
     const fullPath = path.join(process.cwd(), file);
     if (fs.existsSync(fullPath)) {
       console.log(`🗑️  Eliminando: ${file}`);
-      fs.unlinkSync(fullPath);
+      removePathSafe(fullPath);
     } else {
       console.log(`✅ Ya limpio: ${file}`);
     }

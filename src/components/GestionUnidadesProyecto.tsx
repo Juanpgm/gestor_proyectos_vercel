@@ -207,8 +207,23 @@ type GlobalFilterOptions = {
   tipos_intervencion: string[]
 }
 
+type GlobalFilterCatalog = {
+  centros_gestores?: string[]
+  estados?: string[]
+  tipos_intervencion?: string[]
+  tipos_equipamiento?: string[]
+  clases_up?: string[]
+  frentes_activos?: string[]
+  comunas_corregimientos?: string[]
+  barrios_veredas?: string[]
+  fuentes_financiacion?: string[]
+  anos?: string[]
+  proyectos_estrategicos?: string[]
+}
+
 declare global {
   interface Window {
+    UNIDADES_PROYECTO_FILTERS_GLOBAL?: GlobalFilterCatalog
     CENTROS_GESTORES?: string[]
     ESTADOS?: string[]
     TIPOS_INTERVENCION?: string[]
@@ -269,6 +284,14 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     ).sort((a, b) => a.localeCompare(b, 'es'))
   }
 
+  const pickFirstNonEmpty = (...sources: unknown[]): string[] => {
+    for (const source of sources) {
+      const normalized = normalizeOptions(source)
+      if (normalized.length > 0) return normalized
+    }
+    return []
+  }
+
   const readGlobalFilterOptions = (): GlobalFilterOptions => {
     if (typeof window === 'undefined') {
       return { centros_gestores: [], estados: [], tipos_intervencion: [] }
@@ -296,10 +319,19 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
   const publishGlobalFilterOptions = (options: GlobalFilterOptions) => {
     if (typeof window === 'undefined') return
-    window.UNIDADES_PROYECTO_FILTERS_GLOBAL = options
-    window.CENTROS_GESTORES = options.centros_gestores
-    window.ESTADOS = options.estados
-    window.TIPOS_INTERVENCION = options.tipos_intervencion
+    const existing = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {}
+    const mergedCatalog: GlobalFilterCatalog = {
+      ...existing,
+      centros_gestores: pickFirstNonEmpty(options.centros_gestores, existing.centros_gestores),
+      estados: pickFirstNonEmpty(options.estados, existing.estados),
+      tipos_intervencion: pickFirstNonEmpty(options.tipos_intervencion, existing.tipos_intervencion),
+    }
+
+    window.UNIDADES_PROYECTO_FILTERS_GLOBAL = mergedCatalog
+    window.CENTROS_GESTORES = normalizeOptions(mergedCatalog.centros_gestores)
+    window.ESTADOS = normalizeOptions(mergedCatalog.estados)
+    window.TIPOS_INTERVENCION = normalizeOptions(mergedCatalog.tipos_intervencion)
+    window.dispatchEvent(new Event('up-filters-updated'))
   }
 
   useEffect(() => {
