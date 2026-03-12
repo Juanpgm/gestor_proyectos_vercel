@@ -265,9 +265,23 @@ class AdminService {
     return this.normalizeUsersResponse(response, params)
   }
 
+  private getUserDedupKey(user: AdminUser, page: number, index: number): string {
+    const uid = typeof user?.uid === 'string' ? user.uid.trim() : ''
+    if (uid) return `uid:${uid}`
+
+    const email = typeof user?.email === 'string' ? user.email.trim().toLowerCase() : ''
+    if (email) return `email:${email}`
+
+    const fullName = typeof user?.full_name === 'string' ? user.full_name.trim().toLowerCase() : ''
+    const createdAt = typeof user?.created_at === 'string' ? user.created_at.trim() : ''
+    if (fullName || createdAt) return `fallback:${fullName}|${createdAt}`
+
+    return `page:${page}:index:${index}`
+  }
+
   async listAllUsers(limitPerRequest: number = 500): Promise<AdminUser[]> {
     const safeLimit = Math.max(1, Math.min(500, limitPerRequest))
-    const usersByUid = new Map<string, AdminUser>()
+    const usersByKey = new Map<string, AdminUser>()
     let page = 1
     let hasMore = true
     let consecutiveNoGrowth = 0
@@ -276,17 +290,18 @@ class AdminService {
     while (hasMore && page <= MAX_PAGES) {
       const response = await this.listUsers({ page, limit: safeLimit })
       const received = response.users.length
-      const sizeBefore = usersByUid.size
+      const sizeBefore = usersByKey.size
 
-      response.users.forEach((user) => {
-        if (user?.uid) usersByUid.set(user.uid, user)
+      response.users.forEach((user, index) => {
+        const dedupKey = this.getUserDedupKey(user, page, index)
+        usersByKey.set(dedupKey, user)
       })
 
-      const grew = usersByUid.size > sizeBefore
+      const grew = usersByKey.size > sizeBefore
       consecutiveNoGrowth = grew ? 0 : consecutiveNoGrowth + 1
 
       const reachedTotal = typeof response.total === 'number' && response.total > 0
-        ? usersByUid.size >= response.total
+        ? usersByKey.size >= response.total
         : false
 
       const backendSuggestsMore = received === safeLimit && !reachedTotal
@@ -294,7 +309,7 @@ class AdminService {
       page += 1
     }
 
-    return Array.from(usersByUid.values())
+    return Array.from(usersByKey.values())
   }
 
   async diagnoseUsersEndpoints(uid?: string): Promise<Array<{
