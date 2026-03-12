@@ -1637,6 +1637,8 @@ const useEmprestitoRealData = () => {
       allContratos.filter(c => (c.fecha_inicio_contrato ? new Date(c.fecha_inicio_contrato).getFullYear().toString() : 'Sin Año') === year)
         .forEach(contrato => {
           const valorContrato = Number(contrato.valor_contrato) || 0
+          totalPeso += valorContrato
+
           const reporteContrato = allReportes
             .filter(r => r.referencia_contrato === contrato.referencia_contrato)
             .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
@@ -1647,7 +1649,6 @@ const useEmprestitoRealData = () => {
 
             totalPonderadoFisico += avanceFisico * valorContrato
             totalPonderadoFinanciero += avanceFinanciero * valorContrato
-            totalPeso += valorContrato
           }
         })
 
@@ -2825,22 +2826,23 @@ const useEmprestitoRealData = () => {
   }, [filteredData, pagos])
 
   // Cálculo del porcentaje físico promedio ponderado por valor_contrato
+  // Incluye TODOS los contratos en el denominador (sin reporte = 0% avance)
+  // para que el porcentaje sea consistente con valorTotalFisico / valorTotalAsignado
   const porcentajeFisicoPromedio = useMemo(() => {
     let totalPonderado = 0
     let totalPeso = 0
 
     filteredData.forEach(contrato => {
-      // Buscar el reporte más reciente para este contrato
+      const valorContrato = Number(contrato.valor_contrato) || 0
+      totalPeso += valorContrato
+
       const reporteContrato = reportes
         .filter(r => r.referencia_contrato === contrato.referencia_contrato)
         .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
 
       if (reporteContrato) {
         const avanceFisico = reporteContrato.avance_fisico || 0
-        const valorContrato = Number(contrato.valor_contrato) || 0
-
         totalPonderado += avanceFisico * valorContrato
-        totalPeso += valorContrato
       }
     })
 
@@ -2848,22 +2850,23 @@ const useEmprestitoRealData = () => {
   }, [filteredData, reportes])
 
   // Cálculo del porcentaje financiero promedio ponderado por valor_contrato
+  // Incluye TODOS los contratos en el denominador (sin reporte = 0% avance)
+  // para que el porcentaje sea consistente con valorTotalEjecutado / valorTotalAsignado
   const porcentajeFinancieroPromedio = useMemo(() => {
     let totalPonderado = 0
     let totalPeso = 0
 
     filteredData.forEach(contrato => {
-      // Buscar el reporte más reciente para este contrato
+      const valorContrato = Number(contrato.valor_contrato) || 0
+      totalPeso += valorContrato
+
       const reporteContrato = reportes
         .filter(r => r.referencia_contrato === contrato.referencia_contrato)
         .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
 
       if (reporteContrato) {
         const avanceFinanciero = (reporteContrato as any).avance_financiero || 0
-        const valorContrato = Number(contrato.valor_contrato) || 0
-
         totalPonderado += avanceFinanciero * valorContrato
-        totalPeso += valorContrato
       }
     })
 

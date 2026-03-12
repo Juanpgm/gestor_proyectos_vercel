@@ -6,12 +6,14 @@ import {
   TrendingUp, 
   BarChart3,
   ChevronLeft,
-  FileText
+  FileText,
+  Building2
 } from 'lucide-react'
 import EmprestitoTimeSeries from '@/components/EmprestitoTimeSeries'
 import EmprestitoAdvancedDashboard from '@/components/EmprestitoAdvancedDashboard'
 import EmprestitoFlujoCajaDashboard from '@/components/EmprestitoFlujoCajaDashboard'
 import EmprestitoAnalisisProyectosBP from '@/components/EmprestitoAnalisisProyectosBP'
+import EmprestitoReportesCentroGestor from '@/components/EmprestitoReportesCentroGestor'
 
 // Tipos para las props
 interface EmprestitoTabsProps {
@@ -44,6 +46,13 @@ const TAB_CONFIG = [
     icon: FileText,
     description: 'Análisis detallado de proyectos de inversión por BPIN',
     component: 'EmprestitoAnalisisProyectosBP'
+  },
+  {
+    id: 'reportes-centro-gestor',
+    label: 'Reportes por Centro Gestor',
+    icon: Building2,
+    description: 'Registro completo de reportes por Centro Gestor: cuáles han reportado, cuáles no, historial y filtros por fecha',
+    component: 'EmprestitoReportesCentroGestor'
   }
 ] as const
 
@@ -59,6 +68,8 @@ const TabContent: React.FC<{ activeTab: string; props: EmprestitoTabsProps }> = 
       return <EmprestitoTimeSeries />
     case 'analisis-bp':
       return <EmprestitoAnalisisProyectosBP />
+    case 'reportes-centro-gestor':
+      return <EmprestitoReportesCentroGestor />
     default:
       return null
   }
