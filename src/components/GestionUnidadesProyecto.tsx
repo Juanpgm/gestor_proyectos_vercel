@@ -30,7 +30,7 @@ import ManagementFeatureTour from './ManagementFeatureTour'
 import { useAuth } from '@/context/AuthContext'
 
 const GestionRegistrosTab = dynamic(() => import('./GestionRegistrosTab'), { ssr: false })
-const AvancesUPTab = dynamic(() => import('./AvancesUPTab'), { ssr: false })
+const AvancesUPCentroGestor = dynamic(() => import('./AvancesUPCentroGestor'), { ssr: false })
 const SolicitudesPendientesTab = dynamic(() => import('./SolicitudesPendientesTab'), { ssr: false })
 const HistorialSolicitudesTab = dynamic(() => import('./HistorialSolicitudesTab'), { ssr: false })
 
@@ -438,7 +438,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       label: 'Avances UP',
       icon: FileText,
       endpoint: '/avances_unidades_proyecto',
-      description: 'Consulta tabular de avances con fotos, documentos y trazabilidad por intervencion_id / upid'
+      description: 'Avances agrupados por centro gestor: cuáles reportaron, cuáles no, historial'
     },
     ...(canViewSolicitudesTabs
       ? [
@@ -1639,7 +1639,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
               {activeTab === 'gestionar-registros' && <GestionRegistrosTab />}
 
-              {activeTab === 'avances-up' && <AvancesUPTab />}
+              {activeTab === 'avances-up' && <AvancesUPCentroGestor />}
 
               {canViewSolicitudesTabs && activeTab === 'solicitudes-pendientes' && <SolicitudesPendientesTab />}
 
