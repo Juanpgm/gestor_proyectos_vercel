@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users,
@@ -10,7 +10,10 @@ import {
   Shield,
   AlertCircle,
   ArrowLeft,
-  X
+  X,
+  Bug,
+  ShieldAlert,
+  Lightbulb
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import adminService from '@/services/admin.service'
@@ -200,22 +203,22 @@ export default function UserManagementPage({
     }
   }
 
-  const effectivePermissions = Array.from(new Set([
+  const effectivePermissions = useMemo(() => Array.from(new Set([
     ...normalizePermissionList(connectedUserPermissions),
     ...normalizePermissionList(state.user?.permissions),
     ...inferPermissionsFromRoles()
-  ]))
-  const roleNameMap = new Map(roleFilterOptions.map((roleId) => [
+  ])), [connectedUserPermissions, state.user?.permissions, rolesCatalog])
+  const roleNameMap = useMemo(() => new Map(roleFilterOptions.map((roleId) => [
     roleId,
     getRoleMeta(roleId).label
-  ]))
+  ])), [roleFilterOptions])
   const hasToken = hasBearerToken
   const isUserActive = state.user?.is_active !== false
-  const hasManageUsers = isSuperAdmin || effectivePermissions.includes('manage:users') || effectivePermissions.includes('*')
-  const hasManageRoles = isSuperAdmin || effectivePermissions.includes('manage:roles') || effectivePermissions.includes('*')
-  const hasViewAuditLogs = isSuperAdmin || effectivePermissions.includes('view:audit_logs') || effectivePermissions.includes('*')
+  const hasManageUsers = useMemo(() => isSuperAdmin || effectivePermissions.includes('manage:users') || effectivePermissions.includes('*'), [isSuperAdmin, effectivePermissions])
+  const hasManageRoles = useMemo(() => isSuperAdmin || effectivePermissions.includes('manage:roles') || effectivePermissions.includes('*'), [isSuperAdmin, effectivePermissions])
+  const hasViewAuditLogs = useMemo(() => isSuperAdmin || effectivePermissions.includes('view:audit_logs') || effectivePermissions.includes('*'), [isSuperAdmin, effectivePermissions])
 
-  const roleAggregations = roleFilterOptions.map((roleId) => {
+  const roleAggregations = useMemo(() => roleFilterOptions.map((roleId) => {
     const roleInfo = getRoleMeta(roleId)
     const usersByRole = (systemStats?.users_by_role || {}) as Record<string, number>
 
@@ -234,11 +237,11 @@ export default function UserManagementPage({
       color: roleInfo.color,
       description: roleInfo.description
     }
-  })
+  }), [roleFilterOptions, systemStats?.users_by_role, allUsers])
 
-  const roleChartData = roleAggregations
+  const roleChartData = useMemo(() => roleAggregations
     .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value)
+    .sort((a, b) => b.value - a.value), [roleAggregations])
 
   const centroGestorDistribution = useMemo(() => {
     const normalize = (value: any): string => {
@@ -345,7 +348,7 @@ export default function UserManagementPage({
     }
   }
 
-  const endpointChecks = [
+  const endpointChecks = useMemo(() => [
     {
       endpoint: 'GET /auth/admin/roles',
       allowed: hasToken && isUserActive && hasManageRoles,
@@ -401,7 +404,7 @@ export default function UserManagementPage({
             ? 'Falta permiso manage:users'
             : 'Permitido'
     }
-  ]
+  ], [hasToken, isUserActive, hasManageRoles, hasManageUsers, hasViewAuditLogs])
 
   useEffect(() => {
     let isMounted = true
@@ -562,7 +565,7 @@ export default function UserManagementPage({
   }
 
   const loadRolesCatalog = async () => {
-    if (!authReady || !hasToken || !isUserActive || !hasManageRoles) {
+    if (!authReady) {
       setRolesCatalog([])
       return
     }
@@ -631,24 +634,29 @@ export default function UserManagementPage({
     }
   }
 
+  // Ref to prevent duplicate initial loads on cascading state updates
+  const initialLoadTriggeredRef = useRef(false)
+
   useEffect(() => {
     if (!authReady) return
+    if (initialLoadTriggeredRef.current) return
+    initialLoadTriggeredRef.current = true
+
     loadCentrosGestores()
     loadConnectedUserContext()
     loadRolesCatalog()
-    loadGovernance()
     loadEndpointDiagnostics()
-  }, [authReady, hasToken, isUserActive, hasManageUsers, hasManageRoles, state.user?.uid])
-
-  useEffect(() => {
-    if (!authReady) return
-
-    const timeout = setTimeout(() => {
-      loadUsers()
-    }, 220)
-
-    return () => clearTimeout(timeout)
+    loadUsers()
   }, [authReady])
+
+  // Separate effect for governance — depends on permissions being resolved
+  const governanceLoadedRef = useRef(false)
+  useEffect(() => {
+    if (!authReady || governanceLoadedRef.current) return
+    if (!hasManageUsers) return
+    governanceLoadedRef.current = true
+    loadGovernance()
+  }, [authReady, hasManageUsers])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -659,27 +667,14 @@ export default function UserManagementPage({
     setShowEditModal(true)
   }
 
-  const handleAssignRoles = async (user: AdminUser) => {
-    try {
-      const detailedUser = await adminService.getUser(user.uid)
-      setSelectedUser(detailedUser)
-    } catch {
-      setSelectedUser(user)
-    }
-
+  const handleAssignRoles = (user: AdminUser) => {
+    setSelectedUser(user)
     setShowRoleModal(true)
   }
 
-  const handleViewPermissions = async (user: AdminUser) => {
+  const handleViewPermissions = (user: AdminUser) => {
     setSelectedUser(user)
     setShowPermissionViewer(true)
-
-    try {
-      const detailedUser = await adminService.getUser(user.uid)
-      setSelectedUser(detailedUser)
-    } catch (err: any) {
-      setError(err.message || 'No se pudieron cargar todos los detalles del usuario')
-    }
   }
 
   const handleToggleStatus = async (user: AdminUser) => {
@@ -787,8 +782,20 @@ export default function UserManagementPage({
   }
 
   const handleUserUpdated = async () => {
-    await loadUsers()
-    await loadGovernance()
+    // Refresh only the updated user in local state instead of reloading everything
+    if (selectedUser) {
+      try {
+        const updatedUser = await adminService.getUser(selectedUser.uid)
+        setAllUsers((prev) =>
+          prev.map((u) => (u.uid === updatedUser.uid ? updatedUser : u))
+        )
+      } catch {
+        // Fallback: full reload only if targeted refresh fails
+        await loadUsers()
+      }
+    } else {
+      await loadUsers()
+    }
     setShowEditModal(false)
     setShowRoleModal(false)
     setSelectedUser(null)
@@ -800,7 +807,13 @@ export default function UserManagementPage({
       return
     }
 
-    await Promise.all([loadUsers(), loadGovernance(), loadEndpointDiagnostics()])
+    // Reset guards so governance/roles reload on manual refresh
+    governanceLoadedRef.current = false
+
+    const tasks: Promise<void>[] = [loadUsers(), loadEndpointDiagnostics()]
+    if (hasManageUsers) tasks.push(loadGovernance())
+
+    await Promise.all(tasks)
 
     if (activeTab === 'bugs') await loadBugReports()
     if (activeTab === 'escaladas') await loadEscalationRequests()
@@ -956,21 +969,16 @@ export default function UserManagementPage({
 
       {activeTab === 'bugs' && (
         <RecordsCrudPanel
-          title="Gestion de Reportes de Bugs"
-          subtitle="CRUD sobre /reportar-bug y /reportar-bug/{registro_id}"
+          title="Reportes de Bugs"
+          subtitle="Reportes enviados por los usuarios del sistema"
+          icon={<Bug className="w-6 h-6" />}
+          accentColor="red"
+          emptyMessage="No se han reportado bugs aún."
           records={bugReports as Array<Record<string, unknown>>}
           fields={bugFields}
           loading={bugReportsLoading}
           canManage={isSuperAdmin}
           onRefresh={loadBugReports}
-          onCreate={async (payload) => {
-            await adminService.createReporteBug({
-              reportado_por: String(payload.reportado_por || ''),
-              descripcion_bug: String(payload.descripcion_bug || ''),
-              contexto_adicional_bug: String(payload.contexto_adicional_bug || '')
-            })
-            await loadBugReports()
-          }}
           onUpdate={async (registroId, payload) => {
             await adminService.updateReporteBug(registroId, {
               reportado_por: payload.reportado_por ? String(payload.reportado_por) : undefined,
@@ -988,22 +996,16 @@ export default function UserManagementPage({
 
       {activeTab === 'escaladas' && (
         <RecordsCrudPanel
-          title="Gestion de Solicitudes de Escalada"
-          subtitle="CRUD sobre /solicitar-escalada-privilegios y /solicitar-escalada-privilegios/{registro_id}"
+          title="Solicitudes de Aumento de Privilegios"
+          subtitle="Solicitudes de escalada enviadas por los usuarios"
+          icon={<ShieldAlert className="w-6 h-6" />}
+          accentColor="amber"
+          emptyMessage="No hay solicitudes de escalada pendientes."
           records={escalationRequests as Array<Record<string, unknown>>}
           fields={escaladaFields}
           loading={escalationRequestsLoading}
           canManage={isSuperAdmin}
           onRefresh={loadEscalationRequests}
-          onCreate={async (payload) => {
-            await adminService.createSolicitudEscalada({
-              reportado_por: String(payload.reportado_por || ''),
-              rol_solicitado: String(payload.rol_solicitado || ''),
-              motivo_solicitud: String(payload.motivo_solicitud || ''),
-              justificacion_escalada: String(payload.justificacion_escalada || '')
-            })
-            await loadEscalationRequests()
-          }}
           onUpdate={async (registroId, payload) => {
             await adminService.updateSolicitudEscalada(registroId, {
               reportado_por: payload.reportado_por ? String(payload.reportado_por) : undefined,
@@ -1022,21 +1024,16 @@ export default function UserManagementPage({
 
       {activeTab === 'recomendaciones' && (
         <RecordsCrudPanel
-          title="Gestion de Recomendaciones"
-          subtitle="CRUD sobre /realizar-recomendacion y /realizar-recomendacion/{registro_id}"
+          title="Recomendaciones"
+          subtitle="Sugerencias y recomendaciones de mejora del sistema"
+          icon={<Lightbulb className="w-6 h-6" />}
+          accentColor="emerald"
+          emptyMessage="No se han enviado recomendaciones aún."
           records={recommendations as Array<Record<string, unknown>>}
           fields={recomendacionFields}
           loading={recommendationsLoading}
           canManage={isSuperAdmin}
           onRefresh={loadRecommendations}
-          onCreate={async (payload) => {
-            await adminService.createRecomendacion({
-              reportado_por: String(payload.reportado_por || ''),
-              recomendacion_sugerencia: String(payload.recomendacion_sugerencia || ''),
-              beneficio_esperado: String(payload.beneficio_esperado || '')
-            })
-            await loadRecommendations()
-          }}
           onUpdate={async (registroId, payload) => {
             await adminService.updateRecomendacion(registroId, {
               reportado_por: payload.reportado_por ? String(payload.reportado_por) : undefined,

@@ -5,15 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Settings, Bug, ShieldAlert, Lightbulb, X, ChevronDown, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { CSS_UTILS, CATEGORIES } from '@/lib/design-system'
-import { apiClient } from '@/services/api'
+import adminService from '@/services/admin.service'
 
 type ModalType = 'bug' | 'escalada' | 'recomendacion' | null
 
 const ROLES_DISPONIBLES = [
-  { value: 'editor', label: 'Editor' },
-  { value: 'supervisor', label: 'Supervisor' },
-  { value: 'admin', label: 'Administrador' },
-  { value: 'coordinador', label: 'Coordinador' },
+  { value: 'visualizador', label: 'Visualizador' },
+  { value: 'analista', label: 'Analista' },
+  { value: 'editor_datos', label: 'Editor de Datos' },
+  { value: 'admin_centro_gestor', label: 'Administrador de Centro Gestor' },
+  { value: 'admin_general', label: 'Administrador General' },
 ]
 
 interface FormState {
@@ -40,7 +41,6 @@ const MODAL_CONFIG = {
     descPlaceholder: 'Describe el comportamiento inesperado, los pasos para reproducirlo y lo que esperabas que ocurriera...',
     justLabel: 'Impacto / Contexto adicional',
     justPlaceholder: 'Indica el impacto en tu trabajo y cualquier detalle adicional que ayude a reproducir el error...',
-    endpoint: 'reportar-bug',
   },
   escalada: {
     title: 'Solicitar Escalada de Privilegios',
@@ -53,7 +53,6 @@ const MODAL_CONFIG = {
     descPlaceholder: 'Explica las funcionalidades que necesitas acceder y para qué proyecto o tarea...',
     justLabel: 'Justificación de la escalada',
     justPlaceholder: 'Indica por qué requieres este nivel de acceso y cómo beneficiará al proyecto...',
-    endpoint: 'solicitar-escalada-privilegios',
   },
   recomendacion: {
     title: 'Realizar Recomendación',
@@ -66,7 +65,6 @@ const MODAL_CONFIG = {
     descPlaceholder: 'Describe tu idea o mejora propuesta para el sistema...',
     justLabel: 'Beneficio esperado',
     justPlaceholder: 'Explica cómo esta mejora beneficiaría al equipo o al proceso de gestión...',
-    endpoint: 'realizar-recomendacion',
   },
 }
 
@@ -108,6 +106,17 @@ const GearMenu: React.FC = () => {
     setForm(INITIAL_FORM)
   }
 
+  const buildReporterLabel = () => {
+    const parts = [
+      user?.displayName || null,
+      user?.email || null,
+      getHighestRole() || user?.primary_role || null,
+      user?.nombre_centro_gestor || user?.centro_gestor_assigned || null,
+    ].filter(Boolean)
+
+    return parts.join(' | ') || 'Usuario desconocido'
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!activeModal) return
@@ -124,45 +133,34 @@ const GearMenu: React.FC = () => {
     setStatus('loading')
     setErrorMsg('')
 
-    const config = MODAL_CONFIG[activeModal]
-    const userPayload = {
-      uid: user?.uid || 'desconocido',
-      email: user?.email || 'desconocido',
-      nombre: user?.displayName || user?.email || 'Usuario sin nombre',
-      rol: getHighestRole() || user?.primary_role || 'sin_rol',
-      centro_gestor: user?.nombre_centro_gestor || user?.centro_gestor_assigned || null,
-    }
-
-    const payload: Record<string, unknown> = {
-      descripcion: form.descripcion.trim(),
-      justificacion: form.justificacion.trim(),
-      usuario: userPayload,
-      metadata: {
-        fuente: 'gear_menu_modal',
-        tipo_formulario: activeModal,
-        submitted_at: new Date().toISOString(),
-      },
-    }
-
-    if (activeModal === 'bug') {
-      payload.reportado_por = userPayload
-      payload.impacto = form.justificacion.trim()
-    }
-
-    if (activeModal === 'escalada') {
-      payload.rol_solicitado = form.rolSolicitado
-      payload.solicitado_por = userPayload
-      payload.motivo = form.descripcion.trim()
-    }
-
-    if (activeModal === 'recomendacion') {
-      payload.recomendacion = form.descripcion.trim()
-      payload.beneficio_esperado = form.justificacion.trim()
-      payload.enviado_por = userPayload
-    }
+    const reportadoPor = buildReporterLabel()
 
     try {
-      await apiClient.post(config.endpoint, payload)
+      if (activeModal === 'bug') {
+        await adminService.createReporteBug({
+          reportado_por: reportadoPor,
+          descripcion_bug: form.descripcion.trim(),
+          contexto_adicional_bug: form.justificacion.trim()
+        })
+      }
+
+      if (activeModal === 'escalada') {
+        await adminService.createSolicitudEscalada({
+          reportado_por: reportadoPor,
+          rol_solicitado: form.rolSolicitado,
+          motivo_solicitud: form.descripcion.trim(),
+          justificacion_escalada: form.justificacion.trim()
+        })
+      }
+
+      if (activeModal === 'recomendacion') {
+        await adminService.createRecomendacion({
+          reportado_por: reportadoPor,
+          recomendacion_sugerencia: form.descripcion.trim(),
+          beneficio_esperado: form.justificacion.trim()
+        })
+      }
+
       setStatus('success')
     } catch (err) {
       console.error(`Error al guardar ${activeModal}:`, err)

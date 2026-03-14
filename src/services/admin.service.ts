@@ -571,22 +571,30 @@ class AdminService {
     const roles = await this.listRoles()
     if (roles.length === 0) return roles
 
-    const detailedRoles = await Promise.all(
-      roles.map(async (role) => {
-        try {
-          return await this.getRoleDetails(role.id)
-        } catch {
-          return role
-        }
-      })
+    // listRoles already returns normalized roles with permissions.
+    // Only fetch individual details for roles missing permissions data.
+    const rolesNeedingDetails = roles.filter(
+      (role) => !role.permissions || role.permissions.length === 0
     )
 
-    const uniqueById = new Map<string, Role>()
-    detailedRoles.forEach((role) => {
-      uniqueById.set(role.id, role)
-    })
+    if (rolesNeedingDetails.length > 0) {
+      const detailedRoles = await Promise.all(
+        rolesNeedingDetails.map(async (role) => {
+          try {
+            return await this.getRoleDetails(role.id)
+          } catch {
+            return role
+          }
+        })
+      )
 
-    return Array.from(uniqueById.values())
+      const detailsById = new Map<string, Role>()
+      detailedRoles.forEach((role) => detailsById.set(role.id, role))
+
+      return roles.map((role) => detailsById.get(role.id) || role)
+    }
+
+    return roles
   }
 
   /**
