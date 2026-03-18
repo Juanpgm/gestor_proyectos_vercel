@@ -21,6 +21,7 @@ import {
   FilePenLine,
   ShieldCheck,
   Archive,
+  GitBranch,
 } from 'lucide-react'
 import { SummaryView, RecordsView, StatsView } from './QualityControlViews'
 import { ChangelogView, ByCentroGestorView } from './QualityControlViewsExtended'
@@ -33,6 +34,7 @@ const GestionRegistrosTab = dynamic(() => import('./GestionRegistrosTab'), { ssr
 const AvancesUPCentroGestor = dynamic(() => import('./AvancesUPCentroGestor'), { ssr: false })
 const SolicitudesPendientesTab = dynamic(() => import('./SolicitudesPendientesTab'), { ssr: false })
 const HistorialSolicitudesTab = dynamic(() => import('./HistorialSolicitudesTab'), { ssr: false })
+const AnalisisProcesosTab = dynamic(() => import('./AnalisisProcesosTab'), { ssr: false })
 
 // Interfaces específicas para cada endpoint
 interface ChangeMetric {
@@ -236,6 +238,7 @@ type TabType =
   | 'changelog' 
   | 'by-centro-gestor' 
   | 'stats'
+  | 'analisis-procesos'
   | 'gestionar-registros'
   | 'avances-up'
   | 'solicitudes-pendientes'
@@ -245,6 +248,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   const { hasRole } = useAuth()
 
   const canViewSolicitudesTabs = hasRole('super_admin') || hasRole('admin_general')
+  const canViewAnalisisProcesos = hasRole('super_admin') || hasRole('admin_general') || hasRole('admin_centro_gestor') || hasRole('analista')
 
   // Estado para tabs
   const [activeTab, setActiveTab] = useState<TabType>('summary')
@@ -426,6 +430,17 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       endpoint: '/unidades-proyecto/quality-control/stats',
       description: 'Estadísticas de control de calidad'
     },
+    ...(canViewAnalisisProcesos
+      ? [
+          {
+            id: 'analisis-procesos' as TabType,
+            label: 'Análisis por procesos',
+            icon: GitBranch,
+            endpoint: '',
+            description: 'Agrupaciones por centro gestor, proceso y contrato'
+          }
+        ]
+      : []),
     {
       id: 'gestionar-registros' as TabType,
       label: 'Gestionar Registros',
@@ -468,7 +483,11 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       setActiveTab('summary')
       setCurrentPage(1)
     }
-  }, [activeTab, canViewSolicitudesTabs])
+    if (!canViewAnalisisProcesos && activeTab === 'analisis-procesos') {
+      setActiveTab('summary')
+      setCurrentPage(1)
+    }
+  }, [activeTab, canViewSolicitudesTabs, canViewAnalisisProcesos])
 
   const pickFirst = (...values: any[]) => values.find((value) => value !== undefined && value !== null)
 
@@ -1207,7 +1226,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   // Función para cargar datos según el tab activo
   const loadData = async () => {
     // Los tabs con componentes autónomos no necesitan cargar datos aquí
-    const autonomousTabs: TabType[] = ['gestionar-registros', 'avances-up', 'solicitudes-pendientes', 'historial-solicitudes']
+    const autonomousTabs: TabType[] = ['gestionar-registros', 'avances-up', 'solicitudes-pendientes', 'historial-solicitudes', 'analisis-procesos']
     if (autonomousTabs.includes(activeTab)) return
 
     setLoading(true)
@@ -1636,6 +1655,8 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
                   )}
                 </>
               )}
+
+              {canViewAnalisisProcesos && activeTab === 'analisis-procesos' && <AnalisisProcesosTab />}
 
               {activeTab === 'gestionar-registros' && <GestionRegistrosTab />}
 
