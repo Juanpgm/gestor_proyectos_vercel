@@ -1060,44 +1060,30 @@ class AuthService {
     }
   }
 
-  // Solicitar restablecimiento de contraseña
+  // Solicitar restablecimiento de contraseña via Firebase Auth
   async requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${this.getApiUrl()}/auth/request-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        // Manejar errores de la misma manera que en login
-        let errorMessage = 'Error al solicitar el restablecimiento'
-        
-        if (response.status === 422 && data.detail && Array.isArray(data.detail)) {
-          const firstError = data.detail[0]
-          errorMessage = firstError?.msg || 'Error de validación'
-        } else if (data.error) {
-          errorMessage = data.error
-        } else if (data.detail && typeof data.detail === 'string') {
-          errorMessage = data.detail
-        } else if (data.message) {
-          errorMessage = data.message
-        }
-        
-        throw new Error(errorMessage)
+      const { sendPasswordResetEmail } = await import('firebase/auth')
+      const { auth } = await import('@/lib/firebase')
+      if (!auth) {
+        throw new Error('Firebase no está configurado. Contacta al administrador del sistema.')
       }
-
+      await sendPasswordResetEmail(auth, email)
       return {
-        success: data.success || false,
-        message: data.message || 'Se ha enviado un enlace de restablecimiento a tu correo'
+        success: true,
+        message: 'Se ha enviado un enlace de restablecimiento a tu correo'
       }
     } catch (error: any) {
       console.error('Password reset request error:', error)
-      throw error
+      const code = error?.code || ''
+      if (code === 'auth/user-not-found') {
+        throw new Error('No existe una cuenta registrada con este correo electrónico.')
+      } else if (code === 'auth/invalid-email') {
+        throw new Error('El correo electrónico ingresado no es válido.')
+      } else if (code === 'auth/too-many-requests') {
+        throw new Error('Demasiados intentos. Espera unos minutos antes de intentar nuevamente.')
+      }
+      throw new Error('Error al enviar el correo de recuperación. Intenta nuevamente.')
     }
   }
 

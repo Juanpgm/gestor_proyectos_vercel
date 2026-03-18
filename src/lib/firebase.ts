@@ -1,5 +1,5 @@
 import { initializeApp, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, Auth, signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth';
 import { getFirestore, doc, updateDoc, collection as firestoreCollection, query, where, getDocs, Firestore } from 'firebase/firestore';
 
 // Configuración de Firebase desde variables de entorno
