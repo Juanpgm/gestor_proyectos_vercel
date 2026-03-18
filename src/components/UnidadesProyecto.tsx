@@ -63,7 +63,7 @@ const UnidadesProyectoTabularView = dynamicImportWithRetry('UnidadesProyectoTabu
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
 
 // Tipos
-import { type FilterParams, exportIntervencionesXlsx } from '@/services/unidades-proyecto.service';
+import { type FilterParams } from '@/services/unidades-proyecto.service';
 import { type AttributeData } from '@/hooks/useUnidadesProyecto';
 import { formatDate, formatDateRange } from '@/types/unidades-proyecto';
 
@@ -770,22 +770,106 @@ const UnidadesProyecto: React.FC = () => {
 
     setIsExporting(true);
     try {
-      const { searchTerm, ...currentFilters } = filters;
-      const exportFilters: FilterParams = { ...currentFilters };
-
-      if (searchTerm && searchTerm.trim() !== '') {
-        const normalizedSearch = searchTerm.trim();
-        exportFilters.search = normalizedSearch;
-        exportFilters.nombre_up = normalizedSearch;
+      // Build geometry lookup map from already-loaded filteredGeometry
+      const geometryMap: Record<string, object> = {};
+      if (filteredGeometry?.features) {
+        filteredGeometry.features.forEach((feature) => {
+          const upid = String(feature.properties?.upid || '').trim().toLowerCase();
+          if (upid && feature.geometry) {
+            geometryMap[upid] = feature.geometry;
+          }
+        });
       }
 
-      const blob = await exportIntervencionesXlsx(exportFilters);
+      // Generate XLSX on the frontend using exceljs (includes geometry)
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Gestor de Proyectos';
+      workbook.created = new Date();
+
+      const sheet = workbook.addWorksheet('Unidades de Proyecto');
+
+      sheet.columns = [
+        { header: 'UPID', key: 'upid', width: 20 },
+        { header: 'Nombre UP', key: 'nombre_up', width: 40 },
+        { header: 'Estado', key: 'estado', width: 20 },
+        { header: 'Tipo Intervención', key: 'tipo_intervencion', width: 25 },
+        { header: 'Tipo Equipamiento', key: 'tipo_equipamiento', width: 25 },
+        { header: 'Clase UP', key: 'clase_up', width: 20 },
+        { header: 'Frente Activo', key: 'frente_activo', width: 20 },
+        { header: 'Centro Gestor', key: 'nombre_centro_gestor', width: 35 },
+        { header: 'Comuna / Corregimiento', key: 'comuna_corregimiento', width: 25 },
+        { header: 'Barrio / Vereda', key: 'barrio_vereda', width: 25 },
+        { header: 'Dirección', key: 'direccion', width: 35 },
+        { header: 'Presupuesto Base', key: 'presupuesto_base', width: 20 },
+        { header: 'Avance Obra (%)', key: 'avance_obra', width: 18 },
+        { header: 'Fecha Inicio', key: 'fecha_inicio', width: 18 },
+        { header: 'Fecha Fin', key: 'fecha_fin', width: 18 },
+        { header: 'Fecha Inauguración', key: 'fecha_inauguracion', width: 20 },
+        { header: 'Duración Proyecto', key: 'duracion_proyecto', width: 20 },
+        { header: 'Descripción', key: 'descripcion_intervencion', width: 50 },
+        { header: 'Fuente Financiación', key: 'fuente_financiacion', width: 28 },
+        { header: 'Referencia Contrato', key: 'referencia_contrato', width: 25 },
+        { header: 'Referencia Proceso', key: 'referencia_proceso', width: 25 },
+        { header: 'URL Proceso', key: 'url_proceso', width: 40 },
+        { header: 'Año', key: 'ano', width: 10 },
+        { header: 'Proyectos Estratégicos', key: 'proyectos_estrategicos', width: 30 },
+        { header: 'Geometría (GeoJSON)', key: 'geometry', width: 60 },
+      ];
+
+      // Style the header row
+      const headerRow = sheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E40AF' },
+      };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Add data rows
+      filteredData.forEach(item => {
+        const upidKey = String(item.upid || '').trim().toLowerCase();
+        const geometry = geometryMap[upidKey];
+        sheet.addRow({
+          upid: item.upid,
+          nombre_up: item.nombre_up,
+          estado: item.estado,
+          tipo_intervencion: item.tipo_intervencion,
+          tipo_equipamiento: item.tipo_equipamiento ?? '',
+          clase_up: item.clase_up ?? '',
+          frente_activo: item.frente_activo ?? '',
+          nombre_centro_gestor: item.nombre_centro_gestor ?? '',
+          comuna_corregimiento: item.comuna_corregimiento,
+          barrio_vereda: item.barrio_vereda,
+          direccion: item.direccion ?? '',
+          presupuesto_base: item.presupuesto_base,
+          avance_obra: item.avance_obra,
+          fecha_inicio: item.fecha_inicio,
+          fecha_fin: item.fecha_fin,
+          fecha_inauguracion: item.fecha_inauguracion ?? '',
+          duracion_proyecto: item.duracion_proyecto ?? '',
+          descripcion_intervencion: item.descripcion_intervencion,
+          fuente_financiacion: item.fuente_financiacion,
+          referencia_contrato: item.referencia_contrato ?? '',
+          referencia_proceso: item.referencia_proceso ?? '',
+          url_proceso: item.url_proceso ?? '',
+          ano: item.ano,
+          proyectos_estrategicos: item.proyectos_estrategicos ?? '',
+          geometry: geometry ? JSON.stringify(geometry) : '',
+        });
+      });
+
+      // Generate buffer and trigger download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       const dateTag = new Date().toISOString().slice(0, 10);
-
       link.href = url;
-      link.download = `intervenciones_filtradas_${dateTag}.xlsx`;
+      link.download = `unidades_proyecto_${dateTag}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

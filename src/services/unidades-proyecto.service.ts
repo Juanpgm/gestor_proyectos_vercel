@@ -229,6 +229,14 @@ const buildFilterQuery = (filters: FilterParams, verbose: boolean = false): stri
   const params = new URLSearchParams();
   
   if (verbose) console.log('🔍 BuildFilterQuery: Input filters:', filters);
+
+  // Determinar qué claves base tienen una versión _multiple con valores,
+  // para evitar duplicar parámetros cuando ambas variantes (simple y múltiple) están presentes.
+  const baseKeysWithMultipleValues = new Set(
+    Object.entries(filters)
+      .filter(([key, value]) => key.endsWith('_multiple') && Array.isArray(value) && (value as string[]).length > 0)
+      .map(([key]) => key.replace('_multiple', ''))
+  );
   
   Object.entries(filters).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return;
@@ -236,7 +244,7 @@ const buildFilterQuery = (filters: FilterParams, verbose: boolean = false): stri
     // Determinar la clave del parámetro para la API
     const apiKey = FILTER_KEY_MAP[key] || key.replace('_multiple', '');
     
-    // Manejar arrays
+    // Manejar arrays (_multiple keys)
     if (Array.isArray(value) && value.length > 0) {
       value.forEach(item => {
         if (item !== null && item !== undefined && item !== '') {
@@ -244,8 +252,8 @@ const buildFilterQuery = (filters: FilterParams, verbose: boolean = false): stri
         }
       });
     } 
-    // Manejar valores simples
-    else if (!key.endsWith('_multiple')) {
+    // Manejar valores simples — omitir si ya existe una versión _multiple con valores
+    else if (!key.endsWith('_multiple') && !baseKeysWithMultipleValues.has(key)) {
       params.append(apiKey, String(value));
     }
   });
