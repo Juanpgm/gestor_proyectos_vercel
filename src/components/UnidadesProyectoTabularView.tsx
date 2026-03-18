@@ -13,7 +13,10 @@ import {
   ChevronsLeft,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
-  ChevronsRight
+  ChevronsRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
 import { formatCurrency, formatCurrencyFull } from '@/utils/formatCurrency';
@@ -365,12 +368,36 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
     );
   }, [data, searchTerm]);
 
+  // Sorting
+  const [sortConfig, setSortConfig] = useState<{ key: 'avance_obra' | 'presupuesto_base'; direction: 'asc' | 'desc' } | null>(null);
+
+  const handleSort = (key: 'avance_obra' | 'presupuesto_base') => {
+    setSortConfig(prev => {
+      if (prev?.key === key) {
+        if (prev.direction === 'asc') return { key, direction: 'desc' };
+        return null; // tercer click limpia el sort
+      }
+      return { key, direction: 'asc' };
+    });
+    setCurrentPage(1);
+  };
+
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return filteredData;
+    const { key, direction } = sortConfig;
+    return [...filteredData].sort((a, b) => {
+      const aVal = Number(a[key] || 0);
+      const bVal = Number(b[key] || 0);
+      return direction === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  }, [filteredData, sortConfig]);
+
   // Paginar
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
-    return filteredData.slice(start, start + itemsPerPage);
-  }, [filteredData, currentPage]);
+    return sortedData.slice(start, start + itemsPerPage);
+  }, [sortedData, currentPage]);
 
   const getVisiblePages = () => {
     const pages: Array<number | 'ellipsis'> = [];
@@ -591,9 +618,39 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                 {/* Tipo - oculto en móvil y tablet, visible desde desktop */}
                 <th className="hidden lg:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 w-16 md:w-20 lg:w-24">Tipo</th>
                 {/* Avance - siempre visible */}
-                <th className="px-0 sm:px-0.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-[52px] sm:w-[58px] md:w-[64px] lg:w-[72px]">Avance</th>
+                <th
+                  className="px-0 sm:px-0.5 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-[52px] sm:w-[58px] md:w-[64px] lg:w-[72px] cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  onClick={() => handleSort('avance_obra')}
+                  title="Ordenar por avance"
+                >
+                  <div className="flex items-center justify-center space-x-0.5">
+                    <span>Avance</span>
+                    {sortConfig?.key === 'avance_obra' ? (
+                      sortConfig.direction === 'asc'
+                        ? <ArrowUp className="w-3 h-3 text-blue-500" />
+                        : <ArrowDown className="w-3 h-3 text-blue-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </div>
+                </th>
                 {/* Presupuesto - oculto en móvil y tablet, visible desde desktop */}
-                <th className="hidden md:table-cell px-2 sm:px-3 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-24 md:w-28 lg:w-32">Presupuesto</th>
+                <th
+                  className="hidden md:table-cell px-2 sm:px-3 py-2 sm:py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 w-24 md:w-28 lg:w-32 cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  onClick={() => handleSort('presupuesto_base')}
+                  title="Ordenar por presupuesto"
+                >
+                  <div className="flex items-center justify-center space-x-0.5">
+                    <span>Presupuesto</span>
+                    {sortConfig?.key === 'presupuesto_base' ? (
+                      sortConfig.direction === 'asc'
+                        ? <ArrowUp className="w-3 h-3 text-green-500" />
+                        : <ArrowDown className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </div>
+                </th>
 
               </tr>
             </thead>

@@ -70,3 +70,26 @@
 .leaflet-control-attribution a {
   color: inherit !important;
 }
+
+/* Estilos para etiquetas de medición */
+.measure-segment-label {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
+  white-space: nowrap !important;
+}
+
+.measure-segment-label::before {
+  display: none !important;
+}
+
+.dark .measure-segment-label {
+  background: rgba(31, 41, 55, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #e5e7eb !important;
+}

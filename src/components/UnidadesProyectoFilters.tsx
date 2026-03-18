@@ -6,8 +6,9 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, RefreshCw, X, ChevronDown, Check, DollarSign, TrendingUp } from 'lucide-react';
+import { Search, Filter, RefreshCw, X, ChevronDown, ChevronRight, Check, DollarSign, TrendingUp, SlidersHorizontal } from 'lucide-react';
 import { type FilterData, type FilterParams } from '@/services/unidades-proyecto.service';
+import DualRangeSlider from './DualRangeSlider';
 
 type GlobalFilterOptions = {
   centros_gestores: string[];
@@ -765,6 +766,112 @@ const RangeFilter: React.FC<{
   );
 };
 
+// Sección colapsable de filtros de rango
+const RangeFiltersSection: React.FC<{
+  filters: any;
+  onFiltersChange: (f: any) => void;
+  records: any[];
+  isLoading: boolean;
+}> = ({ filters, onFiltersChange, records, isLoading }) => {
+  const hasActiveRange = filters.avance_min != null || filters.avance_max != null ||
+    filters.presupuesto_min != null || filters.presupuesto_max != null;
+  const [open, setOpen] = useState(hasActiveRange);
+
+  const presupuestoValues = (records || []).map(r => {
+    const val = Number((r as any).presupuesto_base);
+    return isNaN(val) ? 0 : val;
+  }).filter(v => v > 0);
+  const dataMax = presupuestoValues.length > 0 ? Math.max(...presupuestoValues) : 10_000_000_000;
+  const sliderMin = 0;
+  const sliderMax = dataMax > 0 ? dataMax : 10_000_000_000;
+
+  const formatCurrency = (v: number) => {
+    if (v >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(1)}MM`;
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(0)}M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+    return `$${v}`;
+  };
+
+  const parseCurrency = (text: string): number | null => {
+    const clean = text.replace(/[$,\s]/g, '').toUpperCase();
+    const mmMatch = clean.match(/^(\d+\.?\d*)MM$/);
+    if (mmMatch) return parseFloat(mmMatch[1]) * 1_000_000_000;
+    const mMatch = clean.match(/^(\d+\.?\d*)M$/);
+    if (mMatch) return parseFloat(mMatch[1]) * 1_000_000;
+    const kMatch = clean.match(/^(\d+\.?\d*)K$/);
+    if (kMatch) return parseFloat(kMatch[1]) * 1_000;
+    const num = parseFloat(clean);
+    return isNaN(num) ? null : num;
+  };
+
+  return (
+    <div className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          Filtros de rango
+          {hasActiveRange && (
+            <span className="inline-flex items-center justify-center w-1.5 h-1.5 bg-blue-500 rounded-full" />
+          )}
+        </span>
+        {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-3">
+          <DualRangeSlider
+            label="Avance de Obra"
+            icon={<TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+            min={0}
+            max={100}
+            step={1}
+            value={[filters.avance_min ?? 0, filters.avance_max ?? 100]}
+            onChange={([newMin, newMax]) => {
+              onFiltersChange({
+                ...filters,
+                avance_min: newMin === 0 ? undefined : newMin,
+                avance_max: newMax === 100 ? undefined : newMax,
+              });
+            }}
+            formatLabel={(v) => `${v}%`}
+            trackColor="#3B82F6"
+            disabled={isLoading}
+            onClear={() => {
+              onFiltersChange({ ...filters, avance_min: undefined, avance_max: undefined });
+            }}
+          />
+          <DualRangeSlider
+            label="Presupuesto Base"
+            icon={<DollarSign className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />}
+            min={sliderMin}
+            max={sliderMax}
+            step={1}
+            logarithmic
+            value={[filters.presupuesto_min ?? sliderMin, filters.presupuesto_max ?? sliderMax]}
+            onChange={([newMin, newMax]) => {
+              onFiltersChange({
+                ...filters,
+                presupuesto_min: newMin === sliderMin ? undefined : newMin,
+                presupuesto_max: newMax === sliderMax ? undefined : newMax,
+              });
+            }}
+            formatLabel={formatCurrency}
+            parseInput={parseCurrency}
+            trackColor="#10B981"
+            disabled={isLoading}
+            onClear={() => {
+              onFiltersChange({ ...filters, presupuesto_min: undefined, presupuesto_max: undefined });
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Componente principal de filtros
 const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   filterData,
@@ -776,7 +883,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   isLoading = false,
   className = '',
   compact = false,
-  showRangeFilters = false
+  showRangeFilters = true
 }) => {
   // Estado para manejar filtros múltiples
   const [multiFilters, setMultiFilters] = useState<{
@@ -1258,39 +1365,14 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
             onMultiChange={(values) => handleMultiFilterChange('proyectos_estrategicos', values)}
           />
 
-          {/* Filtros de rango - solo si están habilitados */}
+          {/* Filtros de rango - colapsables */}
           {showRangeFilters && (
-            <>
-              {/* Rango de Presupuesto */}
-              <RangeFilter
-                label="Presupuesto Base"
-                min={filters.presupuesto_min}
-                max={filters.presupuesto_max}
-                onMinChange={(value) => handleRangeChange('presupuesto', 'min', value)}
-                onMaxChange={(value) => handleRangeChange('presupuesto', 'max', value)}
-                placeholder={{ min: 'Mínimo', max: 'Máximo' }}
-                icon={<DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />}
-                disabled={isLoading}
-                formatValue={(value) => new Intl.NumberFormat('es-CO', {
-                  style: 'currency',
-                  currency: 'COP',
-                  maximumFractionDigits: 0
-                }).format(value)}
-              />
-
-              {/* Rango de Avance de Obra */}
-              <RangeFilter
-                label="Avance de Obra (%)"
-                min={filters.avance_min}
-                max={filters.avance_max}
-                onMinChange={(value) => handleRangeChange('avance', 'min', value)}
-                onMaxChange={(value) => handleRangeChange('avance', 'max', value)}
-                placeholder={{ min: '0', max: '100' }}
-                icon={<TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
-                disabled={isLoading}
-                formatValue={(value) => `${value}%`}
-              />
-            </>
+            <RangeFiltersSection
+              filters={filters}
+              onFiltersChange={onFiltersChange}
+              records={records}
+              isLoading={isLoading}
+            />
           )}
         </div>
 

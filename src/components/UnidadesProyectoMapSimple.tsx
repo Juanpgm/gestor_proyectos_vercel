@@ -17,6 +17,7 @@ import {
   Map as MapIcon
 } from 'lucide-react';
 import { type GeometryData, type AttributeData } from '@/services/unidades-proyecto.service';
+import MapMeasureTool from './MapMeasureTool';
 
 // Configurar iconos de Leaflet
 if (typeof window !== 'undefined') {
@@ -47,6 +48,7 @@ type ColoringType =
   | 'avance_obra' 
   | 'nombre_centro_gestor' 
   | 'presupuesto_base'
+  | 'fuente_financiacion'
   | 'comuna_corregimiento'
   | 'barrio_vereda';
 
@@ -502,6 +504,9 @@ const ColoringControl: React.FC<{
     if (hasUniqueValues('presupuesto_base')) {
       options.push({ value: 'presupuesto_base', label: 'Presupuesto Base' });
     }
+    if (hasUniqueValues('fuente_financiacion')) {
+      options.push({ value: 'fuente_financiacion', label: 'Fuente de Financiación' });
+    }
     if (hasUniqueValues('comuna_corregimiento')) {
       options.push({ value: 'comuna_corregimiento', label: 'Comuna/Corregimiento' });
     }
@@ -774,6 +779,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
       const estados = new Set(group.map(i => i.estado).filter(Boolean));
       const tipos = new Set(group.map(i => i.tipo_intervencion).filter(Boolean));
       const centros = new Set(group.map(i => i.nombre_centro_gestor).filter(Boolean));
+      const fuentes = new Set(group.map(i => i.fuente_financiacion).filter(Boolean));
       const avances = group
         .map(i => i.avance_obra)
         .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
@@ -793,6 +799,10 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         ? Array.from(centros)[0]!
         : (centros.size > 1 ? 'Intervenido por varios organismos' : '-');
 
+      const fuenteConsolidada = fuentes.size === 1
+        ? Array.from(fuentes)[0]!
+        : (fuentes.size > 1 ? 'Varias fuentes' : '-');
+
       const avancePromedio = avances.length > 0
         ? avances.reduce((sum, val) => sum + val, 0) / avances.length
         : 0;
@@ -806,6 +816,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         estado: estadoConsolidado,
         tipo_intervencion: tipoConsolidado,
         nombre_centro_gestor: centroConsolidado,
+        fuente_financiacion: fuenteConsolidada,
         avance_obra: avancePromedio,
         presupuesto_base: presupuestoTotal
       };
@@ -905,6 +916,9 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
             break;
           case 'frente_activo':
             field = 'frente_activo';
+            break;
+          case 'fuente_financiacion':
+            field = 'fuente_financiacion';
             break;
           case 'comuna_corregimiento':
             field = 'comuna_corregimiento';
@@ -1614,6 +1628,9 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
             }}
           />
         )}
+
+        {/* Herramienta de medición */}
+        <MapMeasureTool />
       </MapContainer>
     </div>
   );

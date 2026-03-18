@@ -95,7 +95,9 @@ export interface FilterParams {
   presupuesto_base?: number;
   avance_obra?: number;
   presupuesto_min?: number;
+  presupuesto_max?: number;
   avance_min?: number;
+  avance_max?: number;
   // Campos para filtros múltiples
   estado_multiple?: string[];
   tipo_intervencion_multiple?: string[];
@@ -850,9 +852,28 @@ export const filterAttributeData = (
       }
       
       // Filtros específicos - primero recopilar todos los filtros únicos (tanto simples como múltiples)
+      // Filtros de rango (avance/presupuesto) - procesar ANTES del loop general
+      const avanceMin = typeof filters.avance_min === 'number' ? filters.avance_min : undefined;
+      const avanceMax = typeof filters.avance_max === 'number' ? filters.avance_max : undefined;
+      if (avanceMin !== undefined || avanceMax !== undefined) {
+        const val = Number(item.avance_obra || 0);
+        if (avanceMin !== undefined && val < avanceMin) return false;
+        if (avanceMax !== undefined && val > avanceMax) return false;
+      }
+
+      const presupuestoMin = typeof filters.presupuesto_min === 'number' ? filters.presupuesto_min : undefined;
+      const presupuestoMax = typeof filters.presupuesto_max === 'number' ? filters.presupuesto_max : undefined;
+      if (presupuestoMin !== undefined || presupuestoMax !== undefined) {
+        const val = Number(item.presupuesto_base || 0);
+        if (presupuestoMin !== undefined && val < presupuestoMin) return false;
+        if (presupuestoMax !== undefined && val > presupuestoMax) return false;
+      }
+
+      const rangeKeys = new Set(['avance_min', 'avance_max', 'presupuesto_min', 'presupuesto_max']);
       const allFilterKeys = new Set<string>();
       Object.keys(filters).forEach(key => {
         if (key === 'searchTerm') return;
+        if (rangeKeys.has(key)) return; // Ya procesados arriba
         if (key.endsWith('_multiple')) {
           allFilterKeys.add(key.replace('_multiple', ''));
         } else {
