@@ -781,8 +781,10 @@ const UnidadesProyecto: React.FC = () => {
         });
       }
 
-      // Generate XLSX on the frontend using exceljs (includes geometry)
-      const ExcelJS = await import('exceljs');
+      // Generate XLSX on the frontend using exceljs (includes geometry).
+      // exceljs is a CJS module; with ESM dynamic import the exports live under `.default`.
+      const ExcelJSModule = await import('exceljs');
+      const ExcelJS = (ExcelJSModule.default ?? ExcelJSModule) as typeof import('exceljs');
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'Gestor de Proyectos';
       workbook.created = new Date();
