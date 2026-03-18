@@ -756,7 +756,12 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
 };
 
 export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
-  const consolidatedData = consolidateAttributeData(data);
+  // Use original (non-consolidated) data to extract filter option values.
+  // Consolidated data can produce placeholder strings like 'Varios estados',
+  // 'Varios tipos', or 'Intervenido por varios organismos' for UPIDs that have
+  // multiple rows with different field values.  Those placeholder strings would
+  // appear in the filter dropdowns but never match any real record in
+  // filterAttributeData, causing empty results when selected.
   const extractUniqueValues = <T>(items: T[], key: keyof T): string[] => {
     const values = items
       .map(item => item[key])
@@ -775,16 +780,16 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
   };
 
   const filters = {
-    estados: extractUniqueValues(consolidatedData, 'estado'),
-    tipos_intervencion: extractUniqueValues(consolidatedData, 'tipo_intervencion'),
-    tipos_equipamiento: extractUniqueValues(consolidatedData, 'tipo_equipamiento'),
-    frentes_activos: extractUniqueValues(consolidatedData, 'frente_activo'),
-    centros_gestores: extractUniqueValues(consolidatedData, 'nombre_centro_gestor'),
-    comunas: extractUniqueValues(consolidatedData, 'comuna_corregimiento'), // Mapear comuna_corregimiento a comunas
-    barrios_veredas: extractUniqueValues(consolidatedData, 'barrio_vereda'),
-    fuentes_financiacion: extractUniqueValues(consolidatedData, 'fuente_financiacion'),
-    anos: extractUniqueYears(consolidatedData, 'ano'),
-    proyectos_estrategicos: extractUniqueValues(consolidatedData, 'proyectos_estrategicos') // Extraídos desde los datos reales de la API
+    estados: extractUniqueValues(data, 'estado'),
+    tipos_intervencion: extractUniqueValues(data, 'tipo_intervencion'),
+    tipos_equipamiento: extractUniqueValues(data, 'tipo_equipamiento'),
+    frentes_activos: extractUniqueValues(data, 'frente_activo'),
+    centros_gestores: extractUniqueValues(data, 'nombre_centro_gestor'),
+    comunas: extractUniqueValues(data, 'comuna_corregimiento'), // Mapear comuna_corregimiento a comunas
+    barrios_veredas: extractUniqueValues(data, 'barrio_vereda'),
+    fuentes_financiacion: extractUniqueValues(data, 'fuente_financiacion'),
+    anos: extractUniqueYears(data, 'ano'),
+    proyectos_estrategicos: extractUniqueValues(data, 'proyectos_estrategicos') // Extraídos desde los datos reales de la API
   };
   
   console.log('🔍 generateFiltersFromData: Filtros extraídos:', {
@@ -906,6 +911,8 @@ export const filterAttributeData = (
                 return valueInArray(item.tipo_equipamiento, multipleValues);
               case 'frente_activo':
                 return valueInArray(item.frente_activo, multipleValues);
+              case 'clase_up':
+                return valueInArray(item.clase_up, multipleValues);
               case 'centro_gestor':
               case 'centro_gestor_multiple':
                 return valueInArray(item.nombre_centro_gestor, multipleValues);
@@ -953,6 +960,8 @@ export const filterAttributeData = (
                 return stringsMatch(item.tipo_equipamiento, singleValue);
               case 'frente_activo':
                 return stringsMatch(item.frente_activo, singleValue);
+              case 'clase_up':
+                return stringsMatch(item.clase_up, singleValue);
               case 'centro_gestor':
               case 'centro_gestor_multiple':
                 return stringsMatch(item.nombre_centro_gestor, singleValue);
