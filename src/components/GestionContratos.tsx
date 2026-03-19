@@ -22,7 +22,8 @@ import {
   Upload,
   Eye,
   EyeOff,
-  CheckCircle
+  CheckCircle,
+  Download
 } from 'lucide-react'
 import AgregarConvenioTransferenciaModal from '@/components/AgregarConvenioTransferenciaModal'
 import CargarRPCModal from '@/components/CargarRPCModal'
@@ -30,6 +31,19 @@ import EditarRPCModal from '@/components/EditarRPCModal'
 import ManagementFeatureTour from './ManagementFeatureTour'
 
 // Interfaz para RPC
+interface DocumentoConEnlace {
+  filename: string
+  s3_key: string
+  s3_url: string
+  content_type: string
+  size: number
+  upload_date?: string
+  url_descarga?: string
+  url_visualizar?: string
+  url_presigned?: string
+  url_expiration_seconds?: number
+}
+
 interface RPC {
   id: string
   numero_rpc: string
@@ -51,6 +65,8 @@ interface RPC {
     content_type: string
     size: number
   }>
+  documentos_con_enlaces?: DocumentoConEnlace[]
+  total_documentos?: number
   fecha_creacion?: string
   fecha_actualizacion?: string
   estado?: string
@@ -120,8 +136,9 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   const [selectedContratoForRPC, setSelectedContratoForRPC] = useState<ContratoEmprestito | null>(null)
   const [showEditarRPCModal, setShowEditarRPCModal] = useState(false)
   const [selectedRPCForEdit, setSelectedRPCForEdit] = useState<RPC | null>(null)
-  const [showPDFPreviewModal, setShowPDFPreviewModal] = useState(false)
-  const [previewPDFUrl, setPreviewPDFUrl] = useState<string | null>(null)
+  const [showDocumentosRPCModal, setShowDocumentosRPCModal] = useState(false)
+  const [selectedContratoForDocs, setSelectedContratoForDocs] = useState<ContratoEmprestito | null>(null)
+  const [selectedDocUrl, setSelectedDocUrl] = useState<string | null>(null)
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [columnSearchTerm, setColumnSearchTerm] = useState('')
   const [columnOrder, setColumnOrder] = useState<string[]>([])
@@ -295,35 +312,56 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     return rpcs.filter(rpc => rpc.referencia_contrato === referenciaContrato)
   }
 
-  // Función para verificar si algún RPC del contrato tiene documentos PDF
-  const tienePDFDisponible = (contrato: ContratoEmprestito): boolean => {
+  // Función para verificar si algún RPC del contrato tiene documentos
+  const tieneDocumentosRPC = (contrato: ContratoEmprestito): boolean => {
     const contratosRpcs = obtenerRPCsDeContrato(contrato)
-    return contratosRpcs.some(rpc => rpc.documentos_s3 && rpc.documentos_s3.length > 0)
+    return contratosRpcs.some(rpc =>
+      (rpc.documentos_con_enlaces && rpc.documentos_con_enlaces.length > 0) ||
+      (rpc.documentos_s3 && rpc.documentos_s3.length > 0)
+    )
   }
 
-  // Función para abrir preview del PDF
-  const handlePreviewPDF = (contrato: ContratoEmprestito) => {
-    const contratosRpcs = obtenerRPCsDeContrato(contrato)
-    for (const rpc of contratosRpcs) {
-      if (rpc.documentos_s3 && rpc.documentos_s3.length > 0) {
-        const pdfDoc = rpc.documentos_s3.find(doc => 
-          doc.content_type === 'application/pdf'
-        ) || rpc.documentos_s3[0]
-        
-        // FIX TEMPORAL: Corregir la región de S3 de us-east-1 a us-east-2
-        let fixedUrl = pdfDoc.s3_url
-        if (fixedUrl.includes('.s3.us-east-1.amazonaws.com')) {
-          fixedUrl = fixedUrl.replace('.s3.us-east-1.amazonaws.com', '.s3.us-east-2.amazonaws.com')
-        }
-        if (fixedUrl.includes('.s3.amazonaws.com')) {
-          fixedUrl = fixedUrl.replace('.s3.amazonaws.com', '.s3.us-east-2.amazonaws.com')
-        }
-        
-        setPreviewPDFUrl(fixedUrl)
-        setShowPDFPreviewModal(true)
-        break
-      }
+  // URL para visualizar el documento directamente en el iframe (usa url_visualizar de la API)
+  const getDocViewUrl = (doc: DocumentoConEnlace): string => {
+    return doc.url_visualizar || doc.url_presigned || doc.s3_url
+  }
+
+  // URL para descargar el documento (usa el proxy con Content-Disposition: attachment)
+  const getDocDownloadUrl = (doc: DocumentoConEnlace): string => {
+    const remoteUrl = doc.url_descarga || doc.url_visualizar || doc.url_presigned || doc.s3_url
+    const encoded = btoa(unescape(encodeURIComponent(remoteUrl)))
+    return `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}`
+  }
+
+  // Abrir el modal de documentos RPC del contrato
+  const handleOpenDocumentosRPC = (contrato: ContratoEmprestito) => {
+    setSelectedContratoForDocs(contrato)
+    setSelectedDocUrl(null)
+    setShowDocumentosRPCModal(true)
+  }
+
+  // Obtener documentos unificados de un RPC (prefiere documentos_con_enlaces)
+  const getDocumentosDeRPC = (rpc: RPC): DocumentoConEnlace[] => {
+    if (rpc.documentos_con_enlaces && rpc.documentos_con_enlaces.length > 0) {
+      return rpc.documentos_con_enlaces
     }
+    if (rpc.documentos_s3 && rpc.documentos_s3.length > 0) {
+      return rpc.documentos_s3.map(d => ({
+        filename: d.filename,
+        s3_key: '',
+        s3_url: d.s3_url,
+        content_type: d.content_type,
+        size: d.size,
+      }))
+    }
+    return []
+  }
+
+  // Formatear tamaño de archivo
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
   useEffect(() => {
@@ -1276,12 +1314,12 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                         })()}
                       </button>
 
-                      {/* Botón para previsualizar PDF (solo si tiene documentos) */}
-                      {tienePDFDisponible(contrato) && (
+                      {/* Botón para ver documentos RPC (solo si tiene documentos) */}
+                      {tieneDocumentosRPC(contrato) && (
                         <button
-                          onClick={() => handlePreviewPDF(contrato)}
+                          onClick={() => handleOpenDocumentosRPC(contrato)}
                           className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
-                          title="Previsualizar documento RPC"
+                          title="Ver documentos RPC"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -1372,9 +1410,9 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         contratoData={selectedContratoForRPC}
       />
 
-      {/* Modal de Previsualización de PDF */}
+      {/* Modal de Documentos RPC */}
       <AnimatePresence>
-        {showPDFPreviewModal && previewPDFUrl && (
+        {showDocumentosRPCModal && selectedContratoForDocs && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -1386,12 +1424,18 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
               <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <FileText className="w-6 h-6 text-white" />
-                  <h2 className="text-xl font-bold text-white">Documento RPC</h2>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Documentos RPC</h2>
+                    <p className="text-sm text-white/80">
+                      {selectedContratoForDocs.referencia_contrato || selectedContratoForDocs.numero_contrato}
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => {
-                    setShowPDFPreviewModal(false)
-                    setPreviewPDFUrl(null)
+                    setShowDocumentosRPCModal(false)
+                    setSelectedContratoForDocs(null)
+                    setSelectedDocUrl(null)
                   }}
                   className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
                 >
@@ -1399,32 +1443,139 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                 </button>
               </div>
 
-              {/* PDF Viewer */}
-              <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
-                <iframe
-                  src={previewPDFUrl}
-                  className="w-full h-full border-0"
-                  title="Vista previa del documento RPC"
-                />
+              {/* Content: sidebar list + PDF viewer */}
+              <div className="flex-1 flex overflow-hidden">
+                {/* Sidebar: lista de RPCs y documentos */}
+                <div className="w-80 border-r border-gray-200 dark:border-gray-700 overflow-y-auto bg-gray-50 dark:bg-gray-900 flex-shrink-0">
+                  {(() => {
+                    const rpcsDelContrato = obtenerRPCsDeContrato(selectedContratoForDocs)
+                    if (rpcsDelContrato.length === 0) {
+                      return (
+                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                          <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No hay RPCs registrados</p>
+                        </div>
+                      )
+                    }
+                    return rpcsDelContrato.map((rpc) => {
+                      const docs = getDocumentosDeRPC(rpc)
+                      return (
+                        <div key={rpc.id} className="border-b border-gray-200 dark:border-gray-700">
+                          {/* RPC header */}
+                          <div className="px-4 py-3 bg-white dark:bg-gray-800">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                RPC {rpc.numero_rpc}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                rpc.estado === 'activo'
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                              }`}>
+                                {rpc.estado_liberacion || rpc.estado || 'N/A'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                              {rpc.beneficiario_nombre || 'Sin beneficiario'}
+                            </p>
+                            {rpc.valor_rpc && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                ${rpc.valor_rpc.toLocaleString('es-CO')}
+                              </p>
+                            )}
+                          </div>
+                          {/* Documentos del RPC */}
+                          {docs.length > 0 ? (
+                            docs.map((doc, idx) => {
+                              const viewUrl = getDocViewUrl(doc)
+                              const downloadUrl = getDocDownloadUrl(doc)
+                              const isSelected = selectedDocUrl === viewUrl
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`px-4 py-2 flex items-center gap-2 cursor-pointer transition-colors ${
+                                    isSelected
+                                      ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500'
+                                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 border-l-4 border-transparent'
+                                  }`}
+                                  onClick={() => setSelectedDocUrl(viewUrl)}
+                                >
+                                  <FileText className={`w-4 h-4 flex-shrink-0 ${
+                                    isSelected ? 'text-orange-600' : 'text-gray-400'
+                                  }`} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-xs truncate ${
+                                      isSelected
+                                        ? 'font-semibold text-orange-700 dark:text-orange-400'
+                                        : 'text-gray-700 dark:text-gray-300'
+                                    }`}>
+                                      {doc.filename}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400">
+                                      {formatFileSize(doc.size)} · {doc.content_type.split('/')[1]?.toUpperCase() || 'DOC'}
+                                    </p>
+                                  </div>
+                                  <a
+                                    href={downloadUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex-shrink-0"
+                                    title="Descargar documento"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </a>
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 italic">
+                              Sin documentos adjuntos
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+
+                {/* PDF Viewer */}
+                <div className="flex-1 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                  {selectedDocUrl ? (
+                    <iframe
+                      src={selectedDocUrl}
+                      className="w-full h-full border-0"
+                      title="Vista previa del documento RPC"
+                    />
+                  ) : (
+                    <div className="text-center text-gray-400 dark:text-gray-500">
+                      <Eye className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                      <p className="text-sm">Selecciona un documento para previsualizarlo</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Footer con botones */}
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <a
-                  href={previewPDFUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Abrir en Nueva Pestaña</span>
-                </a>
+              {/* Footer */}
+              <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                {selectedDocUrl && (
+                  <a
+                    href={selectedDocUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2 text-sm"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>Abrir en Nueva Pestaña</span>
+                  </a>
+                )}
                 <button
                   onClick={() => {
-                    setShowPDFPreviewModal(false)
-                    setPreviewPDFUrl(null)
+                    setShowDocumentosRPCModal(false)
+                    setSelectedContratoForDocs(null)
+                    setSelectedDocUrl(null)
                   }}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ml-auto"
                 >
                   Cerrar
                 </button>

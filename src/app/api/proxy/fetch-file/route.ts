@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const encodedUrl = searchParams.get('url');
   const name = searchParams.get('name') || 'archivo';
-  const inline = searchParams.has('inline');
+  const inline = searchParams.get('inline') === '1' || searchParams.has('inline');
 
   if (!encodedUrl) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
@@ -39,15 +39,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const contentType =
+    const upstreamContentType =
       upstream.headers.get('Content-Type') || 'application/octet-stream';
     const body = await upstream.arrayBuffer();
+
+    // When inline, infer correct content-type from filename if S3 returned a
+    // generic octet-stream — browsers need the real MIME type to render inline.
+    let contentType = upstreamContentType;
+    if (inline && (upstreamContentType === 'application/octet-stream' || upstreamContentType === 'binary/octet-stream')) {
+      const ext = name.split('.').pop()?.toLowerCase();
+      const mimeMap: Record<string, string> = {
+        pdf: 'application/pdf',
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        gif: 'image/gif',
+        svg: 'image/svg+xml',
+        webp: 'image/webp',
+      };
+      if (ext && mimeMap[ext]) {
+        contentType = mimeMap[ext];
+      }
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': contentType,
       'Cache-Control': inline ? 'private, max-age=300' : 'private, no-store',
     };
-    if (!inline) {
+    if (inline) {
+      headers['Content-Disposition'] = 'inline';
+    } else {
       headers['Content-Disposition'] = `attachment; filename*=UTF-8''${encodeURIComponent(name)}`;
     }
 
