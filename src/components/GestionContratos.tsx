@@ -139,6 +139,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   const [showDocumentosRPCModal, setShowDocumentosRPCModal] = useState(false)
   const [selectedContratoForDocs, setSelectedContratoForDocs] = useState<ContratoEmprestito | null>(null)
   const [selectedDocUrl, setSelectedDocUrl] = useState<string | null>(null)
+  const [selectedDocBlobUrl, setSelectedDocBlobUrl] = useState<string | null>(null)
+  const [loadingDoc, setLoadingDoc] = useState(false)
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [columnSearchTerm, setColumnSearchTerm] = useState('')
   const [columnOrder, setColumnOrder] = useState<string[]>([])
@@ -321,8 +323,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     )
   }
 
-  // URL para visualizar el documento directamente en el iframe (usa url_visualizar de la API)
-  const getDocViewUrl = (doc: DocumentoConEnlace): string => {
+  // URL remota del documento (usada como key de selección)
+  const getDocRemoteUrl = (doc: DocumentoConEnlace): string => {
     return doc.url_visualizar || doc.url_presigned || doc.s3_url
   }
 
@@ -333,10 +335,53 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     return `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}`
   }
 
+  // Seleccionar documento: fetch como blob para visualizar inline
+  // (S3 envía Content-Disposition: attachment, así que el iframe descarga en lugar de mostrar.
+  //  La solución es fetch → blob → URL.createObjectURL que no tiene headers de descarga.)
+  const handleSelectDoc = async (doc: DocumentoConEnlace) => {
+    const remoteUrl = getDocRemoteUrl(doc)
+    if (selectedDocUrl === remoteUrl) return
+
+    // Liberar blob anterior
+    if (selectedDocBlobUrl) {
+      URL.revokeObjectURL(selectedDocBlobUrl)
+      setSelectedDocBlobUrl(null)
+    }
+
+    setSelectedDocUrl(remoteUrl)
+    setLoadingDoc(true)
+
+    try {
+      const encoded = btoa(unescape(encodeURIComponent(remoteUrl)))
+      const proxyUrl = `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}&inline=1`
+      const response = await fetch(proxyUrl)
+      if (!response.ok) throw new Error(`Error ${response.status}`)
+      const blob = await response.blob()
+      const pdfBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' })
+      setSelectedDocBlobUrl(URL.createObjectURL(pdfBlob))
+    } catch (err) {
+      console.error('Error cargando documento:', err)
+      setSelectedDocBlobUrl(null)
+    } finally {
+      setLoadingDoc(false)
+    }
+  }
+
+  // Limpiar blob URL al cerrar modal
+  const handleCloseDocumentosModal = () => {
+    if (selectedDocBlobUrl) URL.revokeObjectURL(selectedDocBlobUrl)
+    setShowDocumentosRPCModal(false)
+    setSelectedContratoForDocs(null)
+    setSelectedDocUrl(null)
+    setSelectedDocBlobUrl(null)
+    setLoadingDoc(false)
+  }
+
   // Abrir el modal de documentos RPC del contrato
   const handleOpenDocumentosRPC = (contrato: ContratoEmprestito) => {
     setSelectedContratoForDocs(contrato)
     setSelectedDocUrl(null)
+    setSelectedDocBlobUrl(null)
     setShowDocumentosRPCModal(true)
   }
 
@@ -1432,11 +1477,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    setShowDocumentosRPCModal(false)
-                    setSelectedContratoForDocs(null)
-                    setSelectedDocUrl(null)
-                  }}
+                  onClick={handleCloseDocumentosModal}
                   className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
                 >
                   <X className="w-5 h-5" />
@@ -1487,9 +1528,9 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                           {/* Documentos del RPC */}
                           {docs.length > 0 ? (
                             docs.map((doc, idx) => {
-                              const viewUrl = getDocViewUrl(doc)
+                              const remoteUrl = getDocRemoteUrl(doc)
                               const downloadUrl = getDocDownloadUrl(doc)
-                              const isSelected = selectedDocUrl === viewUrl
+                              const isSelected = selectedDocUrl === remoteUrl
                               return (
                                 <div
                                   key={idx}
@@ -1498,7 +1539,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                                       ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500'
                                       : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 border-l-4 border-transparent'
                                   }`}
-                                  onClick={() => setSelectedDocUrl(viewUrl)}
+                                  onClick={() => handleSelectDoc(doc)}
                                 >
                                   <FileText className={`w-4 h-4 flex-shrink-0 ${
                                     isSelected ? 'text-orange-600' : 'text-gray-400'
@@ -1541,12 +1582,22 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
 
                 {/* PDF Viewer */}
                 <div className="flex-1 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-                  {selectedDocUrl ? (
+                  {loadingDoc ? (
+                    <div className="text-center text-gray-400 dark:text-gray-500">
+                      <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-sm">Cargando documento...</p>
+                    </div>
+                  ) : selectedDocBlobUrl ? (
                     <iframe
-                      src={selectedDocUrl}
+                      src={selectedDocBlobUrl}
                       className="w-full h-full border-0"
                       title="Vista previa del documento RPC"
                     />
+                  ) : selectedDocUrl ? (
+                    <div className="text-center text-red-400 dark:text-red-500">
+                      <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                      <p className="text-sm">No se pudo cargar la vista previa</p>
+                    </div>
                   ) : (
                     <div className="text-center text-gray-400 dark:text-gray-500">
                       <Eye className="w-12 h-12 mx-auto mb-3 opacity-40" />
@@ -1558,9 +1609,9 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
 
               {/* Footer */}
               <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                {selectedDocUrl && (
+                {selectedDocBlobUrl && (
                   <a
-                    href={selectedDocUrl}
+                    href={selectedDocBlobUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2 text-sm"
@@ -1570,11 +1621,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                   </a>
                 )}
                 <button
-                  onClick={() => {
-                    setShowDocumentosRPCModal(false)
-                    setSelectedContratoForDocs(null)
-                    setSelectedDocUrl(null)
-                  }}
+                  onClick={handleCloseDocumentosModal}
                   className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ml-auto"
                 >
                   Cerrar
