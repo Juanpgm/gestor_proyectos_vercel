@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import AgregarConvenioTransferenciaModal from '@/components/AgregarConvenioTransferenciaModal'
 import CargarRPCModal from '@/components/CargarRPCModal'
+import EditarRPCModal from '@/components/EditarRPCModal'
 import ManagementFeatureTour from './ManagementFeatureTour'
 
 // Interfaz para RPC
@@ -117,6 +118,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   const [showAgregarModal, setShowAgregarModal] = useState(false)
   const [showCargarRPCModal, setShowCargarRPCModal] = useState(false)
   const [selectedContratoForRPC, setSelectedContratoForRPC] = useState<ContratoEmprestito | null>(null)
+  const [showEditarRPCModal, setShowEditarRPCModal] = useState(false)
+  const [selectedRPCForEdit, setSelectedRPCForEdit] = useState<RPC | null>(null)
   const [showPDFPreviewModal, setShowPDFPreviewModal] = useState(false)
   const [previewPDFUrl, setPreviewPDFUrl] = useState<string | null>(null)
   const [showColumnSelector, setShowColumnSelector] = useState(false)
@@ -286,44 +289,40 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     }
   }
 
-  // Función para verificar si un contrato tiene RPC cargado
-  const tieneRPCCargado = (contrato: ContratoEmprestito): boolean => {
+  // Función para obtener TODOS los RPCs de un contrato
+  const obtenerRPCsDeContrato = (contrato: ContratoEmprestito): RPC[] => {
     const referenciaContrato = contrato.referencia_contrato || contrato.numero_contrato
-    return rpcs.some(rpc => rpc.referencia_contrato === referenciaContrato)
+    return rpcs.filter(rpc => rpc.referencia_contrato === referenciaContrato)
   }
 
-  // Función para obtener el RPC de un contrato
-  const obtenerRPCDeContrato = (contrato: ContratoEmprestito): RPC | null => {
-    const referenciaContrato = contrato.referencia_contrato || contrato.numero_contrato
-    return rpcs.find(rpc => rpc.referencia_contrato === referenciaContrato) || null
-  }
-
-  // Función para verificar si el RPC tiene documentos PDF
+  // Función para verificar si algún RPC del contrato tiene documentos PDF
   const tienePDFDisponible = (contrato: ContratoEmprestito): boolean => {
-    const rpc = obtenerRPCDeContrato(contrato)
-    return !!(rpc && rpc.documentos_s3 && rpc.documentos_s3.length > 0)
+    const contratosRpcs = obtenerRPCsDeContrato(contrato)
+    return contratosRpcs.some(rpc => rpc.documentos_s3 && rpc.documentos_s3.length > 0)
   }
 
   // Función para abrir preview del PDF
   const handlePreviewPDF = (contrato: ContratoEmprestito) => {
-    const rpc = obtenerRPCDeContrato(contrato)
-    if (rpc && rpc.documentos_s3 && rpc.documentos_s3.length > 0) {
-      // Tomar el primer documento PDF
-      const pdfDoc = rpc.documentos_s3.find(doc => 
-        doc.content_type === 'application/pdf'
-      ) || rpc.documentos_s3[0]
-      
-      // FIX TEMPORAL: Corregir la región de S3 de us-east-1 a us-east-2
-      let fixedUrl = pdfDoc.s3_url
-      if (fixedUrl.includes('.s3.us-east-1.amazonaws.com')) {
-        fixedUrl = fixedUrl.replace('.s3.us-east-1.amazonaws.com', '.s3.us-east-2.amazonaws.com')
+    const contratosRpcs = obtenerRPCsDeContrato(contrato)
+    for (const rpc of contratosRpcs) {
+      if (rpc.documentos_s3 && rpc.documentos_s3.length > 0) {
+        const pdfDoc = rpc.documentos_s3.find(doc => 
+          doc.content_type === 'application/pdf'
+        ) || rpc.documentos_s3[0]
+        
+        // FIX TEMPORAL: Corregir la región de S3 de us-east-1 a us-east-2
+        let fixedUrl = pdfDoc.s3_url
+        if (fixedUrl.includes('.s3.us-east-1.amazonaws.com')) {
+          fixedUrl = fixedUrl.replace('.s3.us-east-1.amazonaws.com', '.s3.us-east-2.amazonaws.com')
+        }
+        if (fixedUrl.includes('.s3.amazonaws.com')) {
+          fixedUrl = fixedUrl.replace('.s3.amazonaws.com', '.s3.us-east-2.amazonaws.com')
+        }
+        
+        setPreviewPDFUrl(fixedUrl)
+        setShowPDFPreviewModal(true)
+        break
       }
-      if (fixedUrl.includes('.s3.amazonaws.com')) {
-        fixedUrl = fixedUrl.replace('.s3.amazonaws.com', '.s3.us-east-2.amazonaws.com')
-      }
-      
-      setPreviewPDFUrl(fixedUrl)
-      setShowPDFPreviewModal(true)
     }
   }
 
@@ -1257,24 +1256,24 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                   
                   <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700 sticky right-0 bg-white dark:bg-gray-800 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] dark:shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.3)]">
                     <div className="flex items-center space-x-2">
-                      {/* Botón para cargar/editar RPC */}
+                      {/* Botón para cargar RPC - siempre visible */}
                       <button
                         onClick={() => {
                           setSelectedContratoForRPC(contrato)
                           setShowCargarRPCModal(true)
                         }}
-                        className={`p-1.5 rounded transition-colors ${
-                          tieneRPCCargado(contrato)
-                            ? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                            : 'text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
-                        }`}
-                        title={tieneRPCCargado(contrato) ? "RPC ya cargado - Click para editar" : "Cargar RPC"}
+                        className="p-1.5 rounded transition-colors text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 relative"
+                        title="Cargar RPC"
                       >
-                        {tieneRPCCargado(contrato) ? (
-                          <CheckCircle className="w-4 h-4" />
-                        ) : (
-                          <Upload className="w-4 h-4" />
-                        )}
+                        <Upload className="w-4 h-4" />
+                        {(() => {
+                          const count = obtenerRPCsDeContrato(contrato).length
+                          return count > 0 ? (
+                            <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                              {count}
+                            </span>
+                          ) : null
+                        })()}
                       </button>
 
                       {/* Botón para previsualizar PDF (solo si tiene documentos) */}
@@ -1350,7 +1349,27 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           fetchRPCs()
         }}
         contratoData={selectedContratoForRPC}
-        rpcExistente={selectedContratoForRPC ? obtenerRPCDeContrato(selectedContratoForRPC) : null}
+        rpcsExistentes={selectedContratoForRPC ? obtenerRPCsDeContrato(selectedContratoForRPC) : []}
+        onEditRPC={(rpc) => {
+          setShowCargarRPCModal(false)
+          setSelectedRPCForEdit(rpc)
+          setShowEditarRPCModal(true)
+        }}
+      />
+
+      {/* Modal de Editar RPC */}
+      <EditarRPCModal
+        isOpen={showEditarRPCModal}
+        onClose={() => {
+          setShowEditarRPCModal(false)
+          setSelectedRPCForEdit(null)
+        }}
+        onSuccess={() => {
+          fetchContratos()
+          fetchRPCs()
+        }}
+        rpcData={selectedRPCForEdit}
+        contratoData={selectedContratoForRPC}
       />
 
       {/* Modal de Previsualización de PDF */}
