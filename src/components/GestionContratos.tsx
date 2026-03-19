@@ -340,7 +340,11 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   //  La solución es fetch → blob → URL.createObjectURL que no tiene headers de descarga.)
   const handleSelectDoc = async (doc: DocumentoConEnlace) => {
     const remoteUrl = getDocRemoteUrl(doc)
-    if (selectedDocUrl === remoteUrl) return
+    console.log('[DocViewer] handleSelectDoc llamado, filename:', doc.filename)
+    if (selectedDocUrl === remoteUrl) {
+      console.log('[DocViewer] Ya seleccionado, ignorando')
+      return
+    }
 
     // Liberar blob anterior
     if (selectedDocBlobUrl) {
@@ -354,13 +358,18 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     try {
       const encoded = btoa(unescape(encodeURIComponent(remoteUrl)))
       const proxyUrl = `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}&inline=1`
+      console.log('[DocViewer] Fetching proxy URL:', proxyUrl.substring(0, 100))
       const response = await fetch(proxyUrl)
+      console.log('[DocViewer] Response status:', response.status, 'Content-Type:', response.headers.get('Content-Type'))
       if (!response.ok) throw new Error(`Error ${response.status}`)
       const blob = await response.blob()
+      console.log('[DocViewer] Blob size:', blob.size, 'type:', blob.type)
       const pdfBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' })
-      setSelectedDocBlobUrl(URL.createObjectURL(pdfBlob))
+      const blobUrl = URL.createObjectURL(pdfBlob)
+      console.log('[DocViewer] Blob URL creada:', blobUrl)
+      setSelectedDocBlobUrl(blobUrl)
     } catch (err) {
-      console.error('Error cargando documento:', err)
+      console.error('[DocViewer] Error cargando documento:', err)
       setSelectedDocBlobUrl(null)
     } finally {
       setLoadingDoc(false)
@@ -378,11 +387,27 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   }
 
   // Abrir el modal de documentos RPC del contrato
+  // Si solo hay un documento, lo carga automáticamente en el visor
   const handleOpenDocumentosRPC = (contrato: ContratoEmprestito) => {
     setSelectedContratoForDocs(contrato)
     setSelectedDocUrl(null)
     setSelectedDocBlobUrl(null)
     setShowDocumentosRPCModal(true)
+
+    // Auto-cargar si solo hay un documento
+    const rpcsDelContrato = rpcs.filter(r => {
+      const numContrato = r.numero_contrato?.toString() || ''
+      const contratoNum = contrato.numero_contrato?.toString() || ''
+      return numContrato === contratoNum
+    })
+    const allDocs: DocumentoConEnlace[] = []
+    rpcsDelContrato.forEach(rpc => {
+      allDocs.push(...getDocumentosDeRPC(rpc))
+    })
+    if (allDocs.length === 1) {
+      // Usar setTimeout para que el modal se renderice primero
+      setTimeout(() => handleSelectDoc(allDocs[0]), 100)
+    }
   }
 
   // Obtener documentos unificados de un RPC (prefiere documentos_con_enlaces)
@@ -1529,7 +1554,6 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                           {docs.length > 0 ? (
                             docs.map((doc, idx) => {
                               const remoteUrl = getDocRemoteUrl(doc)
-                              const downloadUrl = getDocDownloadUrl(doc)
                               const isSelected = selectedDocUrl === remoteUrl
                               return (
                                 <div
@@ -1539,7 +1563,11 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                                       ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500'
                                       : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 border-l-4 border-transparent'
                                   }`}
-                                  onClick={() => handleSelectDoc(doc)}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleSelectDoc(doc)
+                                  }}
                                 >
                                   <FileText className={`w-4 h-4 flex-shrink-0 ${
                                     isSelected ? 'text-orange-600' : 'text-gray-400'
@@ -1556,16 +1584,19 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                                       {formatFileSize(doc.size)} · {doc.content_type.split('/')[1]?.toUpperCase() || 'DOC'}
                                     </p>
                                   </div>
-                                  <a
-                                    href={downloadUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      const downloadUrl = getDocDownloadUrl(doc)
+                                      window.open(downloadUrl, '_blank')
+                                    }}
                                     className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex-shrink-0"
                                     title="Descargar documento"
                                   >
                                     <Download className="w-3.5 h-3.5" />
-                                  </a>
+                                  </button>
                                 </div>
                               )
                             })
@@ -1581,27 +1612,33 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                 </div>
 
                 {/* PDF Viewer */}
-                <div className="flex-1 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                <div className="flex-1 bg-gray-100 dark:bg-gray-900 relative">
                   {loadingDoc ? (
-                    <div className="text-center text-gray-400 dark:text-gray-500">
-                      <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                      <p className="text-sm">Cargando documento...</p>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center text-gray-400 dark:text-gray-500">
+                        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                        <p className="text-sm">Cargando documento...</p>
+                      </div>
                     </div>
                   ) : selectedDocBlobUrl ? (
                     <iframe
                       src={selectedDocBlobUrl}
-                      className="w-full h-full border-0"
+                      className="absolute inset-0 w-full h-full border-0"
                       title="Vista previa del documento RPC"
                     />
                   ) : selectedDocUrl ? (
-                    <div className="text-center text-red-400 dark:text-red-500">
-                      <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                      <p className="text-sm">No se pudo cargar la vista previa</p>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center text-red-400 dark:text-red-500">
+                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                        <p className="text-sm">No se pudo cargar la vista previa</p>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center text-gray-400 dark:text-gray-500">
-                      <Eye className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                      <p className="text-sm">Selecciona un documento para previsualizarlo</p>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center text-gray-400 dark:text-gray-500">
+                        <Eye className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                        <p className="text-sm">Selecciona un documento para previsualizarlo</p>
+                      </div>
                     </div>
                   )}
                 </div>
