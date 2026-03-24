@@ -56,7 +56,9 @@ const AttributeSchema = z.object({
   referencia_proceso: z.string().optional(),
   url_proceso: z.string().optional(),
   ano: z.number(),
-  proyectos_estrategicos: z.string().optional() // Nuevo campo para proyectos estratégicos
+  proyectos_estrategicos: z.string().optional(), // Nuevo campo para proyectos estratégicos
+  unidad: z.string().optional(),
+  cantidad: z.union([z.string(), z.number()]).optional()
 });
 
 const FilterSchema = z.object({
