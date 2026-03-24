@@ -1,0 +1,4 @@
+
+> gestor-proyectos-vercel@0.1.0 build
+> cross-env NODE_ENV=production next build
+

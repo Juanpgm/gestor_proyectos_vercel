@@ -48,6 +48,7 @@ interface RPC {
   id: string
   numero_rpc: string
   referencia_contrato: string
+  numero_contrato?: string
   beneficiario_id?: string
   beneficiario_nombre?: string
   descripcion_rpc?: string
@@ -396,7 +397,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
 
     // Auto-cargar si solo hay un documento
     const rpcsDelContrato = rpcs.filter(r => {
-      const numContrato = r.numero_contrato?.toString() || ''
+      const numContrato = (r.numero_contrato ?? r.referencia_contrato)?.toString() || ''
       const contratoNum = contrato.numero_contrato?.toString() || ''
       return numContrato === contratoNum
     })
