@@ -19,6 +19,7 @@ const ASSIGNABLE_ROLE_IDS: RoleId[] = [
 interface RoleAssignmentModalProps {
   user: AdminUser
   rolesCatalog?: Role[]
+  currentUserRole?: RoleId
   onClose: () => void
   onSuccess: () => void
 }
@@ -26,6 +27,7 @@ interface RoleAssignmentModalProps {
 export default function RoleAssignmentModal({
   user,
   rolesCatalog = [],
+  currentUserRole,
   onClose,
   onSuccess
 }: RoleAssignmentModalProps) {
@@ -79,12 +81,16 @@ export default function RoleAssignmentModal({
     const backendById = new Map<string, Role>()
     availableRoles.forEach((role) => backendById.set(role.id, role))
 
-    return ASSIGNABLE_ROLE_IDS.map((roleId) => {
-      const backendRole = backendById.get(roleId)
-      if (backendRole) return backendRole
-      return getRoleInfo(roleId)
-    })
-  }, [availableRoles])
+    const currentUserLevel = currentUserRole ? ROLES_CONFIG[currentUserRole].level : Infinity
+
+    return ASSIGNABLE_ROLE_IDS
+      .filter((roleId) => ROLES_CONFIG[roleId].level >= currentUserLevel)
+      .map((roleId) => {
+        const backendRole = backendById.get(roleId)
+        if (backendRole) return backendRole
+        return getRoleInfo(roleId)
+      })
+  }, [availableRoles, currentUserRole])
 
   const handleSave = async () => {
     if (!selectedRole) {

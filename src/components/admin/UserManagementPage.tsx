@@ -1435,6 +1435,7 @@ export default function UserManagementPage({
         <RoleAssignmentModal
           user={selectedUser}
           rolesCatalog={rolesCatalog}
+          currentUserRole={detectedUserRole as RoleId}
           onClose={() => setShowRoleModal(false)}
           onSuccess={handleUserUpdated}
         />
