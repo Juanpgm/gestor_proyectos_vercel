@@ -4991,6 +4991,9 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         {columnSettings.diasRestantes && (
                           <td className="py-3 px-2 text-center text-xs">
                             {(() => {
+                              if ((reporteContrato?.avance_fisico ?? 0) >= 100) {
+                                return <span className="font-semibold text-gray-400 dark:text-gray-500">Finalizado</span>
+                              }
                               if (!contrato.fecha_fin_contrato) return <span className="text-gray-400">N/A</span>
                               const fin = new Date(contrato.fecha_fin_contrato)
                               const hoy = new Date()
