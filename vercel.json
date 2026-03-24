@@ -3,6 +3,7 @@
   "name": "gestor-proyectos-vercel",
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
+  "ignoreCommand": "bash scripts/verify-deploy-owner.sh",
   "functions": {
     "src/app/**": {
       "maxDuration": 30

@@ -1,0 +1,47 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar permisos de deploy
+        run: |
+          ALLOWED_USER="Juanpgm"
+          echo "Usuario que activó el workflow: ${{ github.actor }}"
+          if [ "${{ github.actor }}" != "$ALLOWED_USER" ]; then
+            echo "❌ ERROR: Solo $ALLOWED_USER puede hacer deploy a producción."
+            echo "Tu usuario (${{ github.actor }}) no tiene permisos para deploy a producción."
+            exit 1
+          fi
+          echo "✅ Usuario autorizado para deploy a producción."
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Instalar dependencias
+        run: npm install --legacy-peer-deps
+
+      - name: Build
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_APP_ENV: production
+
+      - name: Deploy a Vercel Production
+        run: |
+          npm i -g vercel
+          vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
