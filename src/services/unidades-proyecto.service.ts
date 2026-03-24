@@ -586,11 +586,20 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
                            primeraIntervencion.nombre_centro_gestor ||
                            undefined;
         
+        // Extraer unidad/cantidad/identificador con cuidado (pueden ser 0, "", etc.)
+        const extractField = (field: string): any => {
+          const fromInterv = primeraIntervencion?.[field];
+          const fromProps = properties?.[field];
+          return fromInterv != null && fromInterv !== '' ? fromInterv
+               : fromProps != null && fromProps !== '' ? fromProps
+               : undefined;
+        };
+
         const validatedItem = AttributeSchema.parse({
           upid: properties.upid || '',
           nombre_up: properties.nombre_up || '',
           nombre_up_detalle: properties.nombre_up_detalle || undefined,
-          identificador: properties.identificador || undefined,
+          identificador: extractField('identificador'),
           n_intervenciones: n_intervenciones,
           // Campos que pueden venir de la intervención o de properties
           estado: primeraIntervencion.estado || properties.estado || 'Sin estado',
@@ -614,7 +623,9 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           referencia_proceso: primeraIntervencion.referencia_proceso || properties.referencia_proceso || undefined,
           url_proceso: primeraIntervencion.url_proceso || properties.url_proceso || undefined,
           ano: parseInt(primeraIntervencion.ano || properties.ano || properties.anio || 0),
-          proyectos_estrategicos: properties.proyectos_estrategicos || undefined
+          proyectos_estrategicos: properties.proyectos_estrategicos || undefined,
+          unidad: extractField('unidad'),
+          cantidad: extractField('cantidad')
         });
         
         validatedData.push(validatedItem);
@@ -745,6 +756,11 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
       ? presupuestos.reduce((sum, val) => sum + val, 0)
       : 0;
 
+    // Preservar identificador/unidad/cantidad del primer item que los tenga
+    const identificador = group.find(i => i.identificador != null && i.identificador !== '')?.identificador ?? base.identificador;
+    const unidad = group.find(i => i.unidad != null && i.unidad !== '')?.unidad ?? base.unidad;
+    const cantidad = group.find(i => i.cantidad != null && i.cantidad !== '')?.cantidad ?? base.cantidad;
+
     return {
       ...base,
       estado: estadoConsolidado,
@@ -752,7 +768,10 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
       nombre_centro_gestor: centroConsolidado,
       avance_obra: avancePromedio,
       presupuesto_base: presupuestoTotal,
-      proyectos_estrategicos: base.proyectos_estrategicos || undefined
+      proyectos_estrategicos: base.proyectos_estrategicos || undefined,
+      identificador,
+      unidad,
+      cantidad
     };
   });
 };
@@ -854,7 +873,10 @@ export const filterAttributeData = (
         const matchesSearch = 
           (item.nombre_up && item.nombre_up.toLowerCase().includes(searchTermLower)) ||
           (item.descripcion_intervencion && item.descripcion_intervencion.toLowerCase().includes(searchTermLower)) ||
-          (item.upid && item.upid.toLowerCase().includes(searchTermLower));
+          (item.upid && item.upid.toLowerCase().includes(searchTermLower)) ||
+          (item.identificador && item.identificador.toLowerCase().includes(searchTermLower)) ||
+          (item.unidad && item.unidad.toLowerCase().includes(searchTermLower)) ||
+          (item.cantidad != null && String(item.cantidad).toLowerCase().includes(searchTermLower));
         
         if (!matchesSearch) {
           return false;
