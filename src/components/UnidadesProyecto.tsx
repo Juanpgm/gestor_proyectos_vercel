@@ -794,6 +794,7 @@ const UnidadesProyecto: React.FC = () => {
       sheet.columns = [
         { header: 'UPID', key: 'upid', width: 20 },
         { header: 'Nombre UP', key: 'nombre_up', width: 40 },
+        { header: 'Nombre UP Detalle', key: 'nombre_up_detalle', width: 45 },
         { header: 'Estado', key: 'estado', width: 20 },
         { header: 'Tipo Intervención', key: 'tipo_intervencion', width: 25 },
         { header: 'Tipo Equipamiento', key: 'tipo_equipamiento', width: 25 },
@@ -836,6 +837,7 @@ const UnidadesProyecto: React.FC = () => {
         sheet.addRow({
           upid: item.upid,
           nombre_up: item.nombre_up,
+          nombre_up_detalle: item.nombre_up_detalle ?? '',
           estado: item.estado,
           tipo_intervencion: item.tipo_intervencion,
           tipo_equipamiento: item.tipo_equipamiento ?? '',
