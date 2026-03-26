@@ -1777,7 +1777,7 @@ const GestionRegistrosTab: React.FC = () => {
 
   const userCentroGestor = useMemo(() => normalizeCentro(userCentroGestorRaw), [normalizeCentro, userCentroGestorRaw])
   const canViewAllCentros = useMemo(
-    () => userCentroGestor === '' || userCentroGestor === 'calitrack' || userCentroGestor === 'otro',
+    () => userCentroGestor === '' || userCentroGestor === 'calitrack' || userCentroGestor === 'secretaria de gobierno' || userCentroGestor === 'otro',
     [userCentroGestor],
   )
 

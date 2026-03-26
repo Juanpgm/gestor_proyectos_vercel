@@ -582,7 +582,21 @@ const CompactMetrics: React.FC<{
 
 // Componente principal
 const UnidadesProyecto: React.FC = () => {
-  const { hasRole } = useAuth();
+  const { hasRole, state: authState } = useAuth();
+
+  // Determinar si el usuario puede ver todos los centros gestores (por nombre_centro_gestor)
+  const userCentroGestor = authState.user?.nombre_centro_gestor || null;
+  const canViewAll = useMemo(() => {
+    if (!userCentroGestor) return true;
+    const normalized = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    return normalized === 'calitrack' || normalized === 'secretaria de gobierno' || normalized === 'otro';
+  }, [userCentroGestor]);
+
+  // Filtro inicial basado en el centro gestor del usuario logueado
+  const centroGestorInitialFilters = useMemo(() => {
+    if (canViewAll || !userCentroGestor) return {};
+    return { centro_gestor: userCentroGestor };
+  }, [canViewAll, userCentroGestor]);
 
   // Estados locales
   const [viewMode, setViewMode] = useState<ViewMode>('split');
@@ -609,7 +623,7 @@ const UnidadesProyecto: React.FC = () => {
   } = useUnidadesProyecto({
     enableLocalFiltering: true, // Filtrado local - carga una vez y filtra en cliente
     autoRefresh: false,
-    initialFilters: {}
+    initialFilters: centroGestorInitialFilters
   });
 
   // Hook específico para dashboard - TEMPORALMENTE DESHABILITADO
@@ -744,6 +758,10 @@ const UnidadesProyecto: React.FC = () => {
 
   // Handlers de eventos
   const handleFiltersChange = (newFilters: FilterParams) => {
+    // Siempre mantener el filtro de centro gestor para usuarios restringidos
+    if (!canViewAll && userCentroGestor) {
+      newFilters = { ...newFilters, centro_gestor: userCentroGestor };
+    }
     actions.setFilters(newFilters);
   };
 
@@ -753,7 +771,13 @@ const UnidadesProyecto: React.FC = () => {
 
   const handleClearFilters = () => {
     console.log('🧹 Limpiando filtros desde componente principal...');
-    actions.clearFilters();
+    if (!canViewAll && userCentroGestor) {
+      // Restaurar solo el filtro obligatorio de centro gestor
+      actions.setFilters({ centro_gestor: userCentroGestor });
+      actions.setSearchTerm('');
+    } else {
+      actions.clearFilters();
+    }
     // Forzar un refresh adicional para asegurar que se recarguen los datos
     setTimeout(() => {
       actions.refetch();

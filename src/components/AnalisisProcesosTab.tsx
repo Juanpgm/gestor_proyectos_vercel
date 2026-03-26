@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { fetchIntervenciones } from '@/services/unidades-proyecto.service'
+import { useAuth } from '@/context/AuthContext'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -45,6 +46,14 @@ type AgruparPor = 'procesos' | 'contratos'
 // ── Component ────────────────────────────────────────────────────
 
 export default function AnalisisProcesosTab() {
+  const { state: authState } = useAuth()
+  const userCentroGestor = authState.user?.nombre_centro_gestor || authState.user?.centro_gestor_assigned || ''
+  const canViewAll = useMemo(() => {
+    if (!userCentroGestor) return true
+    const normalized = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+    return normalized === 'calitrack' || normalized === 'secretaria de gobierno' || normalized === 'otro'
+  }, [userCentroGestor])
+
   const [intervenciones, setIntervenciones] = useState<IntervencionRaw[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -94,7 +103,17 @@ export default function AnalisisProcesosTab() {
         }
       })
 
-      setIntervenciones(enriquecidas)
+      // Filtrar por centro_gestor del usuario si no tiene permiso de ver todo
+      let resultado = enriquecidas
+      if (!canViewAll && userCentroGestor) {
+        const normalizado = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+        resultado = enriquecidas.filter((item: any) => {
+          const centro = (item.nombre_centro_gestor || item.centro_gestor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+          return centro === normalizado || centro.includes(normalizado) || normalizado.includes(centro)
+        })
+      }
+
+      setIntervenciones(resultado)
     } catch (err: any) {
       setError(err?.message || 'Error al cargar datos')
     } finally {

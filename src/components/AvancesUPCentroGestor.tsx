@@ -31,6 +31,7 @@ import {
   IntervencionConAvances,
   AvanceUPRaw,
 } from '@/hooks/useAvancesCentroGestor'
+import { useAuth } from '@/context/AuthContext'
 
 // ─── Helpers ─────────────────────────────────────────────
 function formatFecha(fecha: string | null): string {
@@ -73,6 +74,14 @@ type OrdenDir = 'asc' | 'desc'
 
 // ─── Componente principal ────────────────────────────────
 export default function AvancesUPCentroGestor() {
+  const { state: authState } = useAuth()
+  const userCentroGestor = authState.user?.nombre_centro_gestor || authState.user?.centro_gestor_assigned || ''
+  const canViewAll = useMemo(() => {
+    if (!userCentroGestor) return true
+    const normalized = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+    return normalized === 'calitrack' || normalized === 'secretaria de gobierno' || normalized === 'otro'
+  }, [userCentroGestor])
+
   const {
     avances,
     resumenPorCentroGestor,
@@ -97,6 +106,15 @@ export default function AvancesUPCentroGestor() {
   // Filtrado y orden
   const listaFiltrada = useMemo(() => {
     let lista = resumenPorCentroGestor
+
+    // Filtrar por centro_gestor del usuario si no tiene permiso de ver todo
+    if (!canViewAll && userCentroGestor) {
+      const normalizado = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+      lista = lista.filter(c => {
+        const nombre = c.nombre_centro_gestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+        return nombre === normalizado || nombre.includes(normalizado) || normalizado.includes(nombre)
+      })
+    }
 
     if (busqueda.trim()) {
       const term = busqueda.toLowerCase().trim()
@@ -152,7 +170,7 @@ export default function AvancesUPCentroGestor() {
     })
 
     return lista
-  }, [resumenPorCentroGestor, busqueda, filtroEstado, ordenCampo, ordenDir, fechaDesde, fechaHasta])
+  }, [resumenPorCentroGestor, busqueda, filtroEstado, ordenCampo, ordenDir, fechaDesde, fechaHasta, canViewAll, userCentroGestor])
 
   const toggleOrden = useCallback((campo: OrdenCampo) => {
     if (ordenCampo === campo) {

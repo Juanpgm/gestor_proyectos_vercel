@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -245,7 +245,15 @@ type TabType =
   | 'historial-solicitudes'
 
 const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNavigateHome }) => {
-  const { hasRole } = useAuth()
+  const { hasRole, state: authState } = useAuth()
+
+  // Determinar si el usuario puede ver todos los centros gestores (por nombre_centro_gestor)
+  const userCentroGestor = authState.user?.nombre_centro_gestor || null
+  const canViewAll = useMemo(() => {
+    if (!userCentroGestor) return true
+    const normalized = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+    return normalized === 'calitrack' || normalized === 'secretaria de gobierno' || normalized === 'otro'
+  }, [userCentroGestor])
 
   const canViewSolicitudesTabs = hasRole('super_admin') || hasRole('admin_general')
   const canViewAnalisisProcesos = hasRole('super_admin') || hasRole('admin_general') || hasRole('admin_centro_gestor') || hasRole('analista')
@@ -1324,7 +1332,15 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
     let filtered = [...data]
 
-    // Filtro por centros gestores (selección múltiple)
+    // Filtro obligatorio por centro gestor del usuario (para usuarios restringidos)
+    if (!canViewAll && userCentroGestor) {
+      filtered = filtered.filter(item => {
+        const itemCentro = (item.nombre_centro_gestor || item.centro_gestor || '').trim().toLowerCase()
+        return itemCentro === userCentroGestor.trim().toLowerCase()
+      })
+    }
+
+    // Filtro por centros gestores (selección múltiple del usuario)
     if (selectedCentrosGestores.length > 0) {
       filtered = filtered.filter(item => 
         selectedCentrosGestores.includes(item.nombre_centro_gestor) || 
@@ -1360,7 +1376,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     }
 
     setFilteredData(filtered)
-  }, [data, selectedCentrosGestores, selectedSeverities, selectedPriorities, searchTerm])
+  }, [data, selectedCentrosGestores, selectedSeverities, selectedPriorities, searchTerm, canViewAll, userCentroGestor])
 
   // Cargar datos cuando cambie el tab activo
   useEffect(() => {
