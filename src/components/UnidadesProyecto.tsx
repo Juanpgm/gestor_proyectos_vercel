@@ -1098,6 +1098,7 @@ const UnidadesProyecto: React.FC = () => {
               onSearchChange={handleSearchChange}
               onClearFilters={handleClearFilters}
               isLoading={state.loading}
+              lockedCentroGestor={!canViewAll ? userCentroGestor : null}
             />
           </motion.section>
         )}
@@ -1157,6 +1158,7 @@ const UnidadesProyecto: React.FC = () => {
                           onClearFilters={handleClearFilters}
                           isLoading={state.loading}
                           compact={true}
+                          lockedCentroGestor={!canViewAll ? userCentroGestor : null}
                         />
                       </motion.div>
                     )}

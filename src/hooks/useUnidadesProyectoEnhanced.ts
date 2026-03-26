@@ -336,7 +336,7 @@ export const useUnidadesProyecto = (
       String(value || '').trim().toLowerCase();
 
     const normalizeValue = (value: string | null | undefined): string =>
-      String(value || '').trim().toLowerCase();
+      String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
     const matchesFilterValue = (
       value: string | null | undefined,
@@ -408,11 +408,11 @@ export const useUnidadesProyecto = (
     const totalUnidadesProyecto = data.length;
 
     const normalizeCentro = (value: string | null | undefined): string =>
-      String(value || '').trim().toLowerCase();
+      String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
     // Contar frentes activos (unidades de proyecto con frente activo)
     // Excluye la Secretaría de Vivienda Social y Habitat y ciertos tipos de intervención
-    const excludedCentro = 'secretaría de vivienda social y habitat';
+    const excludedCentro = 'secretaria de vivienda social y habitat';
     const excludedTipos = new Set([
       'mantenimiento',
       'estudios y diseños',

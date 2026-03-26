@@ -391,6 +391,7 @@ interface UnidadesProyectoFiltersProps {
   className?: string;
   compact?: boolean;
   showRangeFilters?: boolean; // Nuevo: mostrar filtros de rango
+  lockedCentroGestor?: string | null; // Centro gestor bloqueado para usuarios restringidos
 }
 
 // Componente de selector mejorado con searchbar y checkboxes
@@ -893,7 +894,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   isLoading = false,
   className = '',
   compact = false,
-  showRangeFilters = true
+  showRangeFilters = true,
+  lockedCentroGestor = null
 }) => {
   // Estado para manejar filtros múltiples
   const [multiFilters, setMultiFilters] = useState<{
@@ -1300,13 +1302,13 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
           {/* Centro gestor */}
           <EnhancedFilterSelect
             label="Centro Gestor"
-            value={filters.centro_gestor}
+            value={lockedCentroGestor || filters.centro_gestor}
             onChange={(value) => handleFilterChange('centro_gestor', value)}
-            options={resolvedDropdownOptions.centros_gestores}
-            placeholder="Todos los centros"
-            disabled={isLoading}
-            multiSelect={isMultiMode}
-            selectedItems={multiFilters.centros_gestores}
+            options={lockedCentroGestor ? [lockedCentroGestor] : resolvedDropdownOptions.centros_gestores}
+            placeholder={lockedCentroGestor ? lockedCentroGestor : "Todos los centros"}
+            disabled={isLoading || !!lockedCentroGestor}
+            multiSelect={lockedCentroGestor ? false : isMultiMode}
+            selectedItems={lockedCentroGestor ? [lockedCentroGestor] : multiFilters.centros_gestores}
             onMultiChange={(values) => handleMultiFilterChange('centros_gestores', values)}
           />
 

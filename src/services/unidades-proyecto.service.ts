@@ -849,18 +849,18 @@ const normalizeProyectosEstrategicos = (value: unknown): string[] => {
 // Helper para verificar si un array de valores del item tiene al menos un match con los filtros seleccionados
 const arrayHasAnyMatch = (itemValues: string[] | null | undefined, filterValues: string[]): boolean => {
   if (!itemValues || !Array.isArray(itemValues) || itemValues.length === 0) return false;
-  const normalizedItemValues = itemValues.map(v => String(v).trim().toLowerCase());
-  return filterValues.some(fv => normalizedItemValues.includes(String(fv).trim().toLowerCase()));
+  const normalizedItemValues = itemValues.map(v => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase());
+  return filterValues.some(fv => normalizedItemValues.includes(String(fv).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()));
 };
 
 /**
  * Función para filtrar datos localmente (útil para filtrado en tiempo real)
  */
 
-// Helper para normalizar strings para comparación (trim y lowercase)
+// Helper para normalizar strings para comparación (trim, lowercase y sin acentos)
 const normalizeString = (str: string | null | undefined): string => {
   if (!str) return '';
-  return String(str).trim().toLowerCase();
+  return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 };
 
 // Helper para comparar strings de forma segura (case-insensitive y trimmed)
