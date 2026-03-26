@@ -303,19 +303,29 @@ const extractFromRecords = (
 ): string[] => {
   if (!Array.isArray(records) || records.length === 0) return [];
 
-  const values = records
-    .map((record) => {
-      const recordProperties = (record.properties && typeof record.properties === 'object')
-        ? (record.properties as Record<string, unknown>)
-        : undefined;
+  const values: string[] = [];
+  records.forEach((record) => {
+    const recordProperties = (record.properties && typeof record.properties === 'object')
+      ? (record.properties as Record<string, unknown>)
+      : undefined;
 
-      for (const key of keys) {
-        const value = asText(record[key] ?? recordProperties?.[key]);
-        if (value) return value;
+    for (const key of keys) {
+      const raw = record[key] ?? recordProperties?.[key];
+      // Manejar valores que son arrays (ej: proyectos_estrategicos)
+      if (Array.isArray(raw)) {
+        raw.forEach(v => {
+          const text = asText(v);
+          if (text) values.push(text);
+        });
+        break;
       }
-      return '';
-    })
-    .filter(Boolean);
+      const value = asText(raw);
+      if (value) {
+        values.push(value);
+        break;
+      }
+    }
+  });
 
   return normalizeOptions(values);
 };

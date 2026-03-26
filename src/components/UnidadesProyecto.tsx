@@ -865,7 +865,7 @@ const UnidadesProyecto: React.FC = () => {
           referencia_proceso: item.referencia_proceso ?? '',
           url_proceso: item.url_proceso ?? '',
           ano: item.ano,
-          proyectos_estrategicos: item.proyectos_estrategicos ?? '',
+          proyectos_estrategicos: Array.isArray(item.proyectos_estrategicos) ? item.proyectos_estrategicos.join(', ') : (item.proyectos_estrategicos ?? ''),
           geometry: geometry ? JSON.stringify(geometry) : '',
         });
       });

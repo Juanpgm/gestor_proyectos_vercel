@@ -56,7 +56,11 @@ const AttributeSchema = z.object({
   referencia_proceso: z.string().optional(),
   url_proceso: z.string().optional(),
   ano: z.number(),
-  proyectos_estrategicos: z.string().optional(), // Nuevo campo para proyectos estratégicos
+  proyectos_estrategicos: z.union([z.array(z.string()), z.string()]).optional().transform(val => {
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string' && val.trim() !== '') return val.split(',').map(s => s.trim()).filter(Boolean);
+    return [];
+  }), // Ahora es lista, con compatibilidad legacy string
   unidad: z.string().optional(),
   cantidad: z.union([z.string(), z.number()]).optional()
 });
@@ -91,7 +95,7 @@ export interface FilterParams {
   barrio_vereda?: string;
   fuente_financiacion?: string;
   ano?: string; // Cambiar a string para consistencia con la API
-  proyectos_estrategicos?: string; // Nuevos proyectos estratégicos
+  proyectos_estrategicos?: string; // Para filtro singular (valor a buscar)
   search?: string;
   nombre_up?: string;
   presupuesto_base?: number;
@@ -623,7 +627,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           referencia_proceso: primeraIntervencion.referencia_proceso || properties.referencia_proceso || undefined,
           url_proceso: primeraIntervencion.url_proceso || properties.url_proceso || undefined,
           ano: parseInt(primeraIntervencion.ano || properties.ano || properties.anio || 0),
-          proyectos_estrategicos: properties.proyectos_estrategicos || undefined,
+          proyectos_estrategicos: normalizeProyectosEstrategicos(properties.proyectos_estrategicos),
           unidad: extractField('unidad'),
           cantidad: extractField('cantidad')
         });
@@ -768,7 +772,7 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
       nombre_centro_gestor: centroConsolidado,
       avance_obra: avancePromedio,
       presupuesto_base: presupuestoTotal,
-      proyectos_estrategicos: base.proyectos_estrategicos || undefined,
+      proyectos_estrategicos: normalizeProyectosEstrategicos(base.proyectos_estrategicos),
       identificador,
       unidad,
       cantidad
@@ -779,10 +783,20 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
 export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
   const consolidatedData = consolidateAttributeData(data);
   const extractUniqueValues = <T>(items: T[], key: keyof T): string[] => {
-    const values = items
-      .map(item => item[key])
-      .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
-      .map(val => String(val).trim());
+    const values: string[] = [];
+    items.forEach(item => {
+      const val = item[key];
+      if (val === undefined || val === null) return;
+      if (Array.isArray(val)) {
+        val.forEach(v => {
+          const s = String(v).trim();
+          if (s) values.push(s);
+        });
+      } else {
+        const s = String(val).trim();
+        if (s) values.push(s);
+      }
+    });
     
     return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, 'es'));
   };
@@ -823,6 +837,20 @@ export const generateFiltersFromData = (data: AttributeData[]): FilterData => {
   });
   
   return filters;
+};
+
+// Helper para normalizar proyectos_estrategicos: siempre retorna string[]
+const normalizeProyectosEstrategicos = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+  if (typeof value === 'string' && value.trim() !== '') return value.split(',').map(s => s.trim()).filter(Boolean);
+  return [];
+};
+
+// Helper para verificar si un array de valores del item tiene al menos un match con los filtros seleccionados
+const arrayHasAnyMatch = (itemValues: string[] | null | undefined, filterValues: string[]): boolean => {
+  if (!itemValues || !Array.isArray(itemValues) || itemValues.length === 0) return false;
+  const normalizedItemValues = itemValues.map(v => String(v).trim().toLowerCase());
+  return filterValues.some(fv => normalizedItemValues.includes(String(fv).trim().toLowerCase()));
 };
 
 /**
@@ -940,7 +968,7 @@ export const filterAttributeData = (
               case 'fuente_financiacion':
                 return valueInArray(item.fuente_financiacion, multipleValues);
               case 'proyectos_estrategicos':
-                return item.proyectos_estrategicos ? valueInArray(item.proyectos_estrategicos, multipleValues) : false;
+                return arrayHasAnyMatch(item.proyectos_estrategicos, multipleValues);
               case 'ano':
                 return multipleValues.map((v: any) => String(v).replace('.0', '')).includes(String(item.ano).replace('.0', ''));
               case 'presupuesto':
@@ -989,7 +1017,7 @@ export const filterAttributeData = (
               case 'ano':
                 return String(item.ano).replace('.0', '') === String(singleValue).replace('.0', '');
               case 'proyectos_estrategicos':
-                return item.proyectos_estrategicos ? stringsMatch(item.proyectos_estrategicos, singleValue) : false;
+                return arrayHasAnyMatch(item.proyectos_estrategicos, [singleValue]);
               case 'presupuesto':
               case 'presupuesto_base': {
                 const budgetMin = typeof (filters as any).presupuesto_min === 'number' ? (filters as any).presupuesto_min : undefined;

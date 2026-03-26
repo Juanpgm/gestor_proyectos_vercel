@@ -53,7 +53,7 @@ type ColoringType =
   | 'barrio_vereda';
 
 // Tipo para capas base
-type BaseLayerType = 'none' | 'comunas' | 'barrios' | 'pulmon';
+type BaseLayerType = 'none' | 'comunas' | 'barrios' | 'pulmon' | 'microterritorios';
 
 // Tipo para el modo de color de capas base
 type BaseLayerColorMode = 'monotone' | 'multitone-vibrant' | 'multitone-pastel' | 'multitone-earth';
@@ -278,7 +278,7 @@ const BaseLayerControl: React.FC<{
         >
           <MapIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span className="text-xs font-medium text-gray-900 dark:text-white">
-            {activeLayer === 'none' ? 'Capas Base' : activeLayer === 'comunas' ? 'Comunas' : activeLayer === 'barrios' ? 'Barrios' : 'Pulmón de Oriente'}
+            {activeLayer === 'none' ? 'Capas Base' : activeLayer === 'comunas' ? 'Comunas' : activeLayer === 'barrios' ? 'Barrios' : activeLayer === 'microterritorios' ? 'Microterritorios' : 'Pulmón de Oriente'}
           </span>
           <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
         </button>
@@ -346,6 +346,19 @@ const BaseLayerControl: React.FC<{
                   />
                   <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
                     Pulmón de Oriente
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="baseLayer"
+                    value="microterritorios"
+                    checked={activeLayer === 'microterritorios'}
+                    onChange={() => onLayerChange('microterritorios')}
+                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                    Microterritorios
                   </span>
                 </label>
               </div>
@@ -629,15 +642,17 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   const [comunasData, setComunasData] = useState<any>(null);
   const [barriosData, setBarriosData] = useState<any>(null);
   const [pulmonData, setPulmonData] = useState<any>(null);
+  const [microterritoriosData, setMicroterritoriosData] = useState<any>(null);
 
   // Cargar archivos GeoJSON de capas base
   useEffect(() => {
     const loadBaseLayerData = async () => {
       try {
-        const [comunasResponse, barriosResponse, pulmonResponse] = await Promise.all([
+        const [comunasResponse, barriosResponse, pulmonResponse, microterritoriosResponse] = await Promise.all([
           fetch('/data/geodata/cartografia_base/comunas_corregimientos.geojson'),
           fetch('/data/geodata/cartografia_base/barrios_veredas.geojson'),
-          fetch('/data/geodata/cartografia_base/PoligonoPropuestoPulmonDeOriente.geojson')
+          fetch('/data/geodata/cartografia_base/PoligonoPropuestoPulmonDeOriente.geojson'),
+          fetch('/data/geodata/cartografia_base/microterrios.geojson')
         ]);
         
         if (comunasResponse.ok) {
@@ -653,6 +668,11 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         if (pulmonResponse.ok) {
           const pulmonJson = await pulmonResponse.json();
           setPulmonData(pulmonJson);
+        }
+
+        if (microterritoriosResponse.ok) {
+          const microterritoriosJson = await microterritoriosResponse.json();
+          setMicroterritoriosData(microterritoriosJson);
         }
       } catch (error) {
         console.error('Error al cargar capas base:', error);
@@ -1314,6 +1334,15 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
           <GeoJSON
             key={`pulmon-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
             data={pulmonData}
+            style={getBaseLayerStyle}
+            pane="tilePane"
+          />
+        )}
+
+        {baseLayer === 'microterritorios' && microterritoriosData && (
+          <GeoJSON
+            key={`microterritorios-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+            data={microterritoriosData}
             style={getBaseLayerStyle}
             pane="tilePane"
           />
