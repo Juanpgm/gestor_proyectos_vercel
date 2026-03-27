@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^-.*\\\\.\\(md|js|json|yaml|yml\\)$\")",
+      "Bash(xargs grep:*)",
+      "Bash(npx vitest:*)"
+    ]
+  }
+}

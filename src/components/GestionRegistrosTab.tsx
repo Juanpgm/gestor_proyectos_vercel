@@ -1995,7 +1995,12 @@ const GestionRegistrosTab: React.FC = () => {
                 interv?.responsible,
               ])
 
-              return [...topLevelCandidates, ...intervencionCandidates].some(matchesCentro)
+              const allCandidates = [...topLevelCandidates, ...intervencionCandidates]
+              // UP sin ningún centro gestor en ningún nivel (recién creada, sin intervenciones):
+              // no tiene dueño asignado aún → mostrarla para que el usuario pueda gestionarla.
+              const hasAnyCentroData = allCandidates.some((c) => normalizeCentro(c).length > 0)
+              if (!hasAnyCentroData) return true
+              return allCandidates.some(matchesCentro)
             })
             .map(({ up }) => up)
 
