@@ -411,6 +411,14 @@ const EnhancedFilterSelect: React.FC<{
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
+  // Ref-backed selected items list so that rapid consecutive checkbox clicks
+  // within the same open dropdown always accumulate on top of the latest
+  // selection rather than overwriting it with stale prop data.
+  const selectedItemsRef = useRef<string[]>(selectedItems);
+  useEffect(() => {
+    selectedItemsRef.current = selectedItems;
+  }, [selectedItems]);
+
   const updateDropdownPosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
@@ -452,22 +460,24 @@ const EnhancedFilterSelect: React.FC<{
   // Handle multi-select checkbox changes
   const handleCheckboxChange = (option: string, checked: boolean) => {
     if (!onMultiChange) return;
-    
-    if (checked) {
-      onMultiChange([...selectedItems, option]);
-    } else {
-      onMultiChange(selectedItems.filter(item => item !== option));
-    }
+    const current = selectedItemsRef.current;
+    const newSelected = checked
+      ? [...current, option]
+      : current.filter(item => item !== option);
+    selectedItemsRef.current = newSelected; // update ref immediately for rapid clicks
+    onMultiChange(newSelected);
   };
 
   // Handle select all / clear all
   const handleSelectAll = () => {
     if (!onMultiChange) return;
+    selectedItemsRef.current = filteredOptions;
     onMultiChange(filteredOptions);
   };
 
   const handleClearAll = () => {
     if (!onMultiChange) return;
+    selectedItemsRef.current = [];
     onMultiChange([]);
   };
 
@@ -489,8 +499,8 @@ const EnhancedFilterSelect: React.FC<{
 
   const handleSelectOption = (option: string) => {
     if (multiSelect) {
-      // In multi-select mode, toggle the option
-      const isSelected = selectedItems.includes(option);
+      // In multi-select mode, toggle the option using the ref for recency
+      const isSelected = selectedItemsRef.current.includes(option);
       handleCheckboxChange(option, !isSelected);
     } else {
       // Single select mode
@@ -502,6 +512,7 @@ const EnhancedFilterSelect: React.FC<{
 
   const handleClear = () => {
     if (multiSelect && onMultiChange) {
+      selectedItemsRef.current = [];
       onMultiChange([]);
     } else {
       onChange('');
@@ -873,6 +884,25 @@ const RangeFiltersSection: React.FC<{
 };
 
 // Componente principal de filtros
+
+// Mapping from multiFilters keys → FilterParams base keys (defined outside component to avoid recreation on every render)
+const MULTI_KEY_MAP: Record<string, string> = {
+  estados: 'estado',
+  tipos_intervencion: 'tipo_intervencion',
+  frentes_activos: 'frente_activo',
+  centros_gestores: 'centro_gestor',
+  comunas_corregimientos: 'comuna_corregimiento',
+  barrios_veredas: 'barrio_vereda',
+  fuentes_financiacion: 'fuente_financiacion',
+  tipos_equipamiento: 'tipo_equipamiento',
+  clases_up: 'clase_up',
+  proyectos_estrategicos: 'proyectos_estrategicos',
+  anos: 'ano',
+};
+
+// Set of base keys managed through multiFilters (used to strip them when rebuilding filters)
+const MULTI_FILTER_BASE_KEYS = new Set(Object.values(MULTI_KEY_MAP));
+
 const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   filterData,
   records = [],
@@ -915,6 +945,13 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   // Toggle entre modo single y multi-select - habilitado por defecto
   const [isMultiMode, setIsMultiMode] = useState(true);
   const [globalVersion, setGlobalVersion] = useState(0);
+
+  // Ref that always holds the latest multiFilters value.
+  // Updated synchronously in handleMultiFilterChange so that rapid successive
+  // calls (before a re-render propagates the new prop value) still see
+  // the fully-accumulated selection state.
+  const multiFiltersRef = useRef(multiFilters);
+  multiFiltersRef.current = multiFilters;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1014,49 +1051,37 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   };
 
   const handleMultiFilterChange = (key: keyof typeof multiFilters, values: string[]) => {
-    console.log(`🎯 handleMultiFilterChange: key=${key}, values=`, values);
-    
-    setMultiFilters(prev => ({
-      ...prev,
-      [key]: values
-    }));
-    
-    // Mapear las claves de filtros múltiples a las claves del FilterParams
-    const mappedKey = key === 'estados' ? 'estado' :
-                     key === 'tipos_intervencion' ? 'tipo_intervencion' :
-                     key === 'frentes_activos' ? 'frente_activo' :
-                     key === 'centros_gestores' ? 'centro_gestor' :
-                     key === 'comunas_corregimientos' ? 'comuna_corregimiento' :
-                     key === 'barrios_veredas' ? 'barrio_vereda' :
-                     key === 'fuentes_financiacion' ? 'fuente_financiacion' :
-                     key === 'tipos_equipamiento' ? 'tipo_equipamiento' :
-                     key === 'clases_up' ? 'clase_up' :
-                     key === 'proyectos_estrategicos' ? 'proyectos_estrategicos' :
-                     'ano';
-    
-    console.log(`🎯 handleMultiFilterChange: mappedKey=${mappedKey}`);
-    
-    // Crear un nuevo objeto de filtros con el array de valores
-    const newFilters = { ...filters };
-    
-    if (values.length > 0) {
-      // Almacenar todos los valores seleccionados
-      (newFilters as any)[`${mappedKey}_multiple`] = values;
-      // Mantener compatibilidad con el filtro singular usando el primer valor
-      (newFilters as any)[mappedKey] = values[0];
-      console.log(`🎯 handleMultiFilterChange: Created filters:`, {
-        [`${mappedKey}_multiple`]: values,
-        [mappedKey]: values[0]
-      });
-    } else {
-      // Limpiar ambos filtros si no hay valores seleccionados
-      delete (newFilters as any)[`${mappedKey}_multiple`];
-      delete (newFilters as any)[mappedKey];
-      console.log(`🎯 handleMultiFilterChange: Cleared filters for ${mappedKey}`);
-    }
-    
-    console.log(`🎯 handleMultiFilterChange: Calling onFiltersChange with:`, newFilters);
-    onFiltersChange(newFilters);
+    // Compute updated multi-filters synchronously using the ref so that rapid
+    // successive calls (before React re-renders) see all accumulated selections.
+    const newMultiFilters = { ...multiFiltersRef.current, [key]: values };
+    multiFiltersRef.current = newMultiFilters; // update ref immediately
+    setMultiFilters(newMultiFilters);           // schedule state update
+
+    // Rebuild the full filter object from scratch:
+    //   1. Preserve non-multi-filterable keys from the current filters prop
+    //      (e.g. range sliders, searchTerm is intentionally excluded).
+    //   2. Apply every entry in newMultiFilters.
+    const newFilters: Record<string, unknown> = {};
+
+    Object.entries(filters).forEach(([k, v]) => {
+      if (k === 'searchTerm') return;           // never embed searchTerm in filter state
+      if (k.endsWith('_multiple')) return;      // will be re-derived from newMultiFilters
+      if (MULTI_FILTER_BASE_KEYS.has(k)) return; // will be re-derived from newMultiFilters
+      newFilters[k] = v;
+    });
+
+    Object.entries(newMultiFilters).forEach(([filterKey, filterValues]) => {
+      const mk = MULTI_KEY_MAP[filterKey];
+      if (!mk) return;
+      if (filterValues.length > 0) {
+        newFilters[`${mk}_multiple`] = filterValues;
+        newFilters[mk] = filterValues[0]; // backward-compat single-value key
+      }
+      // If filterValues is empty, simply omit the key (effectively clearing it).
+    });
+
+    console.log('🎯 handleMultiFilterChange:', key, '→', values, '| full filters:', newFilters);
+    onFiltersChange(newFilters as FilterParams);
   };
 
   // Handler para filtros de rango
@@ -1093,7 +1118,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
   }, [filters, multiFilters]);
 
   const handleClearAllFilters = () => {
-    setMultiFilters({
+    const emptyMultiFilters = {
       estados: [],
       tipos_intervencion: [],
       tipos_equipamiento: [],
@@ -1105,7 +1130,9 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       fuentes_financiacion: [],
       anos: [],
       proyectos_estrategicos: []
-    });
+    };
+    multiFiltersRef.current = emptyMultiFilters;
+    setMultiFilters(emptyMultiFilters);
     onClearFilters();
   };
 
@@ -1115,7 +1142,7 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     
     // Si se cambia a modo single, limpiar los filtros múltiples
     if (!newMode) {
-      setMultiFilters({
+      const emptyMultiFilters = {
         estados: [],
         tipos_intervencion: [],
         tipos_equipamiento: [],
@@ -1127,7 +1154,9 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
         fuentes_financiacion: [],
         anos: [],
         proyectos_estrategicos: []
-      });
+      };
+      multiFiltersRef.current = emptyMultiFilters;
+      setMultiFilters(emptyMultiFilters);
     }
   };
 
