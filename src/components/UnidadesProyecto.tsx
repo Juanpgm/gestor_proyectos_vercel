@@ -71,6 +71,7 @@ type GlobalFilterOptions = {
   centros_gestores: string[];
   estados: string[];
   tipos_intervencion: string[];
+  identificadores: string[];
   tipos_equipamiento: string[];
   clases_up: string[];
   frentes_activos: string[];
@@ -90,6 +91,7 @@ declare global {
     TIPOS_INTERVENCION?: string[];
     TIPOS_INTERVENCIONES?: string[];
     TIPOS_EQUIPAMIENTO?: string[];
+    IDENTIFICADORES?: string[];
     FRENTES_ACTIVOS?: string[];
     COMUNAS_CORREGIMIENTOS?: string[];
     BARRIOS_VEREDAS?: string[];
@@ -711,6 +713,7 @@ const UnidadesProyecto: React.FC = () => {
       fuentes_financiacion: pickFirstNonEmpty(state.filterData?.fuentes_financiacion, currentGlobal.fuentes_financiacion),
       anos: pickFirstNonEmpty(state.filterData?.anos, currentGlobal.anos),
       proyectos_estrategicos: pickFirstNonEmpty(state.filterData?.proyectos_estrategicos, currentGlobal.proyectos_estrategicos),
+      identificadores: pickFirstNonEmpty(currentGlobal.identificadores),
     };
 
     window.UNIDADES_PROYECTO_FILTERS_GLOBAL = nextGlobal;

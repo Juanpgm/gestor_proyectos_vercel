@@ -104,10 +104,12 @@ declare global {
     FUENTES_FINANCIACION?: string[]
     ESTADOS_UP?: string[]
     CENTROS_GESTORES?: string[]
+    IDENTIFICADORES?: string[]
     UNIDADES_PROYECTO_FILTERS_GLOBAL?: {
       centros_gestores?: string[]
       estados?: string[]
       tipos_intervencion?: string[]
+      identificadores?: string[]
       tipos_equipamiento?: string[]
       clases_up?: string[]
       frentes_activos?: string[]
@@ -116,6 +118,12 @@ declare global {
       fuentes_financiacion?: string[]
       anos?: string[]
       proyectos_estrategicos?: string[]
+    }
+    UNIDADES_PROYECTO_SELECTED_FILTERS?: {
+      centros_gestores: string[]
+      estados: string[]
+      tipos_intervencion: string[]
+      identificadores: string[]
     }
   }
 }
@@ -1732,12 +1740,40 @@ const GestionRegistrosTab: React.FC = () => {
   const [ups, setUps] = useState<UP[]>([])
   const [intervencionesMap, setIntervencionesMap] = useState<Record<string, Intervencion[]>>({})
   const [intervencionesCountByUpid, setIntervencionesCountByUpid] = useState<Record<string, number>>({})
+  const [allIntervencionesRaw, setAllIntervencionesRaw] = useState<Intervencion[]>([])
   const [loadingIntervUp, setLoadingIntervUp] = useState<Record<string, boolean>>({})
   const [metrics, setMetrics] = useState<Record<string, { avance: number; presupuesto: number }>>({})
   const [expandedUP, setExpandedUP] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [selectedIdentificador, setSelectedIdentificador] = useState('')
+
+  // Filtros globales del padre (GestionUnidadesProyecto)
+  const [parentFilters, setParentFilters] = useState<{
+    centros_gestores: string[]
+    estados: string[]
+    tipos_intervencion: string[]
+    identificadores: string[]
+  }>({ centros_gestores: [], estados: [], tipos_intervencion: [], identificadores: [] })
+
+  useEffect(() => {
+    const readParentFilters = () => {
+      if (typeof window === 'undefined') return
+      const sf = window.UNIDADES_PROYECTO_SELECTED_FILTERS
+      if (sf) {
+        setParentFilters({
+          centros_gestores: sf.centros_gestores || [],
+          estados: sf.estados || [],
+          tipos_intervencion: sf.tipos_intervencion || [],
+          identificadores: sf.identificadores || [],
+        })
+      }
+    }
+    readParentFilters()
+    window.addEventListener('up-selected-filters-changed', readParentFilters)
+    return () => window.removeEventListener('up-selected-filters-changed', readParentFilters)
+  }, [])
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 12
 
@@ -1919,6 +1955,10 @@ const GestionRegistrosTab: React.FC = () => {
       const json = await res.json()
       const extractedCounts = extractIntervencionesCountByUpid(json)
 
+      // Guardar todas las intervenciones para filtrado a nivel de intervención
+      const rawItems = parseListPayload(json)
+      setAllIntervencionesRaw(rawItems as Intervencion[])
+
       setIntervencionesCountByUpid({
         ...baseMap,
         ...extractedCounts,
@@ -2091,18 +2131,84 @@ const GestionRegistrosTab: React.FC = () => {
     void loadIntervencionesSummary(ups)
   }, [loadIntervenciones, loadIntervencionesSummary, ups])
 
+  // Mapa de intervenciones agrupadas por upid (desde carga masiva)
+  const intervencionsByUpid = useMemo(() => {
+    const map: Record<string, Intervencion[]> = {}
+    allIntervencionesRaw.forEach(interv => {
+      const upid = String(interv.upid || '').trim()
+      if (!upid) return
+      if (!map[upid]) map[upid] = []
+      map[upid].push(interv)
+    })
+    return map
+  }, [allIntervencionesRaw])
+
+  // Opciones únicas de identificador extraídas de UPs + intervenciones
+  const identificadorOptions = useMemo(() => {
+    const ids = new Set<string>()
+    ups.forEach(u => {
+      const id = (u.identificador || '').trim()
+      if (id) ids.add(id)
+    })
+    allIntervencionesRaw.forEach(interv => {
+      const id = (interv.identificador || '').trim()
+      if (id) ids.add(id)
+    })
+    return Array.from(ids).sort((a, b) => a.localeCompare(b, 'es'))
+  }, [ups, allIntervencionesRaw])
+
   // Filtrar + paginar
   const filteredUPs = useMemo(() => {
     const term = search.trim().toLowerCase()
-    const filtered = term
+    let filtered = term
       ? ups.filter(u =>
           u.upid.toLowerCase().includes(term) ||
           u.nombre_up?.toLowerCase().includes(term) ||
           u.nombre_centro_gestor?.toLowerCase().includes(term)
         )
-      : ups
+      : [...ups]
 
-    return [...filtered].sort((a, b) => {
+    // Filtro por identificador seleccionado (local) — busca en UP e intervenciones
+    if (selectedIdentificador) {
+      filtered = filtered.filter(u => {
+        if ((u.identificador || '').trim() === selectedIdentificador) return true
+        const intervs = intervencionsByUpid[u.upid] || []
+        return intervs.some(i => (i.identificador || '').trim() === selectedIdentificador)
+      })
+    }
+
+    // Filtros globales del padre (dropdowns de Gestionar Unidades de Proyecto)
+    // Buscan tanto a nivel de UP como a nivel de sus intervenciones
+    if (parentFilters.centros_gestores.length > 0) {
+      filtered = filtered.filter(u => {
+        if (parentFilters.centros_gestores.includes(u.nombre_centro_gestor || '')) return true
+        const intervs = intervencionsByUpid[u.upid] || []
+        return intervs.some(i => parentFilters.centros_gestores.includes(i.nombre_centro_gestor || ''))
+      })
+    }
+    if (parentFilters.estados.length > 0) {
+      filtered = filtered.filter(u => {
+        if (parentFilters.estados.includes(u.estado || '')) return true
+        const intervs = intervencionsByUpid[u.upid] || []
+        return intervs.some(i => parentFilters.estados.includes(i.estado || ''))
+      })
+    }
+    if (parentFilters.tipos_intervencion.length > 0) {
+      filtered = filtered.filter(u => {
+        if (parentFilters.tipos_intervencion.includes(u.tipo_intervencion || '')) return true
+        const intervs = intervencionsByUpid[u.upid] || []
+        return intervs.some(i => parentFilters.tipos_intervencion.includes(i.tipo_intervencion || ''))
+      })
+    }
+    if (parentFilters.identificadores.length > 0) {
+      filtered = filtered.filter(u => {
+        if (parentFilters.identificadores.includes((u.identificador || '').trim())) return true
+        const intervs = intervencionsByUpid[u.upid] || []
+        return intervs.some(i => parentFilters.identificadores.includes((i.identificador || '').trim()))
+      })
+    }
+
+    return filtered.sort((a, b) => {
       const aHasNoIntervenciones = (intervencionesCountByUpid[a.upid] ?? 0) === 0
       const bHasNoIntervenciones = (intervencionesCountByUpid[b.upid] ?? 0) === 0
 
@@ -2112,7 +2218,7 @@ const GestionRegistrosTab: React.FC = () => {
 
       return a.upid.localeCompare(b.upid, 'es', { numeric: true, sensitivity: 'base' })
     })
-  }, [ups, search, intervencionesCountByUpid])
+  }, [ups, search, selectedIdentificador, parentFilters, intervencionesCountByUpid, intervencionsByUpid])
 
   const upsSinIntervencionesCount = useMemo(
     () => filteredUPs.filter((up) => (intervencionesCountByUpid[up.upid] ?? 0) === 0).length,
@@ -2233,6 +2339,18 @@ const GestionRegistrosTab: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+          {identificadorOptions.length > 0 && (
+            <select
+              value={selectedIdentificador}
+              onChange={(e) => { setSelectedIdentificador(e.target.value); setCurrentPage(1) }}
+              className="px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[180px]"
+            >
+              <option value="">Todos los identificadores</option>
+              {identificadorOptions.map((id) => (
+                <option key={id} value={id}>{id}</option>
+              ))}
+            </select>
+          )}
           <button onClick={loadUPs} disabled={loading} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>

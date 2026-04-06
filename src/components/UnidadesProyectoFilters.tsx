@@ -14,6 +14,7 @@ type GlobalFilterOptions = {
   centros_gestores: string[];
   estados: string[];
   tipos_intervencion: string[];
+  identificadores: string[];
   tipos_equipamiento: string[];
   clases_up: string[];
   frentes_activos: string[];
@@ -33,6 +34,7 @@ declare global {
     TIPOS_INTERVENCION?: string[];
     TIPOS_INTERVENCIONES?: string[];
     TIPOS_EQUIPAMIENTO?: string[];
+    IDENTIFICADORES?: string[];
     CLASES_UP?: string[];
     FRENTES_ACTIVOS?: string[];
     COMUNAS_CORREGIMIENTOS?: string[];
@@ -952,7 +954,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     barrios_veredas: extractFromRecords(records, ['barrio_vereda']),
     fuentes_financiacion: extractFromRecords(records, ['fuente_financiacion']),
     anos: extractFromRecords(records, ['ano', 'anio']),
-    proyectos_estrategicos: extractFromRecords(records, ['proyectos_estrategicos'])
+    proyectos_estrategicos: extractFromRecords(records, ['proyectos_estrategicos']),
+    identificadores: extractFromRecords(records, ['identificador'])
   }), [records]);
 
   const fallbackOptions = useMemo<GlobalFilterOptions>(() => ({
@@ -966,7 +969,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     barrios_veredas: pickFirstNonEmpty(filterData?.barrios_veredas, recordOptions.barrios_veredas, BARRIOS_VEREDAS_DEFAULT),
     fuentes_financiacion: pickFirstNonEmpty(filterData?.fuentes_financiacion, recordOptions.fuentes_financiacion, FUENTES_FINANCIACION_DEFAULT),
     anos: pickFirstNonEmpty(filterData?.anos, recordOptions.anos),
-    proyectos_estrategicos: pickFirstNonEmpty(filterData?.proyectos_estrategicos, recordOptions.proyectos_estrategicos, ['Pulmón de Oriente'])
+    proyectos_estrategicos: pickFirstNonEmpty(filterData?.proyectos_estrategicos, recordOptions.proyectos_estrategicos, ['Pulmón de Oriente']),
+    identificadores: pickFirstNonEmpty(recordOptions.identificadores)
   }), [filterData, recordOptions]);
 
   const dropdownOptions = useMemo<GlobalFilterOptions>(() => {
@@ -982,7 +986,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
       barrios_veredas: pickFirstNonEmpty(fallbackOptions.barrios_veredas, globalOptions.barrios_veredas),
       fuentes_financiacion: pickFirstNonEmpty(fallbackOptions.fuentes_financiacion, globalOptions.fuentes_financiacion),
       anos: pickFirstNonEmpty(fallbackOptions.anos, globalOptions.anos),
-      proyectos_estrategicos: pickFirstNonEmpty(fallbackOptions.proyectos_estrategicos, globalOptions.proyectos_estrategicos)
+      proyectos_estrategicos: pickFirstNonEmpty(fallbackOptions.proyectos_estrategicos, globalOptions.proyectos_estrategicos),
+      identificadores: pickFirstNonEmpty(fallbackOptions.identificadores, globalOptions.identificadores)
     };
   }, [fallbackOptions, globalVersion]);
 
@@ -997,7 +1002,8 @@ const UnidadesProyectoFilters: React.FC<UnidadesProyectoFiltersProps> = ({
     barrios_veredas: pickFirstNonEmpty(dropdownOptions.barrios_veredas, BARRIOS_VEREDAS_DEFAULT),
     fuentes_financiacion: pickFirstNonEmpty(dropdownOptions.fuentes_financiacion, FUENTES_FINANCIACION_DEFAULT),
     anos: pickFirstNonEmpty(dropdownOptions.anos),
-    proyectos_estrategicos: pickFirstNonEmpty(dropdownOptions.proyectos_estrategicos, ['Pulmón de Oriente'])
+    proyectos_estrategicos: pickFirstNonEmpty(dropdownOptions.proyectos_estrategicos, ['Pulmón de Oriente']),
+    identificadores: pickFirstNonEmpty(dropdownOptions.identificadores)
   }), [dropdownOptions]);
 
   useEffect(() => {

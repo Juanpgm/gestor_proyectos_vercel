@@ -208,12 +208,14 @@ type GlobalFilterOptions = {
   centros_gestores: string[]
   estados: string[]
   tipos_intervencion: string[]
+  identificadores: string[]
 }
 
 type GlobalFilterCatalog = {
   centros_gestores?: string[]
   estados?: string[]
   tipos_intervencion?: string[]
+  identificadores?: string[]
   tipos_equipamiento?: string[]
   clases_up?: string[]
   frentes_activos?: string[]
@@ -224,12 +226,21 @@ type GlobalFilterCatalog = {
   proyectos_estrategicos?: string[]
 }
 
+interface SelectedFilters {
+  centros_gestores: string[]
+  estados: string[]
+  tipos_intervencion: string[]
+  identificadores: string[]
+}
+
 declare global {
   interface Window {
     UNIDADES_PROYECTO_FILTERS_GLOBAL?: GlobalFilterCatalog
+    UNIDADES_PROYECTO_SELECTED_FILTERS?: SelectedFilters
     CENTROS_GESTORES?: string[]
     ESTADOS?: string[]
     TIPOS_INTERVENCION?: string[]
+    IDENTIFICADORES?: string[]
   }
 }
 
@@ -276,13 +287,27 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   const [selectedCentrosGestores, setSelectedCentrosGestores] = useState<string[]>([])
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([])
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([])
+  const [selectedIdentificadores, setSelectedIdentificadores] = useState<string[]>([])
   
   // Listas de opciones disponibles
   const [availableCentrosGestores, setAvailableCentrosGestores] = useState<string[]>([])
   const [availableSeverities, setAvailableSeverities] = useState<string[]>([])
   const [availablePriorities, setAvailablePriorities] = useState<string[]>([])
+  const [availableIdentificadores, setAvailableIdentificadores] = useState<string[]>([])
   
   const [showFilters, setShowFilters] = useState(true)
+
+  // Publicar filtros seleccionados para tabs autónomos (Gestionar Registros, etc.)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.UNIDADES_PROYECTO_SELECTED_FILTERS = {
+      centros_gestores: selectedCentrosGestores,
+      estados: selectedSeverities,
+      tipos_intervencion: selectedPriorities,
+      identificadores: selectedIdentificadores,
+    }
+    window.dispatchEvent(new Event('up-selected-filters-changed'))
+  }, [selectedCentrosGestores, selectedSeverities, selectedPriorities, selectedIdentificadores])
 
   const API_BASE_URL = '/api/proxy' // Usar el proxy de Next.js para evitar CORS
   const CALIDAD_DATOS_ENDPOINT = '/unidades-proyecto/calidad-datos'
@@ -304,7 +329,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
   const readGlobalFilterOptions = (): GlobalFilterOptions => {
     if (typeof window === 'undefined') {
-      return { centros_gestores: [], estados: [], tipos_intervencion: [] }
+      return { centros_gestores: [], estados: [], tipos_intervencion: [], identificadores: [] }
     }
 
     const globalObject = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {}
@@ -323,6 +348,11 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
         globalObject.tipos_intervencion && globalObject.tipos_intervencion.length > 0
           ? globalObject.tipos_intervencion
           : window.TIPOS_INTERVENCION
+      ),
+      identificadores: normalizeOptions(
+        globalObject.identificadores && globalObject.identificadores.length > 0
+          ? globalObject.identificadores
+          : window.IDENTIFICADORES
       )
     }
   }
@@ -335,12 +365,14 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       centros_gestores: pickFirstNonEmpty(options.centros_gestores, existing.centros_gestores),
       estados: pickFirstNonEmpty(options.estados, existing.estados),
       tipos_intervencion: pickFirstNonEmpty(options.tipos_intervencion, existing.tipos_intervencion),
+      identificadores: pickFirstNonEmpty(options.identificadores, existing.identificadores),
     }
 
     window.UNIDADES_PROYECTO_FILTERS_GLOBAL = mergedCatalog
     window.CENTROS_GESTORES = normalizeOptions(mergedCatalog.centros_gestores)
     window.ESTADOS = normalizeOptions(mergedCatalog.estados)
     window.TIPOS_INTERVENCION = normalizeOptions(mergedCatalog.tipos_intervencion)
+    window.IDENTIFICADORES = normalizeOptions(mergedCatalog.identificadores)
     window.dispatchEvent(new Event('up-filters-updated'))
   }
 
@@ -349,6 +381,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     if (globalOptions.centros_gestores.length > 0) setAvailableCentrosGestores(globalOptions.centros_gestores)
     if (globalOptions.estados.length > 0) setAvailableSeverities(globalOptions.estados)
     if (globalOptions.tipos_intervencion.length > 0) setAvailablePriorities(globalOptions.tipos_intervencion)
+    if (globalOptions.identificadores.length > 0) setAvailableIdentificadores(globalOptions.identificadores)
   }, [])
 
   useEffect(() => {
@@ -357,7 +390,8 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       const hasAllGlobalOptions =
         globalOptions.centros_gestores.length > 0 &&
         globalOptions.estados.length > 0 &&
-        globalOptions.tipos_intervencion.length > 0
+        globalOptions.tipos_intervencion.length > 0 &&
+        globalOptions.identificadores.length > 0
 
       if (hasAllGlobalOptions) return
 
@@ -385,12 +419,17 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
             ...globalOptions.tipos_intervencion,
             ...records.map((item: any) => item?.tipo_intervencion)
           ]),
+          identificadores: normalizeOptions([
+            ...globalOptions.identificadores,
+            ...records.map((item: any) => item?.identificador)
+          ]),
         }
 
         publishGlobalFilterOptions(merged)
         setAvailableCentrosGestores(merged.centros_gestores)
         setAvailableSeverities(merged.estados)
         setAvailablePriorities(merged.tipos_intervencion)
+        setAvailableIdentificadores(merged.identificadores)
       } catch {
         // Fallback silencioso: la UI mantiene placeholders hasta siguiente carga.
       }
@@ -804,6 +843,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
           upid: String(pickFirst(registro?.upid, registro?.intervencion_id, registro?.id, registro?.codigo, `UP-${index + 1}`)),
           nombre_up: String(pickFirst(registro?.nombre_up, registro?.nombre_intervencion, registro?.nombre, registro?.nombre_proyecto, 'Registro de calidad')),
           nombre_centro_gestor: String(pickFirst(registro?.nombre_centro_gestor, registro?.centro_gestor, registro?.organismo, 'Centro no especificado')),
+          identificador: String(pickFirst(registro?.identificador, '')),
           total_issues: totalIssues,
           max_severity: maxSeverity,
           priority,
@@ -1296,15 +1336,21 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
           dataArray.map((item: any) => item.tipo_intervencion || item.priority)
         )
 
+        const fallbackIdentificadores = normalizeOptions(
+          dataArray.map((item: any) => item.identificador)
+        )
+
         const finalOptions: GlobalFilterOptions = {
           centros_gestores: globalOptions.centros_gestores.length > 0 ? globalOptions.centros_gestores : fallbackCentros,
           estados: globalOptions.estados.length > 0 ? globalOptions.estados : fallbackEstados,
           tipos_intervencion: globalOptions.tipos_intervencion.length > 0 ? globalOptions.tipos_intervencion : fallbackTipos,
+          identificadores: globalOptions.identificadores.length > 0 ? globalOptions.identificadores : fallbackIdentificadores,
         }
 
         setAvailableCentrosGestores(finalOptions.centros_gestores)
         setAvailableSeverities(finalOptions.estados)
         setAvailablePriorities(finalOptions.tipos_intervencion)
+        setAvailableIdentificadores(finalOptions.identificadores)
         publishGlobalFilterOptions(finalOptions)
       } else {
         throw new Error(result.message || 'No se pudieron cargar los datos')
@@ -1360,6 +1406,13 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
       )
     }
 
+    // Filtro por identificador (selección múltiple)
+    if (selectedIdentificadores.length > 0) {
+      filtered = filtered.filter(item =>
+        selectedIdentificadores.includes(item.identificador)
+      )
+    }
+
     // Filtro por búsqueda de texto
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase()
@@ -1371,7 +1424,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     }
 
     setFilteredData(filtered)
-  }, [data, selectedCentrosGestores, selectedSeverities, selectedPriorities, searchTerm, canViewAll, userCentroGestor, centroGestorAccess])
+  }, [data, selectedCentrosGestores, selectedSeverities, selectedPriorities, selectedIdentificadores, searchTerm, canViewAll, userCentroGestor, centroGestorAccess])
 
   // Cargar datos cuando cambie el tab activo
   useEffect(() => {
@@ -1471,7 +1524,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
             </div>
 
             {/* Multi-Select Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <MultiSelect
                 label="Centro Gestor"
                 options={availableCentrosGestores}
@@ -1493,16 +1546,24 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
                 onChange={setSelectedPriorities}
                 placeholder="Todos los tipos"
               />
+              <MultiSelect
+                label="Identificador"
+                options={availableIdentificadores}
+                selected={selectedIdentificadores}
+                onChange={setSelectedIdentificadores}
+                placeholder="Todos los identificadores"
+              />
             </div>
 
             {/* Clear All Filters Button */}
-            {(selectedCentrosGestores.length + selectedSeverities.length + selectedPriorities.length + (searchTerm ? 1 : 0)) > 0 && (
+            {(selectedCentrosGestores.length + selectedSeverities.length + selectedPriorities.length + selectedIdentificadores.length + (searchTerm ? 1 : 0)) > 0 && (
               <div className="flex justify-end">
                 <button
                   onClick={() => {
                     setSelectedCentrosGestores([])
                     setSelectedSeverities([])
                     setSelectedPriorities([])
+                    setSelectedIdentificadores([])
                     setSearchTerm('')
                   }}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
