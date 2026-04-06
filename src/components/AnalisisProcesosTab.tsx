@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { fetchIntervenciones } from '@/services/unidades-proyecto.service'
 import { useAuth } from '@/context/AuthContext'
+import { getCentroGestorAccessFromSession } from '@/utils/centroGestorAccess'
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -47,12 +48,9 @@ type AgruparPor = 'procesos' | 'contratos'
 
 export default function AnalisisProcesosTab() {
   const { state: authState } = useAuth()
-  const userCentroGestor = authState.user?.nombre_centro_gestor || authState.user?.centro_gestor_assigned || ''
-  const canViewAll = useMemo(() => {
-    if (!userCentroGestor) return true
-    const normalized = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-    return normalized === 'calitrack' || normalized === 'secretaria de gobierno' || normalized === 'otro'
-  }, [userCentroGestor])
+  const centroGestorAccess = useMemo(() => getCentroGestorAccessFromSession(), [authState.user])
+  const userCentroGestor = centroGestorAccess.userCentroGestor || ''
+  const canViewAll = centroGestorAccess.canViewAll
 
   const [intervenciones, setIntervenciones] = useState<IntervencionRaw[]>([])
   const [loading, setLoading] = useState(true)

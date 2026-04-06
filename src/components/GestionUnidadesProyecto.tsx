@@ -29,6 +29,7 @@ import { MultiSelect } from './MultiSelect'
 import dynamic from 'next/dynamic'
 import ManagementFeatureTour from './ManagementFeatureTour'
 import { useAuth } from '@/context/AuthContext'
+import { getCentroGestorAccessFromSession, itemMatchesCentroGestor } from '@/utils/centroGestorAccess'
 
 const GestionRegistrosTab = dynamic(() => import('./GestionRegistrosTab'), { ssr: false })
 const AvancesUPCentroGestor = dynamic(() => import('./AvancesUPCentroGestor'), { ssr: false })
@@ -247,13 +248,10 @@ type TabType =
 const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNavigateHome }) => {
   const { hasRole, state: authState } = useAuth()
 
-  // Determinar si el usuario puede ver todos los centros gestores (por nombre_centro_gestor)
-  const userCentroGestor = authState.user?.nombre_centro_gestor || null
-  const canViewAll = useMemo(() => {
-    if (!userCentroGestor) return true
-    const normalized = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-    return normalized === 'calitrack' || normalized === 'secretaria de gobierno' || normalized === 'otro'
-  }, [userCentroGestor])
+  // Determinar si el usuario puede ver todos los centros gestores (centralizado)
+  const centroGestorAccess = useMemo(() => getCentroGestorAccessFromSession(), [authState.user])
+  const userCentroGestor = centroGestorAccess.userCentroGestor
+  const canViewAll = centroGestorAccess.canViewAll
 
   const canViewSolicitudesTabs = hasRole('super_admin') || hasRole('admin_general')
   const canViewAnalisisProcesos = hasRole('super_admin') || hasRole('admin_general') || hasRole('admin_centro_gestor') || hasRole('analista')
@@ -1334,10 +1332,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
 
     // Filtro obligatorio por centro gestor del usuario (para usuarios restringidos)
     if (!canViewAll && userCentroGestor) {
-      filtered = filtered.filter(item => {
-        const itemCentro = (item.nombre_centro_gestor || item.centro_gestor || '').trim().toLowerCase()
-        return itemCentro === userCentroGestor.trim().toLowerCase()
-      })
+      filtered = filtered.filter(item => itemMatchesCentroGestor(item, centroGestorAccess))
     }
 
     // Filtro por centros gestores (selección múltiple del usuario)
@@ -1376,7 +1371,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     }
 
     setFilteredData(filtered)
-  }, [data, selectedCentrosGestores, selectedSeverities, selectedPriorities, searchTerm, canViewAll, userCentroGestor])
+  }, [data, selectedCentrosGestores, selectedSeverities, selectedPriorities, searchTerm, canViewAll, userCentroGestor, centroGestorAccess])
 
   // Cargar datos cuando cambie el tab activo
   useEffect(() => {

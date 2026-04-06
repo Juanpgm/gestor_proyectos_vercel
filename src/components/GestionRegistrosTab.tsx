@@ -36,6 +36,7 @@ import {
   type SolicitudCambioIntervencionPayload,
 } from '@/services/unidades-proyecto.service'
 import { useAuth } from '@/context/AuthContext'
+import { getCentroGestorAccessFromSession } from '@/utils/centroGestorAccess'
 
 const UpLocationPickerMap = dynamic(() => import('./UpLocationPickerMap'), { ssr: false })
 const RegistrarAvanceUPModal = dynamic(() => import('./RegistrarAvanceUPModal'), { ssr: false })
@@ -1775,11 +1776,9 @@ const GestionRegistrosTab: React.FC = () => {
     [authState.user?.centro_gestor_assigned, authState.user?.nombre_centro_gestor],
   )
 
-  const userCentroGestor = useMemo(() => normalizeCentro(userCentroGestorRaw), [normalizeCentro, userCentroGestorRaw])
-  const canViewAllCentros = useMemo(
-    () => userCentroGestor === '' || userCentroGestor === 'calitrack' || userCentroGestor === 'secretaria de gobierno' || userCentroGestor === 'otro',
-    [userCentroGestor],
-  )
+  const centroGestorAccess = useMemo(() => getCentroGestorAccessFromSession(), [authState.user])
+  const userCentroGestor = useMemo(() => normalizeCentro(centroGestorAccess.userCentroGestor || userCentroGestorRaw), [normalizeCentro, centroGestorAccess.userCentroGestor, userCentroGestorRaw])
+  const canViewAllCentros = centroGestorAccess.canViewAll
 
   const toTimestamp = useCallback((row: any): number => {
     const candidates = [row?.updated_at, row?.fecha_reporte, row?.created_at, row?.fecha, row?.timestamp]
