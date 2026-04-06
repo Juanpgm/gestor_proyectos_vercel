@@ -2045,34 +2045,14 @@ const GestionRegistrosTab: React.FC = () => {
         )
       }
 
-      let filteredItems: UP[] = canViewAllCentros
-        ? normalizedItems.map(({ up }) => up)
-        : normalizedItems
-            .filter(({ up, intervenciones }) => {
-              const topLevelCandidates = [
-                up.nombre_centro_gestor,
-                (up as any)?.centro_gestor,
-                (up as any)?.responsible,
-              ]
+      let filteredItems: UP[]
 
-              const intervencionCandidates = intervenciones.flatMap((interv: any) => [
-                interv?.nombre_centro_gestor,
-                interv?.centro_gestor,
-                interv?.responsible,
-              ])
-
-              const allCandidates = [...topLevelCandidates, ...intervencionCandidates]
-              // UP sin ningún centro gestor en ningún nivel (recién creada, sin intervenciones):
-              // no tiene dueño asignado aún → mostrarla para que el usuario pueda gestionarla.
-              const hasAnyCentroData = allCandidates.some((c) => normalizeCentro(c).length > 0)
-              if (!hasAnyCentroData) return true
-              return allCandidates.some(matchesCentro)
-            })
-            .map(({ up }) => up)
-
-      // Fallback robusto: si el endpoint de UP no trae centros consistentes,
-      // usar /intervenciones para mapear UPID permitidos por centro gestor.
-      if (!canViewAllCentros && filteredItems.length === 0 && userCentroGestor) {
+      if (canViewAllCentros) {
+        filteredItems = normalizedItems.map(({ up }) => up)
+      } else if (userCentroGestor) {
+        // Para usuarios restringidos, SIEMPRE usar intervenciones como fuente
+        // primaria de filtrado, ya que nombre_centro_gestor está a nivel de
+        // intervención y puede no existir a nivel de UP.
         try {
           const intervRes = await fetch(`${API_BASE}/intervenciones?limit=10000`)
           const intervJson = await intervRes.json()
@@ -2092,14 +2072,53 @@ const GestionRegistrosTab: React.FC = () => {
               .filter(Boolean)
           )
 
-          if (allowedUpids.size > 0) {
-            filteredItems = normalizedItems
-              .filter(({ up }) => allowedUpids.has(String(up.upid || '').trim()))
-              .map(({ up }) => up)
-          }
+          // También incluir UPs que tengan centro gestor a nivel de UP
+          filteredItems = normalizedItems
+            .filter(({ up, intervenciones }) => {
+              // Si el upid está en los permitidos por intervención, incluir
+              if (allowedUpids.has(String(up.upid || '').trim())) return true
+
+              // Verificar también a nivel de UP y sus intervenciones embebidas
+              const topLevelCandidates = [
+                up.nombre_centro_gestor,
+                (up as any)?.centro_gestor,
+                (up as any)?.responsible,
+              ]
+              const intervencionCandidates = intervenciones.flatMap((interv: any) => [
+                interv?.nombre_centro_gestor,
+                interv?.centro_gestor,
+                interv?.responsible,
+              ])
+              const allCandidates = [...topLevelCandidates, ...intervencionCandidates]
+              const hasAnyCentroData = allCandidates.some((c) => normalizeCentro(c).length > 0)
+              // Si no tiene datos de centro en ningún nivel, NO mostrar (antes se mostraba)
+              if (!hasAnyCentroData) return false
+              return allCandidates.some(matchesCentro)
+            })
+            .map(({ up }) => up)
         } catch {
-          // Si falla el fallback, mantener resultado actual y mostrar estado vacío controlado.
+          // Si falla la consulta de intervenciones, filtrar solo por datos de UP
+          filteredItems = normalizedItems
+            .filter(({ up, intervenciones }) => {
+              const allCandidates = [
+                up.nombre_centro_gestor,
+                (up as any)?.centro_gestor,
+                (up as any)?.responsible,
+                ...intervenciones.flatMap((interv: any) => [
+                  interv?.nombre_centro_gestor,
+                  interv?.centro_gestor,
+                  interv?.responsible,
+                ]),
+              ]
+              const hasAnyCentroData = allCandidates.some((c) => normalizeCentro(c).length > 0)
+              if (!hasAnyCentroData) return false
+              return allCandidates.some(matchesCentro)
+            })
+            .map(({ up }) => up)
         }
+      } else {
+        // Sin centro gestor de usuario → no mostrar datos
+        filteredItems = []
       }
 
       setUps(filteredItems)

@@ -307,85 +307,84 @@ export const exportIntervencionesXlsx = async (filters: FilterParams = {}): Prom
  * 
  * Esta función convierte la respuesta a GeoJSON FeatureCollection estándar
  */
+const FETCH_PAGE_SIZE = 10000;
+
 const fetchUnidadesProyectoRaw = async (filters: FilterParams = {}): Promise<any> => {
   try {
     const hasFilters = Object.keys(filters).length > 0;
     const queryString = buildFilterQuery(filters, false);
-    
-    // ✨ AJUSTE: Agregar limit=10000 para obtener todos los datos sin paginación
-    const limitParam = 'limit=10000';
-    const fullQueryString = queryString 
-      ? `${queryString}&${limitParam}` 
-      : limitParam;
-    
-    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINT}?${fullQueryString}`;
-    
-    if (hasFilters) {
-      console.log(`🌐 fetchUnidadesProyectoRaw: Fetching with filters (limit=10000)`);
-    } else {
-      console.log(`🌐 fetchUnidadesProyectoRaw: Fetching all data (limit=10000)`);
-    }
-    
+
+    // Primera página: limit + offset=0
+    const firstPageQuery = queryString
+      ? `${queryString}&limit=${FETCH_PAGE_SIZE}&offset=0`
+      : `limit=${FETCH_PAGE_SIZE}&offset=0`;
+
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINT}?${firstPageQuery}`;
+
+    console.log(`🌐 fetchUnidadesProyectoRaw: Fetching page 1 (limit=${FETCH_PAGE_SIZE})`);
     console.log(`🔗 fetchUnidadesProyectoRaw: URL = ${url}`);
-    
-    // Usar cache para peticiones sin filtros
+
+    // Usar cache para peticiones sin filtros (solo primera página)
     const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
     const rawData = await response.json();
-    
+
     console.log(`📦 fetchUnidadesProyectoRaw: Response keys =`, Object.keys(rawData));
-    
-    // ✨ CONVERTIR estructura de API a GeoJSON FeatureCollection
-    // La API devuelve { success, data: [...], count, filters }
-    // Necesitamos convertir a { type: "FeatureCollection", features: [...] }
-    
+
     if (!rawData.success || !Array.isArray(rawData.data)) {
       console.error('❌ Invalid API response structure:', rawData);
       throw new Error('Respuesta inválida: se esperaba { success: true, data: [...] }');
     }
 
     const totalCount = Number(rawData.count ?? rawData.total ?? rawData.data.length);
-    const returnedCount = rawData.data.length;
-    if (returnedCount >= 10000 && totalCount > returnedCount) {
-      const warning = {
-        warning: 'Possible truncation due to limit=10000',
-        returnedCount,
-        totalCount,
-        timestamp: new Date().toISOString(),
-      };
-      console.warn('⚠️ fetchUnidadesProyectoRaw:', warning);
+    let allData = [...rawData.data];
 
-      if (typeof window !== 'undefined') {
-        const currentDebug = (window as any).__UP_FILTER_DEBUG__ || {};
-        (window as any).__UP_FILTER_DEBUG__ = {
-          ...currentDebug,
-          dataLimitWarning: warning,
-        };
+    // Paginar si hay más registros que los recibidos en la primera página
+    if (allData.length < totalCount) {
+      const totalPages = Math.ceil(totalCount / FETCH_PAGE_SIZE);
+      console.log(`📄 fetchUnidadesProyectoRaw: Paginando — total ${totalCount} registros, ${totalPages} páginas`);
+
+      for (let page = 1; page < totalPages && allData.length < totalCount; page++) {
+        const offset = page * FETCH_PAGE_SIZE;
+        const pageQuery = queryString
+          ? `${queryString}&limit=${FETCH_PAGE_SIZE}&offset=${offset}`
+          : `limit=${FETCH_PAGE_SIZE}&offset=${offset}`;
+
+        const pageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINT}?${pageQuery}`;
+
+        console.log(`📄 fetchUnidadesProyectoRaw: Fetching page ${page + 1}/${totalPages} (offset=${offset})`);
+
+        const pageResponse = await fetchWithRetry(pageUrl, {}, API_CONFIG.RETRY_ATTEMPTS, false);
+        const pageData = await pageResponse.json();
+
+        if (pageData.success && Array.isArray(pageData.data) && pageData.data.length > 0) {
+          allData = allData.concat(pageData.data);
+        } else {
+          console.log(`📄 fetchUnidadesProyectoRaw: Page ${page + 1} returned no data, stopping pagination`);
+          break;
+        }
       }
     }
-    
-    console.log(`📊 fetchUnidadesProyectoRaw: Converting ${rawData.data.length} items to GeoJSON FeatureCollection`);
-    
+
+    console.log(`📊 fetchUnidadesProyectoRaw: Total ${allData.length} registros obtenidos (API reportó ${totalCount})`);
+
     // Convertir cada item del array "data" a un Feature GeoJSON
-    const features = rawData.data.map((item: any) => {
-      // Extraer geometry del objeto
+    const features = allData.map((item: any) => {
       const { geometry, ...properties } = item;
-      
-      // Crear Feature GeoJSON estándar
       return {
         type: 'Feature',
-        geometry: geometry || null, // geometry ya viene en formato correcto { type: "Point", coordinates: [...] }
-        properties: properties // Todas las demás propiedades (upid, nombre_up, etc.)
+        geometry: geometry || null,
+        properties: properties
       };
     });
-    
+
     // Crear GeoJSON FeatureCollection
     const geoJsonData = {
       type: 'FeatureCollection',
       features: features
     };
-    
+
     console.log(`✅ fetchUnidadesProyectoRaw: ${geoJsonData.features.length} features in GeoJSON FeatureCollection`);
-    
+
     return geoJsonData;
   } catch (error) {
     console.error('❌ fetchUnidadesProyectoRaw error:', error);
@@ -487,12 +486,27 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
     if (!hasInterventionFields) {
       console.warn('⚠️ fetchAttributeData: Datos de unidades sin intervenciones. Usando fallback /intervenciones.');
       try {
-        const intervencionesUrl = `${API_CONFIG.BASE_URL}/intervenciones?limit=10000`;
-        const intervencionesResponse = await fetchWithRetry(intervencionesUrl, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
-        const intervencionesPayload = await intervencionesResponse.json();
-        const intervencionesData = Array.isArray(intervencionesPayload?.data) ? intervencionesPayload.data : [];
+        let allIntervenciones: any[] = [];
+        let intervOffset = 0;
+        const intervPageSize = FETCH_PAGE_SIZE;
 
-        intervencionesData.forEach((interv: any) => {
+        // Paginar /intervenciones hasta obtener todos los registros
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const intervencionesUrl = `${API_CONFIG.BASE_URL}/intervenciones?limit=${intervPageSize}&offset=${intervOffset}`;
+          const intervencionesResponse = await fetchWithRetry(intervencionesUrl, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters && intervOffset === 0);
+          const intervencionesPayload = await intervencionesResponse.json();
+          const pageData = Array.isArray(intervencionesPayload?.data) ? intervencionesPayload.data : [];
+
+          if (pageData.length === 0) break;
+          allIntervenciones = allIntervenciones.concat(pageData);
+
+          const intervTotal = Number(intervencionesPayload?.count ?? intervencionesPayload?.total ?? 0);
+          if (allIntervenciones.length >= intervTotal || pageData.length < intervPageSize) break;
+          intervOffset += intervPageSize;
+        }
+
+        allIntervenciones.forEach((interv: any) => {
           const key = String(interv?.upid || '').trim().toLowerCase();
           if (!key) return;
           const bucket = intervencionesByUpid.get(key);
@@ -503,7 +517,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           }
         });
 
-        console.log(`✅ fetchAttributeData: ${intervencionesData.length} intervenciones agrupadas por UPID`);
+        console.log(`✅ fetchAttributeData: ${allIntervenciones.length} intervenciones agrupadas por UPID`);
       } catch (intervencionesError) {
         console.error('❌ fetchAttributeData: Error cargando /intervenciones', intervencionesError);
       }

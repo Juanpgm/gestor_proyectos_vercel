@@ -297,6 +297,13 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
   
   const [showFilters, setShowFilters] = useState(true)
 
+  // Para usuarios restringidos: auto-seleccionar su centro gestor y bloquear el dropdown
+  useEffect(() => {
+    if (!canViewAll && userCentroGestor && selectedCentrosGestores.length === 0) {
+      setSelectedCentrosGestores([userCentroGestor])
+    }
+  }, [canViewAll, userCentroGestor]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Publicar filtros seleccionados para tabs autónomos (Gestionar Registros, etc.)
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -400,11 +407,21 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
         if (!response.ok) return
 
         const json = await response.json()
-        const records = Array.isArray(json)
+        let records = Array.isArray(json)
           ? json
           : Array.isArray(json?.data)
             ? json.data
             : []
+
+        // Filtrar intervenciones por centro gestor del usuario si es restringido
+        if (!canViewAll && userCentroGestor) {
+          const normalizeVal = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+          const normalizedUser = normalizeVal(userCentroGestor)
+          records = records.filter((item: any) => {
+            const itemCentro = normalizeVal(item?.nombre_centro_gestor || item?.centro_gestor)
+            return itemCentro === normalizedUser || itemCentro.includes(normalizedUser) || normalizedUser.includes(itemCentro)
+          })
+        }
 
         const merged: GlobalFilterOptions = {
           centros_gestores: normalizeOptions([
@@ -436,7 +453,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
     }
 
     hydrateGlobalOptionsFromRecords()
-  }, [API_BASE_URL])
+  }, [API_BASE_URL, canViewAll, userCentroGestor])
 
   // Definición de tabs - quality-control endpoints de la API
   const tabs = [
@@ -1527,10 +1544,10 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({ onNav
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <MultiSelect
                 label="Centro Gestor"
-                options={availableCentrosGestores}
-                selected={selectedCentrosGestores}
-                onChange={setSelectedCentrosGestores}
-                placeholder="Todos los centros"
+                options={!canViewAll && userCentroGestor ? [userCentroGestor] : availableCentrosGestores}
+                selected={!canViewAll && userCentroGestor ? [userCentroGestor] : selectedCentrosGestores}
+                onChange={canViewAll ? setSelectedCentrosGestores : () => {}}
+                placeholder={!canViewAll && userCentroGestor ? userCentroGestor : "Todos los centros"}
               />
               <MultiSelect
                 label="Estado"
