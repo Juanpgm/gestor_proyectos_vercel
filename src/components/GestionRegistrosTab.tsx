@@ -1582,6 +1582,7 @@ const SolicitarCambioIntervencionForm: React.FC<{ interv: Intervencion; onSucces
     fuente_financiacion: interv.fuente_financiacion || '',
     referencia_contrato: interv.referencia_contrato || '',
     descripcion_intervencion: interv.descripcion_intervencion || '',
+    identificador: interv.identificador || '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -1641,6 +1642,7 @@ const SolicitarCambioIntervencionForm: React.FC<{ interv: Intervencion; onSucces
           placeholder="Selecciona una fuente"
         />
         <Field label="Ref. Contrato" value={form.referencia_contrato || ''} onChange={set('referencia_contrato')} />
+        <Field label="Identificador" value={form.identificador || ''} onChange={set('identificador')} />
       </div>
       <div>
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción</label>
