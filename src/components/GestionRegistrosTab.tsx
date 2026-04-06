@@ -1818,6 +1818,22 @@ const GestionRegistrosTab: React.FC = () => {
   const userCentroGestor = useMemo(() => normalizeCentro(centroGestorAccess.userCentroGestor || userCentroGestorRaw), [normalizeCentro, centroGestorAccess.userCentroGestor, userCentroGestorRaw])
   const canViewAllCentros = centroGestorAccess.canViewAll
 
+  // Comparación reutilizable de centro gestor para intervenciones
+  const intervMatchesCentro = useCallback((interv: Intervencion): boolean => {
+    if (canViewAllCentros) return true
+    if (!userCentroGestor) return false
+    const candidates = [
+      normalizeCentro(interv.nombre_centro_gestor),
+      normalizeCentro((interv as any)?.centro_gestor),
+    ].filter(Boolean)
+    if (candidates.length === 0) return true // sin centro → mostrar
+    return candidates.some(c =>
+      c === userCentroGestor ||
+      c.includes(userCentroGestor) ||
+      userCentroGestor.includes(c)
+    )
+  }, [canViewAllCentros, userCentroGestor, normalizeCentro])
+
   const toTimestamp = useCallback((row: any): number => {
     const candidates = [row?.updated_at, row?.fecha_reporte, row?.created_at, row?.fecha, row?.timestamp]
     for (const candidate of candidates) {
@@ -1955,21 +1971,30 @@ const GestionRegistrosTab: React.FC = () => {
     try {
       const res = await fetch(`${API_BASE}/intervenciones?limit=10000`)
       const json = await res.json()
-      const extractedCounts = extractIntervencionesCountByUpid(json)
 
-      // Guardar todas las intervenciones para filtrado a nivel de intervención
+      // Guardar intervenciones filtradas por centro gestor del usuario
       const rawItems = parseListPayload(json)
-      setAllIntervencionesRaw(rawItems as Intervencion[])
+      const filteredIntervenciones = canViewAllCentros
+        ? rawItems as Intervencion[]
+        : (rawItems as Intervencion[]).filter(intervMatchesCentro)
+      setAllIntervencionesRaw(filteredIntervenciones)
+
+      // Recalcular conteos solo con intervenciones filtradas
+      const filteredCountByUpid: Record<string, number> = {}
+      filteredIntervenciones.forEach(interv => {
+        const upid = String(interv.upid || '').trim()
+        if (upid) filteredCountByUpid[upid] = (filteredCountByUpid[upid] || 0) + 1
+      })
 
       setIntervencionesCountByUpid({
         ...baseMap,
-        ...extractedCounts,
+        ...filteredCountByUpid,
       })
     } catch {
       // Mantener estado base (0) para permitir identificar rápidamente UP sin intervenciones.
       setIntervencionesCountByUpid(baseMap)
     }
-  }, [API_BASE, extractIntervencionesCountByUpid])
+  }, [API_BASE, intervMatchesCentro, canViewAllCentros])
 
   // Cargar UPs
   const loadUPs = useCallback(async () => {
@@ -2097,7 +2122,9 @@ const GestionRegistrosTab: React.FC = () => {
       const res = await fetch(`${API_BASE}/intervenciones?upid=${encodeURIComponent(upid)}&limit=10000`)
       const json = await res.json()
       const rawItems: Intervencion[] = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []
-      const items = await mergeIntervencionesWithLatestAvances(rawItems)
+      // Filtrar intervenciones por centro gestor del usuario
+      const filteredRawItems = canViewAllCentros ? rawItems : rawItems.filter(intervMatchesCentro)
+      const items = await mergeIntervencionesWithLatestAvances(filteredRawItems)
       const avance = items.length > 0 ? items.reduce((s, i) => s + (i.avance_obra || 0), 0) / items.length : 0
       const presupuesto = items.reduce((s, i) => s + (i.presupuesto_base || 0), 0)
       setMetrics(prev => ({ ...prev, [upid]: { avance, presupuesto } }))
@@ -2108,7 +2135,7 @@ const GestionRegistrosTab: React.FC = () => {
     } finally {
       setLoadingIntervUp(prev => { const c = { ...prev }; delete c[upid]; return c })
     }
-  }, [intervencionesMap, loadingIntervUp, mergeIntervencionesWithLatestAvances])
+  }, [intervencionesMap, loadingIntervUp, mergeIntervencionesWithLatestAvances, canViewAllCentros, intervMatchesCentro])
 
   const refreshIntervencionesForUpid = useCallback((upidRaw?: string) => {
     const upid = String(upidRaw || '').trim()
