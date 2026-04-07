@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { getCurrentIdToken } from '@/lib/firebase'
 import type { 
   ReporteContrato, 
   ReporteContratoFormData, 
@@ -77,10 +78,16 @@ export function useReportesContrato(referenciaContrato?: string) {
         body.append('archivos_evidencia', file)
       })
 
-      // POST directo al backend (no a través del proxy JSON)
+      // Obtener token de autenticación para identificar usuario y rol
+      const idToken = await getCurrentIdToken()
+
+      // POST al endpoint dedicado con autenticación
       const res = await fetch('/api/reportes-contratos', {
         method: 'POST',
         body,
+        headers: {
+          ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}),
+        },
       })
 
       if (!res.ok) {

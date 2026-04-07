@@ -654,6 +654,18 @@ class AuthService {
   // Registro con email y contraseña usando API
   async registerWithEmail({ name, email, password, confirmPassword, cellphone, nombre_centro_gestor }: RegisterCredentials): Promise<User> {
     try {
+      // Limpiar cualquier sesión/estado stale de Firebase Auth antes de registrar
+      // Esto evita conflictos con sesiones previas (ej: usuario parcialmente registrado)
+      this.clearSession()
+      if (auth?.currentUser) {
+        try {
+          await firebaseSignOut(auth)
+          console.log('🧹 Sesión Firebase previa limpiada antes de registro')
+        } catch (signOutError) {
+          console.warn('⚠️ Error limpiando sesión Firebase previa:', signOutError)
+        }
+      }
+
       const response = await fetch(`${this.getApiUrl()}/auth/register`, {
         method: 'POST',
         headers: {
@@ -691,6 +703,11 @@ class AuthService {
           errorMessage = data.error
         } else if (data.message) {
           errorMessage = data.message
+        }
+
+        // Normalizar códigos de error de Firebase Auth a mensajes amigables
+        if (errorMessage.includes('EMAIL_EXISTS') || errorMessage.includes('email-already-in-use')) {
+          errorMessage = 'Ya existe un usuario con este email'
         }
         
         throw new Error(errorMessage)

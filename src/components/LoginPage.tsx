@@ -138,6 +138,11 @@ export default function LoginPage() {
     const { name, value, type } = e.target
     const checked = 'checked' in e.target ? e.target.checked : false
     
+    // Limpiar errores visibles cuando el usuario modifica cualquier campo
+    if (state.error) {
+      clearError()
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -521,7 +526,7 @@ export default function LoginPage() {
                             ? 'Usuario no encontrado'
                             : mode === 'login' && (state.error.includes('Contraseña incorrecta') || state.error.includes('invalid password') || state.error.includes('incorrect password'))
                             ? 'Contraseña incorrecta'
-                            : mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists'))
+                            : mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists') || state.error.toLowerCase().includes('email-already-in-use'))
                             ? 'Correo ya registrado'
                             : 'Error de autenticación'
                           }
@@ -531,7 +536,7 @@ export default function LoginPage() {
                             ? 'El correo electrónico ingresado no está registrado en el sistema.'
                             : mode === 'login' && (state.error.includes('Contraseña incorrecta') || state.error.includes('invalid password') || state.error.includes('incorrect password'))
                             ? 'La contraseña ingresada es incorrecta. Verifique e intente nuevamente.'
-                            : mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists'))
+                            : mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists') || state.error.toLowerCase().includes('email-already-in-use'))
                             ? 'Ese correo ya tiene una cuenta. Inicia sesión o recupera la contraseña.'
                             : state.error
                           }
@@ -564,13 +569,16 @@ export default function LoginPage() {
                           </div>
                         )}
 
-                        {mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists')) && (
+                        {mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists') || state.error.toLowerCase().includes('email-already-in-use')) && (
                           <div className="mt-3 space-y-2">
                             <div className="flex items-center space-x-2">
                               <span className="text-sm text-red-600 dark:text-red-400">¿Ya tienes cuenta?</span>
                               <button
                                 type="button"
-                                onClick={() => setMode('login')}
+                                onClick={() => {
+                                  // Conservar el email para que no tenga que re-escribirlo
+                                  setMode('login')
+                                }}
                                 className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline transition-colors"
                               >
                                 Inicia sesión

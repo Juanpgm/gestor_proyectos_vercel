@@ -50,6 +50,7 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
 
   const [tiposAlertaSeleccionados, setTiposAlertaSeleccionados] = useState<string[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -131,27 +132,35 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
 
   const handleSubmit = async () => {
     if (!validate()) return
+    setSubmitError(null)
 
-    const success = await onSubmit({
-      ...formData,
-      referencia_contrato: referenciaContrato,
-      alertas_tipo_alerta: tiposAlertaSeleccionados.join(',')
-    })
-
-    if (success) {
-      // Reset form
-      setFormData({
+    try {
+      const success = await onSubmit({
+        ...formData,
         referencia_contrato: referenciaContrato,
-        observaciones: '',
-        avance_fisico: 0,
-        avance_financiero: 0,
-        alertas_descripcion: 'Sin alertas',
-        alertas_es_alerta: false,
-        alertas_tipo_alerta: '',
-        archivos_evidencia: []
+        alertas_tipo_alerta: tiposAlertaSeleccionados.join(',')
       })
-      setTiposAlertaSeleccionados([])
-      onClose()
+
+      if (success) {
+        // Reset form
+        setFormData({
+          referencia_contrato: referenciaContrato,
+          observaciones: '',
+          avance_fisico: 0,
+          avance_financiero: 0,
+          alertas_descripcion: 'Sin alertas',
+          alertas_es_alerta: false,
+          alertas_tipo_alerta: '',
+          archivos_evidencia: []
+        })
+        setTiposAlertaSeleccionados([])
+        setSubmitError(null)
+        onClose()
+      } else {
+        setSubmitError('No se pudo registrar el avance. Verifique su conexión y permisos e intente de nuevo.')
+      }
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Error inesperado al registrar avance')
     }
   }
 
@@ -398,6 +407,16 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
               )}
             </div>
           </div>
+
+          {/* Error de envío */}
+          {submitError && (
+            <div className="mx-6 mb-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                {submitError}
+              </p>
+            </div>
+          )}
 
           {/* Footer con botones */}
           <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex items-center justify-end gap-3">
