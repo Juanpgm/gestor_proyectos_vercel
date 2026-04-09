@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import {
   GitBranch,
   Clock,
@@ -12,7 +12,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Filter,
-  Layers
+  Layers,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  AlertCircle,
+  XCircle
 } from 'lucide-react'
 
 // Vista para Changelog (Historial de Cambios)
@@ -130,8 +135,59 @@ export const ChangelogView: React.FC<{ changes: any[] }> = ({ changes }) => {
   )
 }
 
-// Vista para By Centro Gestor (Análisis por Centro)
-export const ByCentroGestorView: React.FC<{ centros: any[] }> = ({ centros }) => {
+// Vista para By Centro Gestor (Análisis por Centro) — con registros integrados
+export const ByCentroGestorView: React.FC<{ centros: any[]; records?: any[] }> = ({ centros, records = [] }) => {
+  const [expandedCentros, setExpandedCentros] = useState<Set<string>>(new Set())
+  const [expandedRecords, setExpandedRecords] = useState<Set<string>>(new Set())
+
+  const severityOrder: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+
+  const toggleCentro = (id: string) => {
+    setExpandedCentros(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleRecord = (id: string) => {
+    setExpandedRecords(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const getRecordsForCentro = (centroName: string) => {
+    return records
+      .filter((r: any) => r.nombre_centro_gestor === centroName)
+      .sort((a: any, b: any) => {
+        const sa = severityOrder[a.max_severity] ?? 99
+        const sb = severityOrder[b.max_severity] ?? 99
+        return sa - sb
+      })
+  }
+
+  const getSeverityBadge = (severity: string | null | undefined) => {
+    switch (severity) {
+      case 'CRITICAL': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800'
+      case 'HIGH': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800'
+      case 'MEDIUM': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+      case 'LOW': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+      default: return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800'
+    }
+  }
+
+  const getSeverityIcon = (severity: string | null | undefined) => {
+    switch (severity) {
+      case 'CRITICAL': return <XCircle className="w-3.5 h-3.5" />
+      case 'HIGH': return <AlertTriangle className="w-3.5 h-3.5" />
+      case 'MEDIUM': return <AlertCircle className="w-3.5 h-3.5" />
+      default: return <CheckCircle2 className="w-3.5 h-3.5" />
+    }
+  }
   const getStatusColor = (status: string) => {
     switch (status?.toUpperCase()) {
       case 'EXCELLENT': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800'
@@ -143,9 +199,40 @@ export const ByCentroGestorView: React.FC<{ centros: any[] }> = ({ centros }) =>
     }
   }
 
+  // Recalculate per-centro stats from filtered records (excludes duplicate_reference)
+  const getCentroStats = (centroName: string, centroOriginal: any) => {
+    if (!records || records.length === 0) return centroOriginal
+    const centroRecords = records.filter((r: any) => r.nombre_centro_gestor === centroName)
+    if (centroRecords.length === 0) return centroOriginal
+    const total = centroRecords.length
+    const withIssues = centroRecords.filter((r: any) => r.total_issues > 0).length
+    const withoutIssues = total - withIssues
+    const qualityScore = total > 0 ? Number(((1 - withIssues / total) * 100).toFixed(2)) : 100
+    const errorRate = total > 0 ? Number(((withIssues / total) * 100).toFixed(2)) : 0
+    const sevCounts: Record<string, number> = {}
+    centroRecords.forEach((r: any) => {
+      Object.entries(r.severity_counts || {}).forEach(([s, c]) => {
+        sevCounts[s] = (sevCounts[s] || 0) + (c as number)
+      })
+    })
+    return {
+      ...centroOriginal,
+      total_records: total,
+      records_with_issues: withIssues,
+      records_without_issues: withoutIssues,
+      quality_score: qualityScore,
+      error_rate: errorRate,
+      status: qualityScore >= 95 ? 'EXCELLENT' : qualityScore >= 85 ? 'GOOD' : qualityScore >= 70 ? 'ACCEPTABLE' : qualityScore >= 50 ? 'POOR' : 'CRITICAL',
+      requires_attention: qualityScore < 85,
+      severity_counts: sevCounts,
+    }
+  }
+
   return (
     <div className="space-y-4">
-      {centros.map((centro) => (
+      {centros.map((centroRaw) => {
+        const centro = getCentroStats(centroRaw.nombre_centro_gestor, centroRaw)
+        return (
         <div 
           key={centro.id} 
           className={`bg-white dark:bg-slate-800 rounded-lg border-2 p-4 ${
@@ -313,7 +400,7 @@ export const ByCentroGestorView: React.FC<{ centros: any[] }> = ({ centros }) =>
 
           {/* Muestra de registros afectados */}
           {centro.affected_records_sample && centro.affected_records_sample.length > 0 && (
-            <div>
+            <div className="mb-4">
               <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                 Muestra de Registros Afectados
               </h4>
@@ -331,8 +418,172 @@ export const ByCentroGestorView: React.FC<{ centros: any[] }> = ({ centros }) =>
               </div>
             </div>
           )}
+
+          {/* Registros detallados con issues (expandible) */}
+          {records.length > 0 && (() => {
+            const centroRecords = getRecordsForCentro(centro.nombre_centro_gestor)
+            const recordsWithIssues = centroRecords.filter((r: any) => r.total_issues > 0)
+            if (centroRecords.length === 0) return null
+            const centroId = centro.id || centro.nombre_centro_gestor
+            const isExpanded = expandedCentros.has(centroId)
+
+            return (
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                <button
+                  onClick={() => toggleCentro(centroId)}
+                  className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    {isExpanded
+                      ? <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      : <ChevronRight className="w-4 h-4 text-slate-500" />
+                    }
+                    <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Detalle de Registros
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                      {centroRecords.length} registros
+                    </span>
+                    {recordsWithIssues.length > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                        {recordsWithIssues.length} con problemas
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="mt-3 space-y-2 ml-2">
+                    {centroRecords.map((record: any) => {
+                      const recordId = record.id || record.upid
+                      const isRecordExpanded = expandedRecords.has(recordId)
+                      const issues = (record.issues || []).sort((a: any, b: any) => {
+                        const sa = severityOrder[a.severity] ?? 99
+                        const sb = severityOrder[b.severity] ?? 99
+                        return sa - sb
+                      })
+
+                      return (
+                        <div
+                          key={recordId}
+                          className={`rounded-lg border ${
+                            record.total_issues > 0
+                              ? 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/10'
+                              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'
+                          }`}
+                        >
+                          {/* Record header */}
+                          <button
+                            onClick={() => record.total_issues > 0 && toggleRecord(recordId)}
+                            className={`w-full flex items-center justify-between p-3 text-left ${
+                              record.total_issues > 0 ? 'cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-900/20' : 'cursor-default'
+                            } rounded-lg transition-colors`}
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {record.total_issues > 0 && (
+                                isRecordExpanded
+                                  ? <ChevronDown className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                  : <ChevronRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              )}
+                              {record.total_issues === 0 && (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                              )}
+                              <code className="text-xs font-mono text-slate-900 dark:text-white truncate">
+                                {record.upid}
+                              </code>
+                              {record.pago_count > 1 && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                  {record.pago_count} pagos
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                              {record.max_severity && (
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full border ${getSeverityBadge(record.max_severity)}`}>
+                                  {getSeverityIcon(record.max_severity)}
+                                  {record.max_severity}
+                                </span>
+                              )}
+                              {record.total_issues > 0 && (
+                                <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                                  {record.total_issues} {record.total_issues === 1 ? 'problema' : 'problemas'}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+
+                          {/* Expanded issues list */}
+                          {isRecordExpanded && issues.length > 0 && (
+                            <div className="px-3 pb-3 border-t border-orange-200/50 dark:border-orange-800/50">
+                              <div className="mt-2 space-y-2">
+                                {issues.map((issue: any, idx: number) => (
+                                  <div
+                                    key={`${recordId}-issue-${idx}`}
+                                    className={`p-3 rounded-lg border ${
+                                      issue.severity === 'CRITICAL' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                                      issue.severity === 'HIGH' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' :
+                                      issue.severity === 'MEDIUM' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
+                                      'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                    }`}
+                                  >
+                                    {/* Header: severity + rule code */}
+                                    <div className="flex items-center gap-2 mb-2">
+                                      {getSeverityIcon(issue.severity)}
+                                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                                        issue.severity === 'CRITICAL' ? 'bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100' :
+                                        issue.severity === 'HIGH' ? 'bg-orange-200 dark:bg-orange-800 text-orange-900 dark:text-orange-100' :
+                                        issue.severity === 'MEDIUM' ? 'bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100' :
+                                        'bg-blue-200 dark:bg-blue-800 text-blue-900 dark:text-blue-100'
+                                      }`}>
+                                        {issue.severity_label || issue.severity}
+                                      </span>
+                                      <code className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                        {issue.rule_id}
+                                      </code>
+                                      {issue.field_name && issue.field_name !== 'N/A' && (
+                                        <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-mono">
+                                          Variable: {issue.field_name}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Rule name */}
+                                    <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1.5">
+                                      {issue.rule_name}
+                                    </p>
+
+                                    {/* Description */}
+                                    {issue.description && (
+                                      <p className="text-xs text-slate-600 dark:text-slate-300 mb-2 leading-relaxed">
+                                        {issue.description}
+                                      </p>
+                                    )}
+
+                                    {/* Fix suggestion - green box */}
+                                    {issue.suggestion && (
+                                      <div className="mt-2 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                                        <div className="flex items-start gap-2">
+                                          <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold flex-shrink-0 mt-0.5">✓ Cómo corregirlo:</span>
+                                          <span className="text-xs text-emerald-800 dark:text-emerald-200 leading-relaxed">{issue.suggestion}</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
-      ))}
+      )})}
     </div>
   )
 }

@@ -74,13 +74,19 @@ const Sidebar: React.FC<SidebarProps> = ({
       label: 'Gestionar Unidades de Proyecto',
       icon: ClipboardCheck,
       description: 'Control de calidad de unidades de proyecto'
+    },
+    {
+      id: 'gestionar-emprestito',
+      label: 'Gestionar Empréstito',
+      icon: TrendingUp,
+      description: 'Gestión unificada de contratos, procesos, RPCs, pagos y convenios'
     }
   ]
 
   const visibleManagementMenuItems = canAccessFullManagementSidebar
     ? managementMenuItems
     : isAdminCentroGestor
-      ? managementMenuItems.filter((item) => item.id === 'gestionar-unidades-proyecto')
+      ? managementMenuItems.filter((item) => item.id === 'gestionar-unidades-proyecto' || item.id === 'gestionar-emprestito')
       : []
 
   const baseMenuItems = [dashboardMenuItem, ...visibleManagementMenuItems]

@@ -9,6 +9,7 @@ import GestionContratos from '@/components/GestionContratos'
 import ProyeccionesEmprestito from '@/components/ProyeccionesEmprestito'
 import GestionPagos from '@/components/GestionPagos'
 import GestionUnidadesProyecto from '@/components/GestionUnidadesProyecto'
+import GestionEmprestito from '@/components/GestionEmprestito'
 import { useAuth } from '@/context/AuthContext'
 
 interface MainLayoutProps {
@@ -35,12 +36,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         'gestionar-contratos',
         'proyecciones-emprestito',
         'gestion-pagos',
-        'gestionar-unidades-proyecto'
+        'gestionar-unidades-proyecto',
+        'gestionar-emprestito'
       ].includes(section)
     }
 
     if (isAdminCentroGestor) {
-      return section === 'gestionar-unidades-proyecto'
+      return section === 'gestionar-unidades-proyecto' || section === 'gestionar-emprestito'
     }
 
     return false
@@ -113,6 +115,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
             <div className="px-2 sm:px-4 lg:px-6 py-4">
               <GestionUnidadesProyecto onNavigateHome={handleNavigateHome} />
+            </div>
+          </div>
+        )
+      case 'gestionar-emprestito':
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+            <div className="px-2 sm:px-4 lg:px-6 py-4">
+              <GestionEmprestito onNavigateHome={handleNavigateHome} />
             </div>
           </div>
         )
