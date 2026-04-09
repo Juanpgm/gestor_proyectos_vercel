@@ -525,43 +525,6 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           console.warn('⚠️ Reintento adicional de procesos también falló:', retryError)
         }
 
-        // Fallback adicional: consulta directa al backend cuando el proxy falla por compresión/parseo
-        try {
-          const directApiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://gestorproyectoapi-production.up.railway.app'
-          const directResponse = await fetch(`${directApiBase}/procesos_emprestito_all`, { cache: 'no-store' })
-
-          if (directResponse.ok) {
-            const directRaw = await directResponse.text()
-            if (directRaw && directRaw.trim().length > 0) {
-              let directParsed: any
-              try {
-                directParsed = JSON.parse(directRaw)
-              } catch {
-                directParsed = directRaw
-              }
-
-              if (typeof directParsed === 'string') {
-                try {
-                  directParsed = JSON.parse(directParsed)
-                } catch {
-                  directParsed = null
-                }
-              }
-
-              if (directParsed && directParsed?.success !== false) {
-                const directNormalized = normalizeProcesosResponse(directParsed)
-                if (directNormalized.length > 0 || Array.isArray(directParsed?.data)) {
-                  if (!isLatestRequest()) return
-                  setProcesos(filterDeletedProcesos(directNormalized))
-                  return
-                }
-              }
-            }
-          }
-        } catch (directError) {
-          console.warn('⚠️ Consulta directa a procesos_emprestito_all también falló:', directError)
-        }
-
         throw primaryError
       }
     } catch (error) {

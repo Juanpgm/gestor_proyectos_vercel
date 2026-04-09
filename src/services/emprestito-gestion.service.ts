@@ -27,14 +27,52 @@ export interface MutationResponse {
 
 // ── Helpers internos ─────────────────────────────────────────────
 
+/**
+ * Endpoints que aún no existen en el backend de producción.
+ * Cuando estos devuelvan 404, se retorna un fallback en vez de lanzar error.
+ */
+const ENDPOINTS_NOT_YET_IN_PRODUCTION = new Set([
+  'emprestito/quality-control/summary',
+  'emprestito/quality-control/records',
+  'emprestito/quality-control/changelog',
+  'emprestito/quality-control/by-centro-gestor',
+  'emprestito/quality-control/stats',
+  'emprestito/quality-control/analyze',
+  'solicitudes_cambios_emprestito',
+  'reportes_emprestito/resumen-centro-gestor',
+  'emprestito/historial-cambios',
+  'emprestito/modificar-proceso',
+  'emprestito/modificar-contrato',
+  'emprestito/modificar-orden-compra',
+  'emprestito/modificar-rpc',
+])
+
+/** Verifica si un path (sin el proxy base) corresponde a un endpoint aún no implementado */
+function isNotYetInProduction(path: string): boolean {
+  if (ENDPOINTS_NOT_YET_IN_PRODUCTION.has(path)) return true
+  // También cubrir paths con IDs dinámicos
+  if (path.startsWith('solicitudes_cambios_emprestito/')) return true
+  if (path.startsWith('contratos_emprestito/') && !path.includes('all') && !path.includes('referencia') && !path.includes('centro-gestor')) return true
+  if (path.startsWith('ordenes_compra_emprestito/') && !path.includes('numero') && !path.includes('centro-gestor')) return true
+  if (path.startsWith('convenios_emprestito/')) return true
+  return false
+}
+
 async function proxyGet<T = any>(
   path: string,
   params?: Record<string, string>,
 ): Promise<T> {
   const qs = params ? `?${new URLSearchParams(params).toString()}` : ''
   const res = await fetch(`${PROXY_BASE}/${path}${qs}`)
+  if (!res.ok) {
+    if ((res.status === 404 || res.status === 405) && isNotYetInProduction(path)) {
+      console.warn(`[emprestito-service] Endpoint no disponible aún en producción: ${path} (${res.status})`)
+      return { _notAvailable: true, data: [], message: 'Endpoint no disponible en producción aún' } as unknown as T
+    }
+    const json = await res.json().catch(() => ({}))
+    throw new Error(json?.detail || json?.message || `Error ${res.status}`)
+  }
   const json = await res.json()
-  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`)
   return json as T
 }
 
@@ -47,8 +85,15 @@ async function proxyPost<T = MutationResponse>(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+  if (!res.ok) {
+    if ((res.status === 404 || res.status === 405) && isNotYetInProduction(path)) {
+      console.warn(`[emprestito-service] Endpoint no disponible aún en producción: POST ${path} (${res.status})`)
+      return { _notAvailable: true, success: false, message: 'Endpoint no disponible en producción aún' } as unknown as T
+    }
+    const json = await res.json().catch(() => ({}))
+    throw new Error(json?.detail || json?.message || `Error ${res.status}`)
+  }
   const json = await res.json()
-  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`)
   return json as T
 }
 
@@ -61,8 +106,15 @@ async function proxyPut<T = MutationResponse>(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+  if (!res.ok) {
+    if ((res.status === 404 || res.status === 405) && isNotYetInProduction(path)) {
+      console.warn(`[emprestito-service] Endpoint no disponible aún en producción: PUT ${path} (${res.status})`)
+      return { _notAvailable: true, success: false, message: 'Endpoint no disponible en producción aún' } as unknown as T
+    }
+    const json = await res.json().catch(() => ({}))
+    throw new Error(json?.detail || json?.message || `Error ${res.status}`)
+  }
   const json = await res.json()
-  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`)
   return json as T
 }
 
@@ -74,8 +126,15 @@ async function proxyDelete<T = MutationResponse>(
   const res = await fetch(`${PROXY_BASE}/${path}?${qs}`, {
     method: 'DELETE',
   })
+  if (!res.ok) {
+    if ((res.status === 404 || res.status === 405) && isNotYetInProduction(path)) {
+      console.warn(`[emprestito-service] Endpoint no disponible aún en producción: DELETE ${path} (${res.status})`)
+      return { _notAvailable: true, success: false, message: 'Endpoint no disponible en producción aún' } as unknown as T
+    }
+    const json = await res.json().catch(() => ({}))
+    throw new Error(json?.detail || json?.message || `Error ${res.status}`)
+  }
   const json = await res.json()
-  if (!res.ok) throw new Error(json?.detail || json?.message || `Error ${res.status}`)
   return json as T
 }
 

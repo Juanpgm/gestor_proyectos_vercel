@@ -3,7 +3,7 @@ import { fetchWithErrorHandling } from '../utils/errorHandler';
 
 // API base URL - FastAPI backend (desde variable de entorno)
 // Fallback para producción si no está configurada
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://gestorproyectoapi-production.up.railway.app';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // Next.js API proxy URL for better error handling and CORS
 export const API_PROXY_URL = '/api/proxy';

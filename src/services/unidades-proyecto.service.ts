@@ -130,7 +130,7 @@ export interface ApiResponse<T> {
 
 // Configuración de la API  
 const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://gestorproyectoapi-production.up.railway.app',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '',
   ENDPOINT: '/unidades-proyecto', // Endpoint unificado simplificado
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,

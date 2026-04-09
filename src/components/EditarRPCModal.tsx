@@ -200,10 +200,7 @@ const EditarRPCModal: React.FC<EditarRPCModalProps> = ({
     setSuccess(false)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://gestorproyectoapi-production.up.railway.app'
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
+      const apiUrl = '/api/proxy'
 
       const cdpsValidos = cdps
         .map(cdp => cdp.numero?.trim())

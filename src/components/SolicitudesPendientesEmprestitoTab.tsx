@@ -61,7 +61,7 @@ export default function SolicitudesPendientesEmprestitoTab({ onRefresh }: Props)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterTipo, setFilterTipo] = useState<string>('todos')
   const [processingId, setProcessingId] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null)
 
   useEffect(() => {
     if (!toast) return
@@ -90,7 +90,11 @@ export default function SolicitudesPendientesEmprestitoTab({ onRefresh }: Props)
   const handleAprobar = async (sol: SolicitudCambioEmprestito) => {
     setProcessingId(sol.id)
     try {
-      await aprobarSolicitudEmprestito(sol.id, sol.tipo, sol.campos_modificados)
+      const result = await aprobarSolicitudEmprestito(sol.id, sol.tipo, sol.campos_modificados)
+      if ((result as any)?._notAvailable) {
+        setToast({ type: 'warning', message: 'La aprobación de solicitudes aún no está disponible en producción' })
+        return
+      }
       setToast({ type: 'success', message: `Solicitud ${sol.referencia} aprobada exitosamente` })
       setSolicitudes((prev) => prev.filter((s) => s.id !== sol.id))
       onRefresh?.()
@@ -106,7 +110,11 @@ export default function SolicitudesPendientesEmprestitoTab({ onRefresh }: Props)
     if (!motivo || !motivo.trim()) return
     setProcessingId(sol.id)
     try {
-      await rechazarSolicitudEmprestito(sol.id, motivo.trim())
+      const result = await rechazarSolicitudEmprestito(sol.id, motivo.trim())
+      if ((result as any)?._notAvailable) {
+        setToast({ type: 'warning', message: 'El rechazo de solicitudes aún no está disponible en producción' })
+        return
+      }
       setToast({ type: 'success', message: `Solicitud ${sol.referencia} rechazada` })
       setSolicitudes((prev) => prev.filter((s) => s.id !== sol.id))
       onRefresh?.()
@@ -144,6 +152,8 @@ export default function SolicitudesPendientesEmprestitoTab({ onRefresh }: Props)
             className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
               toast.type === 'success'
                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                : toast.type === 'warning'
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                 : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
             }`}
           >
