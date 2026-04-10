@@ -145,7 +145,6 @@ const GestionEmprestito: React.FC<GestionEmprestitoProps> = ({ onNavigateHome })
   // UI
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [notAvailableMessage, setNotAvailableMessage] = useState<string | null>(null)
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState('')
@@ -845,10 +844,6 @@ const GestionEmprestito: React.FC<GestionEmprestitoProps> = ({ onNavigateHome })
         signal: controller.signal,
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
       })
-      if (res.status === 404 || res.status === 405) {
-        // Endpoint no disponible en producción aún — devolver marker
-        return { _notAvailable: true, data: [], message: 'Endpoint no disponible en producción aún' }
-      }
       if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
       return res.json()
     } finally {
@@ -870,15 +865,6 @@ const GestionEmprestito: React.FC<GestionEmprestitoProps> = ({ onNavigateHome })
       }
       const url = `${API_BASE_URL}${endpoint}`
       const result = await fetchJson(url)
-
-      // Endpoint no disponible en producción — mostrar mensaje informativo sin error
-      if (result?._notAvailable) {
-        setData([])
-        setError(null)
-        setNotAvailableMessage('Este módulo de calidad de datos aún no está disponible en producción. Los endpoints serán habilitados próximamente.')
-        return
-      }
-      setNotAvailableMessage(null)
 
       const adapted = extractTabData(result, activeTab)
 
@@ -1177,19 +1163,6 @@ const GestionEmprestito: React.FC<GestionEmprestitoProps> = ({ onNavigateHome })
           animate={{ opacity: 1, y: 0 }}
           className="h-full flex flex-col p-4"
         >
-          {/* Endpoint no disponible en producción */}
-          {notAvailableMessage && !error && !loading && (
-            <div className="mb-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex-shrink-0">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">Módulo en desarrollo</h3>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">{notAvailableMessage}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Error */}
           {error && (
             <div className="mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex-shrink-0">

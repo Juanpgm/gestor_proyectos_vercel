@@ -32,17 +32,31 @@ const isCacheableEmprestitoPath = (apiPath: string): boolean => {
     path === 'procesos_emprestito_all' ||
     path === 'emprestito/obtener-procesos-bp' ||
     path === 'emprestito/obtener-contratos-bp' ||
-    path === 'asignaciones-emprestito-banco-centro-gestor'
+    path === 'asignaciones-emprestito-banco-centro-gestor' ||
+    path === 'reportes_contratos' ||
+    path === 'reportes_contratos/' ||
+    path === 'emprestito/quality-control/summary' ||
+    path === 'emprestito/quality-control/changelog' ||
+    path === 'emprestito/quality-control/by-centro-gestor' ||
+    path === 'emprestito/quality-control/stats' ||
+    path === 'emprestito/quality-control/records' ||
+    path === 'emprestito/flujo-caja/all' ||
+    path === 'emprestito/leer-tabla-proyecciones' ||
+    path === 'emprestito/proyecciones-sin-proceso' ||
+    path === 'bancos_emprestito_all' ||
+    path === 'solicitudes_cambios_emprestito'
   ) {
     return true
   }
 
   return (
     path.startsWith('emprestito/proceso/') ||
+    path.startsWith('emprestito/quality-control/') ||
     path.startsWith('contratos_emprestito/referencia/') ||
     path.startsWith('contratos_emprestito/centro-gestor/') ||
     path.startsWith('ordenes_compra_emprestito/numero/') ||
-    path.startsWith('ordenes_compra_emprestito/centro-gestor/')
+    path.startsWith('ordenes_compra_emprestito/centro-gestor/') ||
+    path.startsWith('reportes_emprestito/')
   )
 }
 
@@ -59,7 +73,15 @@ const getProxyTimeout = (apiPath: string): number => {
     path === 'procesos_emprestito_all' ||
     path === 'contratos_emprestito_all' ||
     path === 'convenios_transferencias_all' ||
-    path === 'emprestito/ordenes-compra'
+    path === 'emprestito/ordenes-compra' ||
+    path === 'emprestito/quality-control/summary' ||
+    path === 'emprestito/quality-control/records' ||
+    path === 'emprestito/quality-control/by-centro-gestor' ||
+    path === 'reportes_contratos' ||
+    path === 'reportes_contratos/' ||
+    path === 'emprestito/flujo-caja/all' ||
+    path === 'emprestito/leer-tabla-proyecciones' ||
+    path === 'solicitudes_cambios_emprestito'
   ) {
     return Math.max(DEFAULT_TIMEOUT, 90000)
   }
@@ -186,11 +208,12 @@ async function handleRequest(request: NextRequest, method: string) {
     }
     
     // Add body for POST, PUT, PATCH, DELETE requests when present
+    // Use arrayBuffer() to preserve binary data (e.g. multipart file uploads)
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       try {
-        const body = await request.text()
-        if (body) {
-          requestOptions.body = body
+        const bodyBuffer = await request.arrayBuffer()
+        if (bodyBuffer.byteLength > 0) {
+          requestOptions.body = Buffer.from(bodyBuffer)
         }
       } catch (error) {
         console.warn('Failed to read request body:', error)

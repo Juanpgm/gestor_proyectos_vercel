@@ -617,27 +617,22 @@ const ChangeRequestModal: React.FC<{
         nombre_centro_gestor: record.nombre_centro_gestor || record.centro_gestor || '',
       }
 
-      let result: any
       switch (entityType) {
         case 'contrato':
-          result = await crearSolicitudCambioContrato({ ...base, referencia_contrato: record.referencia_del_contrato || '' } as SolicitudCambioContratoPayload)
+          await crearSolicitudCambioContrato({ ...base, referencia_contrato: record.referencia_del_contrato || '' } as SolicitudCambioContratoPayload)
           break
         case 'proceso':
-          result = await crearSolicitudCambioProceso({ ...base, referencia_proceso: record.referencia_proceso || '' } as SolicitudCambioProcesoPayload)
+          await crearSolicitudCambioProceso({ ...base, referencia_proceso: record.referencia_proceso || '' } as SolicitudCambioProcesoPayload)
           break
         case 'rpc':
-          result = await crearSolicitudCambioRPC({ ...base, numero_rpc: record.numero_rpc || '', referencia_contrato: record.referencia_contrato || '' } as SolicitudCambioRPCPayload)
+          await crearSolicitudCambioRPC({ ...base, numero_rpc: record.numero_rpc || '', referencia_contrato: record.referencia_contrato || '' } as SolicitudCambioRPCPayload)
           break
         case 'pago':
-          result = await crearSolicitudCambioPago({ ...base, numero_rpc: record.numero_rpc || '' } as SolicitudCambioPagoPayload)
+          await crearSolicitudCambioPago({ ...base, numero_rpc: record.numero_rpc || '' } as SolicitudCambioPagoPayload)
           break
         case 'convenio':
-          result = await crearSolicitudCambioContrato({ ...base, referencia_contrato: record.referencia_contrato || '' } as SolicitudCambioContratoPayload)
+          await crearSolicitudCambioContrato({ ...base, referencia_contrato: record.referencia_contrato || '' } as SolicitudCambioContratoPayload)
           break
-      }
-      if (result?._notAvailable) {
-        setError('Las solicitudes de cambio aún no están disponibles en producción. Los endpoints serán habilitados próximamente.')
-        return
       }
       onSuccess()
     } catch (err: any) {

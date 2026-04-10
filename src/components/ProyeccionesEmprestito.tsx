@@ -159,7 +159,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       const timestamp = new Date().getTime()
       
       // Cargar solo desde el endpoint principal con parámetro false
-      const response = await fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
+      const response = await fetch(`${baseUrl}/api/proxy/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -179,7 +179,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       }
 
       // Cargar proyecciones sin proceso desde el segundo endpoint
-      const sinProcesoResponse = await fetch(`${baseUrl}/api/emprestito/proyecciones-sin-proceso?_t=${timestamp}`, {
+      const sinProcesoResponse = await fetch(`${baseUrl}/api/proxy/emprestito/proyecciones-sin-proceso?_t=${timestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',

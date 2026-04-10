@@ -1695,7 +1695,7 @@ const useEmprestitoRealData = () => {
           (async () => {
             const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
             const timestamp = new Date().getTime()
-            const response = await fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
+            const response = await fetch(`${baseUrl}/api/proxy/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
               cache: 'no-store',
               headers: {
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
