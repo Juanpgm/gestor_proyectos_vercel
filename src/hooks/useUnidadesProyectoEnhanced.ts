@@ -430,6 +430,7 @@ export const useUnidadesProyecto = (
         const tipo = normalizeCentro(item.tipo_intervencion);
         if (
           estado === requiredEstado &&
+          (item.avance_obra ?? 0) < 100 &&
           centro !== excludedCentro &&
           !excludedTipos.has(tipo)
         ) {
