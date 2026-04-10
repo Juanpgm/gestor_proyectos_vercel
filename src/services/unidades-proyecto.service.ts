@@ -794,11 +794,10 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
     const unidad = group.find(i => i.unidad != null && i.unidad !== '')?.unidad ?? base.unidad;
     const cantidad = group.find(i => i.cantidad != null && i.cantidad !== '')?.cantidad ?? base.cantidad;
 
-    // Recalcular frente_activo basándose en los estados del grupo
-    const normalizeEstado = (s: string) =>
-      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
-    const estadosArr = Array.from(estados);
-    const frenteActivoConsolidado = estadosArr.some(e => normalizeEstado(e) === 'en ejecucion')
+    // frente_activo ya fue calculado correctamente por inferFrenteActivo en fetchAttributeData,
+    // considerando TODAS las intervenciones. Solo hay que preservarlo: si algún item del grupo
+    // tiene 'Frente activo', el UPID consolidado es un frente activo.
+    const frenteActivoConsolidado = group.some(i => i.frente_activo === 'Frente activo')
       ? 'Frente activo'
       : 'No aplica';
 
