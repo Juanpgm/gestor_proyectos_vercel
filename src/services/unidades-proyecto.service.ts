@@ -524,11 +524,13 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
     }
 
     // Derivar estado a partir de avance_obra, respetando valores especiales imputados por el usuario
-    const DERIVED_ESTADOS = new Set(['en alistamiento', 'en ejecución', 'terminado']);
+    const normalizeRaw = (s: string) =>
+      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    const DERIVED_ESTADOS = new Set(['en alistamiento', 'en ejecucion', 'terminado']);
     const deriveEstado = (avanceObra: number | null | undefined, rawEstado: string | null | undefined): string => {
       const raw = String(rawEstado || '').trim();
       // Respetar estados especiales imputados por el usuario (Suspendido, Inaugurado, etc.)
-      if (raw && !DERIVED_ESTADOS.has(raw.toLowerCase())) {
+      if (raw && !DERIVED_ESTADOS.has(normalizeRaw(raw))) {
         return raw;
       }
       const avance = typeof avanceObra === 'number' ? avanceObra : parseFloat(String(avanceObra || '0'));

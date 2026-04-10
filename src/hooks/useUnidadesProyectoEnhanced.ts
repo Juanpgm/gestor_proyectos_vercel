@@ -540,10 +540,12 @@ export const useUnidadesProyecto = (
           const avance = typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0);
           const rawEstado = item?.estado || '';
           // Derivar estado a partir de avance_obra, respetando valores especiales
-          const DERIVED_ESTADOS = ['en alistamiento', 'en ejecuci\u00f3n', 'terminado'];
+          const normalizeRaw = (s: string) =>
+            s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+          const DERIVED_ESTADOS = ['en alistamiento', 'en ejecucion', 'terminado'];
           const raw = String(rawEstado).trim();
           let derivedEstado = raw;
-          if (!raw || DERIVED_ESTADOS.includes(raw.toLowerCase())) {
+          if (!raw || DERIVED_ESTADOS.includes(normalizeRaw(raw))) {
             if (isNaN(avance) || avance === 0) derivedEstado = 'En alistamiento';
             else if (avance >= 100) derivedEstado = 'Terminado';
             else derivedEstado = 'En ejecuci\u00f3n';
