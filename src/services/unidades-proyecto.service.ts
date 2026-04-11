@@ -149,42 +149,72 @@ const handleApiError = (error: unknown): never => {
 const delay = (ms: number): Promise<void> => 
   new Promise(resolve => setTimeout(resolve, ms));
 
-// Utilidad para hacer fetch con retry optimizado (sin cache — los datos de frente_activo deben venir frescos de la API)
+// Cache en memoria para datos inmutables (opcional)
+const memoryCache = new Map<string, { data: any; timestamp: number }>();
+const DEFAULT_UNIDADES_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
+const parsedUnidadesCacheTtl = Number(process.env.NEXT_PUBLIC_UNIDADES_CACHE_TTL_MS);
+const CACHE_TTL = Number.isFinite(parsedUnidadesCacheTtl) && parsedUnidadesCacheTtl > 0
+  ? parsedUnidadesCacheTtl
+  : DEFAULT_UNIDADES_CACHE_TTL_MS;
+
+// Utilidad para hacer fetch con retry optimizado
 const fetchWithRetry = async (
-  url: string,
-  options: RequestInit = {},
-  attempts: number = API_CONFIG.RETRY_ATTEMPTS
+  url: string, 
+  options: RequestInit = {}, 
+  attempts: number = API_CONFIG.RETRY_ATTEMPTS,
+  useCache: boolean = false
 ): Promise<Response> => {
+  // Verificar cache si está habilitado
+  if (useCache) {
+    const cached = memoryCache.get(url);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('💾 Using cached data for:', url.split('?')[0]);
+      return new Response(JSON.stringify(cached.data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-
-    const finalUrl = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
-
+    
+    // Solo agregar cache-busting si NO estamos usando cache
+    const finalUrl = useCache ? url : `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+    
     const response = await fetch(finalUrl, {
       ...options,
       signal: controller.signal,
-      cache: 'no-store',
+      cache: useCache ? 'default' : 'no-store',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
+        ...(useCache ? {} : {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }),
         ...options.headers
       }
     });
-
+    
     clearTimeout(timeoutId);
-
+    
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-
+    
+    // Guardar en cache si está habilitado
+    if (useCache) {
+      const data = await response.clone().json();
+      memoryCache.set(url, { data, timestamp: Date.now() });
+    }
+    
     return response;
   } catch (error) {
     if (attempts > 1) {
       await delay(API_CONFIG.RETRY_DELAY);
-      return fetchWithRetry(url, options, attempts - 1);
+      return fetchWithRetry(url, options, attempts - 1, useCache);
     }
     throw error;
   }
@@ -294,8 +324,8 @@ const fetchUnidadesProyectoRaw = async (filters: FilterParams = {}): Promise<any
     console.log(`🌐 fetchUnidadesProyectoRaw: Fetching page 1 (limit=${FETCH_PAGE_SIZE})`);
     console.log(`🔗 fetchUnidadesProyectoRaw: URL = ${url}`);
 
-    // Sin cache: siempre obtener datos frescos de la API para que frente_activo refleje el estado real
-    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS);
+    // Usar cache para peticiones sin filtros (solo primera página)
+    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
     const rawData = await response.json();
 
     console.log(`📦 fetchUnidadesProyectoRaw: Response keys =`, Object.keys(rawData));
@@ -323,7 +353,7 @@ const fetchUnidadesProyectoRaw = async (filters: FilterParams = {}): Promise<any
 
         console.log(`📄 fetchUnidadesProyectoRaw: Fetching page ${page + 1}/${totalPages} (offset=${offset})`);
 
-        const pageResponse = await fetchWithRetry(pageUrl, {}, API_CONFIG.RETRY_ATTEMPTS);
+        const pageResponse = await fetchWithRetry(pageUrl, {}, API_CONFIG.RETRY_ATTEMPTS, false);
         const pageData = await pageResponse.json();
 
         if (pageData.success && Array.isArray(pageData.data) && pageData.data.length > 0) {
@@ -464,7 +494,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
         // eslint-disable-next-line no-constant-condition
         while (true) {
           const intervencionesUrl = `${API_CONFIG.BASE_URL}/intervenciones?limit=${intervPageSize}&offset=${intervOffset}`;
-          const intervencionesResponse = await fetchWithRetry(intervencionesUrl, {}, API_CONFIG.RETRY_ATTEMPTS);
+          const intervencionesResponse = await fetchWithRetry(intervencionesUrl, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters && intervOffset === 0);
           const intervencionesPayload = await intervencionesResponse.json();
           const pageData = Array.isArray(intervencionesPayload?.data) ? intervencionesPayload.data : [];
 
@@ -505,6 +535,14 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
       if (isNaN(avance) || avance === 0) return 'En alistamiento';
       if (avance >= 100) return 'Terminado';
       return 'En ejecución';
+    };
+
+    const inferFrenteActivo = (estados: string[]): string => {
+      const normalized = estados.map(val => String(val || '').trim().toLowerCase());
+      if (normalized.some(val => val === 'en ejecución')) {
+        return 'Frente activo';
+      }
+      return 'No aplica';
     };
 
     // Procesar y validar cada elemento con manejo de errores individuales
@@ -560,25 +598,16 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           ? (parseInt(properties.n_intervenciones) || intervenciones.length)
           : 1; // Cada registro sin 'intervenciones' representa 1 intervención
         
-        // La API ya calcula y retorna frente_activo con sus propias reglas y exclusiones.
-        // En estructura nueva: viene en cada intervención; en estructura antigua: viene en properties.
+        // 🚧 CORRECCIÓN: frente_activo — derivar estado de cada intervención a partir de avance_obra
         let frente_activo = 'No aplica';
         if (esEstructuraNueva) {
-          // Leer frente_activo de la API desde cada intervención; si cualquiera es 'Frente activo', la UP lo es
-          const frenteValues = intervenciones.map((interv: any) => String(interv?.frente_activo || '').trim());
-          if (frenteValues.some((v: string) => v === 'Frente activo')) {
-            frente_activo = 'Frente activo';
-          }
+          const estadosDerivados = intervenciones.map((interv: any) =>
+            deriveEstado(interv?.avance_obra, interv?.estado)
+          );
+          frente_activo = estadosDerivados.length > 0 ? inferFrenteActivo(estadosDerivados) : 'No aplica';
         } else {
-          // Estructura antigua: frente_activo directo en properties (con fallback a derivación)
-          const rawFrente = String(properties.frente_activo || '').trim();
-          if (rawFrente) {
-            frente_activo = rawFrente;
-          } else {
-            // Fallback: derivar desde estado si la API no lo provee
-            const estadoDerivado = deriveEstado(properties.avance_obra, properties.estado);
-            frente_activo = estadoDerivado.toLowerCase() === 'en ejecución' ? 'Frente activo' : 'No aplica';
-          }
+          const estadoDerivado = deriveEstado(properties.avance_obra, properties.estado);
+          frente_activo = inferFrenteActivo([estadoDerivado]);
         }
         
         // El campo nombre_centro_gestor puede venir de diferentes lugares
@@ -764,8 +793,9 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
     const unidad = group.find(i => i.unidad != null && i.unidad !== '')?.unidad ?? base.unidad;
     const cantidad = group.find(i => i.cantidad != null && i.cantidad !== '')?.cantidad ?? base.cantidad;
 
-    // Preservar frente_activo de la API: si algún item del grupo tiene 'Frente activo', el grupo lo es
-    const frenteActivoConsolidado = group.find(i => i.frente_activo === 'Frente activo')
+    // Recalcular frente_activo basándose en los estados del grupo
+    const estadosArr = Array.from(estados);
+    const frenteActivoConsolidado = estadosArr.some(e => e.toLowerCase() === 'en ejecución')
       ? 'Frente activo'
       : 'No aplica';
 

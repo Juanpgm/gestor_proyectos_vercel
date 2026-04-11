@@ -74,7 +74,7 @@ export interface IntervencionesFilterParams {
   avance_max?: number;
 }
 
-const DEFAULT_INTERVENCIONES_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
+const DEFAULT_INTERVENCIONES_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 const parsedIntervencionesCacheTtl = Number(process.env.NEXT_PUBLIC_INTERVENCIONES_CACHE_TTL_MS);
 const INTERVENCIONES_CACHE_TTL = Number.isFinite(parsedIntervencionesCacheTtl) && parsedIntervencionesCacheTtl > 0
   ? parsedIntervencionesCacheTtl
@@ -307,7 +307,9 @@ export async function fetchIntervenciones(
   filters: IntervencionesFilterParams = {}
 ): Promise<IntervencionesResponse> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    const baseUrl = typeof window !== 'undefined'
+      ? '/api/proxy'
+      : (process.env.NEXT_PUBLIC_API_URL || '');
     const hasFilters = Object.keys(filters).length > 0;
     const queryString = buildQueryString(filters);
     
@@ -322,7 +324,7 @@ export async function fetchIntervenciones(
     if (!hasFilters) {
       const cached = intervencionesMemoryCache.get(url);
       if (cached && Date.now() - cached.timestamp < INTERVENCIONES_CACHE_TTL) {
-        console.log('💾 Usando caché de /intervenciones (vigente 1 hora)');
+        console.log('💾 Usando caché de /intervenciones (vigente 5 min)');
         return cached.data;
       }
     }
@@ -335,7 +337,7 @@ export async function fetchIntervenciones(
       headers: {
         'Content-Type': 'application/json',
       },
-      cache: hasFilters ? 'no-store' : 'default'
+      cache: 'no-store'
     });
 
     if (!response.ok) {

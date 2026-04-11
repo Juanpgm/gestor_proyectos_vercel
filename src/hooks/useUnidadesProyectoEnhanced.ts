@@ -37,7 +37,6 @@ interface IntervencionMetricItem {
   tipo_intervencion?: string;
   nombre_centro_gestor?: string;
   fuente_financiacion?: string;
-  frente_activo?: string;
 }
 
 // Opciones de configuración del hook
@@ -408,13 +407,39 @@ export const useUnidadesProyecto = (
     // Total de unidades de proyecto (número de registros)
     const totalUnidadesProyecto = data.length;
 
-    // La API ya aplica todas las exclusiones (centro gestor, tipo de intervención, estado).
-    // Solo contamos UPIDs únicos donde frente_activo === 'Frente activo'.
+    const normalizeCentro = (value: string | null | undefined): string =>
+      String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+
+    // Contar frentes activos desde intervenciones individuales
+    // Excluye Secretaría de Vivienda Social y Habitat y ciertos tipos de intervención
+    const excludedCentro = 'secretaria de vivienda social y habitat';
+    const excludedTipos = new Set([
+      'mantenimiento',
+      'estudios y disenos',
+      'demarcacion vial'
+    ]);
+    const requiredEstado = 'en ejecucion';
+
+    // Usar intervenciones individuales cuando están disponibles para contar UPIDs únicos
+    // Un frente activo NUNCA debe tener avance_obra = 0 (no iniciado) ni avance_obra = 100 (terminado)
+    const isValidAvanceForActiveFront = (avance: number | undefined): boolean => {
+      if (typeof avance !== 'number' || isNaN(avance)) return false;
+      return avance > 0 && avance < 100;
+    };
+
     let activeFronts = 0;
     if (interventionItems.length > 0) {
       const activeUpids = new Set<string>();
       interventionItems.forEach(item => {
-        if (item.frente_activo === 'Frente activo') {
+        const estado = normalizeCentro(item.estado);
+        const centro = normalizeCentro(item.nombre_centro_gestor);
+        const tipo = normalizeCentro(item.tipo_intervencion);
+        if (
+          estado === requiredEstado &&
+          centro !== excludedCentro &&
+          !excludedTipos.has(tipo) &&
+          isValidAvanceForActiveFront(item.avance_obra)
+        ) {
           const upid = String(item.upid || '').trim().toLowerCase();
           if (upid) activeUpids.add(upid);
         }
@@ -422,7 +447,13 @@ export const useUnidadesProyecto = (
       activeFronts = activeUpids.size;
     } else {
       // Fallback: usar datos consolidados a nivel de UP
-      activeFronts = data.filter(item => item.frente_activo === 'Frente activo').length;
+      activeFronts = data.filter(item =>
+        item.frente_activo === 'Frente activo' &&
+        normalizeCentro(item.nombre_centro_gestor) !== excludedCentro &&
+        !excludedTipos.has(normalizeCentro(item.tipo_intervencion)) &&
+        normalizeCentro(item.estado) === requiredEstado &&
+        isValidAvanceForActiveFront(item.avance_obra)
+      ).length;
     }
 
     // Debug logging de intervenciones
@@ -495,16 +526,12 @@ export const useUnidadesProyecto = (
   useEffect(() => {
     const fetchIntervencionesData = async () => {
       try {
-        // Llamar siempre a través del proxy para garantizar datos frescos de la API
-        const url = `/api/proxy/intervenciones?limit=10000&_t=${Date.now()}`;
+        // Usar proxy para consistencia entre local y producción
+        const url = `/api/proxy/intervenciones?limit=10000`;
 
         const response = await fetch(url, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          },
+          headers: { 'Content-Type': 'application/json' },
           cache: 'no-store'
         });
 
@@ -513,20 +540,30 @@ export const useUnidadesProyecto = (
         }
 
         const payload = await response.json();
-        // El proxy retorna { success, data, count } o directamente el array
-        const data = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+        const data = Array.isArray(payload?.data) ? payload.data : [];
 
-        // Leer todos los campos directamente de la API — sin derivaciones en frontend
-        const mappedIntervenciones = data.map((item: any) => ({
-          upid: item?.upid,
-          avance_obra: typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0),
-          presupuesto_base: typeof item?.presupuesto_base === 'number' ? item.presupuesto_base : parseFloat(item?.presupuesto_base || 0),
-          estado: item?.estado || '',
-          tipo_intervencion: item?.tipo_intervencion,
-          nombre_centro_gestor: item?.nombre_centro_gestor,
-          fuente_financiacion: item?.fuente_financiacion,
-          frente_activo: item?.frente_activo  // Leer directamente de la API, sin recalcular
-        }));
+        const mappedIntervenciones = data.map((item: any) => {
+          const avance = typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0);
+          const rawEstado = item?.estado || '';
+          // Derivar estado a partir de avance_obra, respetando valores especiales
+          const DERIVED_ESTADOS = ['en alistamiento', 'en ejecuci\u00f3n', 'terminado'];
+          const raw = String(rawEstado).trim();
+          let derivedEstado = raw;
+          if (!raw || DERIVED_ESTADOS.includes(raw.toLowerCase())) {
+            if (isNaN(avance) || avance === 0) derivedEstado = 'En alistamiento';
+            else if (avance >= 100) derivedEstado = 'Terminado';
+            else derivedEstado = 'En ejecuci\u00f3n';
+          }
+          return {
+            upid: item?.upid,
+            avance_obra: avance,
+            presupuesto_base: typeof item?.presupuesto_base === 'number' ? item.presupuesto_base : parseFloat(item?.presupuesto_base || 0),
+            estado: derivedEstado,
+            tipo_intervencion: item?.tipo_intervencion,
+            nombre_centro_gestor: item?.nombre_centro_gestor,
+            fuente_financiacion: item?.fuente_financiacion
+          };
+        });
 
         const allowedUpids = new Set(
           state.attributeData

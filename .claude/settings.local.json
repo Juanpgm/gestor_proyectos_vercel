@@ -3,7 +3,12 @@
     "allow": [
       "Bash(grep -E \"^-.*\\\\.\\(md|js|json|yaml|yml\\)$\")",
       "Bash(xargs grep:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:calitrack-red.vercel.app)",
+      "Bash(python -c ':*)"
     ]
   }
 }
