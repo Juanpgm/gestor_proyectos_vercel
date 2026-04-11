@@ -149,72 +149,42 @@ const handleApiError = (error: unknown): never => {
 const delay = (ms: number): Promise<void> => 
   new Promise(resolve => setTimeout(resolve, ms));
 
-// Cache en memoria para datos inmutables (opcional)
-const memoryCache = new Map<string, { data: any; timestamp: number }>();
-const DEFAULT_UNIDADES_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
-const parsedUnidadesCacheTtl = Number(process.env.NEXT_PUBLIC_UNIDADES_CACHE_TTL_MS);
-const CACHE_TTL = Number.isFinite(parsedUnidadesCacheTtl) && parsedUnidadesCacheTtl > 0
-  ? parsedUnidadesCacheTtl
-  : DEFAULT_UNIDADES_CACHE_TTL_MS;
-
-// Utilidad para hacer fetch con retry optimizado
+// Utilidad para hacer fetch con retry optimizado (sin cache — los datos de frente_activo deben venir frescos de la API)
 const fetchWithRetry = async (
-  url: string, 
-  options: RequestInit = {}, 
-  attempts: number = API_CONFIG.RETRY_ATTEMPTS,
-  useCache: boolean = false
+  url: string,
+  options: RequestInit = {},
+  attempts: number = API_CONFIG.RETRY_ATTEMPTS
 ): Promise<Response> => {
-  // Verificar cache si está habilitado
-  if (useCache) {
-    const cached = memoryCache.get(url);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('💾 Using cached data for:', url.split('?')[0]);
-      return new Response(JSON.stringify(cached.data), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-  }
-
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-    
-    // Solo agregar cache-busting si NO estamos usando cache
-    const finalUrl = useCache ? url : `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
-    
+
+    const finalUrl = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+
     const response = await fetch(finalUrl, {
       ...options,
       signal: controller.signal,
-      cache: useCache ? 'default' : 'no-store',
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(useCache ? {} : {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }),
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
         ...options.headers
       }
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    
-    // Guardar en cache si está habilitado
-    if (useCache) {
-      const data = await response.clone().json();
-      memoryCache.set(url, { data, timestamp: Date.now() });
-    }
-    
+
     return response;
   } catch (error) {
     if (attempts > 1) {
       await delay(API_CONFIG.RETRY_DELAY);
-      return fetchWithRetry(url, options, attempts - 1, useCache);
+      return fetchWithRetry(url, options, attempts - 1);
     }
     throw error;
   }
@@ -324,8 +294,8 @@ const fetchUnidadesProyectoRaw = async (filters: FilterParams = {}): Promise<any
     console.log(`🌐 fetchUnidadesProyectoRaw: Fetching page 1 (limit=${FETCH_PAGE_SIZE})`);
     console.log(`🔗 fetchUnidadesProyectoRaw: URL = ${url}`);
 
-    // Usar cache para peticiones sin filtros (solo primera página)
-    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters);
+    // Sin cache: siempre obtener datos frescos de la API para que frente_activo refleje el estado real
+    const response = await fetchWithRetry(url, {}, API_CONFIG.RETRY_ATTEMPTS);
     const rawData = await response.json();
 
     console.log(`📦 fetchUnidadesProyectoRaw: Response keys =`, Object.keys(rawData));
@@ -353,7 +323,7 @@ const fetchUnidadesProyectoRaw = async (filters: FilterParams = {}): Promise<any
 
         console.log(`📄 fetchUnidadesProyectoRaw: Fetching page ${page + 1}/${totalPages} (offset=${offset})`);
 
-        const pageResponse = await fetchWithRetry(pageUrl, {}, API_CONFIG.RETRY_ATTEMPTS, false);
+        const pageResponse = await fetchWithRetry(pageUrl, {}, API_CONFIG.RETRY_ATTEMPTS);
         const pageData = await pageResponse.json();
 
         if (pageData.success && Array.isArray(pageData.data) && pageData.data.length > 0) {
@@ -494,7 +464,7 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
         // eslint-disable-next-line no-constant-condition
         while (true) {
           const intervencionesUrl = `${API_CONFIG.BASE_URL}/intervenciones?limit=${intervPageSize}&offset=${intervOffset}`;
-          const intervencionesResponse = await fetchWithRetry(intervencionesUrl, {}, API_CONFIG.RETRY_ATTEMPTS, !hasFilters && intervOffset === 0);
+          const intervencionesResponse = await fetchWithRetry(intervencionesUrl, {}, API_CONFIG.RETRY_ATTEMPTS);
           const intervencionesPayload = await intervencionesResponse.json();
           const pageData = Array.isArray(intervencionesPayload?.data) ? intervencionesPayload.data : [];
 

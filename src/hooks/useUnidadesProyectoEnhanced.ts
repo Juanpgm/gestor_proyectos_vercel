@@ -495,12 +495,16 @@ export const useUnidadesProyecto = (
   useEffect(() => {
     const fetchIntervencionesData = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-        const url = `${baseUrl}/intervenciones?limit=10000`;
+        // Llamar siempre a través del proxy para garantizar datos frescos de la API
+        const url = `/api/proxy/intervenciones?limit=10000&_t=${Date.now()}`;
 
         const response = await fetch(url, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
           cache: 'no-store'
         });
 
@@ -509,31 +513,20 @@ export const useUnidadesProyecto = (
         }
 
         const payload = await response.json();
-        const data = Array.isArray(payload?.data) ? payload.data : [];
+        // El proxy retorna { success, data, count } o directamente el array
+        const data = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
 
-        const mappedIntervenciones = data.map((item: any) => {
-          const avance = typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0);
-          const rawEstado = item?.estado || '';
-          // Derivar estado a partir de avance_obra, respetando valores especiales
-          const DERIVED_ESTADOS = ['en alistamiento', 'en ejecuci\u00f3n', 'terminado'];
-          const raw = String(rawEstado).trim();
-          let derivedEstado = raw;
-          if (!raw || DERIVED_ESTADOS.includes(raw.toLowerCase())) {
-            if (isNaN(avance) || avance === 0) derivedEstado = 'En alistamiento';
-            else if (avance >= 100) derivedEstado = 'Terminado';
-            else derivedEstado = 'En ejecuci\u00f3n';
-          }
-          return {
-            upid: item?.upid,
-            avance_obra: avance,
-            presupuesto_base: typeof item?.presupuesto_base === 'number' ? item.presupuesto_base : parseFloat(item?.presupuesto_base || 0),
-            estado: derivedEstado,
-            tipo_intervencion: item?.tipo_intervencion,
-            nombre_centro_gestor: item?.nombre_centro_gestor,
-            fuente_financiacion: item?.fuente_financiacion,
-            frente_activo: item?.frente_activo
-          };
-        });
+        // Leer todos los campos directamente de la API — sin derivaciones en frontend
+        const mappedIntervenciones = data.map((item: any) => ({
+          upid: item?.upid,
+          avance_obra: typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0),
+          presupuesto_base: typeof item?.presupuesto_base === 'number' ? item.presupuesto_base : parseFloat(item?.presupuesto_base || 0),
+          estado: item?.estado || '',
+          tipo_intervencion: item?.tipo_intervencion,
+          nombre_centro_gestor: item?.nombre_centro_gestor,
+          fuente_financiacion: item?.fuente_financiacion,
+          frente_activo: item?.frente_activo  // Leer directamente de la API, sin recalcular
+        }));
 
         const allowedUpids = new Set(
           state.attributeData
