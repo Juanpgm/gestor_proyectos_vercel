@@ -590,8 +590,26 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           ? (parseInt(properties.n_intervenciones) || intervenciones.length)
           : 1; // Cada registro sin 'intervenciones' representa 1 intervención
         
-        // La API ya calcula y retorna frente_activo con sus propias reglas y exclusiones
-        const frente_activo = String(properties.frente_activo || 'No aplica').trim() || 'No aplica';
+        // La API ya calcula y retorna frente_activo con sus propias reglas y exclusiones.
+        // En estructura nueva: viene en cada intervención; en estructura antigua: viene en properties.
+        let frente_activo = 'No aplica';
+        if (esEstructuraNueva) {
+          // Leer frente_activo de la API desde cada intervención; si cualquiera es 'Frente activo', la UP lo es
+          const frenteValues = intervenciones.map((interv: any) => String(interv?.frente_activo || '').trim());
+          if (frenteValues.some((v: string) => v === 'Frente activo')) {
+            frente_activo = 'Frente activo';
+          }
+        } else {
+          // Estructura antigua: frente_activo directo en properties (con fallback a derivación)
+          const rawFrente = String(properties.frente_activo || '').trim();
+          if (rawFrente) {
+            frente_activo = rawFrente;
+          } else {
+            // Fallback: derivar desde estado si la API no lo provee
+            const estadoDerivado = deriveEstado(properties.avance_obra, properties.estado);
+            frente_activo = estadoDerivado.toLowerCase() === 'en ejecución' ? 'Frente activo' : 'No aplica';
+          }
+        }
         
         // El campo nombre_centro_gestor puede venir de diferentes lugares
         const centroGestor = properties.nombre_centro_gestor || 
