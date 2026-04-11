@@ -527,9 +527,13 @@ export function filterIntervencionesLocally(
             return false;
           }
 
-          // Filtro por frente activo
-          if (filters.frente_activo && intervencion.frente_activo !== filters.frente_activo) {
-            return false;
+          // Filtro por frente activo (normalizado para evitar inconsistencias de mayúsculas/acentos)
+          if (filters.frente_activo) {
+            const normStr = (s: string | null | undefined) =>
+              String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+            if (normStr(intervencion.frente_activo) !== normStr(filters.frente_activo)) {
+              return false;
+            }
           }
 
           // Filtro por tipo de intervención

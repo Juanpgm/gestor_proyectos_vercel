@@ -524,28 +524,17 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
     }
 
     // Derivar estado a partir de avance_obra, respetando valores especiales imputados por el usuario
-    const normalizeRaw = (s: string) =>
-      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
-    const DERIVED_ESTADOS = new Set(['en alistamiento', 'en ejecucion', 'terminado']);
+    const DERIVED_ESTADOS = new Set(['en alistamiento', 'en ejecución', 'terminado']);
     const deriveEstado = (avanceObra: number | null | undefined, rawEstado: string | null | undefined): string => {
       const raw = String(rawEstado || '').trim();
       // Respetar estados especiales imputados por el usuario (Suspendido, Inaugurado, etc.)
-      if (raw && !DERIVED_ESTADOS.has(normalizeRaw(raw))) {
+      if (raw && !DERIVED_ESTADOS.has(raw.toLowerCase())) {
         return raw;
       }
       const avance = typeof avanceObra === 'number' ? avanceObra : parseFloat(String(avanceObra || '0'));
       if (isNaN(avance) || avance === 0) return 'En alistamiento';
       if (avance >= 100) return 'Terminado';
       return 'En ejecución';
-    };
-
-    const inferFrenteActivo = (estados: string[]): string => {
-      const normalize = (s: string) =>
-        String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
-      if (estados.some(val => normalize(val) === 'en ejecucion')) {
-        return 'Frente activo';
-      }
-      return 'No aplica';
     };
 
     // Procesar y validar cada elemento con manejo de errores individuales
@@ -601,17 +590,8 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           ? (parseInt(properties.n_intervenciones) || intervenciones.length)
           : 1; // Cada registro sin 'intervenciones' representa 1 intervención
         
-        // 🚧 CORRECCIÓN: frente_activo — derivar estado de cada intervención a partir de avance_obra
-        let frente_activo = 'No aplica';
-        if (esEstructuraNueva) {
-          const estadosDerivados = intervenciones.map((interv: any) =>
-            deriveEstado(interv?.avance_obra, interv?.estado)
-          );
-          frente_activo = estadosDerivados.length > 0 ? inferFrenteActivo(estadosDerivados) : 'No aplica';
-        } else {
-          const estadoDerivado = deriveEstado(properties.avance_obra, properties.estado);
-          frente_activo = inferFrenteActivo([estadoDerivado]);
-        }
+        // La API ya calcula y retorna frente_activo con sus propias reglas y exclusiones
+        const frente_activo = String(properties.frente_activo || 'No aplica').trim() || 'No aplica';
         
         // El campo nombre_centro_gestor puede venir de diferentes lugares
         const centroGestor = properties.nombre_centro_gestor || 
@@ -796,10 +776,8 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
     const unidad = group.find(i => i.unidad != null && i.unidad !== '')?.unidad ?? base.unidad;
     const cantidad = group.find(i => i.cantidad != null && i.cantidad !== '')?.cantidad ?? base.cantidad;
 
-    // frente_activo ya fue calculado correctamente por inferFrenteActivo en fetchAttributeData,
-    // considerando TODAS las intervenciones. Solo hay que preservarlo: si algún item del grupo
-    // tiene 'Frente activo', el UPID consolidado es un frente activo.
-    const frenteActivoConsolidado = group.some(i => i.frente_activo === 'Frente activo')
+    // Preservar frente_activo de la API: si algún item del grupo tiene 'Frente activo', el grupo lo es
+    const frenteActivoConsolidado = group.find(i => i.frente_activo === 'Frente activo')
       ? 'Frente activo'
       : 'No aplica';
 
