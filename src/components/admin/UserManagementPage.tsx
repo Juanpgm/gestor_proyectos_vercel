@@ -465,14 +465,14 @@ export default function UserManagementPage({
     }
   }, [state.isAuthenticated, state.user?.uid])
 
-  const loadUsers = async () => {
+  const loadUsers = async (forceRefresh: boolean = false) => {
     if (!authReady) return
 
     try {
       setLoading(true)
       setError(null)
 
-      const loadedUsers = await adminService.listAllUsers(500)
+      const loadedUsers = await adminService.listAllUsers(500, forceRefresh)
       setAllUsers(loadedUsers)
     } catch (err: any) {
       setError(err.message || 'Error al cargar usuarios')
@@ -636,16 +636,17 @@ export default function UserManagementPage({
 
   // Ref to prevent duplicate initial loads on cascading state updates
   const initialLoadTriggeredRef = useRef(false)
+  const diagnosticsLoadedRef = useRef(false)
 
   useEffect(() => {
     if (!authReady) return
     if (initialLoadTriggeredRef.current) return
     initialLoadTriggeredRef.current = true
 
+    // Only load what's needed for initial render: users, roles catalog, centros gestores
+    // Diagnostics and connected user context are deferred (not needed for initial UI)
     loadCentrosGestores()
-    loadConnectedUserContext()
     loadRolesCatalog()
-    loadEndpointDiagnostics()
     loadUsers()
   }, [authReady])
 
@@ -656,6 +657,8 @@ export default function UserManagementPage({
     if (!hasManageUsers) return
     governanceLoadedRef.current = true
     loadGovernance()
+    // Also load connected user context here (only relevant for permission-aware features)
+    loadConnectedUserContext()
   }, [authReady, hasManageUsers])
 
   useEffect(() => {
@@ -683,7 +686,8 @@ export default function UserManagementPage({
         is_active: !user.is_active,
         reason: `Cambio de estado desde tabla de gobernanza: ${user.is_active ? 'desactivar' : 'activar'}`
       })
-      await loadUsers()
+      adminService.invalidateUsersCache()
+      await loadUsers(true)
       await loadGovernance()
     } catch (err: any) {
       setError(err.message || 'No se pudo cambiar el estado del usuario')
@@ -700,7 +704,8 @@ export default function UserManagementPage({
     try {
       await adminService.deleteUser(deleteUserTarget.uid, true)
       setDeleteUserTarget(null)
-      await loadUsers()
+      adminService.invalidateUsersCache()
+      await loadUsers(true)
       await loadGovernance()
     } catch (err: any) {
       setError(err.message || 'No se pudo eliminar el usuario')
@@ -742,7 +747,8 @@ export default function UserManagementPage({
       setGrantPermissionValue('')
       setGrantPermissionReason('')
       setGrantPermissionExpiresAt('')
-      await loadUsers()
+      adminService.invalidateUsersCache()
+      await loadUsers(true)
     } catch (err: any) {
       setError(err.message || 'No se pudo otorgar el permiso temporal')
     }
@@ -775,7 +781,8 @@ export default function UserManagementPage({
       setRevokePermissionTarget(null)
       setRevokePermissionValue('')
       setRevokePermissionOptions([])
-      await loadUsers()
+      adminService.invalidateUsersCache()
+      await loadUsers(true)
     } catch (err: any) {
       setError(err.message || 'No se pudo revocar el permiso temporal')
     }
@@ -783,6 +790,7 @@ export default function UserManagementPage({
 
   const handleUserUpdated = async () => {
     // Refresh only the updated user in local state instead of reloading everything
+    adminService.invalidateUsersCache()
     if (selectedUser) {
       try {
         const updatedUser = await adminService.getUser(selectedUser.uid)
@@ -791,10 +799,10 @@ export default function UserManagementPage({
         )
       } catch {
         // Fallback: full reload only if targeted refresh fails
-        await loadUsers()
+        await loadUsers(true)
       }
     } else {
-      await loadUsers()
+      await loadUsers(true)
     }
     setShowEditModal(false)
     setShowRoleModal(false)
@@ -807,10 +815,14 @@ export default function UserManagementPage({
       return
     }
 
+    // Invalidate client-side cache on manual refresh
+    adminService.invalidateUsersCache()
+
     // Reset guards so governance/roles reload on manual refresh
     governanceLoadedRef.current = false
 
-    const tasks: Promise<void>[] = [loadUsers(), loadEndpointDiagnostics()]
+    const tasks: Promise<void>[] = [loadUsers(true)]
+    if (diagnosticsLoadedRef.current) tasks.push(loadEndpointDiagnostics())
     if (hasManageUsers) tasks.push(loadGovernance())
 
     await Promise.all(tasks)
@@ -1245,11 +1257,14 @@ export default function UserManagementPage({
         <div className="flex items-center justify-between gap-2 mb-3">
           <h3 className="font-semibold text-gray-900 dark:text-white">Diagnóstico de endpoints de usuarios</h3>
           <button
-            onClick={() => loadEndpointDiagnostics()}
+            onClick={() => {
+              diagnosticsLoadedRef.current = true
+              loadEndpointDiagnostics()
+            }}
             disabled={endpointDiagnosticsLoading}
             className="text-xs px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
           >
-            {endpointDiagnosticsLoading ? 'Probando...' : 'Reprobar endpoints'}
+            {endpointDiagnosticsLoading ? 'Probando...' : !diagnosticsLoadedRef.current ? 'Ejecutar diagnóstico' : 'Reprobar endpoints'}
           </button>
         </div>
 

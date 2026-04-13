@@ -37,6 +37,15 @@ import {
 } from '@/types/admin'
 
 class AdminService {
+  // Client-side cache for listAllUsers (2-minute TTL)
+  private _usersCache: { data: AdminUser[]; timestamp: number } | null = null
+  private readonly USERS_CACHE_TTL = 2 * 60 * 1000 // 2 minutes
+
+  /** Invalidate the client-side users cache (call after any mutation) */
+  invalidateUsersCache(): void {
+    this._usersCache = null
+  }
+
   private toStringArray(value: any): string[] {
     if (Array.isArray(value)) {
       return value.filter(Boolean).map(String)
@@ -279,37 +288,41 @@ class AdminService {
     return `page:${page}:index:${index}`
   }
 
-  async listAllUsers(limitPerRequest: number = 500): Promise<AdminUser[]> {
+  async listAllUsers(limitPerRequest: number = 500, forceRefresh: boolean = false): Promise<AdminUser[]> {
+    // Return cached data if valid and not forcing refresh
+    if (!forceRefresh && this._usersCache && (Date.now() - this._usersCache.timestamp < this.USERS_CACHE_TTL)) {
+      return this._usersCache.data
+    }
+
     const safeLimit = Math.max(1, Math.min(500, limitPerRequest))
     const usersByKey = new Map<string, AdminUser>()
     let page = 1
-    let hasMore = true
-    let consecutiveNoGrowth = 0
-    const MAX_PAGES = 200
+    const MAX_PAGES = 10 // 500 users/page × 10 = 5000 max
 
-    while (hasMore && page <= MAX_PAGES) {
+    while (page <= MAX_PAGES) {
       const response = await this.listUsers({ page, limit: safeLimit })
       const received = response.users.length
-      const sizeBefore = usersByKey.size
 
       response.users.forEach((user, index) => {
         const dedupKey = this.getUserDedupKey(user, page, index)
         usersByKey.set(dedupKey, user)
       })
 
-      const grew = usersByKey.size > sizeBefore
-      consecutiveNoGrowth = grew ? 0 : consecutiveNoGrowth + 1
+      // Stop if we got fewer users than requested (last page)
+      if (received < safeLimit) break
 
-      const reachedTotal = typeof response.total === 'number' && response.total > 0
-        ? usersByKey.size >= response.total
-        : false
+      // Stop if we already have all users according to backend total
+      if (typeof response.total === 'number' && response.total > 0 && usersByKey.size >= response.total) break
 
-      const backendSuggestsMore = received === safeLimit && !reachedTotal
-      hasMore = backendSuggestsMore && consecutiveNoGrowth < 2
       page += 1
     }
 
-    return Array.from(usersByKey.values())
+    const users = Array.from(usersByKey.values())
+
+    // Store in cache
+    this._usersCache = { data: users, timestamp: Date.now() }
+
+    return users
   }
 
   async diagnoseUsersEndpoints(uid?: string): Promise<Array<{
@@ -379,26 +392,18 @@ class AdminService {
       const response = await apiClient.get<any>(`/auth/admin/users/${uid}`)
       return this.normalizeAdminUser(response?.user || response?.data || response)
     } catch (authUserDetailsError) {
-      console.warn('⚠️ Error en /auth/admin/users/{uid}, intentando resolver desde /admin/users', authUserDetailsError)
+      console.warn('⚠️ Error en /auth/admin/users/{uid}:', authUserDetailsError)
 
-      try {
-        const response = await this.listSystemUsers({ limit: 500 })
-        const matchedUser = response.users.find((user) => user.uid === uid)
-
-        if (matchedUser) {
-          return matchedUser
-        }
-
-        throw new Error('Usuario no encontrado en fallback /admin/users')
-      } catch (systemUsersFallbackError) {
-        const authErrorText = this.getErrorText(authUserDetailsError)
-        const fallbackErrorText = this.getErrorText(systemUsersFallbackError)
-
-        throw new Error(
-          `No fue posible obtener detalle del usuario ${uid}. Falló GET /auth/admin/users/{uid} (${authErrorText}) y fallback GET /admin/users (${fallbackErrorText}). ` +
-          'Diagnóstico sugerido: revisar autorización backend para /auth/admin/users/{uid} y consistencia de UID en colección users.'
-        )
+      // Try to find the user in the client-side cache before falling back to a full list download
+      if (this._usersCache) {
+        const cachedUser = this._usersCache.data.find((user) => user.uid === uid)
+        if (cachedUser) return cachedUser
       }
+
+      throw new Error(
+        `No fue posible obtener detalle del usuario ${uid}. Falló GET /auth/admin/users/${uid} (${this.getErrorText(authUserDetailsError)}). ` +
+        'Diagnóstico sugerido: revisar autorización backend para /auth/admin/users/{uid} y consistencia de UID en colección users.'
+      )
     }
   }
 

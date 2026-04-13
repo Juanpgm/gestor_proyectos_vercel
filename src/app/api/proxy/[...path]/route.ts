@@ -15,6 +15,9 @@ const corsHeaders = {
 const EMPRESTITO_CACHE_TTL = 15 * 60 * 1000 // 15 minutos
 const emprestitoProxyCache = new Map<string, { data: unknown; status: number; timestamp: number }>()
 
+const ADMIN_CACHE_TTL = 2 * 60 * 1000 // 2 minutos
+const adminProxyCache = new Map<string, { data: unknown; status: number; timestamp: number }>()
+
 const normalizeApiPath = (apiPath: string): string => apiPath.replace(/\/+$/, '')
 
 const isCacheableEmprestitoPath = (apiPath: string): boolean => {
@@ -57,6 +60,28 @@ const isCacheableEmprestitoPath = (apiPath: string): boolean => {
     path.startsWith('ordenes_compra_emprestito/numero/') ||
     path.startsWith('ordenes_compra_emprestito/centro-gestor/') ||
     path.startsWith('reportes_emprestito/')
+  )
+}
+
+const isCacheableAdminPath = (apiPath: string): boolean => {
+  const path = normalizeApiPath(apiPath)
+
+  return (
+    path === 'auth/admin/users' ||
+    path === 'admin/users' ||
+    path === 'auth/admin/roles' ||
+    path === 'auth/admin/system/stats' ||
+    path === 'centros-gestores/nombres-unicos' ||
+    path.startsWith('auth/admin/users?') ||
+    path.startsWith('admin/users?')
+  )
+}
+
+const isAdminMutationPath = (apiPath: string): boolean => {
+  const path = normalizeApiPath(apiPath)
+  return (
+    path.startsWith('auth/admin/') ||
+    path.startsWith('admin/users')
   )
 }
 
@@ -136,10 +161,12 @@ async function handleRequest(request: NextRequest, method: string) {
   const apiPath = pathname.replace('/api/proxy/', '')
   const bypassCache = searchParams.get('bypass_cache') === '1'
   const isCacheableGet = method === 'GET' && isCacheableEmprestitoPath(apiPath) && !bypassCache
+  const isAdminCacheableGet = method === 'GET' && isCacheableAdminPath(apiPath) && !bypassCache
   const backendSearchParams = sanitizeSearchParamsForBackend(searchParams)
-  const cacheKey = isCacheableGet ? buildCacheKey(apiPath, backendSearchParams) : ''
+  const cacheKey = (isCacheableGet || isAdminCacheableGet) ? buildCacheKey(apiPath, backendSearchParams) : ''
   const requestTimeout = getProxyTimeout(apiPath)
 
+  // Check Emprestito cache
   if (isCacheableGet) {
     const cached = emprestitoProxyCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < EMPRESTITO_CACHE_TTL) {
@@ -158,6 +185,27 @@ async function handleRequest(request: NextRequest, method: string) {
       emprestitoProxyCache.delete(cacheKey)
     }
     console.log(`🕒 [CACHE MISS][${method}] ${cacheKey}`)
+  }
+
+  // Check Admin cache
+  if (isAdminCacheableGet) {
+    const cached = adminProxyCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < ADMIN_CACHE_TTL) {
+      console.log(`💾 [ADMIN CACHE HIT][${method}] ${cacheKey}`)
+      return NextResponse.json(cached.data, {
+        status: cached.status,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'X-Proxy-Cache': 'HIT',
+        },
+      })
+    }
+
+    if (cached) {
+      adminProxyCache.delete(cacheKey)
+    }
+    console.log(`🕒 [ADMIN CACHE MISS][${method}] ${cacheKey}`)
   }
   
   // Validate API_BASE_URL
@@ -350,9 +398,25 @@ async function handleRequest(request: NextRequest, method: string) {
       console.log(`✅ [CACHE STORE][${method}] ${cacheKey}`)
     }
 
+    // Store in admin cache
+    if (isAdminCacheableGet && response.ok && shouldCacheResponsePayload(responseData)) {
+      adminProxyCache.set(cacheKey, {
+        data: responseData,
+        status: response.status,
+        timestamp: Date.now(),
+      })
+      console.log(`✅ [ADMIN CACHE STORE][${method}] ${cacheKey}`)
+    }
+
     if (method !== 'GET' && response.ok && emprestitoProxyCache.size > 0) {
       emprestitoProxyCache.clear()
       console.log(`🧹 [CACHE CLEAR][${method}] Cache de Empréstito limpiado por mutación exitosa`)
+    }
+
+    // Clear admin cache on admin mutations
+    if (method !== 'GET' && response.ok && isAdminMutationPath(apiPath) && adminProxyCache.size > 0) {
+      adminProxyCache.clear()
+      console.log(`🧹 [ADMIN CACHE CLEAR][${method}] Cache de Admin limpiado por mutación exitosa`)
     }
 
     const isExplicitNoContentStatus =
@@ -371,7 +435,7 @@ async function handleRequest(request: NextRequest, method: string) {
         status: response.status,
         headers: {
           ...corsHeaders,
-          ...(isCacheableGet ? { 'X-Proxy-Cache': 'MISS' } : {}),
+          ...((isCacheableGet || isAdminCacheableGet) ? { 'X-Proxy-Cache': 'MISS' } : {}),
         },
       })
     }
@@ -381,7 +445,7 @@ async function handleRequest(request: NextRequest, method: string) {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        ...(isCacheableGet ? { 'X-Proxy-Cache': 'MISS' } : {}),
+        ...((isCacheableGet || isAdminCacheableGet) ? { 'X-Proxy-Cache': 'MISS' } : {}),
       },
     })
     
