@@ -208,6 +208,10 @@ export default function LoginPage() {
   }
 
   // Validaciones del formulario
+  const passwordsMatch = formData.password === formData.confirmPassword
+  const isPasswordValid = validatePassword(formData.password)
+  const isCellphoneValid = /^\d{10}$/.test(formData.cellphone)
+
   const isFormValid = mode === 'login' 
     ? formData.email.length > 0 && formData.password.length > 0
     : formData.email.length > 0 && 
@@ -215,7 +219,10 @@ export default function LoginPage() {
       formData.name.length > 0 && 
       formData.cellphone.length > 0 && 
       formData.nombre_centro_gestor.length > 0 &&
-      formData.confirmPassword.length > 0
+      formData.confirmPassword.length > 0 &&
+      passwordsMatch &&
+      isPasswordValid &&
+      isCellphoneValid
 
 
 
@@ -457,6 +464,18 @@ export default function LoginPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Mensajes de validación inline para registro */}
+              {mode === 'register' && formData.confirmPassword.length > 0 && !passwordsMatch && (
+                <p className="text-sm text-red-500 dark:text-red-400">
+                  Las contraseñas no coinciden
+                </p>
+              )}
+              {mode === 'register' && formData.cellphone.length > 0 && !isCellphoneValid && (
+                <p className="text-sm text-red-500 dark:text-red-400">
+                  El celular debe tener exactamente 10 dígitos numéricos
+                </p>
+              )}
 
               {/* Checkbox recordar y enlace olvidé contraseña */}
               <div className="flex items-center justify-between">

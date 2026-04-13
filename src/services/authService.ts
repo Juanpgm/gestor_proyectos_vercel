@@ -521,7 +521,7 @@ class AuthService {
     const mappedUser = {
       uid: safeApiUser.uid || safeApiUser.id,
       email: safeApiUser.email,
-      displayName: safeApiUser.display_name || safeApiUser.firestore_data?.full_name || safeApiUser.firestore_data?.fullname || safeApiUser.name || safeApiUser.displayName,
+      displayName: safeApiUser.display_name || safeApiUser.fullname || safeApiUser.firestore_data?.full_name || safeApiUser.firestore_data?.fullname || safeApiUser.name || safeApiUser.displayName,
       photoURL: safeApiUser.photoURL || safeApiUser.photo_url,
       emailVerified: safeApiUser.email_verified || safeApiUser.emailVerified || false,
       provider: safeApiUser.provider || 'email',
@@ -760,6 +760,19 @@ class AuthService {
 
       if (!idToken && auth?.currentUser) {
         idToken = await auth.currentUser.getIdToken(true)
+      }
+
+      // Si no hay token, intentar auto-login con Firebase usando las credenciales del registro
+      // El backend crea el usuario en Firebase Auth pero no retorna token
+      if (!idToken && auth) {
+        try {
+          console.log('🔑 Auto-login post-registro con Firebase Auth...')
+          const firebaseResult = await signInWithEmailAndPassword(auth, email, password)
+          idToken = await firebaseResult.user.getIdToken(true)
+          console.log('✅ Auto-login post-registro exitoso')
+        } catch (autoLoginError) {
+          console.warn('⚠️ Auto-login post-registro falló:', autoLoginError)
+        }
       }
 
       let user = this.mapApiUser(userData, idToken, {
