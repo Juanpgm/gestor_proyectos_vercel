@@ -17,11 +17,13 @@ import {
   BarChart3,
   Calendar,
   ExternalLink,
+  Download,
 } from 'lucide-react'
 import { useReportesCentroGestorDashboard, type CentroGestorResumen } from '@/hooks/useReportesCentroGestor'
 import type { ReporteContrato } from '@/types/avances-emprestito'
 import { getCentroGestorAccessFromSession } from '@/utils/centroGestorAccess'
 import { useAuth } from '@/context/AuthContext'
+import { generarReporteEmprestitoPorCentroGestor } from '@/utils/reporteEmprestitoPdf'
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -65,6 +67,7 @@ export default function AvancesEmprestitoTab() {
   const [ordenCampo, setOrdenCampo] = useState<OrdenCampo>('nombre')
   const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('asc')
   const [expandido, setExpandido] = useState<string | null>(null)
+  const [generandoPdf, setGenerandoPdf] = useState(false)
 
   // Filtrado y orden
   const listaFiltrada = useMemo(() => {
@@ -150,6 +153,41 @@ export default function AvancesEmprestitoTab() {
     }
     return agrupados
   }, [expandido, reportes])
+
+  const handleDescargarPdf = useCallback(async () => {
+    if (generandoPdf) return
+    setGenerandoPdf(true)
+    try {
+      // Cargar contratos de empréstito para el detalle del PDF
+      let contratos: any[] = []
+      try {
+        const res = await fetch('/data/emprestito/emp_contratos.json')
+        if (res.ok) {
+          const data = await res.json()
+          const raw = data.contratos_encontrados || (Array.isArray(data) ? data : [])
+          // Normalizar: el JSON usa nombre_entidad, el reporte espera nombre_centro_gestor
+          contratos = raw.map((c: any) => ({
+            ...c,
+            nombre_centro_gestor: c.nombre_centro_gestor || c.nombre_entidad || c.sector || '',
+          }))
+        }
+      } catch {
+        console.warn('No se pudieron cargar contratos para el PDF, se generará sin detalle de contratos')
+      }
+
+      await generarReporteEmprestitoPorCentroGestor({
+        resumenPorCentroGestor,
+        centrosConReportes,
+        centrosSinReportes,
+        totalReportes,
+        contratos,
+      })
+    } catch (err) {
+      console.error('Error generando PDF de Empréstito:', err)
+    } finally {
+      setGenerandoPdf(false)
+    }
+  }, [generandoPdf, resumenPorCentroGestor, centrosConReportes, centrosSinReportes, totalReportes])
 
   // ── Render ─────────────────────────────────────────────────────
 
@@ -248,6 +286,17 @@ export default function AvancesEmprestitoTab() {
               </button>
             )
           })}
+          {canViewAll && (
+            <button
+              onClick={handleDescargarPdf}
+              disabled={generandoPdf || loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+              title="Descargar reporte PDF por centro gestor"
+            >
+              {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              {generandoPdf ? 'Generando...' : 'Reporte PDF'}
+            </button>
+          )}
         </div>
       </div>
 

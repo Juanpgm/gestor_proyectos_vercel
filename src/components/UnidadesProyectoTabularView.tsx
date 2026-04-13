@@ -430,7 +430,7 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
     return pages;
   };
 
-  // Métricas globales
+  // Métricas globales - usar datos del item como fallback cuando las métricas individuales no han cargado
   const globalMetrics = useMemo(() => {
     let totalPresupuesto = 0;
     let totalAvance = 0;
@@ -440,6 +440,11 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
       if (metrics[item.upid]) {
         totalPresupuesto += metrics[item.upid].presupuesto;
         totalAvance += metrics[item.upid].avance;
+        countedItems++;
+      } else {
+        // Fallback: usar datos ya disponibles del item (attribute data)
+        totalPresupuesto += item.presupuesto_base || 0;
+        totalAvance += item.avance_obra || 0;
         countedItems++;
       }
     });
@@ -496,6 +501,27 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
           return interv;
         });
       }
+
+      // Derivar estado a partir de avance_obra (ej: avance=100 → Terminado, avance=0 → En alistamiento)
+      const normalizeAccentsLocal = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+      const DERIVED_ESTADOS = new Set(['en alistamiento', 'en ejecucion', 'terminado']);
+      intList = intList.map((interv) => {
+        const rawEstado = String(interv.estado || '').trim();
+        // Respetar estados especiales (Suspendido, Inaugurado, etc.)
+        if (rawEstado && !DERIVED_ESTADOS.has(normalizeAccentsLocal(rawEstado))) {
+          return interv;
+        }
+        const avance = typeof interv.avance_obra === 'number' ? interv.avance_obra : parseFloat(String(interv.avance_obra || '0'));
+        let derivedEstado: string;
+        // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
+        if (isNaN(avance) || avance < 0.5) derivedEstado = 'En alistamiento';
+        else if (avance >= 99.5) derivedEstado = 'Terminado';
+        else derivedEstado = 'En ejecución';
+        if (derivedEstado !== rawEstado) {
+          return { ...interv, estado: derivedEstado };
+        }
+        return interv;
+      });
 
       // Calcular métricas
       const avance = intList.length > 0
@@ -671,7 +697,12 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                     const isExpanded = expandedUPs.has(item.upid);
                     const intervenciones = intervencionesCache[item.upid] || [];
                     const isLoading = loadingInterv.has(item.upid);
-                    const itemMetrics = metrics[item.upid] || { avance: 0, presupuesto: 0 };
+                    // Usar datos del item (ya cargados desde el hook) como fallback inmediato
+                    // para que la tabla se muestre de inmediato sin esperar al fetch individual
+                    const itemMetrics = metrics[item.upid] || {
+                      avance: item.avance_obra || 0,
+                      presupuesto: item.presupuesto_base || 0
+                    };
 
                     return (
                       <React.Fragment key={item.upid}>
@@ -741,21 +772,21 @@ const UnidadesProyectoTabularView: React.FC<UnidadesProyectoTabularViewProps> = 
                           {/* Centro Gestor - oculto en móvil */}
                           <td className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
                             <span className="text-xs text-gray-700 dark:text-gray-300 block">
-                              {getCentroGestorConsolidado(intervenciones)}
+                              {intervenciones.length > 0 ? getCentroGestorConsolidado(intervenciones) : (item.nombre_centro_gestor || '-')}
                             </span>
                           </td>
 
                           {/* Estado - oculto en móvil */}
                           <td className="hidden sm:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
                             <span className="text-xs text-gray-700 dark:text-gray-300 block">
-                              {getEstadoConsolidado(intervenciones)}
+                              {intervenciones.length > 0 ? getEstadoConsolidado(intervenciones) : (item.estado || '-')}
                             </span>
                           </td>
 
                           {/* Tipo - oculto en móvil y tablet */}
                           <td className="hidden lg:table-cell px-1 sm:px-1.5 py-2 sm:py-2.5 break-words">
                             <span className="text-xs text-gray-700 dark:text-gray-300 block">
-                              {getTipoConsolidado(intervenciones)}
+                              {intervenciones.length > 0 ? getTipoConsolidado(intervenciones) : (item.tipo_intervencion || '-')}
                             </span>
                           </td>
 

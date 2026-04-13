@@ -55,7 +55,8 @@ export function useReportesCentroGestor() {
       const res = await fetch(`${API_BASE}/reportes_contratos/`)
       if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
       const data = await res.json()
-      const lista: ReporteContrato[] = data.data || data || []
+      const raw = data.data || data
+      const lista: ReporteContrato[] = Array.isArray(raw) ? raw : []
       lista.sort((a, b) => {
         const da = new Date(a.fecha_reporte || 0).getTime()
         const db = new Date(b.fecha_reporte || 0).getTime()
@@ -88,7 +89,8 @@ export function useCentrosGestorFromContratos() {
         const res = await fetch(`${API_BASE}/emprestito/obtener-contratos-bp`)
         if (!res.ok) return
         const payload = await res.json()
-        const contratos = payload?.data || payload || []
+        const raw = payload?.data || payload
+        const contratos = Array.isArray(raw) ? raw : []
         const centros = new Set<string>()
         for (const c of contratos) {
           const cg = (c.nombre_centro_gestor || '').trim()

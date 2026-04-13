@@ -33,6 +33,7 @@ import {
 } from '@/hooks/useAvancesCentroGestor'
 import { getCentroGestorAccessFromSession } from '@/utils/centroGestorAccess'
 import { useAuth } from '@/context/AuthContext'
+import { generarReporteUPsPorCentroGestor } from '@/utils/reporteUPsPdf'
 
 // ─── Helpers ─────────────────────────────────────────────
 function formatFecha(fecha: string | null): string {
@@ -100,6 +101,7 @@ export default function AvancesUPCentroGestor() {
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
   const [detalleCentro, setDetalleCentro] = useState<string | null>(null)
+  const [generandoPdf, setGenerandoPdf] = useState(false)
 
   // Filtrado y orden
   const listaFiltrada = useMemo(() => {
@@ -178,6 +180,23 @@ export default function AvancesUPCentroGestor() {
       setOrdenDir(campo === 'nombre' ? 'asc' : 'desc')
     }
   }, [ordenCampo])
+
+  const handleDescargarPdf = useCallback(async () => {
+    if (generandoPdf) return
+    setGenerandoPdf(true)
+    try {
+      await generarReporteUPsPorCentroGestor({
+        resumenPorCentroGestor,
+        totalIntervenciones,
+        totalAvances,
+      })
+    } catch (err) {
+      console.error('Error generando PDF de UPs:', err)
+      alert(`Error al generar el reporte PDF: ${(err as Error)?.message || 'Error desconocido'}`)
+    } finally {
+      setGenerandoPdf(false)
+    }
+  }, [generandoPdf, resumenPorCentroGestor, totalIntervenciones, totalAvances])
 
   // ─── Render ────────────────────────────────────────────
   if (loading) {
@@ -319,6 +338,17 @@ export default function AvancesUPCentroGestor() {
           >
             <RefreshCw className="w-4 h-4" />
           </button>
+          {canViewAll && (
+            <button
+              onClick={handleDescargarPdf}
+              disabled={generandoPdf || loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+              title="Descargar reporte PDF por centro gestor"
+            >
+              {generandoPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              {generandoPdf ? 'Generando...' : 'Reporte PDF'}
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">

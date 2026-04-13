@@ -106,7 +106,7 @@ export const useUnidadesProyecto = (
   const [state, setState] = useState<UnidadesProyectoState>(createInitialState);
   const [filters, setFiltersState] = useState<FilterParams>(initialFilters);
   const [searchTerm, setSearchTermState] = useState<string>('');
-  const [isLoadingRef, setIsLoadingRef] = useState(false); // Flag para prevenir cargas simultáneas
+  const loadingRef = useRef(false); // Ref real para prevenir cargas simultáneas (no state para evitar closures stale)
 
   // Función para actualizar el estado de manera inmutable
   const updateState = useCallback((updates: Partial<UnidadesProyectoState>) => {
@@ -116,12 +116,12 @@ export const useUnidadesProyecto = (
   // Función para obtener todos los datos con estrategia híbrida inteligente
   const fetchAllData = useCallback(async (currentFilters: FilterParams = {}) => {
     // Prevenir cargas simultáneas
-    if (isLoadingRef) {
+    if (loadingRef.current) {
       console.log('⏭️ fetchAllData: Skipping - already loading');
       return;
     }
 
-    setIsLoadingRef(true);
+    loadingRef.current = true;
     updateState({ loading: true, error: null });
 
     try {
@@ -166,16 +166,16 @@ export const useUnidadesProyecto = (
         loading: false,
         lastUpdate: new Date()
       });
-      setIsLoadingRef(false);
+      loadingRef.current = false;
     } catch (error) {
       console.error('❌ fetchAllData: Fatal error:', error);
       updateState({
         loading: false,
         error: error instanceof Error ? error.message : 'Error desconocido al cargar datos'
       });
-      setIsLoadingRef(false);
+      loadingRef.current = false;
     }
-  }, [enableLocalFiltering, updateState, isLoadingRef]);
+  }, [enableLocalFiltering, updateState]);
 
   // Función pública para refrescar datos (fuerza recarga completa sin cache)
   const refetch = useCallback(() => {
@@ -422,10 +422,13 @@ export const useUnidadesProyecto = (
 
     // Usar intervenciones individuales cuando están disponibles para contar UPIDs únicos
     // Un frente activo NUNCA debe tener avance_obra = 0 (no iniciado) ni avance_obra = 100 (terminado)
+    // Un frente activo NUNCA debe mostrar avance 0% (no iniciado) ni 100% (terminado)
     const isValidAvanceForActiveFront = (avance: number | undefined): boolean => {
       if (typeof avance !== 'number' || isNaN(avance)) return false;
-      return avance > 0 && avance < 100;
+      return avance >= 0.5 && avance < 99.5;
     };
+
+    const minPresupuestoFrenteActivo = 150000000; // $150M mínimo para frente activo
 
     let activeFronts = 0;
     if (interventionItems.length > 0) {
@@ -434,11 +437,13 @@ export const useUnidadesProyecto = (
         const estado = normalizeCentro(item.estado);
         const centro = normalizeCentro(item.nombre_centro_gestor);
         const tipo = normalizeCentro(item.tipo_intervencion);
+        const pres = typeof item.presupuesto_base === 'number' ? item.presupuesto_base : 0;
         if (
           estado === requiredEstado &&
           centro !== excludedCentro &&
           !excludedTipos.has(tipo) &&
-          isValidAvanceForActiveFront(item.avance_obra)
+          isValidAvanceForActiveFront(item.avance_obra) &&
+          pres >= minPresupuestoFrenteActivo
         ) {
           const upid = String(item.upid || '').trim().toLowerCase();
           if (upid) activeUpids.add(upid);
@@ -452,7 +457,8 @@ export const useUnidadesProyecto = (
         normalizeCentro(item.nombre_centro_gestor) !== excludedCentro &&
         !excludedTipos.has(normalizeCentro(item.tipo_intervencion)) &&
         normalizeCentro(item.estado) === requiredEstado &&
-        isValidAvanceForActiveFront(item.avance_obra)
+        isValidAvanceForActiveFront(item.avance_obra) &&
+        (item.presupuesto_base || 0) >= minPresupuestoFrenteActivo
       ).length;
     }
 
@@ -546,12 +552,15 @@ export const useUnidadesProyecto = (
           const avance = typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0);
           const rawEstado = item?.estado || '';
           // Derivar estado a partir de avance_obra, respetando valores especiales
-          const DERIVED_ESTADOS = ['en alistamiento', 'en ejecuci\u00f3n', 'terminado'];
+          // Normalizar acentos para comparar correctamente
+          const normalizeForCompare = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+          const DERIVED_ESTADOS_NORM = ['en alistamiento', 'en ejecucion', 'terminado'];
           const raw = String(rawEstado).trim();
           let derivedEstado = raw;
-          if (!raw || DERIVED_ESTADOS.includes(raw.toLowerCase())) {
-            if (isNaN(avance) || avance === 0) derivedEstado = 'En alistamiento';
-            else if (avance >= 100) derivedEstado = 'Terminado';
+          if (!raw || DERIVED_ESTADOS_NORM.includes(normalizeForCompare(raw))) {
+            // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
+            if (isNaN(avance) || avance < 0.5) derivedEstado = 'En alistamiento';
+            else if (avance >= 99.5) derivedEstado = 'Terminado';
             else derivedEstado = 'En ejecuci\u00f3n';
           }
           return {

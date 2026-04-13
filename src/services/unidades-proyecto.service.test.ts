@@ -26,7 +26,7 @@ const makeItem = (overrides: Partial<TestItem> = {}): TestItem => ({
   tipo_intervencion: 'Vías',
   frente_activo: 'No aplica',
   avance_obra: 50,
-  presupuesto_base: 1000000,
+  presupuesto_base: 200000000, // $200M — above 150M threshold for frente activo
   comuna_corregimiento: 'Comuna 1',
   barrio_vereda: 'Barrio A',
   fecha_inicio: '2024-01-01',
@@ -39,45 +39,48 @@ const makeItem = (overrides: Partial<TestItem> = {}): TestItem => ({
 // consolidateAttributeData — preservación de frente_activo
 // ─────────────────────────────────────────────────────────────
 
-describe('consolidateAttributeData — frente_activo de la API', () => {
-  it('preserva Frente activo aunque el estado consolidado sea distinto', () => {
-    // La API marca ambas intervenciones como 'Frente activo' aunque una esté Terminada
+describe('consolidateAttributeData — frente_activo derivado de estado + avance', () => {
+  it('NO es frente activo cuando estados son Terminado y En alistamiento (sin En ejecución activa)', () => {
+    // Aunque la API marcó como 'Frente activo', el consolidado recalcula basándose en estado + avance
+    // Estado se deriva: avance=100→Terminado, avance=0→En alistamiento
     const data = [
-      makeItem({ upid: 'UP-001', frente_activo: 'Frente activo', estado: 'Terminado' }),
-      makeItem({ upid: 'UP-001', frente_activo: 'Frente activo', estado: 'En alistamiento' })
-    ]
-    const result = consolidateAttributeData(data)
-    expect(result).toHaveLength(1)
-    expect(result[0].frente_activo).toBe('Frente activo')
-  })
-
-  it('retorna No aplica cuando ningún item del grupo es Frente activo', () => {
-    const data = [
-      makeItem({ upid: 'UP-002', frente_activo: 'No aplica', estado: 'En ejecución' }),
-      makeItem({ upid: 'UP-002', frente_activo: 'No aplica', estado: 'En ejecución' })
+      makeItem({ upid: 'UP-001', frente_activo: 'Frente activo', estado: 'En ejecución', avance_obra: 100 }),
+      makeItem({ upid: 'UP-001', frente_activo: 'Frente activo', estado: 'En ejecución', avance_obra: 0 })
     ]
     const result = consolidateAttributeData(data)
     expect(result).toHaveLength(1)
     expect(result[0].frente_activo).toBe('No aplica')
   })
 
-  it('un solo item del grupo como Frente activo basta para marcar el grupo', () => {
+  it('sí es Frente activo cuando estado es En ejecución con avance entre 0 y 100', () => {
     const data = [
-      makeItem({ upid: 'UP-003', frente_activo: 'No aplica', estado: 'Terminado' }),
-      makeItem({ upid: 'UP-003', frente_activo: 'Frente activo', estado: 'En ejecución' }),
-      makeItem({ upid: 'UP-003', frente_activo: 'No aplica', estado: 'En alistamiento' })
+      makeItem({ upid: 'UP-002', frente_activo: 'No aplica', estado: 'En ejecución', avance_obra: 50 }),
+      makeItem({ upid: 'UP-002', frente_activo: 'No aplica', estado: 'En ejecución', avance_obra: 30 })
+    ]
+    const result = consolidateAttributeData(data)
+    expect(result).toHaveLength(1)
+    expect(result[0].frente_activo).toBe('Frente activo')
+  })
+
+  it('un solo item del grupo En ejecución (avance < 100) basta para marcar como Frente activo', () => {
+    const data = [
+      makeItem({ upid: 'UP-003', frente_activo: 'No aplica', estado: 'Terminado', avance_obra: 100 }),
+      makeItem({ upid: 'UP-003', frente_activo: 'Frente activo', estado: 'En ejecución', avance_obra: 50 }),
+      makeItem({ upid: 'UP-003', frente_activo: 'No aplica', estado: 'En alistamiento', avance_obra: 0 })
     ]
     const result = consolidateAttributeData(data)
     expect(result[0].frente_activo).toBe('Frente activo')
   })
 
-  it('NO recalcula frente_activo desde estado: un item con estado En ejecución pero frente_activo=No aplica debe conservar No aplica', () => {
-    // La API decidió que no es frente activo (por exclusiones de tipo/centro gestor), el frontend debe respetar eso
+  it('intervención al 100% con estado En ejecución NO es frente activo (debe ser Terminado)', () => {
+    // Issue 2: una intervención al 100% no debe contar como frente activo
+    // Estado se deriva: avance=100 → Terminado (aunque backend dice En ejecución)
     const data = [
-      makeItem({ upid: 'UP-004', frente_activo: 'No aplica', estado: 'En ejecución' })
+      makeItem({ upid: 'UP-004', frente_activo: 'Frente activo', estado: 'En ejecución', avance_obra: 100 })
     ]
     const result = consolidateAttributeData(data)
     expect(result[0].frente_activo).toBe('No aplica')
+    expect(result[0].estado).toBe('Terminado') // estado derivado correctamente
   })
 })
 
@@ -87,20 +90,21 @@ describe('consolidateAttributeData — frente_activo de la API', () => {
 
 describe('filterAttributeData — filtro frente_activo', () => {
   const dataset: TestItem[] = [
-    makeItem({ upid: 'UP-A', frente_activo: 'Frente activo', nombre_up: 'Alpha' }),
-    makeItem({ upid: 'UP-B', frente_activo: 'No aplica', nombre_up: 'Beta' }),
-    makeItem({ upid: 'UP-C', frente_activo: 'Frente activo', nombre_up: 'Gamma' })
+    makeItem({ upid: 'UP-A', frente_activo: 'Frente activo', nombre_up: 'Alpha', estado: 'En ejecución', avance_obra: 50 }),
+    makeItem({ upid: 'UP-B', frente_activo: 'No aplica', nombre_up: 'Beta', estado: 'Terminado', avance_obra: 100 }),
+    makeItem({ upid: 'UP-C', frente_activo: 'Frente activo', nombre_up: 'Gamma', estado: 'En ejecución', avance_obra: 30 })
   ]
 
   it('filtra correctamente por Frente activo', () => {
     const result = filterAttributeData(dataset as any, { frente_activo_multiple: ['Frente activo'] } as any)
     expect(result.every(r => r.frente_activo === 'Frente activo')).toBe(true)
-    expect(result.length).toBeGreaterThan(0)
+    expect(result.length).toBe(2)
   })
 
   it('filtra correctamente por No aplica', () => {
     const result = filterAttributeData(dataset as any, { frente_activo_multiple: ['No aplica'] } as any)
     expect(result.every(r => r.frente_activo === 'No aplica')).toBe(true)
+    expect(result.length).toBe(1)
   })
 
   it('sin filtro retorna todos los registros', () => {

@@ -524,23 +524,64 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
     }
 
     // Derivar estado a partir de avance_obra, respetando valores especiales imputados por el usuario
-    const DERIVED_ESTADOS = new Set(['en alistamiento', 'en ejecución', 'terminado']);
+    const normalizeAccents = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    const DERIVED_ESTADOS_NORM = new Set(['en alistamiento', 'en ejecucion', 'terminado']);
     const deriveEstado = (avanceObra: number | null | undefined, rawEstado: string | null | undefined): string => {
       const raw = String(rawEstado || '').trim();
       // Respetar estados especiales imputados por el usuario (Suspendido, Inaugurado, etc.)
-      if (raw && !DERIVED_ESTADOS.has(raw.toLowerCase())) {
+      if (raw && !DERIVED_ESTADOS_NORM.has(normalizeAccents(raw))) {
         return raw;
       }
       const avance = typeof avanceObra === 'number' ? avanceObra : parseFloat(String(avanceObra || '0'));
-      if (isNaN(avance) || avance === 0) return 'En alistamiento';
-      if (avance >= 100) return 'Terminado';
+      // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
+      if (isNaN(avance) || avance < 0.5) return 'En alistamiento';
+      if (avance >= 99.5) return 'Terminado';
       return 'En ejecución';
     };
 
-    const inferFrenteActivo = (estados: string[]): string => {
-      const normalized = estados.map(val => String(val || '').trim().toLowerCase());
-      if (normalized.some(val => val === 'en ejecución')) {
-        return 'Frente activo';
+    // Determinar frente activo usando estados derivados Y avances —
+    // una intervención al 100% con estado "En ejecución" NO es frente activo (debe ser Terminado).
+    // Excluir ciertos centros gestores y tipos de intervención del conteo de frentes activos.
+    const EXCLUDED_CENTRO_GESTOR = 'secretaria de vivienda social y habitat';
+    const EXCLUDED_TIPOS_INTERVENCION = new Set([
+      'mantenimiento',
+      'estudios y disenos',
+      'demarcacion vial'
+    ]);
+    const MIN_PRESUPUESTO_FRENTE_ACTIVO = 150000000; // $150M mínimo para ser frente activo
+
+    const inferFrenteActivo = (
+      estados: string[],
+      avances?: (number | null | undefined)[],
+      tiposIntervencion?: (string | null | undefined)[],
+      centrosGestor?: (string | null | undefined)[],
+      presupuestos?: (number | null | undefined)[]
+    ): string => {
+      for (let i = 0; i < estados.length; i++) {
+        const norm = normalizeAccents(estados[i] || '');
+        if (norm === 'en ejecucion') {
+          // Si tenemos dato de avance, excluir los que se muestran como 0% o 100%
+          if (avances && avances[i] != null) {
+            const av = typeof avances[i] === 'number' ? avances[i]! : parseFloat(String(avances[i] || '0'));
+            if (av < 0.5 || av >= 99.5) continue; // avance que redondea a 0% o 100% → no es frente activo
+          }
+          // Excluir tipos de intervención no aplicables
+          if (tiposIntervencion && tiposIntervencion[i]) {
+            const tipoNorm = normalizeAccents(tiposIntervencion[i] || '');
+            if (EXCLUDED_TIPOS_INTERVENCION.has(tipoNorm)) continue;
+          }
+          // Excluir centros gestores no aplicables
+          if (centrosGestor && centrosGestor[i]) {
+            const centroNorm = normalizeAccents(centrosGestor[i] || '');
+            if (centroNorm === EXCLUDED_CENTRO_GESTOR) continue;
+          }
+          // Excluir intervenciones con presupuesto por debajo del mínimo
+          if (presupuestos && presupuestos[i] != null) {
+            const pres = typeof presupuestos[i] === 'number' ? presupuestos[i]! : parseFloat(String(presupuestos[i] || '0'));
+            if (pres < MIN_PRESUPUESTO_FRENTE_ACTIVO) continue;
+          }
+          return 'Frente activo';
+        }
       }
       return 'No aplica';
     };
@@ -599,15 +640,28 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           : 1; // Cada registro sin 'intervenciones' representa 1 intervención
         
         // 🚧 CORRECCIÓN: frente_activo — derivar estado de cada intervención a partir de avance_obra
+        // No contemplar intervenciones al 100% con estado "En ejecución" → deben ser "Terminado"
+        // Excluir ciertos tipos de intervención y centros gestores
         let frente_activo = 'No aplica';
         if (esEstructuraNueva) {
           const estadosDerivados = intervenciones.map((interv: any) =>
             deriveEstado(interv?.avance_obra, interv?.estado)
           );
-          frente_activo = estadosDerivados.length > 0 ? inferFrenteActivo(estadosDerivados) : 'No aplica';
+          const avancesRaw = intervenciones.map((interv: any) => {
+            const v = interv?.avance_obra;
+            return typeof v === 'number' ? v : parseFloat(String(v || '0'));
+          });
+          const tiposRaw = intervenciones.map((interv: any) => interv?.tipo_intervencion || '');
+          const centrosRaw = intervenciones.map((interv: any) => interv?.nombre_centro_gestor || '');
+          const presupuestosRaw = intervenciones.map((interv: any) => parseFloat(interv?.presupuesto_base || 0));
+          frente_activo = estadosDerivados.length > 0 ? inferFrenteActivo(estadosDerivados, avancesRaw, tiposRaw, centrosRaw, presupuestosRaw) : 'No aplica';
         } else {
           const estadoDerivado = deriveEstado(properties.avance_obra, properties.estado);
-          frente_activo = inferFrenteActivo([estadoDerivado]);
+          const avanceRaw = typeof properties.avance_obra === 'number' ? properties.avance_obra : parseFloat(String(properties.avance_obra || '0'));
+          const tipoRaw = primeraIntervencion.tipo_intervencion || properties.tipo_intervencion || '';
+          const centroRaw = properties.nombre_centro_gestor || primeraIntervencion.nombre_centro_gestor || '';
+          const presupuestoRaw = parseFloat(primeraIntervencion.presupuesto_base || properties.presupuesto_base || 0);
+          frente_activo = inferFrenteActivo([estadoDerivado], [avanceRaw], [tipoRaw], [centroRaw], [presupuestoRaw]);
         }
         
         // El campo nombre_centro_gestor puede venir de diferentes lugares
@@ -630,11 +684,9 @@ export const fetchAttributeData = async (filters: FilterParams = {}): Promise<At
           nombre_up_detalle: properties.nombre_up_detalle || undefined,
           identificador: extractField('identificador'),
           n_intervenciones: n_intervenciones,
-          // Campos que pueden venir de la intervención o de properties — derivar estado desde avance_obra
-          estado: deriveEstado(
-            esEstructuraNueva ? primeraIntervencion.avance_obra : properties.avance_obra,
-            primeraIntervencion.estado || properties.estado
-          ),
+          // Campos que pueden venir de la intervención o de properties — derivar estado desde avance_obra COMPUTADO
+          // Usar avance_obra ya calculado (promedio ponderado) para que coincida con lo que se muestra
+          estado: deriveEstado(avance_obra, primeraIntervencion.estado || properties.estado),
           tipo_intervencion: primeraIntervencion.tipo_intervencion || properties.tipo_intervencion || 'Sin especificar',
           tipo_equipamiento: properties.tipo_equipamiento || undefined,
           clase_up: properties.clase_up || primeraIntervencion.clase_up || undefined,
@@ -756,9 +808,26 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
     }
   });
 
+  // Derivar estado a partir de avance_obra, igual que fetchAttributeData
+  const DERIVED_ESTADOS_NORM_LOCAL = new Set(['en alistamiento', 'en ejecucion', 'terminado']);
+  const normalizeAccentsForDerive = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+  const deriveEstadoLocal = (avanceObra: number | null | undefined, rawEstado: string | null | undefined): string => {
+    const raw = String(rawEstado || '').trim();
+    if (raw && !DERIVED_ESTADOS_NORM_LOCAL.has(normalizeAccentsForDerive(raw))) {
+      return raw;
+    }
+    const avance = typeof avanceObra === 'number' ? avanceObra : parseFloat(String(avanceObra || '0'));
+    // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
+    if (isNaN(avance) || avance < 0.5) return 'En alistamiento';
+    if (avance >= 99.5) return 'Terminado';
+    return 'En ejecución';
+  };
+
   return Array.from(grouped.values()).map(group => {
     const base = group[0];
-    const estados = new Set(group.map(i => i.estado).filter(Boolean));
+    // Derivar estados reales a partir de avance_obra (ej: avance=100 + estado="En ejecución" → "Terminado")
+    const estadosDerivados = group.map(i => deriveEstadoLocal(i.avance_obra, i.estado));
+    const estados = new Set(estadosDerivados.filter(Boolean));
     const tipos = new Set(group.map(i => i.tipo_intervencion).filter(Boolean));
     const centros = new Set(group.map(i => i.nombre_centro_gestor).filter(Boolean));
     const avances = group
@@ -793,11 +862,25 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
     const unidad = group.find(i => i.unidad != null && i.unidad !== '')?.unidad ?? base.unidad;
     const cantidad = group.find(i => i.cantidad != null && i.cantidad !== '')?.cantidad ?? base.cantidad;
 
-    // Recalcular frente_activo basándose en los estados del grupo
-    const estadosArr = Array.from(estados);
-    const frenteActivoConsolidado = estadosArr.some(e => e.toLowerCase() === 'en ejecución')
-      ? 'Frente activo'
-      : 'No aplica';
+    // Recalcular frente_activo basándose en los estados, avances, tipo y centro del grupo
+    // Una UP al 100% con estado "En ejecución" NO es frente activo → es Terminado
+    // Excluir ciertos tipos de intervención y centros gestores
+    const normalizeAccentsLocal = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    const excludedCentroLocal = 'secretaria de vivienda social y habitat';
+    const excludedTiposLocal = new Set(['mantenimiento', 'estudios y disenos', 'demarcacion vial']);
+    const minPresupuestoLocal = 150000000;
+    const hasActiveExecution = group.some((item, idx) => {
+      const estadoNorm = normalizeAccentsLocal(estadosDerivados[idx] || '');
+      const av = typeof item.avance_obra === 'number' ? item.avance_obra : 0;
+      const pres = typeof item.presupuesto_base === 'number' ? item.presupuesto_base : 0;
+      const tipoNorm = normalizeAccentsLocal(item.tipo_intervencion || '');
+      const centroNorm = normalizeAccentsLocal(item.nombre_centro_gestor || '');
+      return estadoNorm === 'en ejecucion' && av >= 0.5 && av < 99.5 &&
+        !excludedTiposLocal.has(tipoNorm) &&
+        centroNorm !== excludedCentroLocal &&
+        pres >= minPresupuestoLocal;
+    });
+    const frenteActivoConsolidado = hasActiveExecution ? 'Frente activo' : 'No aplica';
 
     return {
       ...base,
@@ -1093,6 +1176,8 @@ export const filterAttributeData = (
 
   // Aplicar filtros sobre filas reales (intervenciones) para no perder coincidencias
   // cuando una UP tiene valores heterogéneos y luego consolidar a nivel UPID.
+  // EXCEPCIÓN: el filtro de estado y frente_activo se aplica sobre datos CONSOLIDADOS
+  // para que solo se muestren UPs cuyo estado/frente consolidado coincida con el filtro.
   const matchingUpids = new Set(
     data
       .filter(matchesAllFiltersForRow)
@@ -1100,7 +1185,39 @@ export const filterAttributeData = (
       .filter(Boolean)
   );
 
-  const filtered = consolidatedData.filter(item => matchingUpids.has(normalizeString(item.upid)));
+  // Filtrar datos consolidados por UPIDs y luego aplicar filtros de estado/frente_activo
+  // sobre el resultado consolidado (no sobre filas sueltas)
+  const estadoMultiple = (filters as any).estado_multiple;
+  const estadoSingle = filters.estado;
+  const hasEstadoFilter = (Array.isArray(estadoMultiple) && estadoMultiple.length > 0) ||
+                          (estadoSingle && String(estadoSingle).trim() !== '');
+  
+  const frenteMultiple = (filters as any).frente_activo_multiple;
+  const frenteSingle = (filters as any).frente_activo;
+  const hasFrenteFilter = (Array.isArray(frenteMultiple) && frenteMultiple.length > 0) ||
+                          (frenteSingle && String(frenteSingle).trim() !== '');
+
+  const filtered = consolidatedData
+    .filter(item => matchingUpids.has(normalizeString(item.upid)))
+    .filter(item => {
+      // Aplicar filtro de estado sobre dato consolidado
+      if (hasEstadoFilter) {
+        if (Array.isArray(estadoMultiple) && estadoMultiple.length > 0) {
+          if (!valueInArray(item.estado, estadoMultiple)) return false;
+        } else if (estadoSingle && String(estadoSingle).trim() !== '') {
+          if (!stringsMatch(item.estado, estadoSingle)) return false;
+        }
+      }
+      // Aplicar filtro de frente_activo sobre dato consolidado
+      if (hasFrenteFilter) {
+        if (Array.isArray(frenteMultiple) && frenteMultiple.length > 0) {
+          if (!valueInArray(item.frente_activo, frenteMultiple)) return false;
+        } else if (frenteSingle && String(frenteSingle).trim() !== '') {
+          if (!stringsMatch(item.frente_activo, frenteSingle)) return false;
+        }
+      }
+      return true;
+    });
   
   // Log del resultado final
   if (activeFilters.length > 0) {
