@@ -9,6 +9,9 @@ import type {
 } from '@/types/avances-emprestito'
 
 const API_BASE = '/api/proxy'
+// URL directa del backend — se usa para subir archivos grandes y evitar
+// el límite de body size de Vercel (4.5 MB en Hobby).
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
 
 /**
  * Hook para gestionar reportes de contratos de empréstito
@@ -80,19 +83,50 @@ export function useReportesContrato(referenciaContrato?: string) {
 
       // Obtener token de autenticación para identificar usuario y rol
       const idToken = await getCurrentIdToken()
+      const authHeaders: Record<string, string> = idToken
+        ? { 'Authorization': `Bearer ${idToken}` }
+        : {}
 
-      // POST al endpoint dedicado con autenticación
-      const res = await fetch('/api/reportes-contratos', {
-        method: 'POST',
-        body,
-        headers: {
-          ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}),
-        },
-      })
+      // Calcular tamaño total de archivos para decidir ruta de envío
+      const totalFileSize = formData.archivos_evidencia.reduce((sum, f) => sum + f.size, 0)
+      // Vercel Hobby limita el body de serverless functions a 4.5 MB.
+      // Si los archivos superan 4 MB (con margen para campos del form),
+      // enviamos directo al backend para evitar el error.
+      const VERCEL_SAFE_LIMIT = 4 * 1024 * 1024 // 4 MB con margen de seguridad
+      const useDirectUpload = BACKEND_URL && totalFileSize > VERCEL_SAFE_LIMIT
+
+      let res: Response
+
+      if (useDirectUpload) {
+        // Subida directa al backend — evita límite de Vercel
+        console.log(`📤 Subida directa al backend (${(totalFileSize / (1024 * 1024)).toFixed(2)} MB)`)
+        res = await fetch(`${BACKEND_URL}/reportes_contratos/`, {
+          method: 'POST',
+          body,
+          headers: authHeaders,
+        })
+      } else {
+        // Subida a través del proxy de Next.js (archivos pequeños)
+        res = await fetch('/api/reportes-contratos', {
+          method: 'POST',
+          body,
+          headers: authHeaders,
+        })
+      }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || `Error ${res.status}: ${res.statusText}`)
+        const detail = errorData.detail
+        let errorMsg: string
+        if (Array.isArray(detail)) {
+          // FastAPI validation errors
+          errorMsg = detail.map((d: { loc?: string[]; msg?: string }) =>
+            `${(d.loc || []).join('.')}: ${d.msg}`
+          ).join('; ')
+        } else {
+          errorMsg = errorData.error || errorData.detail || errorData.message || `Error ${res.status}: ${res.statusText}`
+        }
+        throw new Error(errorMsg)
       }
 
       // Recargar reportes después de crear
@@ -100,8 +134,10 @@ export function useReportesContrato(referenciaContrato?: string) {
       return true
     } catch (err) {
       console.error('Error creando reporte:', err)
-      setError(err instanceof Error ? err.message : 'Error creando reporte')
-      return false
+      const msg = err instanceof Error ? err.message : 'Error creando reporte'
+      setError(msg)
+      // Re-throw para que el modal pueda mostrar el mensaje específico
+      throw new Error(msg)
     } finally {
       setSubmitting(false)
     }

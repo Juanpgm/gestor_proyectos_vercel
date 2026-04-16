@@ -47,6 +47,17 @@ export async function POST(request: NextRequest) {
     const url = `${API_BASE_URL}/reportes_contratos/`
     console.log(`🌐 [POST] Proxy reportes_contratos (FormData) → ${url}`)
 
+    // Verificar Content-Length para detectar antes si excede el límite de Vercel
+    const contentLength = request.headers.get('content-length')
+    if (contentLength) {
+      const sizeBytes = parseInt(contentLength, 10)
+      const VERCEL_LIMIT = 4.5 * 1024 * 1024
+      if (sizeBytes > VERCEL_LIMIT) {
+        console.warn(`⚠️ Request body (${(sizeBytes / (1024 * 1024)).toFixed(2)} MB) excede el límite de Vercel (4.5 MB). ` +
+          `El frontend debería usar subida directa al backend para archivos grandes.`)
+      }
+    }
+
     // Leer el FormData del request entrante
     const incomingFormData = await request.formData()
 
@@ -100,10 +111,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
     console.error('❌ Error proxy POST reportes_contratos:', error)
+    const message = error instanceof Error ? error.message : 'Error desconocido'
+    // Detectar si el error es por tamaño de payload (Vercel limit)
+    const isPayloadError = message.includes('body') || message.includes('size') || message.includes('limit') || message.includes('too large')
     return NextResponse.json({
       success: false,
-      error: 'Error al crear reporte de contrato',
-      message: error instanceof Error ? error.message : 'Error desconocido'
-    }, { status: 500 })
+      error: isPayloadError
+        ? 'El archivo es demasiado grande para el proxy. Intente con un archivo menor a 4 MB o contacte al administrador.'
+        : 'Error al crear reporte de contrato',
+      message
+    }, { status: isPayloadError ? 413 : 500 })
   }
 }
