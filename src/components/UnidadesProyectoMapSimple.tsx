@@ -652,7 +652,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
           fetch('/data/geodata/cartografia_base/comunas_corregimientos.geojson'),
           fetch('/data/geodata/cartografia_base/barrios_veredas.geojson'),
           fetch('/data/geodata/cartografia_base/PoligonoPropuestoPulmonDeOriente.geojson'),
-          fetch('/data/geodata/cartografia_base/microterrios.geojson')
+          fetch('/data/geodata/cartografia_base/microterritorios.geojson')
         ]);
         
         if (comunasResponse.ok) {
