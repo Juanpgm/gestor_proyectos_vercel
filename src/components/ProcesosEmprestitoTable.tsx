@@ -21,13 +21,19 @@ import {
   XCircle,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
+import { deleteProcesoWithFallback } from '@/utils/procesoDeleteFallback'
+import { isProcesoRefDeletedLocally } from '@/utils/procesosDeleteLocalStore'
+import { useAuth } from '@/context/AuthContext'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
   id?: number
+  referencia_proceso?: string
   proceso_numero?: string
   proceso_nombre?: string
   proceso_presupuesto_estimado?: number
@@ -41,6 +47,26 @@ interface ProcesoEmprestito {
   objeto_contratar?: string
   ubicacion?: string
   contacto_entidad?: string
+}
+
+const resolveProcesoReferencia = (proceso: Partial<ProcesoEmprestito> | null | undefined): string => {
+  if (!proceso) return ''
+
+  const candidates = [
+    (proceso as any).referencia_proceso,
+    (proceso as any).proceso_numero,
+    (proceso as any).referencia,
+    (proceso as any).numero_proceso,
+    (proceso as any).id_proceso,
+    proceso.id,
+  ]
+
+  for (const candidate of candidates) {
+    const value = String(candidate || '').trim()
+    if (value) return value
+  }
+
+  return ''
 }
 
 // Interfaz para filtros
@@ -63,7 +89,17 @@ interface NuevoProceso {
   valor_proyectado?: string
 }
 
+const extractArrayPayload = <T = any>(payload: any): T[] => {
+  if (Array.isArray(payload)) return payload as T[]
+  if (Array.isArray(payload?.data)) return payload.data as T[]
+  if (Array.isArray(payload?.results)) return payload.results as T[]
+  if (Array.isArray(payload?.items)) return payload.items as T[]
+  return []
+}
+
 const ProcesosEmprestitoTable: React.FC = () => {
+  const { canModifyOrDeleteRecords } = useAuth()
+  const canManageRecordActions = canModifyOrDeleteRecords()
   // Estados para datos
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,6 +121,11 @@ const ProcesosEmprestitoTable: React.FC = () => {
   const [selectedProceso, setSelectedProceso] = useState<ProcesoEmprestito | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Estados para eliminación
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [procesoToDelete, setProcesoToDelete] = useState<ProcesoEmprestito | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Estados para Centro Gestor dropdown
   const [centrosGestores, setCentrosGestores] = useState<string[]>([])
@@ -110,24 +151,67 @@ const ProcesosEmprestitoTable: React.FC = () => {
     valor_proyectado: ''
   })
 
+  // Función para confirmar eliminación
+  const handleDeleteClick = (proceso: ProcesoEmprestito) => {
+    setProcesoToDelete(proceso)
+    setShowDeleteModal(true)
+  }
+
+  // Función para ejecutar eliminación
+  const handleConfirmDelete = async () => {
+    if (!procesoToDelete) return
+
+    setIsDeleting(true)
+    
+    try {
+      const referencia = resolveProcesoReferencia(procesoToDelete)
+      
+      if (!referencia) {
+        throw new Error('No se encontró referencia del proceso para eliminar')
+      }
+
+      console.log(`🗑️ Eliminando proceso: ${referencia}`)
+
+      const { endpoint, data: result, mode, message } = await deleteProcesoWithFallback(procesoToDelete as Record<string, any>, referencia)
+      console.log('✅ Proceso eliminado vía:', endpoint, result)
+
+      // Cerrar modal y recargar lista
+      setShowDeleteModal(false)
+      setProcesoToDelete(null)
+      await fetchProcesos()
+
+      if (mode === 'local') {
+        alert(message)
+      }
+
+    } catch (error) {
+      console.error('❌ Error al eliminar proceso:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Error desconocido al eliminar'
+      alert(`Error al eliminar: ${errorMsg}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   // Función para cargar procesos
   const fetchProcesos = async () => {
     setLoading(true)
     setError(null)
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       const data = await fetchWithErrorHandling<any>(
-        `${apiUrl}/procesos_emprestito_all`,
+        '/api/proxy/procesos_emprestito_all',
         {},
         120000 // 2 minutos de timeout
       )
-      
-      setProcesos(Array.isArray(data) ? data : [])
+
+      const records = extractArrayPayload<ProcesoEmprestito>(data)
+      const filteredRecords = records.filter((record) => {
+        const referencia = resolveProcesoReferencia(record)
+        return !isProcesoRefDeletedLocally(referencia)
+      })
+
+      setProcesos(filteredRecords)
     } catch (error) {
       console.error('Error al cargar procesos:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')
@@ -207,7 +291,7 @@ const ProcesosEmprestitoTable: React.FC = () => {
     
     try {
       const result = await fetchWithErrorHandling<any>(
-        `/api/proxy/bancos_emprestito_all`,
+        `/api/proxy/asignaciones-emprestito-banco-centro-gestor`,
         {},
         120000 // 2 minutos de timeout
       )
@@ -223,9 +307,9 @@ const ProcesosEmprestitoTable: React.FC = () => {
         return
       }
       
-      // Extraer solo los nombres de los bancos del array de objetos
+      // Extraer nombres únicos de bancos del campo nombre_banco
       const nombresBancos = Array.isArray(data) 
-        ? data.map((banco: any) => banco.nombre_banco || banco.nombre || banco.bank_name).filter(Boolean)
+        ? Array.from(new Set(data.map((asignacion: any) => asignacion.nombre_banco).filter(Boolean))) as string[]
         : []
       
       setBancos(nombresBancos)
@@ -322,22 +406,35 @@ const ProcesosEmprestitoTable: React.FC = () => {
     setIsSubmitting(true)
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
-      // Preparar datos exactos como los requiere el backend
-      const procesoData = {
+      // Preparar datos incluyendo campos opcionales si están presentes
+      const procesoData: Record<string, any> = {
         referencia_proceso: nuevoProceso.referencia_proceso.trim(),
         nombre_centro_gestor: nuevoProceso.nombre_centro_gestor.trim(),
         nombre_banco: nuevoProceso.nombre_banco.trim(),
         plataforma: nuevoProceso.plataforma.trim()
       }
 
+      // Agregar campos opcionales solo si tienen valor
+      if (nuevoProceso.bp && nuevoProceso.bp.trim()) {
+        procesoData.bp = nuevoProceso.bp.trim()
+      }
+      if (nuevoProceso.nombre_resumido_proceso && nuevoProceso.nombre_resumido_proceso.trim()) {
+        procesoData.nombre_resumido_proceso = nuevoProceso.nombre_resumido_proceso.trim()
+      }
+      if (nuevoProceso.id_paa && nuevoProceso.id_paa.trim()) {
+        procesoData.id_paa = nuevoProceso.id_paa.trim()
+      }
+      if (nuevoProceso.valor_proyectado && nuevoProceso.valor_proyectado.trim()) {
+        const valorNumerico = parseFloat(nuevoProceso.valor_proyectado.replace(/[^\d.-]/g, ''))
+        if (!isNaN(valorNumerico)) {
+          procesoData.valor_proyectado = valorNumerico
+        }
+      }
+
+      console.log('📤 Datos a enviar:', procesoData)
+
       const result = await fetchWithErrorHandling<any>(
-        `${apiUrl}/emprestito/cargar-proceso`,
+        '/api/proxy/emprestito/cargar-proceso',
         {
           method: 'POST',
           headers: {
@@ -418,18 +515,20 @@ const ProcesosEmprestitoTable: React.FC = () => {
           </p>
         </div>
         
-        <button 
-          onClick={openAddModal}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Añadir Proceso SECOP II
-        </button>
+        {canManageRecordActions && (
+          <button 
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Añadir Proceso SECOP II
+          </button>
+        )}
       </div>
 
       {/* Modal de añadir proceso */}
       <AnimatePresence>
-        {showAddModal && (
+        {canManageRecordActions && showAddModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -815,9 +914,11 @@ const ProcesosEmprestitoTable: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       <span>Observaciones / Alertas</span>
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      <span>Detalle</span>
-                    </th>
+                    {canManageRecordActions && (
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <span>Acciones</span>
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -884,19 +985,29 @@ const ProcesosEmprestitoTable: React.FC = () => {
                         </div>
                       </td>
                       
-                      {/* Detalle */}
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => {
-                            setSelectedProceso(proceso)
-                            setShowDetailModal(true)
-                          }}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg"
-                          title="Ver detalles del proceso"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                      </td>
+                      {canManageRecordActions && (
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedProceso(proceso)
+                                setShowDetailModal(true)
+                              }}
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg"
+                              title="Ver detalles del proceso"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(proceso)}
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg"
+                              title="Eliminar proceso"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -904,6 +1015,83 @@ const ProcesosEmprestitoTable: React.FC = () => {
             </div>
           )}
         </div>
+      {/* Modal de confirmación de eliminación */}
+      <AnimatePresence>
+        {showDeleteModal && procesoToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !isDeleting) {
+                setShowDeleteModal(false)
+              }
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full overflow-hidden border border-gray-200 dark:border-gray-700"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-4 text-red-600 dark:text-red-400">
+                  <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Eliminar Proceso
+                  </h3>
+                </div>
+                
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  ¿Está seguro que desea eliminar el proceso <strong>{resolveProcesoReferencia(procesoToDelete)}</strong>? 
+                  <br /><br />
+                  <span className="text-sm text-red-500 dark:text-red-400 font-medium">
+                    Esta acción no se puede deshacer. Se eliminará de ambas colecciones (SECOP y TVEC).
+                  </span>
+                </p>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(false)}
+                    disabled={isDeleting}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      void handleConfirmDelete()
+                    }}
+                    disabled={isDeleting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Eliminando...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar Definitivamente
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       </div>
     </div>
   )

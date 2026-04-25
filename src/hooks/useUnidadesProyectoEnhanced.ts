@@ -3,13 +3,13 @@
  * Implementa programación funcional con estado inmutable y manejo de errores robusto
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   fetchGeometryData, 
   fetchAttributeData, 
-  fetchFilterData,
   generateFiltersFromData,
   filterAttributeData,
+  consolidateAttributeData,
   type GeometryData,
   type AttributeData,
   type FilterData,
@@ -22,9 +22,21 @@ interface UnidadesProyectoState {
   geometryData: GeometryData | null;
   attributeData: AttributeData[];
   filterData: FilterData | null;
+  intervencionesData: IntervencionMetricItem[];
   loading: boolean;
   error: string | null;
   lastUpdate: Date | null;
+  totalIntervencionesCount: number | null; // Conteo real del endpoint /intervenciones
+}
+
+interface IntervencionMetricItem {
+  upid?: string;
+  avance_obra?: number;
+  presupuesto_base?: number;
+  estado?: string;
+  tipo_intervencion?: string;
+  nombre_centro_gestor?: string;
+  fuente_financiacion?: string;
 }
 
 // Opciones de configuración del hook
@@ -46,11 +58,13 @@ export interface UseUnidadesProyectoResult {
   
   // Métricas derivadas
   metrics: {
-    total: number;
+    total: number; // Total de intervenciones (suma de n_intervenciones)
+    totalUnidadesProyecto: number; // Total de unidades de proyecto (número de registros)
     byStatus: Record<string, number>;
     byType: Record<string, number>;
     avgProgress: number;
     totalBudget: number;
+    activeFronts: number;
   };
   
   // Acciones
@@ -70,9 +84,11 @@ const createInitialState = (): UnidadesProyectoState => ({
   geometryData: null,
   attributeData: [],
   filterData: null,
+  intervencionesData: [],
   loading: true,
   error: null,
-  lastUpdate: null
+  lastUpdate: null,
+  totalIntervencionesCount: null
 });
 
 // Hook principal
@@ -90,25 +106,39 @@ export const useUnidadesProyecto = (
   const [state, setState] = useState<UnidadesProyectoState>(createInitialState);
   const [filters, setFiltersState] = useState<FilterParams>(initialFilters);
   const [searchTerm, setSearchTermState] = useState<string>('');
+  const loadingRef = useRef(false); // Ref real para prevenir cargas simultáneas (no state para evitar closures stale)
 
   // Función para actualizar el estado de manera inmutable
   const updateState = useCallback((updates: Partial<UnidadesProyectoState>) => {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // Función para obtener todos los datos
+  // Función para obtener todos los datos con estrategia híbrida inteligente
   const fetchAllData = useCallback(async (currentFilters: FilterParams = {}) => {
+    // Prevenir cargas simultáneas
+    if (loadingRef.current) {
+      console.log('⏭️ fetchAllData: Skipping - already loading');
+      return;
+    }
+
+    loadingRef.current = true;
     updateState({ loading: true, error: null });
 
     try {
-      console.log('🔄 fetchAllData: Starting with filters:', currentFilters);
+      const hasFilters = Object.keys(currentFilters).length > 0;
       
-      // Determinar si usar filtros en el servidor o localmente
-      const serverFilters = enableLocalFiltering ? {} : currentFilters;
+      // ESTRATEGIA HÍBRIDA INTELIGENTE:
+      // 1. Sin filtros: cargar todo y cachear (enableLocalFiltering)
+      // 2. Con filtros simples: usar server-side
+      // 3. Con filtros múltiples: cargar todo y filtrar client-side
+      const useServerFilters = !enableLocalFiltering && hasFilters;
+      const serverFilters = useServerFilters ? currentFilters : {};
       
-      console.log('🔄 fetchAllData: Server filters:', serverFilters);
+      if (hasFilters) {
+        console.log('🔄 fetchAllData: Loading with', useServerFilters ? 'SERVER-SIDE' : 'CLIENT-SIDE', 'filtering');
+      }
 
-      const [geometry, attributes, filterOptions] = await Promise.all([
+      const [geometry, attributes] = await Promise.all([
         fetchGeometryData(serverFilters).catch((error) => {
           console.warn('⚠️ fetchGeometryData failed:', error);
           return null;
@@ -116,21 +146,18 @@ export const useUnidadesProyecto = (
         fetchAttributeData(serverFilters).catch((error) => {
           console.warn('⚠️ fetchAttributeData failed:', error);
           return [];
-        }),
-        fetchFilterData().catch((error) => {
-          console.warn('⚠️ fetchFilterData failed:', error);
-          return null;
         })
       ]);
 
-      // Generar filtros desde datos si no se obtuvieron del servidor
-      const finalFilterData = filterOptions || (attributes.length > 0 ? generateFiltersFromData(attributes) : null);
+      // Los filtros se derivan exclusivamente del dataset cargado en frontend.
+      const finalFilterData = attributes.length > 0 ? generateFiltersFromData(attributes) : null;
 
-      console.log('✅ fetchAllData: Data loaded successfully', {
-        geometry: geometry ? 'loaded' : 'failed',
-        attributes: `${attributes.length} items`,
-        filters: finalFilterData ? 'loaded' : 'failed'
-      });
+      if (hasFilters) {
+        console.log('✅ Data loaded:', {
+          geometry: geometry?.features?.length || 0,
+          attributes: attributes.length
+        });
+      }
 
       updateState({
         geometryData: geometry,
@@ -139,43 +166,63 @@ export const useUnidadesProyecto = (
         loading: false,
         lastUpdate: new Date()
       });
+      loadingRef.current = false;
     } catch (error) {
       console.error('❌ fetchAllData: Fatal error:', error);
       updateState({
         loading: false,
         error: error instanceof Error ? error.message : 'Error desconocido al cargar datos'
       });
+      loadingRef.current = false;
     }
   }, [enableLocalFiltering, updateState]);
 
-  // Función pública para refrescar datos
-  const refetch = useCallback(() => fetchAllData(filters), [fetchAllData, filters]);
+  // Función pública para refrescar datos (fuerza recarga completa sin cache)
+  const refetch = useCallback(() => {
+    console.log('🔄 REFETCH: Forzando recarga completa de datos...');
+    console.log('⏰ REFETCH: Timestamp', new Date().toISOString());
+    return fetchAllData(filters);
+  }, [fetchAllData, filters]);
 
   // Funciones de filtrado
   const setFilters = useCallback((newFilters: FilterParams) => {
-    console.log('🎯 setFilters: Setting new filters:', newFilters);
+    console.log('🎯 setFilters: Setting new filters:', JSON.stringify(newFilters, null, 2));
+    console.log('🎯 setFilters: centro_gestor_multiple =', (newFilters as any).centro_gestor_multiple);
+    
+    // Verificar si los filtros realmente cambiaron
+    const filtersChanged = JSON.stringify(filters) !== JSON.stringify(newFilters);
+    if (!filtersChanged) {
+      console.log('⏭️ setFilters: Filters unchanged, skipping update');
+      return;
+    }
+    
+    console.log('🎯 setFilters: Filters changed, updating state...');
+    console.log('🎯 setFilters: enableLocalFiltering =', enableLocalFiltering);
+    
     setFiltersState(newFilters);
     
-    // IMPORTANTE: Siempre recargar geometría con filtros del servidor
-    // El filtrado local solo se usa para attributes, pero geometry debe venir filtrada del servidor
+    // Si el filtrado local está activado, NO recargar datos del servidor
+    // Los datos ya están cargados y el filtrado se hace localmente
     if (!enableLocalFiltering) {
-      // Modo sin filtrado local: recargar todo
+      // Modo sin filtrado local: recargar todo con filtros del servidor
+      console.log('🎯 setFilters: Fetching ALL data with server filters');
       fetchAllData(newFilters);
     } else {
-      // Modo con filtrado local: solo recargar geometry, attributes se filtran localmente
-      fetchGeometryData(newFilters)
-        .then(geometry => {
-          console.log('✅ Geometry reloaded with filters:', geometry ? `${geometry.features?.length || 0} features` : 'null');
-          updateState({ geometryData: geometry });
-        })
-        .catch(error => {
-          console.error('❌ Error reloading geometry:', error);
-        });
+      // Modo con filtrado local: solo actualizar el estado, el useMemo se encarga del filtrado
+      console.log('✅ setFilters: Local filtering enabled - no server reload needed');
     }
-  }, [enableLocalFiltering, fetchAllData, updateState]);
+  }, [filters, enableLocalFiltering, fetchAllData]);
 
   const clearFilters = useCallback(() => {
     console.log('🧹 Limpiando todos los filtros...');
+    
+    // Verificar si ya hay filtros vacíos
+    const alreadyEmpty = Object.keys(filters).length === 0 && searchTerm === '';
+    if (alreadyEmpty) {
+      console.log('⏭️ clearFilters: Filters already empty, skipping reload');
+      return;
+    }
+    
     setFiltersState({});
     setSearchTermState('');
     
@@ -193,7 +240,7 @@ export const useUnidadesProyecto = (
           console.error('❌ Error reloading geometry:', error);
         });
     }
-  }, [enableLocalFiltering, fetchAllData, updateState]);
+  }, [enableLocalFiltering, fetchAllData, updateState, filters, searchTerm]);
 
   const setSearchTerm = useCallback((term: string) => {
     setSearchTermState(term);
@@ -209,36 +256,48 @@ export const useUnidadesProyecto = (
     
     // Si no hay filtros activos, devolver todos los datos
     if (!hasActiveFilters) {
-      console.log('📊 No filters active, returning all data:', {
-        totalData: state.attributeData.length,
-        sampleBudgets: state.attributeData.slice(0, 5).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base }))
-      });
       return state.attributeData;
     }
     
     const filtered = filterAttributeData(state.attributeData, { ...filters, searchTerm });
-    
-    // Debug filtrado
-    console.log('📊 Debug filteredData with active filters:', {
-      totalRawData: state.attributeData.length,
-      appliedFilters: { ...filters, searchTerm },
-      filteredCount: filtered.length,
-      sampleRawBudgets: state.attributeData.slice(0, 3).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base })),
-      sampleFilteredBudgets: filtered.slice(0, 3).map(item => ({ upid: item.upid, presupuesto: item.presupuesto_base }))
-    });
+    console.log('📊 Filtered:', filtered.length, 'of', state.attributeData.length);
     
     return filtered;
   }, [state.attributeData, filters, searchTerm, enableLocalFiltering]);
 
   // Geometría filtrada basada en datos filtrados
   const filteredGeometry = useMemo((): GeometryData | null => {
-    if (!state.geometryData || !state.geometryData.features) return state.geometryData;
+    if (!state.geometryData || !state.geometryData.features) {
+      console.log('⚠️ filteredGeometry: No geometry data available');
+      return state.geometryData;
+    }
     
-    const filteredUPIDs = new Set(filteredData.map(item => item.upid));
+    console.log('🗺️ filteredGeometry: Starting with', state.geometryData.features.length, 'total features');
+    console.log('🗺️ filteredGeometry: Filtering to match', filteredData.length, 'attribute items');
+    
+    // Normalizar UPIDs para comparación case-insensitive
+    const normalizeUpid = (upid: string | null | undefined): string => {
+      if (!upid) return '';
+      return String(upid).trim().toLowerCase();
+    };
+    
+    const filteredUPIDs = new Set(filteredData.map(item => normalizeUpid(item.upid)));
     
     const filteredFeatures = state.geometryData.features.filter(feature => 
-      filteredUPIDs.has(feature.properties.upid)
+      filteredUPIDs.has(normalizeUpid(feature.properties.upid))
     );
+
+    console.log('✅ filteredGeometry: Result =', filteredFeatures.length, 'features');
+    
+    if (filteredFeatures.length === 0 && filteredData.length > 0) {
+      console.error('❌ filteredGeometry: NO FEATURES MATCH! UPIDs do not align');
+      console.error('Sample filtered attribute UPIDs:', Array.from(filteredUPIDs).slice(0, 5));
+      console.error('Sample geometry feature UPIDs:', state.geometryData.features.slice(0, 5).map(f => normalizeUpid(f.properties.upid)));
+      console.error('Checking if UPIDs are strings:', {
+        attributeType: typeof Array.from(filteredUPIDs)[0],
+        geometryType: typeof state.geometryData.features[0]?.properties.upid
+      });
+    }
 
     return {
       ...state.geometryData,
@@ -248,7 +307,18 @@ export const useUnidadesProyecto = (
 
   // Métricas computadas
   const metrics = useMemo(() => {
-    const data = filteredData;
+    const data = consolidateAttributeData(filteredData);
+    const allData = consolidateAttributeData(state.attributeData);
+    
+    // 🔍 DIAGNÓSTICO: Comparar datos totales vs filtrados
+    const totalDataCount = allData.length;
+    const filteredDataCount = data.length;
+    const hasFiltersApplied = totalDataCount !== filteredDataCount;
+    
+    console.log('🔍 ========== DIAGNÓSTICO DE PRESUPUESTO ==========');
+    console.log(`📊 Datos totales cargados: ${totalDataCount}`);
+    console.log(`📊 Datos después de filtros: ${filteredDataCount}`);
+    console.log(`🎯 Filtros activos: ${hasFiltersApplied ? 'SÍ' : 'NO'}`);
     
     const byStatus = data.reduce((acc, item) => {
       const status = item.estado || 'Sin estado';
@@ -262,11 +332,145 @@ export const useUnidadesProyecto = (
       return acc;
     }, {} as Record<string, number>);
 
-    const avgProgress = data.length > 0 
-      ? data.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / data.length
-      : 0;
+    const normalizeUpid = (value: string | null | undefined): string =>
+      String(value || '').trim().toLowerCase();
 
-    const totalBudget = data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+    const normalizeValue = (value: string | null | undefined): string =>
+      String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+
+    const matchesFilterValue = (
+      value: string | null | undefined,
+      single: string | null | undefined,
+      multi: string[] | null | undefined
+    ): boolean => {
+      if (Array.isArray(multi) && multi.length > 0) {
+        return multi.some(entry => normalizeValue(entry) === normalizeValue(value));
+      }
+      if (single && String(single).trim() !== '') {
+        return normalizeValue(value) === normalizeValue(single);
+      }
+      return true;
+    };
+
+    const filteredUpids = new Set(data.map(item => normalizeUpid(item.upid)));
+    // Aplicar filtro por UPIDs siempre que haya CUALQUIER filtro activo a nivel de UP
+    // (incluyendo proyectos_estrategicos, tipo_equipamiento, barrio, etc.)
+    const hasUpOnlyFilters = data.length !== allData.length || Boolean(
+      (filters as any)?.tipo_equipamiento || (filters as any)?.tipo_equipamiento_multiple?.length ||
+      (filters as any)?.frente_activo || (filters as any)?.frente_activo_multiple?.length ||
+      (filters as any)?.comuna_corregimiento || (filters as any)?.comuna_corregimiento_multiple?.length ||
+      (filters as any)?.barrio_vereda || (filters as any)?.barrio_vereda_multiple?.length ||
+      (filters as any)?.ano || (filters as any)?.ano_multiple?.length ||
+      searchTerm.trim() !== ''
+    );
+
+    const interventionItems = state.intervencionesData.length > 0
+      ? state.intervencionesData.filter(item => {
+          if (hasUpOnlyFilters && !filteredUpids.has(normalizeUpid(item.upid))) {
+            return false;
+          }
+
+          return (
+            matchesFilterValue(item.estado, filters.estado, (filters as any).estado_multiple) &&
+            matchesFilterValue(item.tipo_intervencion, filters.tipo_intervencion, (filters as any).tipo_intervencion_multiple) &&
+            matchesFilterValue(item.nombre_centro_gestor, filters.centro_gestor, (filters as any).centro_gestor_multiple) &&
+            matchesFilterValue(item.fuente_financiacion, filters.fuente_financiacion, (filters as any).fuente_financiacion_multiple)
+          );
+        })
+      : [];
+
+    const avgProgress = interventionItems.length > 0
+      ? interventionItems.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / interventionItems.length
+      : (data.length > 0
+        ? data.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / data.length
+        : 0);
+
+    const totalBudget = interventionItems.length > 0
+      ? interventionItems.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0)
+      : data.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+    
+    // 🔍 DIAGNÓSTICO: Calcular presupuesto total SIN filtros
+    const totalBudgetAllData = allData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+    const budgetDifference = totalBudgetAllData - totalBudget;
+    const percentageDifference = totalBudgetAllData > 0 
+      ? ((budgetDifference / totalBudgetAllData) * 100).toFixed(2) 
+      : '0';
+    
+    console.log(`💰 Presupuesto TOTAL (sin filtros): $${totalBudgetAllData.toLocaleString('es-CO')}`);
+    console.log(`💰 Presupuesto FILTRADO: $${totalBudget.toLocaleString('es-CO')}`);
+    console.log(`📉 Diferencia: $${budgetDifference.toLocaleString('es-CO')} (${percentageDifference}%)`);
+    console.log('==================================================\n');
+
+    // ✨ NUEVO: Usar el conteo de intervenciones filtradas para que dependa de los filtros aplicados
+    const totalIntervenciones = interventionItems.length;
+    
+    // Total de unidades de proyecto (número de registros)
+    const totalUnidadesProyecto = data.length;
+
+    const normalizeCentro = (value: string | null | undefined): string =>
+      String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+
+    // Contar frentes activos desde intervenciones individuales
+    // Excluye Secretaría de Vivienda Social y Habitat y ciertos tipos de intervención
+    const excludedCentro = 'secretaria de vivienda social y habitat';
+    const excludedTipos = new Set([
+      'mantenimiento',
+      'estudios y disenos',
+      'demarcacion vial'
+    ]);
+    const requiredEstado = 'en ejecucion';
+
+    // Usar intervenciones individuales cuando están disponibles para contar UPIDs únicos
+    // Un frente activo NUNCA debe tener avance_obra = 0 (no iniciado) ni avance_obra = 100 (terminado)
+    // Un frente activo NUNCA debe mostrar avance 0% (no iniciado) ni 100% (terminado)
+    const isValidAvanceForActiveFront = (avance: number | undefined): boolean => {
+      if (typeof avance !== 'number' || isNaN(avance)) return false;
+      return avance >= 0.5 && avance < 99.5;
+    };
+
+    const minPresupuestoFrenteActivo = 150000000; // $150M mínimo para frente activo
+
+    let activeFronts = 0;
+    if (interventionItems.length > 0) {
+      const activeUpids = new Set<string>();
+      interventionItems.forEach(item => {
+        const estado = normalizeCentro(item.estado);
+        const centro = normalizeCentro(item.nombre_centro_gestor);
+        const tipo = normalizeCentro(item.tipo_intervencion);
+        const pres = typeof item.presupuesto_base === 'number' ? item.presupuesto_base : 0;
+        if (
+          estado === requiredEstado &&
+          centro !== excludedCentro &&
+          !excludedTipos.has(tipo) &&
+          isValidAvanceForActiveFront(item.avance_obra) &&
+          pres >= minPresupuestoFrenteActivo
+        ) {
+          const upid = String(item.upid || '').trim().toLowerCase();
+          if (upid) activeUpids.add(upid);
+        }
+      });
+      activeFronts = activeUpids.size;
+    } else {
+      // Fallback: usar datos consolidados a nivel de UP
+      activeFronts = data.filter(item =>
+        item.frente_activo === 'Frente activo' &&
+        normalizeCentro(item.nombre_centro_gestor) !== excludedCentro &&
+        !excludedTipos.has(normalizeCentro(item.tipo_intervencion)) &&
+        normalizeCentro(item.estado) === requiredEstado &&
+        isValidAvanceForActiveFront(item.avance_obra) &&
+        (item.presupuesto_base || 0) >= minPresupuestoFrenteActivo
+      ).length;
+    }
+
+    // Debug logging de intervenciones
+    console.log('🔢 Debug totalIntervenciones calculation:', {
+      totalUnidadesProyecto,
+      totalIntervenciones,
+      activeFronts,
+      sampleNIntervenciones: data.slice(0, 5).map(item => ({ upid: item.upid, n_intervenciones: item.n_intervenciones })),
+      allNIntervenciones: data.map(item => item.n_intervenciones || 0).slice(0, 10),
+      frentesActivosData: data.filter(item => item.frente_activo === 'Frente activo').slice(0, 5).map(item => ({ upid: item.upid, frente_activo: item.frente_activo, n_intervenciones: item.n_intervenciones }))
+    });
 
     // Debug logging
     console.log('🔍 Debug avgProgress calculation:', {
@@ -290,16 +494,25 @@ export const useUnidadesProyecto = (
     });
 
     return {
-      total: data.length,
+      total: totalIntervenciones, // Total de intervenciones desde endpoint /intervenciones
+      totalUnidadesProyecto, // Total de unidades de proyecto (número de registros)
       byStatus,
       byType,
       avgProgress: Math.round(avgProgress * 10) / 10, // Redondear a 1 decimal (ya viene en escala 0-100 desde el servicio)
-      totalBudget
+      totalBudget,
+      activeFronts
     };
-  }, [filteredData]);
+  }, [filteredData, state.attributeData, state.intervencionesData, state.totalIntervencionesCount, filters, searchTerm]);
 
   // Efecto para cargar datos iniciales
+  const hasInitialized = useRef(false);
   useEffect(() => {
+    if (hasInitialized.current) {
+      console.log('⏭️ Initial load: Already initialized, skipping');
+      return;
+    }
+    console.log('🚀 Initial load: Loading data for first time');
+    hasInitialized.current = true;
     fetchAllData(initialFilters);
   }, []); // Solo ejecutar una vez al montar
 
@@ -308,11 +521,83 @@ export const useUnidadesProyecto = (
     if (!autoRefresh) return;
 
     const interval = setInterval(() => {
+      console.log('🔄 Auto-refresh: Reloading data...');
       fetchAllData(filters);
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]); // Solo dependencias estables
+  }, [autoRefresh, refreshInterval, fetchAllData]); // fetchAllData ya tiene filters en su closure
+
+  // Efecto para obtener todas las intervenciones (para métricas agregadas)
+  useEffect(() => {
+    const fetchIntervencionesData = async () => {
+      try {
+        // Usar proxy para consistencia entre local y producción
+        const url = `/api/proxy/intervenciones?limit=10000`;
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const data = Array.isArray(payload?.data) ? payload.data : [];
+
+        const mappedIntervenciones = data.map((item: any) => {
+          const avance = typeof item?.avance_obra === 'number' ? item.avance_obra : parseFloat(item?.avance_obra || 0);
+          const rawEstado = item?.estado || '';
+          // Derivar estado a partir de avance_obra, respetando valores especiales
+          // Normalizar acentos para comparar correctamente
+          const normalizeForCompare = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+          const DERIVED_ESTADOS_NORM = ['en alistamiento', 'en ejecucion', 'terminado'];
+          const raw = String(rawEstado).trim();
+          let derivedEstado = raw;
+          if (!raw || DERIVED_ESTADOS_NORM.includes(normalizeForCompare(raw))) {
+            // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
+            if (isNaN(avance) || avance < 0.5) derivedEstado = 'En alistamiento';
+            else if (avance >= 99.5) derivedEstado = 'Terminado';
+            else derivedEstado = 'En ejecuci\u00f3n';
+          }
+          return {
+            upid: item?.upid,
+            avance_obra: avance,
+            presupuesto_base: typeof item?.presupuesto_base === 'number' ? item.presupuesto_base : parseFloat(item?.presupuesto_base || 0),
+            estado: derivedEstado,
+            tipo_intervencion: item?.tipo_intervencion,
+            nombre_centro_gestor: item?.nombre_centro_gestor,
+            fuente_financiacion: item?.fuente_financiacion
+          };
+        });
+
+        const allowedUpids = new Set(
+          state.attributeData
+            .map((item) => String(item?.upid || '').trim().toLowerCase())
+            .filter((value) => value.length > 0)
+        );
+
+        const intervencionesFiltradas = allowedUpids.size > 0
+          ? mappedIntervenciones.filter((item: IntervencionMetricItem) =>
+              allowedUpids.has(String(item?.upid || '').trim().toLowerCase())
+            )
+          : mappedIntervenciones;
+
+        setState(prev => ({
+          ...prev,
+          intervencionesData: intervencionesFiltradas,
+          totalIntervencionesCount: intervencionesFiltradas.length
+        }));
+      } catch (error) {
+        console.error('❌ Error fetching intervenciones data:', error);
+      }
+    };
+
+    fetchIntervencionesData();
+  }, [state.attributeData]);
 
   // Resultado del hook
   return {
@@ -341,8 +626,8 @@ export const useUnidadesProyectoFilters = () => {
     setError(null);
 
     try {
-      const data = await fetchFilterData();
-      setFilterData(data);
+      const data = await fetchAttributeData();
+      setFilterData(generateFiltersFromData(data));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {

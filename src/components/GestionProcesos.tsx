@@ -23,9 +23,17 @@ import {
   Edit2,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  ShoppingCart,
+  Handshake
 } from 'lucide-react'
-import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
+import AgregarProcesoModal from './AgregarProcesoModal'
+import TiendaVirtualTable from './TiendaVirtualTable'
+import ConveniosTable from './ConveniosTable'
+import ModificarProcesoSecopModal from './ModificarProcesoSecopModal'
+import ManagementFeatureTour from './ManagementFeatureTour'
+import { deleteProcesoWithFallback } from '@/utils/procesoDeleteFallback'
+import { isProcesoRefDeletedLocally } from '@/utils/procesosDeleteLocalStore'
 
 // Interfaz para proceso de empréstito
 interface ProcesoEmprestito {
@@ -70,13 +78,186 @@ interface GestionProcesosProps {
   onNavigateHome: () => void
 }
 
+const normalizeProcesosResponse = (payload: any): ProcesoEmprestito[] => {
+  if (!payload) return []
+
+  const parsePossibleJsonString = (value: any): any => {
+    if (typeof value !== 'string') return value
+    const trimmed = value.trim()
+    if (!trimmed) return value
+
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      return value
+    }
+  }
+
+  const findObjectArrayDeep = (value: any, depth = 0): ProcesoEmprestito[] => {
+    if (depth > 4 || value === null || value === undefined) return []
+
+    const parsed = parsePossibleJsonString(value)
+
+    if (Array.isArray(parsed)) {
+      const objectItems = parsed.filter(item => item && typeof item === 'object')
+      if (objectItems.length > 0) {
+        return objectItems as ProcesoEmprestito[]
+      }
+      return []
+    }
+
+    if (typeof parsed !== 'object') return []
+
+    const prioritizedKeys = ['data', 'procesos', 'results', 'items', 'rows', 'records']
+    for (const key of prioritizedKeys) {
+      if (key in parsed) {
+        const nested = findObjectArrayDeep((parsed as any)[key], depth + 1)
+        if (nested.length > 0) return nested
+      }
+    }
+
+    const values = Object.values(parsed)
+    for (const candidate of values) {
+      const nested = findObjectArrayDeep(candidate, depth + 1)
+      if (nested.length > 0) return nested
+    }
+
+    return []
+  }
+
+  payload = parsePossibleJsonString(payload)
+
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
+  if (payload?.data && typeof payload.data === 'string') {
+    const parsedData = parsePossibleJsonString(payload.data)
+    if (Array.isArray(parsedData)) {
+      return parsedData as ProcesoEmprestito[]
+    }
+    if (parsedData && typeof parsedData === 'object') {
+      const nestedFromStringData = findObjectArrayDeep(parsedData)
+      if (nestedFromStringData.length > 0) return nestedFromStringData
+    }
+  }
+
+  if (Array.isArray(payload.data)) {
+    return payload.data
+  }
+
+  if (Array.isArray(payload.procesos)) {
+    return payload.procesos
+  }
+
+  if (Array.isArray(payload.results)) {
+    return payload.results
+  }
+
+  if (Array.isArray(payload.items)) {
+    return payload.items
+  }
+
+  if (payload.data && typeof payload.data === 'object') {
+    const values = Object.values(payload.data)
+    if (values.length > 0 && values.every(item => typeof item === 'object' && item !== null)) {
+      return values as ProcesoEmprestito[]
+    }
+  }
+
+  if (typeof payload === 'object') {
+    const values = Object.values(payload)
+    if (values.length > 0 && values.every(item => typeof item === 'object' && item !== null)) {
+      return values as ProcesoEmprestito[]
+    }
+  }
+
+  const deepDetected = findObjectArrayDeep(payload)
+  if (deepDetected.length > 0) {
+    return deepDetected
+  }
+
+  return []
+}
+
+const normalizeProcesoRecord = (record: ProcesoEmprestito, index: number): ProcesoEmprestito => {
+  const fallbackReferencia =
+    record.referencia_proceso ||
+    record.id?.toString?.() ||
+    ((record as any).urlproceso?.url || (record as any).urlproceso) ||
+    `${record.bp || 'sin-bp'}-${record.nombre_resumido_proceso || 'proceso'}-${index}`
+
+  return {
+    ...record,
+    referencia_proceso: fallbackReferencia,
+    nombre_banco: record.nombre_banco || (record as any).banco || '',
+    valor_publicacion: Number(record.valor_publicacion ?? (record as any).valor_total ?? 0),
+  }
+}
+
+const extractArrayPayload = <T = any>(payload: any): T[] => {
+  if (Array.isArray(payload)) return payload as T[]
+  if (Array.isArray(payload?.data)) return payload.data as T[]
+  if (Array.isArray(payload?.results)) return payload.results as T[]
+  if (Array.isArray(payload?.items)) return payload.items as T[]
+  return []
+}
+
+const parseDateCandidate = (value: any): number => {
+  if (value === null || value === undefined) return 0
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return 0
+    return value > 1e12 ? value : value * 1000
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value)
+    return Number.isNaN(parsed) ? 0 : parsed
+  }
+
+  if (typeof value === 'object') {
+    const maybeSeconds = (value as any).seconds ?? (value as any)._seconds
+    if (typeof maybeSeconds === 'number' && Number.isFinite(maybeSeconds)) {
+      return maybeSeconds * 1000
+    }
+  }
+
+  return 0
+}
+
+const getProcessRecencyTimestamp = (proceso: ProcesoEmprestito): number => {
+  const candidates = [
+    proceso.fecha_actualizacion,
+    proceso.fecha_creacion,
+    (proceso as any).fecha_guardado,
+    proceso.fecha_publicacion,
+    proceso.fecha_publicacion_fase,
+    (proceso as any).planeado,
+    (proceso as any).updated_at,
+    (proceso as any).created_at,
+  ]
+
+  return candidates.reduce((maxTimestamp, candidate) => {
+    const ts = parseDateCandidate(candidate)
+    return ts > maxTimestamp ? ts : maxTimestamp
+  }, 0)
+}
+
 const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => {
+  // Estados para tabs
+  const [activeTab, setActiveTab] = useState<'secop' | 'tiendaVirtual' | 'convenios'>('secop')
+  
   // Estados para datos
   const [procesos, setProcesos] = useState<ProcesoEmprestito[]>([])
-  const [ordenesCompra, setOrdenesCompra] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'procesos' | 'ordenes'>('procesos')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Estados para datos agregados de otros tabs
+  const [ordenesCompra, setOrdenesCompra] = useState<any[]>([])
+  const [convenios, setConvenios] = useState<any[]>([])
+  const [loadingOrdenes, setLoadingOrdenes] = useState(true)
+  const [loadingConvenios, setLoadingConvenios] = useState(true)
 
   // Estados para UI
   const [searchTerm, setSearchTerm] = useState('')
@@ -91,6 +272,11 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   const [columnOrder, setColumnOrder] = useState<string[]>([])
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  
+  // Estados para modal de modificación
+  const [showModificarModal, setShowModificarModal] = useState(false)
+  const [procesoToModificar, setProcesoToModificar] = useState<ProcesoEmprestito | null>(null)
+  
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
     'referencia_proceso', // Referencia del Proceso
     'nombre_resumido_proceso', // Nombre Resumido del Proceso
@@ -114,6 +300,29 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   
   // Refs para manejar clics fuera del dropdown
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
+  const procesosRequestIdRef = React.useRef(0)
+  const procesosAbortRef = React.useRef<AbortController | null>(null)
+  const procesosRef = React.useRef<ProcesoEmprestito[]>([])
+
+  useEffect(() => {
+    procesosRef.current = procesos
+  }, [procesos])
+
+  const filterDeletedProcesos = (records: ProcesoEmprestito[]): ProcesoEmprestito[] => {
+    return records.filter((record) => {
+      const referencia = String(
+        record.referencia_proceso ||
+        (record as any).proceso_numero ||
+        (record as any).referencia ||
+        (record as any).numero_proceso ||
+        (record as any).id_proceso ||
+        record.id ||
+        ''
+      ).trim()
+
+      return !isProcesoRefDeletedLocally(referencia)
+    })
+  }
 
   const columns = useMemo(() => [
     { key: 'referencia_proceso', label: 'Referencia del Proceso', isSortable: true },
@@ -178,41 +387,164 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
 
   // Función para cargar datos del endpoint
   const fetchProcesos = async () => {
+    const requestId = ++procesosRequestIdRef.current
+
+    if (procesosAbortRef.current) {
+      procesosAbortRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    const { signal } = controller
+    procesosAbortRef.current = controller
+
+    const isLatestRequest = () => requestId === procesosRequestIdRef.current && !signal.aborted
+
     try {
       setLoading(true)
       setError(null)
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
 
-      const response = await fetch(`${apiUrl}/procesos_emprestito_all`)
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      console.log('API Response:', data)
-      console.log('Is Array:', Array.isArray(data))
-      
-      // Manejar diferentes formatos de respuesta
-      if (Array.isArray(data)) {
-        setProcesos(data)
-      } else if (data && Array.isArray(data.data)) {
-        setProcesos(data.data)
-      } else if (data && Array.isArray(data.procesos)) {
-        setProcesos(data.procesos)
-      } else {
-        console.warn('Formato de respuesta inesperado:', data)
-        setProcesos([])
+      try {
+        const fetchAndNormalize = async (url: string): Promise<{ records: ProcesoEmprestito[]; explicitApiEmpty: boolean }> => {
+          const response = await fetch(url, { cache: 'no-store', signal })
+
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`)
+          }
+
+          const rawBody = await response.text()
+          if (!rawBody || rawBody.trim().length === 0) {
+            throw new Error('El backend respondió sin contenido para procesos_emprestito_all')
+          }
+
+          let parsedBody: any
+          try {
+            parsedBody = JSON.parse(rawBody)
+          } catch {
+            parsedBody = rawBody
+          }
+
+          if (typeof parsedBody === 'string') {
+            try {
+              parsedBody = JSON.parse(parsedBody)
+            } catch {
+              throw new Error('Formato de respuesta inválido para procesos_emprestito_all')
+            }
+          }
+
+          if (parsedBody?.success === false) {
+            throw new Error(parsedBody?.error || parsedBody?.message || 'El endpoint de procesos respondió con error')
+          }
+
+          const normalized = normalizeProcesosResponse(parsedBody).map((item, index) => normalizeProcesoRecord(item, index))
+          const explicitApiEmpty =
+            Array.isArray(parsedBody?.data) && parsedBody.data.length === 0 && normalized.length === 0
+
+          return { records: normalized, explicitApiEmpty }
+        }
+
+        const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+        const fetchWithRetries = async (url: string, retries: number): Promise<{ records: ProcesoEmprestito[]; explicitApiEmpty: boolean }> => {
+          let lastError: unknown
+
+          for (let attempt = 1; attempt <= retries; attempt++) {
+            if (signal.aborted || !isLatestRequest()) {
+              throw new Error('Request aborted')
+            }
+
+            try {
+              return await fetchAndNormalize(url)
+            } catch (error) {
+              lastError = error
+
+              if (attempt < retries) {
+                const delay = 500 * attempt
+                console.warn(`⚠️ Reintento ${attempt}/${retries - 1} para procesos_emprestito_all en ${delay}ms`, error)
+                await wait(delay)
+                continue
+              }
+            }
+          }
+
+          throw lastError instanceof Error ? lastError : new Error('Fallo al consultar procesos_emprestito_all')
+        }
+
+        const candidateUrls = [
+          '/api/proxy/procesos_emprestito_all',
+          `/api/proxy/procesos_emprestito_all?bypass_cache=1&_t=${Date.now()}`,
+          `/api/proxy/emprestito/obtener-procesos-bp?bypass_cache=1&_t=${Date.now()}`,
+        ]
+
+        let lastResult: { records: ProcesoEmprestito[]; explicitApiEmpty: boolean } | null = null
+        let loaded = false
+
+        for (const url of candidateUrls) {
+          const result = await fetchWithRetries(url, 3)
+          lastResult = result
+
+          if (result.records.length > 0 || result.explicitApiEmpty) {
+            if (!isLatestRequest()) return
+            setProcesos(filterDeletedProcesos(result.records))
+            loaded = true
+            break
+          }
+        }
+
+        if (!loaded && lastResult) {
+          if (!isLatestRequest()) return
+          console.warn('⚠️ API de procesos respondió sin registros; se mostrará tabla vacía')
+          setProcesos(filterDeletedProcesos(lastResult.records))
+          loaded = true
+        }
+
+        if (!loaded) {
+          throw new Error('No se pudo obtener respuesta válida del endpoint de procesos')
+        }
+      } catch (primaryError) {
+        if (signal.aborted || !isLatestRequest()) return
+        console.warn('⚠️ Error consultando procesos_emprestito_all (API):', primaryError)
+
+        // Reintento rápido adicional para errores transitorios antes de usar respaldo local
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1200))
+          if (signal.aborted || !isLatestRequest()) return
+
+          const retryResponse = await fetch(`/api/proxy/emprestito/obtener-procesos-bp?bypass_cache=1&_t=${Date.now()}`, { cache: 'no-store', signal })
+          if (retryResponse.ok) {
+            const retryPayload = await retryResponse.json()
+            if (retryPayload?.success !== false) {
+              const retryNormalized = normalizeProcesosResponse(retryPayload).map((item, index) => normalizeProcesoRecord(item, index))
+              if (retryNormalized.length > 0 || Array.isArray(retryPayload?.data)) {
+                if (!isLatestRequest()) return
+                setProcesos(filterDeletedProcesos(retryNormalized))
+                return
+              }
+            }
+          }
+        } catch (retryError) {
+          console.warn('⚠️ Reintento adicional de procesos también falló:', retryError)
+        }
+
+        throw primaryError
       }
     } catch (error) {
+      if (signal.aborted || !isLatestRequest()) return
       console.error('Error fetching procesos:', error)
+
+      const hasPreviousData = Array.isArray(procesosRef.current) && procesosRef.current.length > 0
+      if (hasPreviousData) {
+        console.warn('⚠️ Se conserva el último dataset de procesos por fallo transitorio de API')
+        setError(null)
+        return
+      }
+
       setError(error instanceof Error ? error.message : 'Error desconocido')
+      setProcesos([])
     } finally {
-      setLoading(false)
+      if (isLatestRequest()) {
+        procesosAbortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
@@ -220,73 +552,111 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   useEffect(() => {
     fetchProcesos()
     fetchOrdenesCompra()
-  }, [])
+    fetchConveniosData()
 
+    return () => {
+      if (procesosAbortRef.current) {
+        procesosAbortRef.current.abort()
+        procesosAbortRef.current = null
+      }
+    }
+  }, [])
+  
   // Función para cargar órdenes de compra
   const fetchOrdenesCompra = async () => {
     try {
-      // Usar endpoint local de Next.js
-      const baseUrl = window.location.origin
+      setLoadingOrdenes(true)
 
-      console.log('📡 Cargando órdenes de compra desde:', `${baseUrl}/api/emprestito/ordenes-compra`)
+      const response = await fetch('/api/proxy/emprestito/ordenes-compra')
+      if (!response.ok) return
       
-      const response = await fetch(`${baseUrl}/api/emprestito/ordenes-compra`)
-      
-      if (!response.ok) {
-        console.warn(`⚠️ Error al cargar órdenes de compra: ${response.status}`)
-        return
-      }
-      
-      const data = await response.json()
-      console.log('✅ Órdenes de compra recibidas:', data)
-      
-      if (data.success && Array.isArray(data.data)) {
-        console.log('📊 Total órdenes de compra:', data.data.length)
-        console.log('🔍 Muestra de órdenes:', data.data.slice(0, 2))
-        
-        // Verificar nombre_banco
-        const conBanco = data.data.filter((o: any) => o.nombre_banco)
-        console.log(`✅ Órdenes con nombre_banco: ${conBanco.length}/${data.data.length}`)
-        
-        if (conBanco.length < data.data.length) {
-          console.warn('⚠️ Algunas órdenes no tienen nombre_banco:', 
-            data.data.filter((o: any) => !o.nombre_banco).slice(0, 3)
-          )
-        }
-        
-        setOrdenesCompra(data.data)
-      } else if (Array.isArray(data)) {
-        setOrdenesCompra(data)
-      } else {
-        console.warn('Formato de respuesta inesperado:', data)
-        setOrdenesCompra([])
-      }
+      const result = await response.json()
+      const ordenes = extractArrayPayload(result)
+      setOrdenesCompra(ordenes)
     } catch (error) {
-      console.error('❌ Error cargando órdenes de compra:', error)
+      console.error('Error fetching órdenes:', error)
+    } finally {
+      setLoadingOrdenes(false)
+    }
+  }
+  
+  // Función para cargar convenios
+  const fetchConveniosData = async () => {
+    try {
+      setLoadingConvenios(true)
+
+      const response = await fetch('/api/proxy/convenios_transferencias_all')
+      if (!response.ok) return
+      
+      const result = await response.json()
+      const conveniosData = extractArrayPayload(result)
+      setConvenios(conveniosData)
+    } catch (error) {
+      console.error('Error fetching convenios:', error)
+    } finally {
+      setLoadingConvenios(false)
     }
   }
 
-  // Función para manejar el éxito al agregar proceso
-  const handleAgregarProcesoSuccess = () => {
-    // Recargar los datos
-    fetchProcesos()
-    fetchOrdenesCompra()
+  // Función para manejar el éxito al agregar/editar proceso
+  const handleAgregarProcesoSuccess = async (updatedData?: any) => {
+    // Si recibimos datos actualizados, actualizar el estado local inmediatamente (optimistic update)
+    if (updatedData && updatedData.referencia_proceso) {
+      console.log('🔄 Actualización optimista con:', updatedData)
+      setProcesos(prevProcesos => 
+        prevProcesos.map(proceso => 
+          proceso.referencia_proceso === updatedData.referencia_proceso
+            ? { ...proceso, ...updatedData }
+            : proceso
+        )
+      )
+      
+      // Recargar en background después de 5 segundos para sincronizar con Firebase
+      setTimeout(async () => {
+        console.log('🔄 Sincronizando con Firebase...')
+        await fetchProcesos()
+      }, 5000)
+    } else {
+      // Si es un nuevo proceso, recargar todo
+      await new Promise(resolve => setTimeout(resolve, 500))
+      await fetchProcesos()
+    }
   }
-  
   // Función para manejar la edición
   const handleEditProceso = (proceso: ProcesoEmprestito) => {
     setEditingData(proceso)
     setShowAgregarModal(true)
   }
 
+  const resolveProcesoReferencia = (proceso: Partial<ProcesoEmprestito> | null | undefined): string => {
+    if (!proceso) return ''
+
+    const fallbackFromUrlProceso =
+      typeof (proceso as any).urlproceso === 'string'
+        ? (proceso as any).urlproceso
+        : (proceso as any).urlproceso?.url
+
+    const candidates = [
+      proceso.referencia_proceso,
+      (proceso as any).proceso_numero,
+      (proceso as any).referencia,
+      (proceso as any).numero_proceso,
+      (proceso as any).id_proceso,
+      proceso.id,
+      fallbackFromUrlProceso
+    ]
+
+    for (const candidate of candidates) {
+      const value = String(candidate || '').trim()
+      if (value) return value
+    }
+
+    return ''
+  }
+
   // Función para actualizar proceso vía API
   const handleUpdateProceso = async (referenciaProceso: string, formData: any) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
       const updateData = new URLSearchParams()
       
       // Solo enviar campos que fueron modificados/no vacíos
@@ -308,7 +678,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         valor_proyectado: formData.valor_proyectado
       })
 
-      const response = await fetch(`${apiUrl}/emprestito/proceso/${referenciaProceso}`, {
+      const response = await fetch(`/api/proxy/emprestito/proceso/${referenciaProceso}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -367,58 +737,27 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
   }
 
   // Función para eliminar proceso
-  const handleDeleteProceso = async (referenciaProceso: string) => {
+  const handleDeleteProceso = async (proceso: ProcesoEmprestito) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
+      const referencia = resolveProcesoReferencia(proceso)
+
+      if (!referencia) {
+        throw new Error('No se encontró la referencia_proceso para eliminar')
       }
 
-      console.log('🗑️ Eliminando proceso:', referenciaProceso)
+      console.log('🗑️ Eliminando proceso:', referencia)
 
-      const response = await fetch(`${apiUrl}/emprestito/proceso/${referenciaProceso}`, {
-        method: 'DELETE'
-      })
+      const { endpoint, data: result, mode, message } = await deleteProcesoWithFallback(proceso as Record<string, any>, referencia)
 
-      console.log('📡 Status de respuesta:', response.status)
-
-      if (!response.ok) {
-        let errorMsg = `Error ${response.status}: ${response.statusText}`
-        try {
-          const errorData = await response.json()
-          console.error('❌ Respuesta de error completa:', JSON.stringify(errorData, null, 2))
-          
-          if (errorData?.detail) {
-            if (typeof errorData.detail === 'string') {
-              errorMsg = errorData.detail
-            } else if (Array.isArray(errorData.detail)) {
-              // Si es un array de errores de validación
-              errorMsg = errorData.detail.map((err: any) => {
-                if (typeof err === 'string') return err
-                if (err?.msg) return `${err.msg}`
-                return JSON.stringify(err)
-              }).join('; ')
-            } else if (typeof errorData.detail === 'object') {
-              // Si es un objeto, convertirlo a string
-              errorMsg = JSON.stringify(errorData.detail)
-            }
-          } else if (errorData?.error) {
-            errorMsg = errorData.error
-          } else if (errorData?.message) {
-            errorMsg = errorData.message
-          }
-        } catch (e) {
-          console.error('No se pudo parsear la respuesta de error:', e)
-        }
-        throw new Error(errorMsg)
-      }
-
-      const result = await response.json()
-      console.log('✅ Proceso eliminado:', result)
+      console.log('✅ Proceso eliminado vía:', endpoint, result)
       
       // Recargar datos
       await fetchProcesos()
       setDeleteConfirm(null)
+
+      if (mode === 'local') {
+        alert(message)
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
       console.error('❌ Error al eliminar proceso:', errorMessage)
@@ -501,10 +840,12 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           ? aStr.localeCompare(bStr)
           : bStr.localeCompare(aStr)
       })
+    } else {
+      filtered.sort((a, b) => getProcessRecencyTimestamp(b) - getProcessRecencyTimestamp(a))
     }
 
     return filtered
-  }, [procesos, searchTerm, columnFilters, sortConfig])
+  }, [procesos, searchTerm, columnFilters, sortConfig, columns])
 
   const stats = useMemo(() => {
     const parseNumeric = (value: any) => {
@@ -574,6 +915,72 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
       publicado
     }
   }, [procesos, allProcesos])
+  
+  // Estadísticas agregadas (SECOP + Tienda Virtual + Convenios)
+  const aggregatedStats = useMemo(() => {
+    const parseNumeric = (value: any) => {
+      if (typeof value === 'number') return value
+      if (typeof value === 'string') {
+        const cleaned = value.replace(/[^\d.-]/g, '')
+        const numeric = Number(cleaned)
+        return Number.isFinite(numeric) ? numeric : 0
+      }
+      return 0
+    }
+
+    // SECOP
+    const totalProcesosSECOP = procesos.length
+    const valorTotalSECOP = procesos.reduce((sum, p) => sum + parseNumeric(p.valor_proyectado), 0)
+    
+    // Tienda Virtual
+    const totalOrdenesCompra = ordenesCompra.length
+    const valorTotalOrdenes = ordenesCompra.reduce((sum, o) => sum + parseNumeric(o.valor_orden), 0)
+    
+    // Convenios
+    const totalConvenios = convenios.length
+    const valorTotalConvenios = convenios.reduce((sum, c) => sum + parseNumeric(c.valor_contrato), 0)
+    
+    // Agregados
+    const totalProcesosGeneral = totalProcesosSECOP + totalOrdenesCompra + totalConvenios
+    const valorTotalGeneral = valorTotalSECOP + valorTotalOrdenes + valorTotalConvenios
+    
+    // Centros gestores únicos de todas las fuentes
+    const allCentrosGestores = new Set([
+      ...procesos.map(p => p.nombre_centro_gestor).filter(Boolean),
+      ...ordenesCompra.map(o => o.nombre_centro_gestor).filter(Boolean),
+      ...convenios.map(c => c.nombre_centro_gestor).filter(Boolean)
+    ])
+    
+    // Bancos únicos de todas las fuentes
+    const allBancos = new Set([
+      ...procesos.map(p => p.nombre_banco).filter(Boolean),
+      ...ordenesCompra.map(o => o.nombre_banco).filter(Boolean),
+      ...convenios.map(c => c.banco).filter(Boolean)
+    ])
+    
+    // Proveedores únicos de Tienda Virtual
+    const allProveedores = new Set(ordenesCompra.map(o => o.proveedor).filter(Boolean))
+    
+    // Modalidades únicas de SECOP
+    const allModalidades = new Set(procesos.map(p => p.tipo_modalidad).filter(Boolean))
+
+    return {
+      totalProcesosGeneral,
+      totalProcesosSECOP,
+      totalOrdenesCompra,
+      totalConvenios,
+      valorTotalGeneral,
+      valorTotalSECOP,
+      valorTotalOrdenes,
+      valorTotalConvenios,
+      centrosGestoresTotal: allCentrosGestores.size,
+      bancosTotal: allBancos.size,
+      totalCentrosGestoresUnicos: allCentrosGestores.size,
+      totalBancosUnicos: allBancos.size,
+      totalProveedores: allProveedores.size,
+      totalModalidadesUnicas: allModalidades.size
+    }
+  }, [procesos, ordenesCompra, convenios])
 
   // Función para manejar la visibilidad de columnas
   const toggleColumnVisibility = (columnKey: string) => {
@@ -810,6 +1217,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white shadow-lg"
+        data-tour-id="mgmt-procesos-header"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-4">
@@ -823,53 +1231,148 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
               </p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <ManagementFeatureTour moduleKey="procesos" />
+            <button
+              onClick={onNavigateHome}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver al Dashboard</span>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Tabs - Immediately after header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        data-tour-id="mgmt-procesos-tabs"
+      >
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
           <button
-            onClick={onNavigateHome}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+            onClick={() => setActiveTab('secop')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'secop'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/10'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Volver al Dashboard</span>
+            <div className="flex items-center space-x-2">
+              <FileText className="w-4 h-4" />
+              <span>SECOP</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('tiendaVirtual')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'tiendaVirtual'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/10'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <ShoppingCart className="w-4 h-4" />
+              <span>Tienda Virtual</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('convenios')}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'convenios'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/10'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Handshake className="w-4 h-4" />
+              <span>Convenios</span>
+            </div>
           </button>
         </div>
       </motion.div>
 
-      {/* Tabs para Procesos y Órdenes de Compra */}
-      <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => setActiveTab('procesos')}
-          className={`px-6 py-3 font-medium transition-colors relative ${
-            activeTab === 'procesos'
-              ? 'text-indigo-600 dark:text-indigo-400'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-          }`}
-        >
-          Procesos ({procesos.length})
-          {activeTab === 'procesos' && (
-            <motion.div
-              layoutId="activeTab"
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400"
-            />
-          )}
-        </button>
-        
-        <button
-          onClick={() => setActiveTab('ordenes')}
-          className={`px-6 py-3 font-medium transition-colors relative ${
-            activeTab === 'ordenes'
-              ? 'text-indigo-600 dark:text-indigo-400'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-          }`}
-        >
-          Órdenes de Compra ({ordenesCompra.length})
-          {activeTab === 'ordenes' && (
-            <motion.div
-              layoutId="activeTab"
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400"
-            />
-          )}
-        </button>
-      </div>
+      {/* Tarjetas Agregadas - Nivel Superior (SECOP + Tienda Virtual + Convenios) - COMPACTAS */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
+        data-tour-id="mgmt-procesos-stats"
+      >
+        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg p-3 shadow border border-indigo-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-indigo-100 text-xs font-medium truncate">Total General</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalProcesosGeneral}</p>
+              <p className="text-[10px] text-indigo-100 truncate">S:{aggregatedStats.totalProcesosSECOP} T:{aggregatedStats.totalOrdenesCompra} C:{aggregatedStats.totalConvenios}</p>
+            </div>
+            <Layers className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
 
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg p-3 shadow border border-emerald-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-emerald-100 text-xs font-medium truncate">Valor Total</p>
+              <p className="text-lg font-bold text-white truncate">{formatCompactCurrency(aggregatedStats.valorTotalGeneral)}</p>
+              <p className="text-[10px] text-emerald-100 truncate">Suma completa</p>
+            </div>
+            <DollarSign className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 shadow border border-purple-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-purple-100 text-xs font-medium truncate">Centros Gestores</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalCentrosGestoresUnicos}</p>
+              <p className="text-[10px] text-purple-100 truncate">Únicos</p>
+            </div>
+            <Building className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-3 shadow border border-cyan-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-cyan-100 text-xs font-medium truncate">Bancos</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalBancosUnicos}</p>
+              <p className="text-[10px] text-cyan-100 truncate">Participantes</p>
+            </div>
+            <Landmark className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 shadow border border-blue-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-blue-100 text-xs font-medium truncate">Proveedores</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalProveedores}</p>
+              <p className="text-[10px] text-blue-100 truncate">Únicos TV</p>
+            </div>
+            <Building className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 shadow border border-orange-400">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-orange-100 text-xs font-medium truncate">Modalidades</p>
+              <p className="text-2xl font-bold text-white">{aggregatedStats.totalModalidadesUnicas}</p>
+              <p className="text-[10px] text-orange-100 truncate">Tipos</p>
+            </div>
+            <Layers className="w-6 h-6 text-white/80 ml-2 flex-shrink-0" />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Tab Content - SECOP Tab */}
+      {activeTab === 'secop' && (
+        <div className="space-y-6">
         {/* Active Filters */}
         {(searchTerm || Object.values(columnFilters).some(f => f?.length > 0)) && (
           <motion.div
@@ -1005,6 +1508,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+          data-tour-id="mgmt-procesos-filters"
         >
           <div className="flex flex-col md:flex-row gap-4">
             {/* Búsqueda global */}
@@ -1144,11 +1648,11 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
         </motion.div>
 
         {/* Table */}
-        {activeTab === 'procesos' ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          data-tour-id="mgmt-procesos-table"
         >
           <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
             <table className="w-full text-sm">
@@ -1338,9 +1842,20 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
                     <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700 sticky right-0 bg-white dark:bg-gray-800 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] dark:shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.3)]">
                       <div className="flex items-center space-x-2">
                         <button
+                          onClick={() => {
+                            setProcesoToModificar(proceso)
+                            setShowModificarModal(true)
+                          }}
+                          className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
+                          title="Modificar Valor"
+                        >
+                          <span className="text-lg font-bold">$</span>
+                        </button>
+                        {/* Botón Editar Completo - ahora disponible con PUT /emprestito/modificar-proceso */}
+                        <button
                           onClick={() => handleEditProceso(proceso)}
                           className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                          title="Editar"
+                          title="Editar Completo"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -1359,144 +1874,118 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({ onNavigateHome }) => 
             </table>
           </div>
         </motion.div>
-        ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Número Orden
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Centro Gestor
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Banco
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Proceso
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    Valor Proyectado
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase">
-                    BP
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {ordenesCompra.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                      No hay órdenes de compra disponibles
-                    </td>
-                  </tr>
-                ) : (
-                  ordenesCompra.map((orden, index) => (
-                    <tr key={orden.numero_orden || index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                        {orden.numero_orden || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="whitespace-normal break-words max-w-xs">
-                          {orden.nombre_centro_gestor || '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-2 whitespace-normal break-words max-w-xs">
-                          <Landmark className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                          <span className="font-medium">
-                            {orden.nombre_banco || <span className="text-red-500 italic">Sin banco</span>}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="whitespace-normal break-words max-w-md">
-                          {orden.nombre_resumido_proceso || '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-green-600 dark:text-green-400">
-                        {orden.valor_proyectado ? new Intl.NumberFormat('es-CO', {
-                          style: 'currency',
-                          currency: 'COP',
-                          minimumFractionDigits: 0
-                        }).format(orden.valor_proyectado) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {orden.bp || '-'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-        )}
+        </div>
+      )}
 
-      {/* Modal para agregar/editar proceso */}
-      <AgregarProcesoModalAlt
-        isOpen={showAgregarModal}
-        onClose={() => {
-          setShowAgregarModal(false)
-          setEditingData(null)
-        }}
-        onSuccess={handleAgregarProcesoSuccess}
-        editingData={editingData}
-        onEdit={handleUpdateProceso}
-      />
+      {/* Tab Content - Tienda Virtual */}
+      {activeTab === 'tiendaVirtual' && (
+        <TiendaVirtualTable />
+      )}
+
+      {/* Tab Content - Convenios */}
+      {activeTab === 'convenios' && (
+        <ConveniosTable />
+      )}
+
+      {/* Modal para agregar/editar proceso - Solo para SECOP */}
+      {activeTab === 'secop' && (
+        <AgregarProcesoModal
+          isOpen={showAgregarModal}
+          onClose={() => {
+            setShowAgregarModal(false)
+            setEditingData(null)
+          }}
+          onSuccess={handleAgregarProcesoSuccess}
+          editingData={editingData}
+          onEdit={handleUpdateProceso}
+        />
+      )}
       
-      {/* Delete Confirmation Dialog */}
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-            onClick={() => setDeleteConfirm(null)}
-          >
+      {/* Delete Confirmation Dialog - Solo para SECOP */}
+      {activeTab === 'secop' && (
+        <AnimatePresence>
+          {deleteConfirm && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setDeleteConfirm(null)
+                }
+              }}
             >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Eliminar Proceso
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                ¿Está seguro que desea eliminar el proceso <strong>{deleteConfirm.referencia_proceso}</strong>? Esta acción no se puede deshacer.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={async () => {
-                    if (deleteConfirm?.referencia_proceso) {
-                      await handleDeleteProceso(deleteConfirm.referencia_proceso)
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Eliminar</span>
-                </button>
-              </div>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Eliminar Proceso
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  ¿Está seguro que desea eliminar el proceso <strong>{resolveProcesoReferencia(deleteConfirm)}</strong>? Esta acción no se puede deshacer.
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirm(null)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+
+                      console.log('🖱️ Click en botón Eliminar confirmado')
+
+                      if (!deleteConfirm) {
+                        alert('No se encontró el proceso seleccionado para eliminar.')
+                        return
+                      }
+
+                      const referencia = resolveProcesoReferencia(deleteConfirm)
+                      if (!referencia) {
+                        alert('No se encontró la referencia del proceso para eliminar.')
+                        return
+                      }
+
+                      await handleDeleteProceso(deleteConfirm)
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      )}
+      
+      {/* Modal de Modificación de Valor - Solo para SECOP */}
+      {activeTab === 'secop' && (
+        <ModificarProcesoSecopModal
+          isOpen={showModificarModal}
+          onClose={() => {
+            setShowModificarModal(false)
+            setProcesoToModificar(null)
+          }}
+          onSuccess={() => {
+            fetchProcesos()
+            setShowModificarModal(false)
+            setProcesoToModificar(null)
+          }}
+          procesoData={procesoToModificar}
+        />
+      )}
       </div>
   )
 }

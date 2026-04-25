@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Table, 
   Search, 
@@ -27,7 +27,39 @@ import {
   X
 } from 'lucide-react';
 import { type AttributeData } from '@/services/unidades-proyecto.service';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { formatCurrency, formatCurrencyFull } from '@/utils/formatCurrency';
+import dynamic from 'next/dynamic';
+
+// Componentes dinámicos para modales de avances
+const RegistrarAvanceUPModal = dynamic(() => import('./RegistrarAvanceUPModal'), { ssr: false });
+const HistorialAvancesUP = dynamic(() => import('./HistorialAvancesUP'), { ssr: false });
+
+const ACTION_BUTTON_BASE_CLASS = 'inline-flex items-center px-2.5 py-1.5 text-sm font-medium rounded-lg transition-colors shadow-md ring-1';
+const ACTION_BUTTON_ICON_CLASS = 'w-4 h-4 mr-1.5';
+const ACTION_BUTTON_VARIANTS = {
+  avance: 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/70 ring-emerald-300/70 dark:ring-emerald-700/70',
+  historial: 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 hover:bg-purple-200 dark:hover:bg-purple-900/70 ring-purple-300/70 dark:ring-purple-700/70',
+};
+
+// Tipo para intervenciones
+interface IntervencionData {
+  intervencion_id: string;
+  upid: string;
+  estado: string;
+  tipo_intervencion: string;
+  avance_obra: number;
+  presupuesto_base: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+  nombre_centro_gestor: string;
+  fuente_financiacion?: string;
+  identificador?: string;
+  clase_up?: string;
+  bpin?: number;
+  referencia_contrato?: string;
+  referencia_proceso?: string;
+  url_proceso?: string;
+}
 
 // Tipo para el grupo de monumentos
 interface MonumentosGroupData {
@@ -141,7 +173,7 @@ const calculateProjectDuration = (fechaInicio: string, fechaFin: string): {
 };
 
 // Función para formatear fechas
-const formatDate = (dateString: string): string => {
+const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
@@ -200,25 +232,46 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   } | null>(null);
   const [viewMode, setViewMode] = useState<'compact' | 'complete'>('complete');
   
-  // Estado para controlar la expansión del grupo de monumentos
+  // Estado para controlar la expansión de grupos
+  const [isSubsidiosExpanded, setIsSubsidiosExpanded] = useState(false);
   const [isMonumentosExpanded, setIsMonumentosExpanded] = useState(false);
+  const [isBanderasExpanded, setIsBanderasExpanded] = useState(false);
   
+  // Estados para expansión de UPs individuales y sus intervenciones
+  const [expandedUPs, setExpandedUPs] = useState<Set<string>>(new Set());
+  const [intervencionesCache, setIntervencionesCache] = useState<Record<string, IntervencionData[]>>({});
+  const [loadingIntervenciones, setLoadingIntervenciones] = useState<Set<string>>(new Set());
+  
+  // Variables sintéticas calculadas por UP (avance promedio e inversión total)
+  const [syntheticMetrics, setSyntheticMetrics] = useState<Record<string, { avance: number; inversion: number }>>({});
+  
+  // Estado para modales de avances y edición
+  const [modalAvance, setModalAvance] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
+  const [modalHistorial, setModalHistorial] = useState<{ upid: string; intervencionId: string; nombre: string; avance: number; presupuesto: number } | null>(null);
+
   const [visibleColumns, setVisibleColumns] = useState({
     upid: true,
+    intervencion_id: false, // ID único de la intervención
     nombre_up: true,
-    identificador: false, // Nueva columna de identificador (oculta por defecto)
-    estado: true,
-    tipo_intervencion: false,
+    nombre_up_detalle: false,
+    identificador: false,
+    estado: true, // Mostrar en intervenciones, ocultar en UP (lógica condicional)
+    tipo_intervencion: true, // Mostrar en intervenciones, ocultar en UP (lógica condicional)
     tipo_equipamiento: false,
-    avance_obra: true,
-    presupuesto_base: true,
-    nombre_centro_gestor: true, // Mostrar por defecto ya que el usuario lo necesita completo
-    ubicacion: true, // Nueva columna unificada de barrio y comuna
+    clase_up: false,
+    frente_activo: true, // Importante para intervenciones
+    avance: true, // Variable sintética: promedio de avance_obra
+    inversion: true, // Variable sintética: suma de presupuesto_base
+    nombre_centro_gestor: true, // Mostrar en intervenciones, ocultar en UP (lógica condicional)
+    ubicacion: true, // Barrio y comuna combinados
     fuente_financiacion: false,
-    duracion_proyecto: false, // Nueva columna combinada de fechas
-    ano: false,
+    duracion_proyecto: false,
+    fecha_inicio: false,
+    fecha_fin: false,
+    fecha_inauguracion: false,
+    ano: true, // Año de la intervención, importante
     descripcion_intervencion: false,
-    acciones: true // Nueva columna de acciones
+    acciones: true // Botones de registrar avance y editar info
   });
 
   // Datos filtrados, ordenados y paginados con agrupación de monumentos
@@ -236,7 +289,8 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
         item.estado.toLowerCase().includes(term) ||
         item.tipo_intervencion.toLowerCase().includes(term) ||
         (item.tipo_equipamiento && item.tipo_equipamiento.toLowerCase().includes(term)) ||
-        item.nombre_centro_gestor.toLowerCase().includes(term) ||
+        (item.frente_activo && item.frente_activo.toLowerCase().includes(term)) ||
+        (item.nombre_centro_gestor && item.nombre_centro_gestor.toLowerCase().includes(term)) ||
         item.barrio_vereda.toLowerCase().includes(term) ||
         item.comuna_corregimiento.toLowerCase().includes(term) ||
         item.fuente_financiacion.toLowerCase().includes(term) ||
@@ -245,29 +299,64 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       );
     }
 
-    // Separar monumentos del resto de datos
-    const monumentos = filtered.filter(item => 
-      item.nombre_up.toLowerCase().includes('monumentos')
-    );
-    const noMonumentos = filtered.filter(item => 
-      !item.nombre_up.toLowerCase().includes('monumentos')
-    );
-
-    // Crear grupo de monumentos si hay elementos
-    const monumentosGroup: MonumentosGroupData | null = monumentos.length > 0 ? {
-      id: 'monumentos-culturales',
-      nombre: 'Monumentos Culturales de la Ciudad',
-      count: monumentos.length,
-      items: monumentos,
-      presupuesto_total: monumentos.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0),
-      avance_promedio: monumentos.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / monumentos.length,
+    // Función auxiliar para crear grupo
+    const createGroup = (id: string, nombre: string, items: AttributeData[]): MonumentosGroupData => ({
+      id,
+      nombre,
+      count: items.length,
+      items,
+      presupuesto_total: items.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0),
+      avance_promedio: items.length > 0 ? items.reduce((sum, item) => sum + (item.avance_obra || 0), 0) / items.length : 0,
       isGroup: true as const
-    } : null;
+    });
+
+    // Separar grupos especiales del resto de datos
+    const subsidios = filtered.filter(item => 
+      item.clase_up && item.clase_up.toLowerCase() === 'subsidios'
+    );
+    
+    const monumentos = filtered.filter(item => {
+      const nombreLower = (item.nombre_up || '').toLowerCase();
+      const detalleLower = (item.nombre_up_detalle || '').toLowerCase();
+      return nombreLower.includes('monumentos') || detalleLower.includes('monumentos');
+    });
+    
+    const banderas = filtered.filter(item => {
+      const nombreLower = (item.nombre_up || '').toLowerCase();
+      const detalleLower = (item.nombre_up_detalle || '').toLowerCase();
+      return nombreLower.includes('banderas') || detalleLower.includes('banderas');
+    });
+
+    // Datos que no pertenecen a ningún grupo
+    const noAgrupados = filtered.filter(item => {
+      const nombreLower = (item.nombre_up || '').toLowerCase();
+      const detalleLower = (item.nombre_up_detalle || '').toLowerCase();
+      const claseUpLower = (item.clase_up || '').toLowerCase();
+      
+      const esSubsidio = claseUpLower === 'subsidios';
+      const esMonumento = nombreLower.includes('monumentos') || detalleLower.includes('monumentos');
+      const esBandera = nombreLower.includes('banderas') || detalleLower.includes('banderas');
+      
+      return !esSubsidio && !esMonumento && !esBandera;
+    });
+
+    // Crear grupos
+    const subsidiosGroup: MonumentosGroupData | null = subsidios.length > 0 
+      ? createGroup('subsidios-grupo', '💰 Subsidios Municipales', subsidios) 
+      : null;
+      
+    const monumentosGroup: MonumentosGroupData | null = monumentos.length > 0 
+      ? createGroup('monumentos-culturales', '🏛️ Monumentos Culturales', monumentos) 
+      : null;
+      
+    const banderasGroup: MonumentosGroupData | null = banderas.length > 0 
+      ? createGroup('banderas-grupo', '🚩 Banderas', banderas) 
+      : null;
 
     // Ordenar datos no agrupados
-    let sortedNoMonumentos = noMonumentos;
+    let sortedNoAgrupados = noAgrupados;
     if (sortConfig) {
-      sortedNoMonumentos = [...noMonumentos].sort((a, b) => {
+      sortedNoAgrupados = [...noAgrupados].sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
         
@@ -286,38 +375,31 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       });
     }
 
-    // Crear la lista final para mostrar
-    let finalData: TableRowData[] = [...sortedNoMonumentos];
+    // Crear la lista final para mostrar: primero los datos individuales, luego los grupos colapsados
+    let finalData: TableRowData[] = [...sortedNoAgrupados];
     
-    // Agregar el grupo de monumentos AL FINAL si existe
-    if (monumentosGroup) {
-      // Si está expandido, agregar los monumentos individuales al final
-      if (isMonumentosExpanded) {
-        let sortedMonumentos = monumentos;
-        if (sortConfig) {
-          sortedMonumentos = [...monumentos].sort((a, b) => {
-            const aValue = a[sortConfig.key];
-            const bValue = b[sortConfig.key];
-            
-            if (typeof aValue === 'number' && typeof bValue === 'number') {
-              return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-            }
-            
-            const aStr = String(aValue).toLowerCase();
-            const bStr = String(bValue).toLowerCase();
-            
-            if (sortConfig.direction === 'asc') {
-              return aStr < bStr ? -1 : aStr > bStr ? 1 : 0;
-            } else {
-              return aStr > bStr ? -1 : aStr < bStr ? 1 : 0;
-            }
-          });
-        }
-        // Grupo + monumentos individuales al final
-        finalData = [...sortedNoMonumentos, monumentosGroup, ...sortedMonumentos];
+    // Agregar grupos AL FINAL para reducir ruido visual
+    if (subsidiosGroup) {
+      if (isSubsidiosExpanded) {
+        finalData.push(...subsidios);
       } else {
-        // Solo mostrar el grupo colapsado al final
-        finalData = [...sortedNoMonumentos, monumentosGroup];
+        finalData.push(subsidiosGroup);
+      }
+    }
+    
+    if (monumentosGroup) {
+      if (isMonumentosExpanded) {
+        finalData.push(...monumentos);
+      } else {
+        finalData.push(monumentosGroup);
+      }
+    }
+    
+    if (banderasGroup) {
+      if (isBanderasExpanded) {
+        finalData.push(...banderas);
+      } else {
+        finalData.push(banderasGroup);
       }
     }
 
@@ -334,14 +416,23 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       totalItems: finalData.length,
       monumentosGroup
     };
-  }, [data, searchTerm, sortConfig, currentPage, itemsPerPage, isMonumentosExpanded]);
+  }, [data, searchTerm, sortConfig, currentPage, itemsPerPage, isMonumentosExpanded, isBanderasExpanded, isSubsidiosExpanded]);
 
   // Función para manejar la expansión del grupo de monumentos
+  // Funciones para manejar la expansión de cada grupo
+  const handleToggleSubsidios = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setIsSubsidiosExpanded(!isSubsidiosExpanded);
+  };
+  
   const handleToggleMonumentos = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
+    if (e) e.stopPropagation();
     setIsMonumentosExpanded(!isMonumentosExpanded);
+  };
+  
+  const handleToggleBanderas = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setIsBanderasExpanded(!isBanderasExpanded);
   };
 
   // Manejar ordenamiento
@@ -400,6 +491,171 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
     }
   };
 
+  // Función para toggle la expansión de una UP y cargar sus intervenciones
+  const toggleUPExpansion = async (upid: string) => {
+    const isCurrentlyExpanded = expandedUPs.has(upid);
+    
+    // Toggle expansión
+    setExpandedUPs(prev => {
+      const newSet = new Set(prev);
+      if (isCurrentlyExpanded) {
+        newSet.delete(upid);
+      } else {
+        newSet.add(upid);
+      }
+      return newSet;
+    });
+    
+    // Si se está expandiendo y no tenemos las intervenciones en cache, cargarlas
+    if (!isCurrentlyExpanded && !intervencionesCache[upid]) {
+      setLoadingIntervenciones(prev => new Set(prev).add(upid));
+      
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const response = await fetch(`${apiUrl}/intervenciones?upid=${upid}&limit=10000`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const intervencionesRaw: IntervencionData[] = Array.isArray(data?.data) ? data.data : [];
+        const intervenciones = intervencionesRaw.filter(
+          (intervencion) => String(intervencion?.upid || '').trim() === String(upid).trim()
+        );
+        
+        console.log(`✅ Loaded ${intervenciones.length} intervenciones for UP ${upid}`);
+        
+        // Calcular variables sintéticas
+        const avance = intervenciones.length > 0
+          ? intervenciones.reduce((sum, int) => sum + (int.avance_obra || 0), 0) / intervenciones.length
+          : 0;
+        const inversion = intervenciones.reduce((sum, int) => sum + (int.presupuesto_base || 0), 0);
+        
+        // Guardar variables sintéticas
+        setSyntheticMetrics(prev => ({
+          ...prev,
+          [upid]: { avance, inversion }
+        }));
+        
+        // Guardar en cache
+        setIntervencionesCache(prev => ({
+          ...prev,
+          [upid]: intervenciones
+        }));
+        
+      } catch (error) {
+        console.error(`❌ Error loading intervenciones for UP ${upid}:`, error);
+        // Guardar array vacío y métricas en 0 para evitar reintentos
+        setIntervencionesCache(prev => ({
+          ...prev,
+          [upid]: []
+        }));
+        setSyntheticMetrics(prev => ({
+          ...prev,
+          [upid]: { avance: 0, inversion: 0 }
+        }));
+      } finally {
+        setLoadingIntervenciones(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(upid);
+          return newSet;
+        });
+      }
+    }
+  };
+
+  // Cargar métricas sintéticas para las UPs de la página actual
+  React.useEffect(() => {
+    const loadMetricsForVisibleUPs = async () => {
+      if (!paginatedData || paginatedData.length === 0) return;
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      
+      // Cargar intervenciones para cada UP visible que no esté en cache
+      for (const item of paginatedData) {
+        if (isGroupRow(item)) {
+          continue;
+        }
+
+        const upid = item.upid;
+        
+        // Si ya tenemos las métricas o están cargando, skip
+        if (syntheticMetrics[upid] || loadingIntervenciones.has(upid)) continue;
+        
+        // Si ya están en cache, calcular métricas
+        if (intervencionesCache[upid]) {
+          const intervenciones = intervencionesCache[upid];
+          const avance = intervenciones.length > 0
+            ? intervenciones.reduce((sum, int) => sum + (int.avance_obra || 0), 0) / intervenciones.length
+            : 0;
+          const inversion = intervenciones.reduce((sum, int) => sum + (int.presupuesto_base || 0), 0);
+          
+          setSyntheticMetrics(prev => ({
+            ...prev,
+            [upid]: { avance, inversion }
+          }));
+          continue;
+        }
+        
+        // Cargar intervenciones desde API
+        setLoadingIntervenciones(prev => new Set(prev).add(upid));
+        
+        try {
+          const response = await fetch(`${apiUrl}/intervenciones?upid=${upid}&limit=10000`);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+          }
+          
+          const data = await response.json();
+          const intervencionesRaw: IntervencionData[] = Array.isArray(data?.data) ? data.data : [];
+          const intervenciones = intervencionesRaw.filter(
+            (intervencion) => String(intervencion?.upid || '').trim() === String(upid).trim()
+          );
+          
+          // Calcular variables sintéticas
+          const avance = intervenciones.length > 0
+            ? intervenciones.reduce((sum, int) => sum + (int.avance_obra || 0), 0) / intervenciones.length
+            : 0;
+          const inversion = intervenciones.reduce((sum, int) => sum + (int.presupuesto_base || 0), 0);
+          
+          // Guardar variables sintéticas
+          setSyntheticMetrics(prev => ({
+            ...prev,
+            [upid]: { avance, inversion }
+          }));
+          
+          // Guardar en cache
+          setIntervencionesCache(prev => ({
+            ...prev,
+            [upid]: intervenciones
+          }));
+          
+        } catch (error) {
+          console.error(`❌ Error loading intervenciones for UP ${upid}:`, error);
+          // Guardar métricas en 0 para evitar reintentos
+          setSyntheticMetrics(prev => ({
+            ...prev,
+            [upid]: { avance: 0, inversion: 0 }
+          }));
+          setIntervencionesCache(prev => ({
+            ...prev,
+            [upid]: []
+          }));
+        } finally {
+          setLoadingIntervenciones(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(upid);
+            return newSet;
+          });
+        }
+      }
+    };
+    
+    loadMetricsForVisibleUPs();
+  }, [paginatedData, currentPage]); // Recargar cuando cambie la página
+
   // Alternar visibilidad de columnas
   const toggleColumn = (column: keyof typeof visibleColumns) => {
     setVisibleColumns(prev => ({
@@ -417,17 +673,24 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       // Vista compacta: mostrar solo campos esenciales
       setVisibleColumns({
         upid: true,
+        intervencion_id: false,
         nombre_up: true,
+        nombre_up_detalle: false,
         identificador: false,
         estado: true,
         tipo_equipamiento: false,
-        avance_obra: true,
-        presupuesto_base: true,
-        ubicacion: true,
         tipo_intervencion: false,
+        frente_activo: false,
+        clase_up: false,
+        avance: true,
+        inversion: true,
+        ubicacion: true,
         nombre_centro_gestor: true, // Mantener visible incluso en vista compacta
         fuente_financiacion: false,
         duracion_proyecto: false,
+        fecha_inicio: false,
+        fecha_fin: false,
+        fecha_inauguracion: false,
         ano: false,
         descripcion_intervencion: false,
         acciones: true
@@ -436,17 +699,24 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
       // Vista completa: mostrar todos los campos relevantes
       setVisibleColumns({
         upid: true,
+        intervencion_id: false,
         nombre_up: true,
+        nombre_up_detalle: false,
         identificador: false,
         estado: true,
         tipo_intervencion: true,
         tipo_equipamiento: true,
-        avance_obra: true,
-        presupuesto_base: true,
+        frente_activo: true,
+        clase_up: true,
+        avance: true,
+        inversion: true,
         nombre_centro_gestor: true,
         ubicacion: true,
         fuente_financiacion: true,
         duracion_proyecto: true,
+        fecha_inicio: false,
+        fecha_fin: false,
+        fecha_inauguracion: false,
         ano: true,
         descripcion_intervencion: true, // Incluir descripción en vista completa
         acciones: true
@@ -457,17 +727,21 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
   // Componente de header de columna
   const ColumnHeader: React.FC<{
     label: string;
-    sortKey: keyof AttributeData;
+    sortKey?: keyof AttributeData;
     icon?: React.ReactNode;
   }> = ({ label, sortKey, icon }) => (
     <th 
       className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-      onClick={() => handleSort(sortKey)}
+      onClick={() => {
+        if (sortKey) {
+          handleSort(sortKey);
+        }
+      }}
     >
       <div className="flex items-center space-x-1">
         {icon}
         <span>{label}</span>
-        {sortConfig?.key === sortKey && (
+        {sortConfig && sortConfig.key === sortKey && (
           <span className="ml-1">
             {sortConfig.direction === 'asc' ? 
               <ChevronUp className="w-3 h-3" /> : 
@@ -504,7 +778,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
           <div className="flex items-center space-x-2">
             <Table className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <h3 className="text-base tablet:text-lg font-semibold text-gray-900 dark:text-white">
-              Atributos de Unidades de Proyecto
+              Intervenciones en el territorio
             </h3>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
               {totalItems} de {data.length}
@@ -598,11 +872,24 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<Building2 className="w-3 h-3" />} 
                   />
                 )}
+                {visibleColumns.intervencion_id && (
+                  <ColumnHeader 
+                    label="ID Intervención" 
+                    icon={<Hash className="w-3 h-3" />} 
+                  />
+                )}
                 {visibleColumns.nombre_up && (
                   <ColumnHeader 
                     label="Nombre UP" 
                     sortKey="nombre_up" 
                     icon={<Activity className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.nombre_up_detalle && (
+                  <ColumnHeader 
+                    label="Detalle" 
+                    sortKey="nombre_up_detalle" 
+                    icon={<FileText className="w-3 h-3" />} 
                   />
                 )}
                 {visibleColumns.identificador && (
@@ -612,16 +899,16 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<Hash className="w-3 h-3" />} 
                   />
                 )}
-                {visibleColumns.avance_obra && (
+                {visibleColumns.avance && (
                   <ColumnHeader 
-                    label="Avance Obra" 
+                    label="Avance" 
                     sortKey="avance_obra" 
                     icon={<Activity className="w-3 h-3" />} 
                   />
                 )}
-                {visibleColumns.presupuesto_base && (
+                {visibleColumns.inversion && (
                   <ColumnHeader 
-                    label="Presupuesto" 
+                    label="Inversión" 
                     sortKey="presupuesto_base" 
                     icon={<DollarSign className="w-3 h-3" />} 
                   />
@@ -654,6 +941,20 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     icon={<Building2 className="w-3 h-3" />} 
                   />
                 )}
+                {visibleColumns.frente_activo && (
+                  <ColumnHeader 
+                    label="Frente Activo" 
+                    sortKey="frente_activo" 
+                    icon={<Target className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.clase_up && (
+                  <ColumnHeader 
+                    label="Clase UP" 
+                    sortKey="clase_up" 
+                    icon={<Target className="w-3 h-3" />} 
+                  />
+                )}
                 {visibleColumns.nombre_centro_gestor && (
                   <ColumnHeader 
                     label="Centro Gestor" 
@@ -673,6 +974,27 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                     label="Duración" 
                     sortKey="fecha_inicio" 
                     icon={<Calendar className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.fecha_inicio && (
+                  <ColumnHeader 
+                    label="Fecha Inicio" 
+                    sortKey="fecha_inicio" 
+                    icon={<Calendar className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.fecha_fin && (
+                  <ColumnHeader 
+                    label="Fecha Fin" 
+                    sortKey="fecha_fin" 
+                    icon={<Clock className="w-3 h-3" />} 
+                  />
+                )}
+                {visibleColumns.fecha_inauguracion && (
+                  <ColumnHeader 
+                    label="Fecha Inauguración" 
+                    sortKey="fecha_inauguracion" 
+                    icon={<Target className="w-3 h-3" />} 
                   />
                 )}
                 {visibleColumns.acciones && (
@@ -701,20 +1023,38 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedData.map((row: TableRowData, index: number) => {
-                // Si es un grupo de monumentos, renderizar fila especial
+                // Si es un grupo, renderizar fila especial
                 if (isGroupRow(row)) {
+                  // Determinar el tipo de grupo y su configuración basándose en el ID exacto
+                  let groupConfig;
+                  if (row.id === 'subsidios-grupo') {
+                    groupConfig = { handler: handleToggleSubsidios, expanded: isSubsidiosExpanded, color: 'green', emoji: '💰' };
+                  } else if (row.id === 'monumentos-culturales') {
+                    groupConfig = { handler: handleToggleMonumentos, expanded: isMonumentosExpanded, color: 'purple', emoji: '🏛️' };
+                  } else if (row.id === 'banderas-grupo') {
+                    groupConfig = { handler: handleToggleBanderas, expanded: isBanderasExpanded, color: 'blue', emoji: '🚩' };
+                  } else {
+                    // Fallback por si acaso
+                    groupConfig = { handler: () => {}, expanded: false, color: 'gray', emoji: '📁' };
+                  }
+                    
+                  const borderColor = `border-${groupConfig.color}-500`;
+                  const bgFrom = `from-${groupConfig.color}-50`;
+                  const bgTo = `to-${groupConfig.color}-100`;
+                  const textColor = `text-${groupConfig.color}-600`;
+                  
                   return (
                     <motion.tr
                       key={row.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.01 }}
-                      onClick={() => handleToggleMonumentos()}
-                      className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all duration-200 cursor-pointer border-l-4 border-purple-500"
+                      onClick={() => groupConfig.handler()}
+                      className={`bg-gradient-to-r ${bgFrom} ${bgTo} dark:from-${groupConfig.color}-900/20 dark:to-${groupConfig.color}-900/20 hover:from-${groupConfig.color}-100 hover:to-${groupConfig.color}-200 dark:hover:from-${groupConfig.color}-900/30 dark:hover:to-${groupConfig.color}-900/30 transition-all duration-200 cursor-pointer border-l-4 ${borderColor}`}
                       style={{ height: 'auto' }}
                     >
                       {visibleColumns.upid && (
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-purple-600 dark:text-purple-400">
+                        <td className={`px-3 py-4 whitespace-nowrap text-sm font-medium ${textColor} dark:${textColor}`}>
                           <div className="flex items-center space-x-2">
                             <Building2 className="w-4 h-4" />
                             <span>GRUPO</span>
@@ -725,18 +1065,18 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                         <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                           <div className="flex items-center space-x-3">
                             <div className="flex-shrink-0">
-                              {isMonumentosExpanded ? (
-                                <ChevronDown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              {groupConfig.expanded ? (
+                                <ChevronDown className={`w-5 h-5 ${textColor} dark:${textColor}`} />
                               ) : (
-                                <ChevronRight className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                <ChevronRight className={`w-5 h-5 ${textColor} dark:${textColor}`} />
                               )}
                             </div>
                             <div className="space-y-1">
-                              <div className="font-bold text-purple-900 dark:text-purple-200 leading-tight break-words whitespace-normal">
-                                {row.nombre}
+                              <div className={`font-bold text-${groupConfig.color}-900 dark:text-${groupConfig.color}-200 leading-tight break-words whitespace-normal`}>
+                                {groupConfig.emoji} {row.nombre}
                               </div>
-                              <div className="text-xs text-purple-600 dark:text-purple-400 leading-tight break-words whitespace-normal">
-                                {row.count} monumentos agrupados • Click para {isMonumentosExpanded ? 'colapsar' : 'expandir'}
+                              <div className={`text-xs ${textColor} dark:${textColor} leading-tight break-words whitespace-normal`}>
+                                {row.count} elementos agrupados • Click para {groupConfig.expanded ? 'colapsar' : 'expandir'}
                               </div>
                             </div>
                           </div>
@@ -750,7 +1090,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                           </div>
                         </td>
                       )}
-                      {visibleColumns.avance_obra && (
+                      {visibleColumns.avance && (
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                           <div className="space-y-1">
                             <ProgressBar value={row.avance_promedio || 0} max={100} />
@@ -763,11 +1103,11 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                           </div>
                         </td>
                       )}
-                      {visibleColumns.presupuesto_base && (
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-bold text-purple-600 dark:text-purple-400">
+                      {visibleColumns.inversion && (
+                        <td className={`px-3 py-4 whitespace-nowrap text-sm font-bold ${textColor} dark:${textColor}`}>
                           <div className="flex items-center space-x-1">
                             <DollarSign className="w-3 h-3" />
-                            <span>{formatCurrency(row.presupuesto_total || 0)}</span>
+                            <span>{formatCurrencyFull(row.presupuesto_total || 0)}</span>
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Total del grupo
@@ -784,7 +1124,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       )}
                       {visibleColumns.estado && (
                         <td className="px-3 py-4 text-sm">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-${groupConfig.color}-100 text-${groupConfig.color}-800 dark:bg-${groupConfig.color}-900 dark:text-${groupConfig.color}-200`}>
                             <Building2 className="w-3 h-3 mr-1" />
                             Grupo ({row.count})
                           </span>
@@ -792,7 +1132,7 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       )}
                       {visibleColumns.tipo_intervencion && (
                         <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
-                          <div className="text-xs">Monumentos culturales</div>
+                          <div className="text-xs">{row.nombre}</div>
                         </td>
                       )}
                       {visibleColumns.nombre_centro_gestor && (
@@ -853,25 +1193,55 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                 // Si es un elemento individual, renderizar normalmente
                 const item = row as AttributeData;
                 const isFocused = focusedItem === item.upid;
+                const isExpanded = expandedUPs.has(item.upid);
+                const intervenciones = (intervencionesCache[item.upid] || []).filter(
+                  (intervencion) => String(intervencion?.upid || '').trim() === String(item.upid).trim()
+                );
+                const isLoadingIntervs = loadingIntervenciones.has(item.upid);
+                
                 return (
-                <motion.tr
-                  key={item.upid}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.01 }}
-                  onClick={() => onRowClick && onRowClick(item.upid)}
-                  className={`transition-colors cursor-pointer ${
-                    isFocused 
-                      ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500' 
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                  }`}
-                  style={{ height: 'auto' }}
-                >
-                  {visibleColumns.upid && (
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">
-                      {item.upid}
-                    </td>
-                  )}
+                  <React.Fragment key={item.upid}>
+                    {/* Fila principal de la UP */}
+                    <motion.tr
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.01 }}
+                      onClick={() => onRowClick && onRowClick(item.upid)}
+                      className={`transition-colors ${
+                        isFocused 
+                          ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500' 
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                      style={{ height: 'auto' }}
+                    >
+                      {visibleColumns.upid && (
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleUPExpansion(item.upid);
+                              }}
+                              className="flex-shrink-0 p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                              title={isExpanded ? 'Ocultar intervenciones' : 'Ver intervenciones'}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                              )}
+                            </button>
+                            <span className="font-medium text-blue-600 dark:text-blue-400">
+                              {item.upid}
+                            </span>
+                            {intervenciones.length > 0 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                {intervenciones.length}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      )}
                   {visibleColumns.nombre_up && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="space-y-1">
@@ -888,27 +1258,46 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                   )}
                   {visibleColumns.identificador && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div className="font-mono text-xs" title={item.identificador}>
+                      <div className="text-xs" title={item.identificador}>
                         {item.identificador || 'N/A'}
                       </div>
                     </td>
                   )}
-                  {visibleColumns.avance_obra && (
+                  {visibleColumns.avance && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      <div className="space-y-1">
-                        <ProgressBar value={item.avance_obra || 0} max={100} />
-                        <div className={`text-xs font-medium ${getProgressStatus(item.avance_obra || 0).color}`}>
-                          <div className="flex items-center space-x-1">
-                            <Target className="w-3 h-3" />
-                            <span>{getProgressStatus(item.avance_obra || 0).label}</span>
+                      {syntheticMetrics[item.upid] ? (
+                        <div className="space-y-1">
+                          <ProgressBar value={syntheticMetrics[item.upid].avance || 0} max={100} />
+                          <div className={`text-xs font-medium ${getProgressStatus(syntheticMetrics[item.upid].avance || 0).color}`}>
+                            <div className="flex items-center space-x-1">
+                              <Target className="w-3 h-3" />
+                              <span>{getProgressStatus(syntheticMetrics[item.upid].avance || 0).label} (Promedio)</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : loadingIntervenciones.has(item.upid) ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400 italic">Sin datos</div>
+                      )}
                     </td>
                   )}
-                  {visibleColumns.presupuesto_base && (
+                  {visibleColumns.inversion && (
                     <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
-                      {formatCurrency(item.presupuesto_base || 0)}
+                      {syntheticMetrics[item.upid] ? (
+                        <div className="space-y-1">
+                          <div className="font-semibold text-base">{formatCurrencyFull(syntheticMetrics[item.upid].inversion || 0)}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Inversión total</div>
+                        </div>
+                      ) : loadingIntervenciones.has(item.upid) ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400 italic">Sin datos</div>
+                      )}
                     </td>
                   )}
                   {visibleColumns.ubicacion && (
@@ -923,26 +1312,6 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       </div>
                     </td>
                   )}
-                  {visibleColumns.estado && (
-                    <td className="px-3 py-4 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium whitespace-normal leading-tight break-words max-w-full ${
-                        item.estado.toLowerCase().includes('activ') 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : item.estado.toLowerCase().includes('finaliz')
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                      }`}>
-                        {item.estado}
-                      </span>
-                    </td>
-                  )}
-                  {visibleColumns.tipo_intervencion && (
-                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div className="leading-tight break-words whitespace-normal">
-                        {item.tipo_intervencion}
-                      </div>
-                    </td>
-                  )}
                   {visibleColumns.tipo_equipamiento && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
                       <div className="leading-tight break-words whitespace-normal">
@@ -950,13 +1319,17 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       </div>
                     </td>
                   )}
-                  {visibleColumns.nombre_centro_gestor && (
+                  {visibleColumns.frente_activo && (
                     <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                      <div className="flex items-start space-x-2">
-                        <User className="w-3 h-3 text-purple-500 flex-shrink-0 mt-0.5" />
-                        <span className="leading-tight break-words whitespace-normal">
-                          {item.nombre_centro_gestor}
-                        </span>
+                      <div className="leading-tight break-words whitespace-normal">
+                        {item.frente_activo || 'N/A'}
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.clase_up && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
+                      <div className="leading-tight break-words whitespace-normal">
+                        {item.clase_up || 'N/A'}
                       </div>
                     </td>
                   )}
@@ -995,19 +1368,27 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       })()}
                     </td>
                   )}
-                  {visibleColumns.acciones && (
-                    <td className="px-3 py-4 whitespace-nowrap text-sm">
+                  {visibleColumns.fecha_inicio && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
                       <div className="flex items-center space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onShowDetails && onShowDetails(item.upid);
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="Ver detalles"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <Calendar className="w-3 h-3 text-blue-500" />
+                        <span>{formatDate(item.fecha_inicio)}</span>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.fecha_fin && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-3 h-3 text-orange-500" />
+                        <span>{formatDate(item.fecha_fin)}</span>
+                      </div>
+                    </td>
+                  )}
+                  {visibleColumns.fecha_inauguracion && (
+                    <td className="px-3 py-4 text-sm text-gray-900 dark:text-white whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <Target className="w-3 h-3 text-purple-500" />
+                        <span>{formatDate(item.fecha_inauguracion)}</span>
                       </div>
                     </td>
                   )}
@@ -1029,7 +1410,230 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
                       </div>
                     </td>
                   )}
+                  {visibleColumns.acciones && (
+                    <td className="px-3 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center space-x-1.5">
+                      </div>
+                    </td>
+                  )}
                 </motion.tr>
+                
+                {/* Filas de intervenciones expandidas */}
+                {isExpanded && (
+                  <>
+                    {isLoadingIntervs && (
+                      <tr className="bg-blue-50 dark:bg-blue-900/10">
+                        <td colSpan={Object.values(visibleColumns).filter(Boolean).length} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <span>Cargando intervenciones...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    
+                    {!isLoadingIntervs && intervenciones.length === 0 && (
+                      <tr className="bg-gray-50 dark:bg-gray-700/30">
+                        <td colSpan={Object.values(visibleColumns).filter(Boolean).length} className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                          Sin intervenciones asignadas
+                        </td>
+                      </tr>
+                    )}
+                    
+                    {!isLoadingIntervs && intervenciones.map((intervencion: IntervencionData, idx: number) => (
+                      <motion.tr
+                        key={intervencion.intervencion_id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-300 dark:border-blue-700"
+                      >
+                        {visibleColumns.upid && (
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <div className="flex items-center space-x-2 pl-8">
+                              <Activity className="w-3 h-3 text-blue-500" />
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                                {intervencion.intervencion_id}
+                              </span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.intervencion_id && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            {intervencion.intervencion_id}
+                          </td>
+                        )}
+                        {visibleColumns.nombre_up && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            <div className="text-xs italic">
+                              {intervencion.identificador || 'Sin identificador'}
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.nombre_up_detalle && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.identificador && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            <div className="text-xs">
+                              {intervencion.identificador || 'N/A'}
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.avance && (
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <div className="space-y-1">
+                              <ProgressBar value={intervencion.avance_obra || 0} max={100} />
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {(intervencion.avance_obra || 0).toFixed(1)}%
+                              </div>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.inversion && (
+                          <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
+                            <div className="space-y-1">
+                              <div>{formatCurrencyFull(intervencion.presupuesto_base || 0)}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">Presupuesto</div>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.ubicacion && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.estado && (
+                          <td className="px-3 py-4 text-sm">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              intervencion.estado.toLowerCase().includes('terminado') || intervencion.estado.toLowerCase().includes('inaugurado')
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : intervencion.estado.toLowerCase().includes('ejecución')
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                : intervencion.estado.toLowerCase().includes('alistamiento')
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                            }`}>
+                              {intervencion.estado}
+                            </span>
+                          </td>
+                        )}
+                        {visibleColumns.tipo_intervencion && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            {intervencion.tipo_intervencion}
+                          </td>
+                        )}
+                        {visibleColumns.tipo_equipamiento && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            {intervencion.clase_up || 'N/A'}
+                          </td>
+                        )}
+                        {visibleColumns.frente_activo && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.clase_up && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            {intervencion.clase_up || 'N/A'}
+                          </td>
+                        )}
+                        {visibleColumns.nombre_centro_gestor && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            <div className="flex items-start space-x-2">
+                              <User className="w-3 h-3 text-purple-500 flex-shrink-0 mt-0.5" />
+                              <span className="text-xs">{intervencion.nombre_centro_gestor}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.fuente_financiacion && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                            {intervencion.fuente_financiacion || 'N/A'}
+                          </td>
+                        )}
+                        {visibleColumns.duracion_proyecto && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            {calculateDuration(intervencion.fecha_inicio, intervencion.fecha_fin)}
+                          </td>
+                        )}
+                        {visibleColumns.fecha_inicio && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="w-3 h-3 text-blue-500" />
+                              <span className="text-xs">{formatDate(intervencion.fecha_inicio)}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.fecha_fin && (
+                          <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                            <div className="flex items-center space-x-1">
+                              <Clock className="w-3 h-3 text-orange-500" />
+                              <span className="text-xs">{formatDate(intervencion.fecha_fin)}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.fecha_inauguracion && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.ano && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.descripcion_intervencion && (
+                          <td className="px-3 py-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="text-xs">—</span>
+                          </td>
+                        )}
+                        {visibleColumns.acciones && (
+                          <td className="px-3 py-4 whitespace-nowrap text-sm">
+                            <div className="flex items-center space-x-1.5 justify-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalAvance({
+                                    upid: item.upid,
+                                    intervencionId: intervencion.intervencion_id,
+                                    nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
+                                    avance: intervencion.avance_obra || 0,
+                                    presupuesto: intervencion.presupuesto_base || 0
+                                  });
+                                }}
+                                className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.avance}`}
+                                title="Registrar avance de esta intervención"
+                              >
+                                <Activity className={ACTION_BUTTON_ICON_CLASS} />
+                                Avance
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalHistorial({
+                                    upid: item.upid,
+                                    intervencionId: intervencion.intervencion_id,
+                                    nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
+                                    avance: intervencion.avance_obra || 0,
+                                    presupuesto: intervencion.presupuesto_base || 0
+                                  });
+                                }}
+                                className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.historial}`}
+                                title="Ver historial de avances de esta intervención"
+                              >
+                                <Clock className={ACTION_BUTTON_ICON_CLASS} />
+                                Historial
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </motion.tr>
+                    ))}
+                  </>
+                )}
+              </React.Fragment>
                 );
               })}
             </tbody>
@@ -1202,13 +1806,49 @@ const UnidadesProyectoAttributesTable: React.FC<UnidadesProyectoAttributesTableP
             {searchTerm && (
               <div className="text-center tablet:text-right">
                 <span className="text-xs tablet:text-sm">
-                  Filtrados por: <span className="font-medium text-blue-600 dark:text-blue-400">"{searchTerm}"</span>
+                  Filtrados por: <span className="font-medium text-blue-600 dark:text-blue-400">&quot;{searchTerm}&quot;</span>
                 </span>
               </div>
             )}
           </div>
         </div>
       )}
+      {/* Modales de avances y edición */}
+      <AnimatePresence>
+        {modalAvance && (
+          <RegistrarAvanceUPModal
+            upid={modalAvance.upid}
+            intervencionId={modalAvance.intervencionId}
+            nombreUP={modalAvance.nombre}
+            avanceActual={modalAvance.avance}
+            presupuesto={modalAvance.presupuesto}
+            onClose={() => setModalAvance(null)}
+            onSuccess={() => setModalAvance(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {modalHistorial && (
+          <HistorialAvancesUP
+            upid={modalHistorial.upid}
+            intervencionId={modalHistorial.intervencionId}
+            nombreUP={modalHistorial.nombre}
+            presupuesto={modalHistorial.presupuesto}
+            onClose={() => setModalHistorial(null)}
+            onRegistrarAvance={() => {
+              setModalHistorial(null);
+              setModalAvance({
+                upid: modalHistorial.upid,
+                intervencionId: modalHistorial.intervencionId,
+                nombre: modalHistorial.nombre,
+                avance: modalHistorial.avance,
+                presupuesto: modalHistorial.presupuesto
+              });
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

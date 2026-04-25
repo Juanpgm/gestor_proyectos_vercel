@@ -11,6 +11,36 @@ import SearchableSelect from '@/components/SearchableSelect'
 
 type AuthMode = 'login' | 'register'
 
+const CENTROS_GESTORES_EXACTOS: string[] = [
+  'Secretaría de Gobierno',
+  'Departamento Administrativo de Gestión Jurídica Pública',
+  'Departamento Administrativo de Control Interno',
+  'Departamento Administrativo de Control Disciplinario Interno de Instrucción',
+  'Departamento Administrativo de Hacienda',
+  'Departamento Administrativo de Planeación',
+  'Departamento Administrativo de Gestión del Medio Ambiente',
+  'Departamento Administrativo de Tecnologías de la Información y las Comunicaciones',
+  'Departamento Administrativo de Contratación Pública',
+  'Departamento Administrativo de Desarrollo e Innovación Institucional',
+  'Secretaría de Educación',
+  'Secretaría de Salud Pública',
+  'Secretaría de Bienestar Social',
+  'Secretaría de Vivienda Social y Hábitat',
+  'Secretaría de Cultura',
+  'Secretaría de Infraestructura',
+  'Secretaría de Movilidad',
+  'Secretaría de Seguridad y Justicia',
+  'Secretaría del Deporte y la Recreación',
+  'Secretaría de Gestión del Riesgo de Emergencias y Desastres',
+  'Secretaría de Paz y Cultura Ciudadana',
+  'Secretaría de Desarrollo Económico',
+  'Secretaría de Turismo',
+  'Secretaría de Desarrollo Territorial y Participación Ciudadana',
+  'Unidad Administrativa Especial de Gestión de Bienes y Servicios',
+  'Unidad Administrativa Especial de Servicios Públicos',
+  'Unidad Administrativa Especial de Protección Animal'
+]
+
 export default function LoginPage() {
   const { state, signIn, signUp, signInWithGoogle, clearError } = useAuth()
   const [mode, setMode] = useState<AuthMode>('login')
@@ -32,50 +62,51 @@ export default function LoginPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [loginAttempts, setLoginAttempts] = useState(0)
 
+  const normalizeCentro = (value: string): string =>
+    String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+
   // Función para obtener los centros gestores
   const fetchCentrosGestores = async () => {
     try {
       setLoadingCentros(true)
-      
-      // Add cache busting and proper headers
-      const response = await fetch(`${API_CONFIG.BASE_URL}/centros-gestores/nombres-unicos`, {
+      const response = await fetch('/api/proxy/centros-gestores/nombres-unicos', {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        cache: 'no-cache'
+        cache: 'no-store'
       })
-      
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`No se pudo cargar centros gestores (${response.status})`)
       }
-      
-      const result = await response.json()
-      
-      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-        setCentrosGestores(result.data)
-        setApiDataLoaded(true)
-      } else {
-        throw new Error('Invalid API response or empty data')
-      }
+
+      const payload = await response.json().catch(() => ({}))
+      const apiCentros =
+        (Array.isArray(payload) && payload) ||
+        (Array.isArray(payload?.data) && payload.data) ||
+        (Array.isArray(payload?.centros_gestores) && payload.centros_gestores) ||
+        (Array.isArray(payload?.nombres_centros_gestores) && payload.nombres_centros_gestores) ||
+        []
+
+      const normalizedApiCentros = apiCentros
+        .map((item: any) => String(item || '').trim())
+        .filter(Boolean)
+
+      setCentrosGestores(
+        normalizedApiCentros.length > 0
+          ? normalizedApiCentros.sort((a: string, b: string) => a.localeCompare(b, 'es'))
+          : CENTROS_GESTORES_EXACTOS
+      )
+      setApiDataLoaded(true)
     } catch (error) {
       console.error('Error fetching centros gestores:', error)
-      // Fallback a valores predefinidos si la API falla
-      setCentrosGestores([
-        "Secretaría de Gobierno y Participación Ciudadana",
-        "Secretaría de Seguridad y Justicia", 
-        "Secretaría de Salud Pública",
-        "Secretaría de Educación",
-        "Secretaría de Cultura y Turismo",
-        "Secretaría de Desarrollo Económico",
-        "Secretaría de Infraestructura y Valorización",
-        "Secretaría de Movilidad",
-        "Secretaría de Desarrollo Territorial y Bienestar Social",
-        "Secretaría de Gestión del Riesgo de Emergencias y Desastres",
-        "Unidad de Cumplimiento",
-        "Otro"
-      ])
+      setCentrosGestores(CENTROS_GESTORES_EXACTOS)
     } finally {
       setLoadingCentros(false)
     }
@@ -107,6 +138,11 @@ export default function LoginPage() {
     const { name, value, type } = e.target
     const checked = 'checked' in e.target ? e.target.checked : false
     
+    // Limpiar errores visibles cuando el usuario modifica cualquier campo
+    if (state.error) {
+      clearError()
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -121,12 +157,18 @@ export default function LoginPage() {
     
     setIsLoading(true)
 
+    const normalizedEmail = formData.email.trim().toLowerCase()
+    const selectedCentroNormalized = normalizeCentro(formData.nombre_centro_gestor)
+    const canonicalCentroGestor =
+      centrosGestores.find((centro) => normalizeCentro(centro) === selectedCentroNormalized) ||
+      formData.nombre_centro_gestor.trim()
+
     try {
       if (mode === 'login') {
-        await signIn(formData.email, formData.password, formData.remember)
+        await signIn(normalizedEmail, formData.password, formData.remember)
         setLoginAttempts(0) // Reset attempts on successful login
       } else {
-        await signUp(formData.name, formData.email, formData.password, formData.confirmPassword, formData.cellphone, formData.nombre_centro_gestor)
+        await signUp(formData.name, normalizedEmail, formData.password, formData.confirmPassword, formData.cellphone, canonicalCentroGestor)
       }
     } catch (error: any) {
       console.error('Authentication error:', error)
@@ -166,6 +208,10 @@ export default function LoginPage() {
   }
 
   // Validaciones del formulario
+  const passwordsMatch = formData.password === formData.confirmPassword
+  const isPasswordValid = validatePassword(formData.password)
+  const isCellphoneValid = /^\d{10}$/.test(formData.cellphone)
+
   const isFormValid = mode === 'login' 
     ? formData.email.length > 0 && formData.password.length > 0
     : formData.email.length > 0 && 
@@ -173,7 +219,10 @@ export default function LoginPage() {
       formData.name.length > 0 && 
       formData.cellphone.length > 0 && 
       formData.nombre_centro_gestor.length > 0 &&
-      formData.confirmPassword.length > 0
+      formData.confirmPassword.length > 0 &&
+      passwordsMatch &&
+      isPasswordValid &&
+      isCellphoneValid
 
 
 
@@ -416,6 +465,18 @@ export default function LoginPage() {
                 )}
               </AnimatePresence>
 
+              {/* Mensajes de validación inline para registro */}
+              {mode === 'register' && formData.confirmPassword.length > 0 && !passwordsMatch && (
+                <p className="text-sm text-red-500 dark:text-red-400">
+                  Las contraseñas no coinciden
+                </p>
+              )}
+              {mode === 'register' && formData.cellphone.length > 0 && !isCellphoneValid && (
+                <p className="text-sm text-red-500 dark:text-red-400">
+                  El celular debe tener exactamente 10 dígitos numéricos
+                </p>
+              )}
+
               {/* Checkbox recordar y enlace olvidé contraseña */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -484,6 +545,8 @@ export default function LoginPage() {
                             ? 'Usuario no encontrado'
                             : mode === 'login' && (state.error.includes('Contraseña incorrecta') || state.error.includes('invalid password') || state.error.includes('incorrect password'))
                             ? 'Contraseña incorrecta'
+                            : mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists') || state.error.toLowerCase().includes('email-already-in-use'))
+                            ? 'Correo ya registrado'
                             : 'Error de autenticación'
                           }
                         </p>
@@ -492,6 +555,8 @@ export default function LoginPage() {
                             ? 'El correo electrónico ingresado no está registrado en el sistema.'
                             : mode === 'login' && (state.error.includes('Contraseña incorrecta') || state.error.includes('invalid password') || state.error.includes('incorrect password'))
                             ? 'La contraseña ingresada es incorrecta. Verifique e intente nuevamente.'
+                            : mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists') || state.error.toLowerCase().includes('email-already-in-use'))
+                            ? 'Ese correo ya tiene una cuenta. Inicia sesión o recupera la contraseña.'
                             : state.error
                           }
                         </p>
@@ -520,6 +585,34 @@ export default function LoginPage() {
                             >
                               Recupérala aquí
                             </button>
+                          </div>
+                        )}
+
+                        {mode === 'register' && (state.error.toLowerCase().includes('ya existe un usuario con este email') || state.error.toLowerCase().includes('email already exists') || state.error.toLowerCase().includes('email-already-in-use')) && (
+                          <div className="mt-3 space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-red-600 dark:text-red-400">¿Ya tienes cuenta?</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Conservar el email para que no tenga que re-escribirlo
+                                  setMode('login')
+                                }}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline transition-colors"
+                              >
+                                Inicia sesión
+                              </button>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-red-600 dark:text-red-400">¿No recuerdas la clave?</span>
+                              <button
+                                type="button"
+                                onClick={() => setShowForgotPassword(true)}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline transition-colors"
+                              >
+                                Recupérala aquí
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>

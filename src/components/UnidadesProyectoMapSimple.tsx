@@ -17,6 +17,7 @@ import {
   Map as MapIcon
 } from 'lucide-react';
 import { type GeometryData, type AttributeData } from '@/services/unidades-proyecto.service';
+import MapMeasureTool from './MapMeasureTool';
 
 // Configurar iconos de Leaflet
 if (typeof window !== 'undefined') {
@@ -43,14 +44,16 @@ type ColoringType =
   | 'estado' 
   | 'tipo_intervencion' 
   | 'tipo_equipamiento'
+  | 'frente_activo'
   | 'avance_obra' 
   | 'nombre_centro_gestor' 
   | 'presupuesto_base'
+  | 'fuente_financiacion'
   | 'comuna_corregimiento'
   | 'barrio_vereda';
 
 // Tipo para capas base
-type BaseLayerType = 'none' | 'comunas' | 'barrios';
+type BaseLayerType = 'none' | 'comunas' | 'barrios' | 'pulmon' | 'microterritorios';
 
 // Tipo para el modo de color de capas base
 type BaseLayerColorMode = 'monotone' | 'multitone-vibrant' | 'multitone-pastel' | 'multitone-earth';
@@ -275,7 +278,7 @@ const BaseLayerControl: React.FC<{
         >
           <MapIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span className="text-xs font-medium text-gray-900 dark:text-white">
-            {activeLayer === 'none' ? 'Capas Base' : activeLayer === 'comunas' ? 'Comunas' : 'Barrios'}
+            {activeLayer === 'none' ? 'Capas Base' : activeLayer === 'comunas' ? 'Comunas' : activeLayer === 'barrios' ? 'Barrios' : activeLayer === 'microterritorios' ? 'Microterritorios' : 'Pulmón de Oriente'}
           </span>
           <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
         </button>
@@ -287,7 +290,7 @@ const BaseLayerControl: React.FC<{
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-gray-200 dark:border-gray-700 px-3 py-2"
+            className="border-t border-gray-200 dark:border-gray-700 px-3 py-2 overflow-y-auto max-h-72"
           >
             <div className="space-y-3">
               {/* Selección de capa */}
@@ -330,6 +333,32 @@ const BaseLayerControl: React.FC<{
                   />
                   <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
                     Barrios y Veredas
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="baseLayer"
+                    value="pulmon"
+                    checked={activeLayer === 'pulmon'}
+                    onChange={() => onLayerChange('pulmon')}
+                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                    Pulmón de Oriente
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="baseLayer"
+                    value="microterritorios"
+                    checked={activeLayer === 'microterritorios'}
+                    onChange={() => onLayerChange('microterritorios')}
+                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                    Microterritorios
                   </span>
                 </label>
               </div>
@@ -448,19 +477,58 @@ const ColoringControl: React.FC<{
   coloringType: ColoringType;
   onColoringChange: (type: ColoringType) => void;
   legend: Array<{ color: string; label: string; count?: number }>;
-}> = ({ coloringType, onColoringChange, legend }) => {
+  availableData: AttributeData[]; // Datos disponibles para determinar opciones
+}> = ({ coloringType, onColoringChange, legend, availableData }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const coloringOptions: Array<{ value: ColoringType; label: string }> = [
-    { value: 'estado', label: 'Estado' },
-    { value: 'tipo_intervencion', label: 'Tipo de Intervención' },
-    { value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' },
-    { value: 'avance_obra', label: 'Avance de Obra' },
-    { value: 'nombre_centro_gestor', label: 'Centro Gestor' },
-    { value: 'presupuesto_base', label: 'Presupuesto Base' },
-    { value: 'comuna_corregimiento', label: 'Comuna/Corregimiento' },
-    { value: 'barrio_vereda', label: 'Barrio/Vereda' }
-  ];
+  // Generar opciones dinámicamente basadas en valores únicos de los datos
+  const coloringOptions = useMemo(() => {
+    // Función helper para extraer valores únicos
+    const hasUniqueValues = (field: keyof AttributeData): boolean => {
+      const uniqueValues = new Set(
+        availableData
+          .map(item => item[field])
+          .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
+      );
+      return uniqueValues.size > 0;
+    };
+
+    const options: Array<{ value: ColoringType; label: string }> = [];
+
+    // Siempre incluir estas opciones base si tienen datos
+    if (hasUniqueValues('estado')) {
+      options.push({ value: 'estado', label: 'Estado' });
+    }
+    if (hasUniqueValues('tipo_intervencion')) {
+      options.push({ value: 'tipo_intervencion', label: 'Tipo de Intervención' });
+    }
+    if (hasUniqueValues('tipo_equipamiento')) {
+      options.push({ value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' });
+    }
+    if (hasUniqueValues('frente_activo')) {
+      options.push({ value: 'frente_activo', label: 'Frente Activo' });
+    }
+    if (hasUniqueValues('avance_obra')) {
+      options.push({ value: 'avance_obra', label: 'Avance de Obra' });
+    }
+    if (hasUniqueValues('nombre_centro_gestor')) {
+      options.push({ value: 'nombre_centro_gestor', label: 'Centro Gestor' });
+    }
+    if (hasUniqueValues('presupuesto_base')) {
+      options.push({ value: 'presupuesto_base', label: 'Presupuesto Base' });
+    }
+    if (hasUniqueValues('fuente_financiacion')) {
+      options.push({ value: 'fuente_financiacion', label: 'Fuente de Financiación' });
+    }
+    if (hasUniqueValues('comuna_corregimiento')) {
+      options.push({ value: 'comuna_corregimiento', label: 'Comuna/Corregimiento' });
+    }
+    if (hasUniqueValues('barrio_vereda')) {
+      options.push({ value: 'barrio_vereda', label: 'Barrio/Vereda' });
+    }
+
+    return options;
+  }, [availableData]);
 
   return (
     <div className="absolute top-4 right-4 z-[1000] space-y-2">
@@ -538,6 +606,32 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   showOnlyFocused = false,
   onItemClick
 }) => {
+  // Log para verificar datos recibidos
+  useEffect(() => {
+    const validGeometries = geometryData?.features?.filter(f => 
+      f.properties.has_valid_geometry !== false &&
+      f.geometry?.coordinates &&
+      !(f.geometry.coordinates[0] === 0 && f.geometry.coordinates[1] === 0)
+    ).length || 0;
+    
+    console.log('🗺️ UnidadesProyectoMapSimple: Received data:', {
+      geometryFeatures: geometryData?.features?.length || 0,
+      validGeometries,
+      filteredDataItems: filteredData.length,
+      hasGeometry: !!geometryData,
+      hasFocusedItem: !!focusedItem,
+      showOnlyFocused
+    });
+    
+    if (geometryData && geometryData.features) {
+      if (geometryData.features.length === 0) {
+        console.warn('⚠️ Map has 0 features to display!');
+      } else if (validGeometries === 0) {
+        console.warn('⚠️ All features have invalid coordinates [0,0] - cannot display on map!');
+      }
+    }
+  }, [geometryData, filteredData, focusedItem, showOnlyFocused]);
+  
   const [mapType, setMapType] = useState<'streets' | 'satellite'>('streets');
   const [isDark, setIsDark] = useState(false);
   const [coloringType, setColoringType] = useState<ColoringType>('estado');
@@ -547,14 +641,18 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   const [showBaseLayerLabels, setShowBaseLayerLabels] = useState<boolean>(true);
   const [comunasData, setComunasData] = useState<any>(null);
   const [barriosData, setBarriosData] = useState<any>(null);
+  const [pulmonData, setPulmonData] = useState<any>(null);
+  const [microterritoriosData, setMicroterritoriosData] = useState<any>(null);
 
   // Cargar archivos GeoJSON de capas base
   useEffect(() => {
     const loadBaseLayerData = async () => {
       try {
-        const [comunasResponse, barriosResponse] = await Promise.all([
+        const [comunasResponse, barriosResponse, pulmonResponse, microterritoriosResponse] = await Promise.all([
           fetch('/data/geodata/cartografia_base/comunas_corregimientos.geojson'),
-          fetch('/data/geodata/cartografia_base/barrios_veredas.geojson')
+          fetch('/data/geodata/cartografia_base/barrios_veredas.geojson'),
+          fetch('/data/geodata/cartografia_base/PoligonoPropuestoPulmonDeOriente.geojson'),
+          fetch('/data/geodata/cartografia_base/microterritorios.geojson')
         ]);
         
         if (comunasResponse.ok) {
@@ -565,6 +663,16 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         if (barriosResponse.ok) {
           const barriosJson = await barriosResponse.json();
           setBarriosData(barriosJson);
+        }
+
+        if (pulmonResponse.ok) {
+          const pulmonJson = await pulmonResponse.json();
+          setPulmonData(pulmonJson);
+        }
+
+        if (microterritoriosResponse.ok) {
+          const microterritoriosJson = await microterritoriosResponse.json();
+          setMicroterritoriosData(microterritoriosJson);
         }
       } catch (error) {
         console.error('Error al cargar capas base:', error);
@@ -656,17 +764,88 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
     }
   };
 
+  // Helper para normalizar UPIDs para comparación case-insensitive
+  const normalizeUpid = (upid: string | null | undefined): string => {
+    if (!upid) return '';
+    return String(upid).trim().toLowerCase();
+  };
+
   // Filtrar datos según el item enfocado
   const displayData = useMemo(() => {
     if (showOnlyFocused && focusedItem) {
-      return filteredData.filter(item => item.upid === focusedItem);
+      const normalizedFocused = normalizeUpid(focusedItem);
+      return filteredData.filter(item => normalizeUpid(item.upid) === normalizedFocused);
     }
     return filteredData;
   }, [filteredData, showOnlyFocused, focusedItem]);
 
+  // Consolidar datos por UPID para coloración (tipo, avance, centro, inversión)
+  const consolidatedColorData = useMemo(() => {
+    const grouped = new Map<string, AttributeData[]>();
+
+    displayData.forEach(item => {
+      const key = normalizeUpid(item.upid);
+      if (!key) return;
+      const bucket = grouped.get(key);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        grouped.set(key, [item]);
+      }
+    });
+
+    return Array.from(grouped.values()).map(group => {
+      const base = group[0];
+      const estados = new Set(group.map(i => i.estado).filter(Boolean));
+      const tipos = new Set(group.map(i => i.tipo_intervencion).filter(Boolean));
+      const centros = new Set(group.map(i => i.nombre_centro_gestor).filter(Boolean));
+      const fuentes = new Set(group.map(i => i.fuente_financiacion).filter(Boolean));
+      const avances = group
+        .map(i => i.avance_obra)
+        .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
+      const presupuestos = group
+        .map(i => i.presupuesto_base)
+        .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
+
+      const estadoConsolidado = estados.size === 1
+        ? Array.from(estados)[0]!
+        : (estados.size > 1 ? 'Varios estados' : '-');
+
+      const tipoConsolidado = tipos.size === 1
+        ? Array.from(tipos)[0]!
+        : (tipos.size > 1 ? 'Varios tipos' : '-');
+
+      const centroConsolidado = centros.size === 1
+        ? Array.from(centros)[0]!
+        : (centros.size > 1 ? 'Intervenido por varios organismos' : '-');
+
+      const fuenteConsolidada = fuentes.size === 1
+        ? Array.from(fuentes)[0]!
+        : (fuentes.size > 1 ? 'Varias fuentes' : '-');
+
+      const avancePromedio = avances.length > 0
+        ? avances.reduce((sum, val) => sum + val, 0) / avances.length
+        : 0;
+
+      const presupuestoTotal = presupuestos.length > 0
+        ? presupuestos.reduce((sum, val) => sum + val, 0)
+        : 0;
+
+      return {
+        ...base,
+        estado: estadoConsolidado,
+        tipo_intervencion: tipoConsolidado,
+        nombre_centro_gestor: centroConsolidado,
+        fuente_financiacion: fuenteConsolidada,
+        avance_obra: avancePromedio,
+        presupuesto_base: presupuestoTotal
+      };
+    });
+  }, [displayData]);
+
   // Generar esquema de colores y leyenda basado en el tipo de coloración
   const { colorMap, legend } = useMemo(() => {
-    const data = displayData;
+    const data = consolidatedColorData;
     
     switch (coloringType) {
       case 'avance_obra': {
@@ -682,7 +861,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         data.forEach(item => {
           const avance = item.avance_obra || 0;
           const range = ranges.find(r => avance >= r.min && avance <= r.max) || ranges[0];
-          colorMap.set(item.upid, range.color);
+          colorMap.set(normalizeUpid(item.upid), range.color);
         });
         
         const legend = ranges.map(range => ({
@@ -723,7 +902,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         data.forEach(item => {
           const amount = item.presupuesto_base || 0;
           const range = ranges.find(r => amount >= r.min && amount < r.max) || ranges[0];
-          colorMap.set(item.upid, range.color);
+          colorMap.set(normalizeUpid(item.upid), range.color);
         });
         
         const legend = ranges.map(range => ({
@@ -741,6 +920,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
       default: {
         // Para variables categóricas
         let field: keyof AttributeData;
+        const isEstadoColoring = coloringType === 'estado';
         switch (coloringType) {
           case 'nombre_centro_gestor':
             field = 'nombre_centro_gestor';
@@ -754,6 +934,12 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
           case 'tipo_equipamiento':
             field = 'tipo_equipamiento';
             break;
+          case 'frente_activo':
+            field = 'frente_activo';
+            break;
+          case 'fuente_financiacion':
+            field = 'fuente_financiacion';
+            break;
           case 'comuna_corregimiento':
             field = 'comuna_corregimiento';
             break;
@@ -765,41 +951,116 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
             break;
         }
         
-        const uniqueValues = Array.from(new Set(data.map(item => String(item[field])).filter(Boolean)));
+        const normalizeEstadoValue = (value: string): string =>
+          value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+
+        const normalizeFrenteActivoValue = (value: string): string => {
+          const normalized = normalizeEstadoValue(value);
+          if (!normalized) return 'No aplica';
+          if (normalized.includes('terminad') || normalized.includes('finaliz') || normalized.includes('complet')) {
+            return 'No aplica';
+          }
+          if (normalized.includes('frente activo') || normalized === 'activo') {
+            return 'Frente activo';
+          }
+          if (normalized.includes('no aplica')) {
+            return 'No aplica';
+          }
+          return value;
+        };
+
+        const normalizeCategoricalValue = (value: string): string => {
+          if (field === 'frente_activo') {
+            return normalizeFrenteActivoValue(value);
+          }
+          return value;
+        };
+
+        const uniqueValues = Array.from(new Set(
+          data
+            .map(item => normalizeCategoricalValue(String(item[field] || '')))
+            .filter(Boolean)
+        ));
+
+        const isEstadoSinDato = (value: string): boolean => {
+          const normalized = normalizeEstadoValue(value);
+          return normalized === '-' || normalized.includes('sin estado') || normalized.includes('sin dato') || normalized.includes('n/a');
+        };
+
+        const getEstadoColor = (value: string): string => {
+          const normalized = normalizeEstadoValue(value);
+          if (!normalized || isEstadoSinDato(value)) {
+            return '#6B7280';
+          }
+          if (normalized.includes('varios')) return '#6B7280';
+          if (normalized.includes('terminad') || normalized.includes('finaliz') || normalized.includes('complet')) return '#10B981';
+          if (normalized.includes('ejecucion') || normalized.includes('en curso') || normalized.includes('activo')) return '#3B82F6';
+          if (normalized.includes('alist') || normalized.includes('planific') || normalized.includes('program')) return '#F59E0B';
+          if (normalized.includes('suspend') || normalized.includes('cancel') || normalized.includes('deten') || normalized.includes('paraliz')) return '#EF4444';
+          return '#8B5CF6';
+        };
+
+        const getEstadoLabel = (value: string): string => {
+          if (isEstadoSinDato(value)) return 'Sin datos';
+          return value;
+        };
         
         const colorMap = new Map<string, string>();
         const valueCounts = new Map<string, number>();
         
         uniqueValues.forEach((value, index) => {
-          const color = COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length];
+          const color = isEstadoColoring
+            ? getEstadoColor(value)
+            : COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length];
           
           data
-            .filter(item => String(item[field]) === value)
-            .forEach(item => colorMap.set(item.upid, color));
+            .filter(item => normalizeCategoricalValue(String(item[field] || '')) === value)
+            .forEach(item => colorMap.set(normalizeUpid(item.upid), color));
           
-          valueCounts.set(value, data.filter(item => String(item[field]) === value).length);
+          valueCounts.set(
+            value,
+            data.filter(item => normalizeCategoricalValue(String(item[field] || '')) === value).length
+          );
         });
+
+        const orderedValues = isEstadoColoring
+          ? uniqueValues.sort((a, b) => {
+              const aNorm = normalizeEstadoValue(a);
+              const bNorm = normalizeEstadoValue(b);
+              const aIsOther = aNorm.includes('varios') || isEstadoSinDato(a);
+              const bIsOther = bNorm.includes('varios') || isEstadoSinDato(b);
+              if (aIsOther && !bIsOther) return 1;
+              if (!aIsOther && bIsOther) return -1;
+              return a.localeCompare(b, 'es');
+            })
+          : uniqueValues;
         
-        const legend = uniqueValues.slice(0, 20).map((value, index) => ({
-          color: COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
-          label: value, // Mostrar texto completo sin truncar
+        const legend = orderedValues.slice(0, 20).map((value, index) => ({
+          color: isEstadoColoring
+            ? getEstadoColor(value)
+            : COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
+          label: isEstadoColoring ? getEstadoLabel(value) : value, // Mostrar texto completo sin truncar
           count: valueCounts.get(value)
         }));
         
         return { colorMap, legend };
       }
     }
-  }, [filteredData, coloringType]);
+  }, [consolidatedColorData, coloringType]);
 
   // Función para obtener color de feature
   const getFeatureColor = (properties: any): string => {
-    return colorMap.get(properties.upid) || '#6B7280';
+    return colorMap.get(normalizeUpid(properties.upid)) || '#6B7280';
   };
 
   // Función para obtener estilo de feature
   const getFeatureStyle = (feature: any) => {
     const color = getFeatureColor(feature.properties);
-    const isFocused = focusedItem === feature.properties?.upid;
+    const isFocused = normalizeUpid(focusedItem) === normalizeUpid(feature.properties?.upid);
     const isDimmed = showOnlyFocused && focusedItem && !isFocused;
     const geomType = feature.geometry?.type;
     
@@ -833,7 +1094,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   // Función específica para marcadores circulares
   const getCircleMarkerStyle = (feature: any): L.CircleMarkerOptions => {
     const color = getFeatureColor(feature.properties);
-    const isFocused = focusedItem === feature.properties?.upid;
+    const isFocused = normalizeUpid(focusedItem) === normalizeUpid(feature.properties?.upid);
     const isDimmed = showOnlyFocused && focusedItem && !isFocused;
     
     return {
@@ -864,8 +1125,96 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   const defaultCenter: [number, number] = [3.4516, -76.5320];
   const defaultZoom = 11;
 
+  // Función para validar si una geometría tiene coordenadas válidas
+  const hasValidCoordinates = (geometry: any): boolean => {
+    if (!geometry || !geometry.coordinates) return false;
+    
+    const geomType = geometry.type;
+    const coords = geometry.coordinates;
+    
+    try {
+      switch (geomType) {
+        case 'Point':
+          // Point: [lng, lat]
+          return Array.isArray(coords) && coords.length >= 2 &&
+            typeof coords[0] === 'number' && typeof coords[1] === 'number' &&
+            !(coords[0] === 0 && coords[1] === 0);
+        
+        case 'LineString':
+        case 'MultiPoint':
+          // LineString/MultiPoint: [[lng, lat], ...]
+          return Array.isArray(coords) && coords.length > 0 &&
+            coords.some((c: any) => Array.isArray(c) && c.length >= 2 &&
+              typeof c[0] === 'number' && typeof c[1] === 'number');
+        
+        case 'Polygon':
+        case 'MultiLineString':
+          // Polygon/MultiLineString: [[[lng, lat], ...], ...]
+          return Array.isArray(coords) && coords.length > 0 &&
+            coords.some((ring: any) => Array.isArray(ring) && ring.length > 0 &&
+              ring.some((c: any) => Array.isArray(c) && c.length >= 2 &&
+                typeof c[0] === 'number' && typeof c[1] === 'number'));
+        
+        case 'MultiPolygon':
+          // MultiPolygon: [[[[lng, lat], ...], ...], ...]
+          return Array.isArray(coords) && coords.length > 0 &&
+            coords.some((poly: any) => Array.isArray(poly) && poly.length > 0 &&
+              poly.some((ring: any) => Array.isArray(ring) && ring.length > 0 &&
+                ring.some((c: any) => Array.isArray(c) && c.length >= 2 &&
+                  typeof c[0] === 'number' && typeof c[1] === 'number')));
+        
+        case 'GeometryCollection':
+          // GeometryCollection: { geometries: [...] }
+          const geometries = (geometry as any).geometries;
+          return Array.isArray(geometries) && geometries.length > 0 &&
+            geometries.some((g: any) => hasValidCoordinates(g));
+        
+        default:
+          // Para tipos desconocidos, asumir válido si tiene coordenadas
+          return coords != null;
+      }
+    } catch (error) {
+      console.warn('Error validating geometry coordinates:', error);
+      return false;
+    }
+  };
+
+  // Verificar si hay features con geometrías válidas
+  const validFeatures = geometryData?.features?.filter(f => 
+    f.properties.has_valid_geometry !== false &&
+    f.geometry &&
+    hasValidCoordinates(f.geometry)
+  ) || [];
+  
+  const hasValidGeometries = validFeatures.length > 0;
+  const totalFeatures = geometryData?.features?.length || 0;
+
   return (
     <div className={`relative w-full h-full rounded-lg overflow-hidden ${className}`}>
+      {/* Alerta cuando no hay geometrías válidas */}
+      {totalFeatures > 0 && !hasValidGeometries && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1001] max-w-md">
+          <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 p-4 rounded shadow-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700 dark:text-yellow-200 font-medium">
+                  Sin coordenadas geográficas
+                </p>
+                <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
+                  {totalFeatures} {totalFeatures === 1 ? 'registro encontrado' : 'registros encontrados'} pero sin ubicación en el mapa. 
+                  Verifica la tabla para ver los datos.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Controles del mapa */}
       <div className="absolute top-4 left-4 z-[1000]">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-1 border border-gray-200 dark:border-gray-700">
@@ -888,6 +1237,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
         coloringType={coloringType}
         onColoringChange={setColoringType}
         legend={legend}
+        availableData={consolidatedColorData}
       />
 
       {/* Controles de enfoque */}
@@ -980,8 +1330,29 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
           </>
         )}
 
+        {baseLayer === 'pulmon' && pulmonData && (
+          <GeoJSON
+            key={`pulmon-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+            data={pulmonData}
+            style={getBaseLayerStyle}
+            pane="tilePane"
+          />
+        )}
+
+        {baseLayer === 'microterritorios' && microterritoriosData && (
+          <GeoJSON
+            key={`microterritorios-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+            data={microterritoriosData}
+            style={getBaseLayerStyle}
+            pane="tilePane"
+          />
+        )}
+
         {/* Geometrías de la API - se renderizan después para quedar por encima */}
-        {geometryData && geometryData.features && (
+        {geometryData && geometryData.features && (() => {
+          console.log('🎨 Rendering GeoJSON layer with', geometryData.features.length, 'features');
+          return true;
+        })() && (
           <GeoJSON
             key={`${mapType}-${isDark}-${coloringType}-${geometryData.features.length}`}
             data={geometryData as any}
@@ -991,7 +1362,11 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
               return L.circleMarker(latlng, style);
             }}
             onEachFeature={(feature: any, layer: any) => {
-              const attributeItem = filteredData.find(item => item.upid === feature.properties.upid);
+              // Normalizar UPID para comparación case-insensitive
+              const featureUpid = String(feature.properties.upid || '').trim().toLowerCase();
+              const attributeItem = filteredData.find(item => 
+                String(item.upid || '').trim().toLowerCase() === featureUpid
+              );
               
               if (attributeItem) {
                 const avance = Math.round(attributeItem.avance_obra || 0);
@@ -1282,6 +1657,9 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
             }}
           />
         )}
+
+        {/* Herramienta de medición */}
+        <MapMeasureTool />
       </MapContainer>
     </div>
   );

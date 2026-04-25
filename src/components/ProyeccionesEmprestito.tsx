@@ -25,7 +25,9 @@ import {
   Plus,
   Columns
 } from 'lucide-react'
-import AgregarProcesoModalAlt from './AgregarProcesoModalAlt'
+import AgregarProcesoModal from './AgregarProcesoModal'
+import ManagementFeatureTour from './ManagementFeatureTour'
+import { useAuth } from '@/context/AuthContext'
 
 // Interfaz para proyección de empréstito
 interface ProyeccionEmprestito {
@@ -77,6 +79,8 @@ interface ProyeccionesEmprestitoProps {
 }
 
 const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavigateHome }) => {
+  const { canModifyOrDeleteRecords } = useAuth()
+  const canManageRecordActions = canModifyOrDeleteRecords()
   // Estados para datos
   const [proyecciones, setProyecciones] = useState<ProyeccionEmprestito[]>([])
   const [loading, setLoading] = useState(true)
@@ -86,7 +90,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
   const [searchTerm, setSearchTerm] = useState('')
   const [columnFilters, setColumnFilters] = useState<ColumnFilter>({})
   const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'item', direction: 'asc' }) // Ordenar por item por defecto
   
   // Estados para modal de agregar proceso
   const [showAgregarProcesoModal, setShowAgregarProcesoModal] = useState(false)
@@ -151,105 +155,77 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     setLoading(true)
     setError(null)
     try {
-      // Usar endpoints locales de Next.js en lugar de API externa
       const baseUrl = window.location.origin
+      const timestamp = new Date().getTime()
       
-      // Realizar ambas peticiones en paralelo
-      const [proyeccionesResponse, proyeccionesSinProcesoResponse] = await Promise.all([
-        fetch(`${baseUrl}/api/emprestito/leer-tabla-proyecciones`),
-        fetch(`${baseUrl}/api/emprestito/proyecciones-sin-proceso`)
-      ])
-
-      if (!proyeccionesResponse.ok) {
-        throw new Error(`Error al cargar proyecciones: ${proyeccionesResponse.status}`)
-      }
-      
-      if (!proyeccionesSinProcesoResponse.ok) {
-        throw new Error(`Error al cargar proyecciones sin proceso: ${proyeccionesSinProcesoResponse.status}`)
-      }
-
-      const proyeccionesData = await proyeccionesResponse.json()
-      const proyeccionesSinProcesoData = await proyeccionesSinProcesoResponse.json()
-
-      console.log('Datos de proyecciones principales:', proyeccionesData)
-      console.log('Datos de proyecciones sin proceso:', proyeccionesSinProcesoData)
-      
-      // Verificar que valor_proyectado existe en los datos
-      if (proyeccionesData.success && proyeccionesData.data && proyeccionesData.data.length > 0) {
-        console.log('Ejemplo de proyección con valor_proyectado:', {
-          id: proyeccionesData.data[0].id,
-          nombre: proyeccionesData.data[0].nombre_resumido_proceso,
-          valor_proyectado: proyeccionesData.data[0].valor_proyectado,
-          tipo_valor: typeof proyeccionesData.data[0].valor_proyectado
-        })
-      }
-
-      // Combinar los datos de ambas APIs
-      let todasLasProyecciones: ProyeccionEmprestito[] = []
-      let idCounter = 0 // Contador local para asegurar IDs únicos
-
-      // Agregar las proyecciones principales
-      if (proyeccionesData.success && proyeccionesData.data) {
-        todasLasProyecciones = proyeccionesData.data.map((p: ProyeccionEmprestito) => {
-          const uniqueId = p.id || `main-${p.referencia_proceso || 'no-ref'}-${idCounter++}`
-          return {
-            ...p,
-            id: uniqueId,
-            sin_proceso: false // Marcar explícitamente como con proceso
-          }
-        })
-        console.log(`Proyecciones principales cargadas: ${todasLasProyecciones.length}`)
-      }
-
-      // Agregar las proyecciones sin proceso, marcándolas para distinguirlas
-      if (proyeccionesSinProcesoData && proyeccionesSinProcesoData.success && proyeccionesSinProcesoData.data && Array.isArray(proyeccionesSinProcesoData.data)) {
-        const proyeccionesSinProceso = proyeccionesSinProcesoData.data.map((p: ProyeccionEmprestito) => {
-          const uniqueId = p.id || `sinproc-${p.referencia_proceso || 'no-ref'}-${idCounter++}`
-          return {
-            ...p,
-            id: uniqueId,
-            sin_proceso: true, // Marcador para identificar proyecciones sin proceso
-            estado_proceso: 'Sin Proceso' // Campo adicional para filtrado
-          }
-        })
-        todasLasProyecciones = [...todasLasProyecciones, ...proyeccionesSinProceso]
-        console.log(`Proyecciones sin proceso agregadas: ${proyeccionesSinProceso.length}`)
-      } else {
-        console.log('No se pudieron cargar proyecciones sin proceso:', proyeccionesSinProcesoData)
-      }
-
-      // DEDUPLICAR: Mantener la versión más actualizada de cada proyección
-      // Si un ID existe en ambas APIs, dar prioridad a la versión de "sin proceso"
-      const proyeccionesMap = new Map<string, ProyeccionEmprestito>()
-      
-      todasLasProyecciones.forEach(proyeccion => {
-        const id = proyeccion.id || 'undefined'
-        const existing = proyeccionesMap.get(id)
-        
-        if (!existing) {
-          // No existe, agregar
-          proyeccionesMap.set(id, proyeccion)
-        } else {
-          // Ya existe, decidir cuál mantener
-          // Si la nueva es "sin proceso" y la existente no, reemplazar
-          if (proyeccion.sin_proceso && !existing.sin_proceso) {
-            console.warn(`Reemplazando proyección con ID ${id} - Priorizando versión "Sin Proceso"`)
-            proyeccionesMap.set(id, proyeccion)
-          } else {
-            console.warn(`Duplicado ignorado: ID ${id}`)
-          }
+      // Cargar solo desde el endpoint principal con parámetro false
+      const response = await fetch(`${baseUrl}/api/proxy/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       })
 
-      // Convertir el Map de vuelta a array
-      const proyeccionesDeduplicated = Array.from(proyeccionesMap.values())
+      if (!response.ok) {
+        throw new Error(`Error al cargar proyecciones: ${response.status}`)
+      }
 
-      console.log(`Total proyecciones antes de deduplicar: ${todasLasProyecciones.length}`)
-      console.log(`Total proyecciones después de deduplicar: ${proyeccionesDeduplicated.length}`)
-      console.log(`- Con proceso: ${proyeccionesDeduplicated.filter(p => !p.sin_proceso).length}`)
-      console.log(`- Sin proceso: ${proyeccionesDeduplicated.filter(p => p.sin_proceso).length}`)
+      const data = await response.json()
 
-      setProyecciones(proyeccionesDeduplicated)
+      if (!data.success || !data.data) {
+        throw new Error('Respuesta inválida del servidor')
+      }
+
+      // Cargar proyecciones sin proceso desde el segundo endpoint
+      const sinProcesoResponse = await fetch(`${baseUrl}/api/proxy/emprestito/proyecciones-sin-proceso?_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
+
+      let proyeccionesSinProceso: ProyeccionEmprestito[] = []
+      if (sinProcesoResponse.ok) {
+        const sinProcesoData = await sinProcesoResponse.json()
+        if (sinProcesoData.success && Array.isArray(sinProcesoData.data)) {
+          proyeccionesSinProceso = sinProcesoData.data
+        }
+      } else {
+        console.error('❌ Error al cargar proyecciones sin proceso:', sinProcesoResponse.status)
+      }
+
+      // Crear un Set con los IDs de proyecciones sin proceso
+      const idsSinProceso = new Set(proyeccionesSinProceso.map(p => p.id))
+      
+      // Verificar cuáles IDs de sin-proceso están en los datos principales
+      const idsEnPrincipal = new Set(data.data.map((p: any) => p.id))
+      const faltantesEnPrincipal = proyeccionesSinProceso.filter(p => !idsEnPrincipal.has(p.id))
+      
+      if (faltantesEnPrincipal.length > 0) {
+        console.log(`➕ Agregando ${faltantesEnPrincipal.length} registros sin proceso que faltan en el endpoint principal`)
+        // Agregar los registros faltantes al array principal
+        data.data = [...data.data, ...faltantesEnPrincipal]
+      }
+
+      // Procesar todas las proyecciones del endpoint principal (ahora incluye los agregados)
+      const todasLasProyecciones = data.data.map((p: ProyeccionEmprestito) => {
+        // Una proyección está "Sin Proceso" SOLO si no tiene referencia_proceso
+        // El endpoint /proyecciones-sin-proceso puede incluir registros con referencia_proceso
+        // que no existen en procesos_emprestito, pero eso no significa que estén "sin proceso"
+        const sinRefProceso = !p.referencia_proceso || p.referencia_proceso.trim() === ''
+        
+        return {
+          ...p,
+          sin_proceso: sinRefProceso,
+          estado_proceso: sinRefProceso ? 'Sin Proceso' : 'Con Proceso'
+        }
+      })
+
+      setProyecciones(todasLasProyecciones)
 
     } catch (err) {
       console.error('Error al cargar proyecciones:', err)
@@ -271,10 +247,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
   // Aplicar filtros y búsqueda
   const filteredProyecciones = useMemo(() => {
-    console.log('=== FILTERING DEBUG ===')
-    console.log('Total proyecciones in state:', proyecciones.length)
-    
-    const filtered = proyecciones.filter(proyeccion => {
+    return proyecciones.filter(proyeccion => {
       // Filtro de búsqueda global
       if (searchTerm) {
         const searchValue = searchTerm.toLowerCase()
@@ -307,30 +280,11 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
       return true
     })
-    
-    console.log('Filtered count:', filtered.length)
-    
-    // Verificar duplicados
-    const ids = proyecciones.map(p => p.id)
-    const uniqueIds = new Set(ids)
-    if (ids.length !== uniqueIds.size) {
-      console.error('⚠️ DUPLICATE IDs IN BASE PROYECCIONES!')
-      console.error('Total items:', ids.length)
-      console.error('Unique IDs:', uniqueIds.size)
-      const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
-      console.error('Duplicate IDs:', Array.from(new Set(duplicates)))
-    }
-    
-    return filtered
   }, [proyecciones, searchTerm, columnFilters])
 
   // Aplicar ordenamiento
   const sortedProyecciones = useMemo(() => {
-    console.log('=== SORTING DEBUG ===')
-    console.log('Filtered count:', filteredProyecciones.length)
-    console.log('Sort config:', sortConfig)
-    
-    const sorted = [...filteredProyecciones].sort((a, b) => {
+    return [...filteredProyecciones].sort((a, b) => {
       // ORDEN PRIMARIO: Sin Proceso primero
       if (a.sin_proceso !== b.sin_proceso) {
         return a.sin_proceso ? -1 : 1 // sin_proceso=true va primero
@@ -359,24 +313,6 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       
       return 0
     })
-    
-    console.log('Sorted count:', sorted.length)
-    console.log('First 3 IDs after sort:', sorted.slice(0, 3).map(p => p.id))
-    
-    // Verificar duplicados
-    const ids = sorted.map(p => p.id)
-    const uniqueIds = new Set(ids)
-    if (ids.length !== uniqueIds.size) {
-      console.error('⚠️ DUPLICATE IDs DETECTED!')
-      console.error('Total items:', ids.length)
-      console.error('Unique IDs:', uniqueIds.size)
-      
-      // Encontrar y loguear los IDs duplicados
-      const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index)
-      console.error('Duplicate IDs:', duplicates)
-    }
-    
-    return sorted
   }, [filteredProyecciones, sortConfig])
 
   // Calcular paginación
@@ -561,29 +497,46 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     return (value < 0 ? '-' : '') + formatted + suffix
   }
 
-  // Función para obtener estadísticas de resumen
-  const getStats = () => {
-    const totalProyecciones = proyecciones.length
-    const totalValorProyectado = proyecciones.reduce((sum, p) => sum + (Number(p.valor_proyectado) || 0), 0)
-    const organismos = new Set(proyecciones.map(p => p.nombre_organismo_reducido).filter(Boolean)).size
-    const bancos = new Set(proyecciones.map(p => p.nombre_banco).filter(Boolean)).size
+  // Calcular stats basadas en datos filtrados usando useMemo
+  const stats = useMemo(() => {
+    // Usar datos FILTRADOS para las estadísticas
+    const datosParaStats = filteredProyecciones
+    const totalProyecciones = proyecciones.length // Total sin filtros para comparación
+    
+    // Separar proyecciones con y sin contrato (de los datos filtrados)
+    const proyeccionesConContrato = datosParaStats.filter(p => !p.sin_proceso && p.referencia_proceso)
+    const proyeccionesSinContrato = datosParaStats.filter(p => p.sin_proceso || !p.referencia_proceso)
+    
+    // Valores totales separados
+    const totalValorProyectado = datosParaStats.reduce((sum, p) => sum + (Number(p.valor_proyectado) || 0), 0)
+    const valorConContrato = proyeccionesConContrato.reduce((sum, p) => sum + (Number(p.valor_proyectado) || 0), 0)
+    const valorSinContrato = proyeccionesSinContrato.reduce((sum, p) => sum + (Number(p.valor_proyectado) || 0), 0)
+    
+    const organismos = new Set(proyeccionesConContrato.map(p => p.nombre_organismo_reducido).filter(Boolean)).size
+    const bancos = new Set(proyeccionesConContrato.map(p => p.nombre_banco).filter(Boolean)).size
     
     // Nuevas estadísticas para proyecciones con y sin proceso
-    const conProceso = proyecciones.filter(p => !p.sin_proceso).length
-    const sinProceso = proyecciones.filter(p => p.sin_proceso).length
+    const conProceso = proyeccionesConContrato.length
+    const sinProceso = proyeccionesSinContrato.length
+    
+    // Estadísticas adicionales para proyecciones sin contrato
+    const organismosSinContrato = new Set(proyeccionesSinContrato.map(p => p.nombre_organismo_reducido).filter(Boolean)).size
+    const bancosSinContrato = new Set(proyeccionesSinContrato.map(p => p.nombre_banco).filter(Boolean)).size
 
     return {
       totalProyecciones,
       totalValorProyectado,
+      valorConContrato,
+      valorSinContrato,
       organismos,
       bancos,
       conProceso,
       sinProceso,
-      filteredCount: filteredProyecciones.length
+      organismosSinContrato,
+      bancosSinContrato,
+      filteredCount: datosParaStats.length
     }
-  }
-
-  const stats = getStats()
+  }, [filteredProyecciones, proyecciones])
 
   // Configuración de columnas
   const columns: Column[] = [
@@ -635,6 +588,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        data-tour-id="mgmt-proyecciones-header"
         className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-xl p-6 text-white"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -649,92 +603,112 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
               </p>
             </div>
           </div>
-          <button
-            onClick={onNavigateHome}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Volver al Dashboard</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ManagementFeatureTour moduleKey="proyecciones" />
+            <button
+              onClick={onNavigateHome}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver al Dashboard</span>
+            </button>
+          </div>
         </div>
       </motion.div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Diseño en 2 Columnas */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+        data-tour-id="mgmt-proyecciones-stats"
       >
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
+        {/* Columna Izquierda: Con Proceso */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Con Proceso</h3>
+            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+              {stats.conProceso} registros
+            </span>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Valor Total</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white" title={formatValue(stats.valorConContrato, 'currency')}>
+                {formatCompactCurrency(stats.valorConContrato)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Organismos</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.organismos}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Bancos</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.bancos}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Columna Derecha: Sin Proceso */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Sin Proceso</h3>
+            <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
+              {stats.sinProceso} registros
+            </span>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Valor Total</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white" title={formatValue(stats.valorSinContrato, 'currency')}>
+                {formatCompactCurrency(stats.valorSinContrato)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Organismos</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.organismosSinContrato}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Bancos</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.bancosSinContrato}</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Resumen General */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Total Proyecciones</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Total Proyecciones</span>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
                 {stats.filteredCount}
                 {stats.filteredCount !== stats.totalProyecciones && (
-                  <span className="text-sm text-gray-500 ml-1">/ {stats.totalProyecciones}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 ml-1 font-normal">de {stats.totalProyecciones}</span>
                 )}
               </p>
             </div>
-            <FileText className="w-8 h-8 text-indigo-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
+            <div className="h-8 w-px bg-gray-300 dark:bg-gray-600"></div>
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Total</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white" title={formatValue(stats.totalValorProyectado, 'currency')}>
+              <span className="text-xs text-gray-600 dark:text-gray-400">Valor Total</span>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white" title={formatValue(stats.totalValorProyectado, 'currency')}>
                 {formatCompactCurrency(stats.totalValorProyectado)}
               </p>
             </div>
-            <DollarSign className="w-8 h-8 text-green-500" />
           </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Organismos</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.organismos}</p>
-            </div>
-            <Building className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Bancos</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.bancos}</p>
-            </div>
-            <Building className="w-8 h-8 text-teal-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Con Proceso</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.conProceso}</p>
-            </div>
-            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Sin Proceso</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.sinProceso}</p>
-            </div>
-            <div className="w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-            </div>
-          </div>
+          {(searchTerm || Object.values(columnFilters).some(f => f?.length > 0)) && (
+            <span className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center gap-1">
+              <Filter className="w-3 h-3" />
+              Filtros activos
+            </span>
+          )}
         </div>
       </motion.div>
 
@@ -778,6 +752,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+        data-tour-id="mgmt-proyecciones-filters"
       >
         <div className="flex flex-col md:flex-row gap-4">
           {/* Búsqueda global */}
@@ -953,7 +928,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                 ))}
                 
                 {/* Columna de Acciones - Solo visible si hay proyecciones sin proceso */}
-                {stats.sinProceso > 0 && (
+                {canManageRecordActions && stats.sinProceso > 0 && (
                   <th className="px-3 py-2 text-left border-r border-gray-200 dark:border-gray-600">
                     <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Acciones</span>
                   </th>
@@ -1015,7 +990,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                   ))}
                   
                   {/* Columna de acciones - Solo para proyecciones sin proceso */}
-                  {proyeccion.sin_proceso && (
+                  {canManageRecordActions && proyeccion.sin_proceso && (
                     <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700">
                       <button
                         onClick={() => {
@@ -1038,8 +1013,8 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       </motion.div>
 
       {/* Modal para agregar proceso desde proyección */}
-      <AgregarProcesoModalAlt
-        isOpen={showAgregarProcesoModal}
+      <AgregarProcesoModal
+        isOpen={canManageRecordActions && showAgregarProcesoModal}
         onClose={() => {
           setShowAgregarProcesoModal(false)
           setProyeccionSeleccionada(null)

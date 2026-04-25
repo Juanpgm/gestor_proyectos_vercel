@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
+import {
+  getCentroGestorAccessFromSession,
+  filterByCentroGestor,
+  toBpinKey
+} from '@/utils/centroGestorAccess'
 
 export interface EmprestitoContrato {
   nombre_entidad: string;
@@ -176,7 +181,7 @@ export interface EmprestitoState {
   error: string | null
 }
 
-export const useEmprestito = (): EmprestitoState => {
+export const useEmprestito = (enabled: boolean = true): EmprestitoState => {
   const [state, setState] = useState<EmprestitoState>({
     data: {
       contratos: [],
@@ -184,11 +189,16 @@ export const useEmprestito = (): EmprestitoState => {
       dimensiones: [],
       hechos: {}
     },
-    loading: true,
+    loading: enabled, // Solo loading si está enabled
     error: null
   })
 
   useEffect(() => {
+    // No cargar datos si no está enabled
+    if (!enabled) {
+      return
+    }
+
     const fetchData = async () => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }))
@@ -235,10 +245,36 @@ export const useEmprestito = (): EmprestitoState => {
           validador_cuipo: ''
         }))
 
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const proyectosFiltrados = filterByCentroGestor(
+          proyectos,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'nombre_entidad']
+        )
+
+        const allowedBpins = new Set(
+          proyectosFiltrados
+            .map((proyecto) => toBpinKey(proyecto.bpin))
+            .filter((value): value is string => Boolean(value))
+        )
+
+        const contratosFiltrados = centroGestorAccess.canViewAll
+          ? contratos
+          : contratos.filter((contrato) => {
+              const contratoBpin = toBpinKey(contrato.bpin)
+              const nombreEntidad = String(contrato.nombre_entidad || '').trim().toLowerCase()
+              const userCentro = String(centroGestorAccess.userCentroGestor || '').trim().toLowerCase()
+
+              if (contratoBpin && allowedBpins.has(contratoBpin)) return true
+              if (userCentro && nombreEntidad === userCentro) return true
+
+              return false
+            })
+
         setState({
           data: {
-            contratos,
-            proyectos,
+            contratos: contratosFiltrados,
+            proyectos: proyectosFiltrados,
             dimensiones: [], // Array vacío ya que no tenemos este archivo
             hechos: {} // Objeto vacío ya que no tenemos este archivo
           },
@@ -263,7 +299,7 @@ export const useEmprestito = (): EmprestitoState => {
     }
 
     fetchData()
-  }, [])
+  }, [enabled]) // Agregar enabled a las dependencias
 
   return state
 }

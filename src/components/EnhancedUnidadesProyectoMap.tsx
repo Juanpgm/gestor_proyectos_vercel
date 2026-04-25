@@ -39,6 +39,7 @@ type ColoringType =
   | 'estado' 
   | 'tipo_intervencion' 
   | 'tipo_equipamiento'
+  | 'frente_activo'
   | 'avance_obra' 
   | 'nombre_centro_gestor' 
   | 'presupuesto_base'
@@ -46,7 +47,7 @@ type ColoringType =
   | 'barrio_vereda';
 
 // Tipo para capas base
-type BaseLayerType = 'none' | 'comunas' | 'barrios';
+type BaseLayerType = 'none' | 'comunas' | 'barrios' | 'pulmon' | 'microterritorios';
 
 // Tipo para el modo de color de capas base
 type BaseLayerColorMode = 'monotone' | 'multitone-vibrant' | 'multitone-pastel' | 'multitone-earth';
@@ -186,7 +187,7 @@ const BaseLayerControl: React.FC<{
         >
           <MapIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <span className="text-xs font-medium text-gray-900 dark:text-white">
-            {activeLayer === 'none' ? 'Capas Base' : activeLayer === 'comunas' ? 'Comunas' : 'Barrios'}
+            {activeLayer === 'none' ? 'Capas Base' : activeLayer === 'comunas' ? 'Comunas' : activeLayer === 'barrios' ? 'Barrios' : activeLayer === 'microterritorios' ? 'Microterritorios' : 'Pulmón de Oriente'}
           </span>
           <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
         </button>
@@ -198,7 +199,7 @@ const BaseLayerControl: React.FC<{
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-gray-200 dark:border-gray-700 px-3 py-2"
+            className="border-t border-gray-200 dark:border-gray-700 px-3 py-2 overflow-y-auto max-h-72"
           >
             <div className="space-y-3">
               {/* Selección de capa */}
@@ -241,6 +242,32 @@ const BaseLayerControl: React.FC<{
                   />
                   <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
                     Barrios y Veredas
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="baseLayer"
+                    value="pulmon"
+                    checked={activeLayer === 'pulmon'}
+                    onChange={() => onLayerChange('pulmon')}
+                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                    Pulmón de Oriente
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="baseLayer"
+                    value="microterritorios"
+                    checked={activeLayer === 'microterritorios'}
+                    onChange={() => onLayerChange('microterritorios')}
+                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:focus:ring-blue-600"
+                  />
+                  <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                    Microterritorios
                   </span>
                 </label>
               </div>
@@ -357,19 +384,55 @@ const ColoringControl: React.FC<{
   coloringType: ColoringType;
   onColoringChange: (type: ColoringType) => void;
   legend: Array<{ color: string; label: string; count?: number }>;
-}> = ({ coloringType, onColoringChange, legend }) => {
+  availableData: AttributeData[]; // Datos disponibles para determinar opciones
+}> = ({ coloringType, onColoringChange, legend, availableData }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const coloringOptions: Array<{ value: ColoringType; label: string }> = [
-    { value: 'estado', label: 'Estado' },
-    { value: 'tipo_intervencion', label: 'Tipo de Intervención' },
-    { value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' },
-    { value: 'avance_obra', label: 'Avance de Obra' },
-    { value: 'nombre_centro_gestor', label: 'Centro Gestor' },
-    { value: 'presupuesto_base', label: 'Presupuesto Base' },
-    { value: 'comuna_corregimiento', label: 'Comuna/Corregimiento' },
-    { value: 'barrio_vereda', label: 'Barrio/Vereda' }
-  ];
+  // Generar opciones dinámicamente basadas en valores únicos de los datos
+  const coloringOptions = useMemo(() => {
+    // Función helper para extraer valores únicos
+    const hasUniqueValues = (field: keyof AttributeData): boolean => {
+      const uniqueValues = new Set(
+        availableData
+          .map(item => item[field])
+          .filter(val => val !== undefined && val !== null && String(val).trim() !== '')
+      );
+      return uniqueValues.size > 0;
+    };
+
+    const options: Array<{ value: ColoringType; label: string }> = [];
+
+    // Siempre incluir estas opciones base si tienen datos
+    if (hasUniqueValues('estado')) {
+      options.push({ value: 'estado', label: 'Estado' });
+    }
+    if (hasUniqueValues('tipo_intervencion')) {
+      options.push({ value: 'tipo_intervencion', label: 'Tipo de Intervención' });
+    }
+    if (hasUniqueValues('tipo_equipamiento')) {
+      options.push({ value: 'tipo_equipamiento', label: 'Tipo de Equipamiento' });
+    }
+    if (hasUniqueValues('frente_activo')) {
+      options.push({ value: 'frente_activo', label: 'Frente Activo' });
+    }
+    if (hasUniqueValues('avance_obra')) {
+      options.push({ value: 'avance_obra', label: 'Avance de Obra' });
+    }
+    if (hasUniqueValues('nombre_centro_gestor')) {
+      options.push({ value: 'nombre_centro_gestor', label: 'Centro Gestor' });
+    }
+    if (hasUniqueValues('presupuesto_base')) {
+      options.push({ value: 'presupuesto_base', label: 'Presupuesto Base' });
+    }
+    if (hasUniqueValues('comuna_corregimiento')) {
+      options.push({ value: 'comuna_corregimiento', label: 'Comuna/Corregimiento' });
+    }
+    if (hasUniqueValues('barrio_vereda')) {
+      options.push({ value: 'barrio_vereda', label: 'Barrio/Vereda' });
+    }
+
+    return options;
+  }, [availableData]);
 
   return (
     <div className="absolute top-4 right-4 z-[1000] space-y-2">
@@ -453,14 +516,18 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
   const [showBaseLayerLabels, setShowBaseLayerLabels] = useState<boolean>(true);
   const [comunasData, setComunasData] = useState<any>(null);
   const [barriosData, setBarriosData] = useState<any>(null);
+  const [pulmonData, setPulmonData] = useState<any>(null);
+  const [microterritoriosData, setMicroterritoriosData] = useState<any>(null);
 
   // Cargar archivos GeoJSON de capas base
   useEffect(() => {
     const loadBaseLayerData = async () => {
       try {
-        const [comunasResponse, barriosResponse] = await Promise.all([
+        const [comunasResponse, barriosResponse, pulmonResponse, microterritoriosResponse] = await Promise.all([
           fetch('/data/geodata/cartografia_base/comunas_corregimientos.geojson'),
-          fetch('/data/geodata/cartografia_base/barrios_veredas.geojson')
+          fetch('/data/geodata/cartografia_base/barrios_veredas.geojson'),
+          fetch('/data/geodata/cartografia_base/PoligonoPropuestoPulmonDeOriente.geojson'),
+          fetch('/data/geodata/cartografia_base/microterritorios.geojson')
         ]);
         
         if (comunasResponse.ok) {
@@ -471,6 +538,16 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
         if (barriosResponse.ok) {
           const barriosJson = await barriosResponse.json();
           setBarriosData(barriosJson);
+        }
+
+        if (pulmonResponse.ok) {
+          const pulmonJson = await pulmonResponse.json();
+          setPulmonData(pulmonJson);
+        }
+
+        if (microterritoriosResponse.ok) {
+          const microterritoriosJson = await microterritoriosResponse.json();
+          setMicroterritoriosData(microterritoriosJson);
         }
       } catch (error) {
         console.error('Error al cargar capas base:', error);
@@ -550,9 +627,73 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
     }
   };
 
+  // Helper para normalizar UPIDs
+  const normalizeUpid = (upid: string | null | undefined): string => {
+    if (!upid) return '';
+    return String(upid).trim().toLowerCase();
+  };
+
+  // Consolidar datos por UPID para coloración (estado, tipo, centro, avance, inversión)
+  const consolidatedColorData = useMemo(() => {
+    const grouped = new Map<string, AttributeData[]>();
+
+    filteredData.forEach(item => {
+      const key = normalizeUpid(item.upid);
+      if (!key) return;
+      const bucket = grouped.get(key);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        grouped.set(key, [item]);
+      }
+    });
+
+    return Array.from(grouped.values()).map(group => {
+      const base = group[0];
+      const estados = new Set(group.map(i => i.estado).filter(Boolean));
+      const tipos = new Set(group.map(i => i.tipo_intervencion).filter(Boolean));
+      const centros = new Set(group.map(i => i.nombre_centro_gestor).filter(Boolean));
+      const avances = group
+        .map(i => i.avance_obra)
+        .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
+      const presupuestos = group
+        .map(i => i.presupuesto_base)
+        .filter((val): val is number => typeof val === 'number' && !Number.isNaN(val));
+
+      const estadoConsolidado = estados.size === 1
+        ? Array.from(estados)[0]!
+        : (estados.size > 1 ? 'Varios estados' : '-');
+
+      const tipoConsolidado = tipos.size === 1
+        ? Array.from(tipos)[0]!
+        : (tipos.size > 1 ? 'Varios tipos' : '-');
+
+      const centroConsolidado = centros.size === 1
+        ? Array.from(centros)[0]!
+        : (centros.size > 1 ? 'Intervenido por varios organismos' : '-');
+
+      const avancePromedio = avances.length > 0
+        ? avances.reduce((sum, val) => sum + val, 0) / avances.length
+        : 0;
+
+      const presupuestoTotal = presupuestos.length > 0
+        ? presupuestos.reduce((sum, val) => sum + val, 0)
+        : 0;
+
+      return {
+        ...base,
+        estado: estadoConsolidado,
+        tipo_intervencion: tipoConsolidado,
+        nombre_centro_gestor: centroConsolidado,
+        avance_obra: avancePromedio,
+        presupuesto_base: presupuestoTotal
+      };
+    });
+  }, [filteredData]);
+
   // Generar esquema de colores y leyenda basado en el tipo de coloración
   const { colorMap, legend } = useMemo(() => {
-    const data = filteredData;
+    const data = consolidatedColorData;
     
     switch (coloringType) {
       case 'avance_obra': {
@@ -568,7 +709,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
         data.forEach(item => {
           const avance = item.avance_obra || 0;
           const range = ranges.find(r => avance >= r.min && avance <= r.max) || ranges[0];
-          colorMap.set(item.upid, range.color);
+          colorMap.set(normalizeUpid(item.upid), range.color);
         });
         
         const legend = ranges.map(range => ({
@@ -609,7 +750,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
         data.forEach(item => {
           const amount = item.presupuesto_base || 0;
           const range = ranges.find(r => amount >= r.min && amount < r.max) || ranges[0];
-          colorMap.set(item.upid, range.color);
+          colorMap.set(normalizeUpid(item.upid), range.color);
         });
         
         const legend = ranges.map(range => ({
@@ -627,6 +768,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
       default: {
         // Para variables categóricas
         let field: keyof AttributeData;
+        const isEstadoColoring = coloringType === 'estado';
         switch (coloringType) {
           case 'nombre_centro_gestor':
             field = 'nombre_centro_gestor';
@@ -640,6 +782,9 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
           case 'tipo_equipamiento':
             field = 'tipo_equipamiento';
             break;
+          case 'frente_activo':
+            field = 'frente_activo';
+            break;
           case 'comuna_corregimiento':
             field = 'comuna_corregimiento';
             break;
@@ -652,34 +797,80 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
         }
         
         const uniqueValues = Array.from(new Set(data.map(item => String(item[field])).filter(Boolean)));
+
+        const normalizeEstadoValue = (value: string): string =>
+          value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+
+        const isEstadoSinDato = (value: string): boolean => {
+          const normalized = normalizeEstadoValue(value);
+          return normalized === '-' || normalized.includes('sin estado') || normalized.includes('sin dato') || normalized.includes('n/a');
+        };
+
+        const getEstadoColor = (value: string): string => {
+          const normalized = normalizeEstadoValue(value);
+          if (!normalized || isEstadoSinDato(value)) {
+            return '#6B7280';
+          }
+          if (normalized.includes('varios')) return '#6B7280';
+          if (normalized.includes('terminad') || normalized.includes('finaliz') || normalized.includes('complet')) return '#10B981';
+          if (normalized.includes('ejecucion') || normalized.includes('en curso') || normalized.includes('activo')) return '#3B82F6';
+          if (normalized.includes('alist') || normalized.includes('planific') || normalized.includes('program')) return '#F59E0B';
+          if (normalized.includes('suspend') || normalized.includes('cancel') || normalized.includes('deten') || normalized.includes('paraliz')) return '#EF4444';
+          return '#8B5CF6';
+        };
+
+        const getEstadoLabel = (value: string): string => {
+          if (isEstadoSinDato(value)) return 'Sin datos';
+          return value;
+        };
         
         const colorMap = new Map<string, string>();
         const valueCounts = new Map<string, number>();
         
         uniqueValues.forEach((value, index) => {
-          const color = COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length];
+          const color = isEstadoColoring
+            ? getEstadoColor(value)
+            : COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length];
           
           data
             .filter(item => String(item[field]) === value)
-            .forEach(item => colorMap.set(item.upid, color));
+            .forEach(item => colorMap.set(normalizeUpid(item.upid), color));
           
           valueCounts.set(value, data.filter(item => String(item[field]) === value).length);
         });
+
+        const orderedValues = isEstadoColoring
+          ? uniqueValues.sort((a, b) => {
+              const aNorm = normalizeEstadoValue(a);
+              const bNorm = normalizeEstadoValue(b);
+              const aIsOther = aNorm.includes('varios') || isEstadoSinDato(a);
+              const bIsOther = bNorm.includes('varios') || isEstadoSinDato(b);
+              if (aIsOther && !bIsOther) return 1;
+              if (!aIsOther && bIsOther) return -1;
+              return a.localeCompare(b, 'es');
+            })
+          : uniqueValues;
         
-        const legend = uniqueValues.slice(0, 20).map((value, index) => ({
-          color: COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
-          label: value, // Mostrar texto completo sin truncar
+        const legend = orderedValues.slice(0, 20).map((value, index) => ({
+          color: isEstadoColoring
+            ? getEstadoColor(value)
+            : COLOR_SCHEMES.categorical[index % COLOR_SCHEMES.categorical.length],
+          label: isEstadoColoring ? getEstadoLabel(value) : value, // Mostrar texto completo sin truncar
           count: valueCounts.get(value)
         }));
         
         return { colorMap, legend };
       }
     }
-  }, [filteredData, coloringType]);
+  }, [consolidatedColorData, coloringType]);
 
   // Función para obtener color de feature
   const getFeatureColor = (properties: any): string => {
-    return colorMap.get(properties.upid) || '#6B7280';
+    return colorMap.get(normalizeUpid(properties.upid)) || '#6B7280';
   };
 
   // Función para obtener estilo de feature
@@ -751,6 +942,7 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
         coloringType={coloringType}
         onColoringChange={setColoringType}
         legend={legend}
+        availableData={consolidatedColorData}
       />
 
       {/* Control de capas base */}
@@ -810,6 +1002,24 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
             />
             {showBaseLayerLabels && <BaseLayerLabels data={barriosData} layerType="barrios" />}
           </>
+        )}
+
+        {baseLayer === 'pulmon' && pulmonData && (
+          <GeoJSON
+            key={`pulmon-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+            data={pulmonData}
+            style={getBaseLayerStyle}
+            pane="tilePane"
+          />
+        )}
+
+        {baseLayer === 'microterritorios' && microterritoriosData && (
+          <GeoJSON
+            key={`microterritorios-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+            data={microterritoriosData}
+            style={getBaseLayerStyle}
+            pane="tilePane"
+          />
         )}
 
         {/* Geometrías de la API - se renderizan después para quedar por encima */}

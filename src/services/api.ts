@@ -2,7 +2,8 @@
 import { fetchWithErrorHandling } from '../utils/errorHandler';
 
 // API base URL - FastAPI backend (desde variable de entorno)
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+// Fallback para producción si no está configurada
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // Next.js API proxy URL for better error handling and CORS
 export const API_PROXY_URL = '/api/proxy';
@@ -36,6 +37,33 @@ export class ApiClient {
   }
 
   /**
+   * Get authentication token using WIF (Workload Identity Federation)
+   * El token se renueva automáticamente si está próximo a expirar
+   */
+  private async getAuthToken(): Promise<string | null> {
+    try {
+      // Importar dinámicamente para evitar problemas en SSR
+      if (typeof window !== 'undefined') {
+        const { getCurrentIdToken } = await import('@/lib/firebase');
+        const firebaseToken = await getCurrentIdToken();
+        if (firebaseToken) return firebaseToken;
+
+        // Fallback: sesión persistida por AuthService
+        const rawSession = localStorage.getItem('auth_session') || sessionStorage.getItem('auth_session');
+        if (rawSession) {
+          const parsed = JSON.parse(rawSession);
+          const sessionToken = parsed?.user?.idToken || parsed?.user?.id_token || null;
+          if (sessionToken) return sessionToken;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error(' WIF: Error obteniendo token de autenticación:', error);
+      return null;
+    }
+  }
+
+  /**
    * Make API request with retry logic
    */
   async request<T>(
@@ -44,32 +72,71 @@ export class ApiClient {
     useRetry: boolean = true
   ): Promise<T> {
     const url = `${this.baseUrl}/${endpoint.replace(/^\//, '')}`;
-    
+
     let lastError: Error = new Error('Unknown error occurred');
     let attempt = 0;
     const maxAttempts = useRetry ? this.retryConfig.maxRetries + 1 : 1;
 
     while (attempt < maxAttempts) {
       try {
-        console.log(`🌐 API Request (attempt ${attempt + 1}/${maxAttempts}): ${url}`);
-        
+        console.log(` API Request (attempt ${attempt + 1}/${maxAttempts}): ${url}`);
+
+        // Get auth token and add to headers (now async)
+        const token = await this.getAuthToken();
+
+        if (!token) {
+          console.warn('No authentication token available for request');
+        }
+
+        // Build headers object properly to avoid TypeScript errors
+        const headers: Record<string, string> = {
+          'Accept': 'application/json',
+          ...(options.headers as Record<string, string> || {}),
+        };
+
+        // Solo establecer Content-Type por defecto si no viene uno definido
+        const hasContentType = Object.keys(headers).some(
+          (key) => key.toLowerCase() === 'content-type'
+        );
+        if (!hasContentType && options.body !== undefined) {
+          headers['Content-Type'] = 'application/json';
+        }
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetchWithErrorHandling<T>(url, {
           ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...options.headers,
-          },
+          headers,
         }, this.timeout);
 
-        console.log(`✅ API Request successful: ${url}`);
+        console.log(`API Request successful: ${url}`);
         return response;
 
       } catch (error: any) {
         lastError = error;
         attempt++;
 
-        console.error(`❌ API Request failed (attempt ${attempt}/${maxAttempts}): ${url}`, error);
+        console.error(`API Request failed (attempt ${attempt}/${maxAttempts}): ${url}`, error);
+
+        // Provide better error context for auth issues
+        if (error.status === 401) {
+          // Attempt token refresh before giving up
+          try {
+            const { auth } = await import('@/lib/firebase');
+            const newToken = await auth?.currentUser?.getIdToken(true);
+            if (newToken && attempt < maxAttempts - 1) {
+              attempt++; // retry with refreshed token
+              continue;
+            }
+          } catch (_) {}
+          console.error('Authentication error: token invalid or expired');
+          lastError = new Error('Error de autenticacion. Por favor, inicia sesion nuevamente.');
+        } else if (error.status === 403) {
+          console.error('Authorization error: insufficient permissions');
+          lastError = new Error('No tienes permisos para realizar esta accion.');
+        }
 
         // Don't retry on certain errors
         if (
@@ -104,9 +171,10 @@ export class ApiClient {
    * POST request
    */
   async post<T>(endpoint: string, data?: any, useRetry: boolean = false): Promise<T> {
+    const isStringPayload = typeof data === 'string'
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data === undefined ? undefined : (isStringPayload ? data : JSON.stringify(data)),
     }, useRetry);
   }
 
@@ -114,9 +182,10 @@ export class ApiClient {
    * PUT request
    */
   async put<T>(endpoint: string, data?: any, useRetry: boolean = false): Promise<T> {
+    const isStringPayload = typeof data === 'string'
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: data === undefined ? undefined : (isStringPayload ? data : JSON.stringify(data)),
     }, useRetry);
   }
 

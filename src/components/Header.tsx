@@ -2,12 +2,15 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Settings, User, Sun, Moon, Menu } from 'lucide-react'
+import { Bell, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { UserProfile } from '@/components/AuthWrapper'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS } from '@/lib/design-system'
-import { useTodayNotificationCount } from '@/hooks/useNotifications'
+import { useRecentNotificationCount } from '@/hooks/useNotifications'
 import NotificationPanel from '@/components/NotificationPanel'
+import { useAuth } from '@/context/AuthContext'
+import RoleFeatureTour from '@/components/RoleFeatureTour'
+import GearMenu from '@/components/GearMenu'
 
 interface HeaderProps {
   onToggleSidebar?: () => void
@@ -15,8 +18,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { theme, setTheme } = useTheme()
-  const unreadCount = useTodayNotificationCount() // Ahora muestra solo las notificaciones de hoy
+  const { state, getHighestRole } = useAuth()
+  const unreadCount = useRecentNotificationCount(5) // Mostrar notificaciones de los últimos 5 días
   const [showNotifications, setShowNotifications] = useState(false)
+  const highestRole = getHighestRole()
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
@@ -29,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
       transition={{ duration: 0.5 }}
       className={`${CSS_UTILS.card} shadow-lg border-b border-gray-200 dark:border-gray-700 rounded-none transition-colors duration-300`}
     >
-      <div className="container mx-auto px-4 tablet:px-6 md:px-6 py-3 tablet:py-4 md:py-4">
+      <div className="px-2 sm:px-4 lg:px-6 py-3">
         <div className="flex items-center justify-between">
           {/* Logo and Title - Optimizado para tablets */}
           <div className="flex items-center space-x-2 tablet:space-x-4 md:space-x-4 min-w-0 flex-1">
@@ -41,6 +46,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
                 onClick={onToggleSidebar}
                 className="p-2 tablet:p-3 rounded-lg tablet:rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-target tablet-interactive"
                 title="Abrir menú"
+                data-tour-id="header-menu"
               >
                 <Menu className="w-5 h-5 tablet:w-6 tablet:h-6 text-gray-600 dark:text-gray-300" />
               </motion.button>
@@ -67,6 +73,8 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
           {/* User Actions - Optimizado para tablets con elementos más grandes */}
           <div className="flex items-center space-x-2 tablet:space-x-4 md:space-x-3 flex-shrink-0">
+            <RoleFeatureTour highestRole={highestRole} userId={state.user?.uid || state.user?.email} />
+
             {/* Theme Toggle - Más grande en tablets */}
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -74,6 +82,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               onClick={toggleTheme}
               className={`${CSS_UTILS.iconButton} tablet-interactive p-2 tablet:p-3 rounded-lg tablet:rounded-xl ${CATEGORIES.projects.className.text}`}
               title="Cambiar tema"
+              data-tour-id="header-theme"
             >
               {theme === 'dark' ? 
                 <Sun className="w-4 h-4 tablet:w-6 tablet:h-6 md:w-5 md:h-5" /> : 
@@ -88,6 +97,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               onClick={() => setShowNotifications(!showNotifications)}
               className={`${CSS_UTILS.iconButton} tablet-interactive p-2 tablet:p-3 rounded-lg tablet:rounded-xl ${CATEGORIES.activities.className.text} relative`}
               title="Notificaciones"
+              data-tour-id="header-notifications"
             >
               <Bell className="w-4 h-4 tablet:w-6 tablet:h-6 md:w-5 md:h-5" />
               {unreadCount > 0 && (
@@ -101,20 +111,14 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
               )}
             </motion.button>
 
-            {/* Settings - Visible en tablets */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className={`${CSS_UTILS.iconButton} tablet-interactive p-2 tablet:p-3 rounded-lg tablet:rounded-xl ${CATEGORIES.contracts.className.text} hidden tablet:flex md:flex`}
-              title="Configuración"
-            >
-              <Settings className="w-5 h-5 tablet:w-6 tablet:h-6" />
-            </motion.button>
+            {/* Settings menu - Visible en tablets */}
+            <GearMenu />
 
             {/* User Profile - Componente de autenticación con mejor espaciado */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="flex items-center tablet:ml-2"
+              data-tour-id="header-profile"
             >
               <UserProfile />
             </motion.div>

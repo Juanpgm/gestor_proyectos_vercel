@@ -1,0 +1,74 @@
+/* Tipografía distintiva para el proyecto - Siguiendo frontend-design guidelines */
+
+/* Importar fuentes de Google Fonts - Más distintivas que las genéricas */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Variables CSS para fuentes */
+:root {
+  /* Display/Headings - Outfit es moderna y geométrica */
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Body/Content - Space Grotesk es legible y única */
+  --font-body: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Monospace/Code - JetBrains Mono para datos y código */
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  
+  /* Pesos de fuente */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+}
+
+/* Aplicar fuentes globalmente */
+body {
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-normal);
+}
+
+h1, h2, h3, h4, h5, h6,
+.heading {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em; /* Tighter tracking para headings */
+}
+
+/* Números y datos monoespaciados para mejor alineación */
+.numeric,
+.data-value,
+table td:has(> .numeric) {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Clases de utilidad para tipografía */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Mejorar legibilidad */
+p, li, td {
+  line-height: 1.7;
+  letter-spacing: -0.01em;
+}
+
+/* Optimización para pantallas de alta densidad */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}

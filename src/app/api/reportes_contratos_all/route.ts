@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const response = await fetch('https://gestorproyectoapi-production.up.railway.app/reportes_contratos/', {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || ''
+    const response = await fetch(`${apiBaseUrl}/reportes_contratos/`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

@@ -44,6 +44,16 @@ import {
 import { CATEGORIES, formatNumber, CHART_COLORS } from '@/lib/design-system'
 import ContratosModal from './ContratosModal'
 import { fetchWithErrorHandling } from '@/utils/errorHandler'
+import { fetchPagosEmprestito, PagoEmprestito } from '@/services/pagos.service'
+import { formatCurrency } from '@/utils/formatCurrency'
+import { getCentroGestorAccessFromSession, filterByCentroGestor } from '@/utils/centroGestorAccess'
+import dynamic from 'next/dynamic'
+import { useReportesContrato, useResumenReportes } from '@/hooks/useReportesContrato'
+import { ClipboardEdit, History } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+
+const RegistrarReporteContratoModal = dynamic(() => import('./RegistrarReporteContratoModal'), { ssr: false })
+const HistorialReportesContrato = dynamic(() => import('./HistorialReportesContrato'), { ssr: false })
 
 // Tipos para los reportes de contratos (usar la estructura existente)
 interface ReporteContratoTS extends ReporteEmprestito {
@@ -484,6 +494,19 @@ const getISOWeek = (date: Date) => {
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
+// Helper para obtener la fecha de un día específico de una semana ISO
+const getDateFromWeek = (year: number, week: number, day: number = 7) => {
+  const simple = new Date(year, 0, 1 + (week - 1) * 7)
+  const dow = simple.getDay()
+  const ISOweekStart = simple
+  if (dow <= 4)
+    ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1)
+  else
+    ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay())
+  ISOweekStart.setDate(ISOweekStart.getDate() + day - 1)
+  return ISOweekStart
+}
+
 // Componente para mostrar variación entre semanas
 const WeeklyVariationPanel: React.FC<{
   reportes: ReporteEmprestito[]
@@ -518,7 +541,24 @@ const WeeklyVariationPanel: React.FC<{
     const timeSeriesData = sortedWeeks.map(weekKey => {
       const [year, week] = weekKey.split('-W').map(Number)
 
+      // Calcular la fecha de fin de esta semana
+      const weekEndDate = getDateFromWeek(year, week, 7) // Domingo de esa semana
+
       const lastReportByContract: { [contrato: string]: ReporteEmprestito } = {}
+      let reportesCount = 0
+      
+      // Contar todos los registros (contratos, órdenes, convenios) que ya estaban guardados hasta esta semana
+      let contratosActivosCount = 0
+      contratos.forEach(contrato => {
+        // Buscar fecha en múltiples campos: fecha_guardado (SECOP), fecha_creacion (TVEC/Convenios), fecha_inicio_contrato
+        const fechaGuardado = (contrato as any).fecha_guardado || (contrato as any).fecha_creacion || (contrato as any).fecha_inicio_contrato
+        if (fechaGuardado) {
+          const fechaGuardadoDate = new Date(fechaGuardado)
+          if (!isNaN(fechaGuardadoDate.getTime()) && fechaGuardadoDate <= weekEndDate) {
+            contratosActivosCount++
+          }
+        }
+      })
 
       reportes.forEach(reporte => {
         if (!reporte.fecha_reporte) return
@@ -529,6 +569,7 @@ const WeeklyVariationPanel: React.FC<{
         const reportYear = fecha.getFullYear()
 
         if (reportYear === year && reportWeek === week) {
+          reportesCount++
           const contratoKey = reporte.referencia_contrato
 
           if (!lastReportByContract[contratoKey]) {
@@ -560,6 +601,8 @@ const WeeklyVariationPanel: React.FC<{
       return {
         periodo: weekKey,
         'Avance Físico': avanceFisicoPromedio,
+        reportesCount,
+        contratosCount: contratosActivosCount // Contratos activos acumulados hasta esta semana
       }
     })
 
@@ -578,7 +621,9 @@ const WeeklyVariationPanel: React.FC<{
         rendimiento,
         valorInicial: anterior,
         valorFinal: actual,
-        isPositivo: variacion >= 0
+        isPositivo: variacion >= 0,
+        reportesCount: item.reportesCount,
+        contratosCount: item.contratosCount
       }
     }).reverse() // Invertir para mostrar la más reciente primero
   }, [reportes, contratos])
@@ -588,7 +633,8 @@ const WeeklyVariationPanel: React.FC<{
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 flex flex-col h-full"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 flex flex-col"
+        style={{ height: '500px' }}
       >
         <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-blue-600" />
@@ -598,25 +644,36 @@ const WeeklyVariationPanel: React.FC<{
           Puntos porcentuales
         </p>
 
-        <div className="flex-1 overflow-y-auto space-y-2">
+        <div className="overflow-y-auto space-y-1.5 flex-1">
           {variationData.length === 0 ? (
             <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">
               Sin datos de variación
             </div>
           ) : (
             variationData.map(item => (
-              <div key={item.periodo} className="text-xs p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="font-medium text-gray-700 dark:text-gray-300">
-                  {item.periodo}
+              <div key={item.periodo} className="text-xs p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-700 dark:text-gray-300 text-xs mb-0.5">
+                      {item.periodo}
+                    </div>
+                    <div className="flex gap-2 text-[10px] text-gray-500 dark:text-gray-400">
+                      <span>{item.reportesCount} rep.</span>
+                      <span>•</span>
+                      <span>{item.contratosCount} contr.</span>
+                    </div>
+                  </div>
+                  <div className={`font-bold text-sm ${item.isPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {item.isPositivo ? '↑' : '↓'} {Math.abs(item.variacion).toFixed(1)}pp
+                  </div>
                 </div>
-                <div className={`font-bold text-sm mt-1 ${item.isPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {item.isPositivo ? '↑' : '↓'} {Math.abs(item.variacion).toFixed(1)}pp
-                </div>
-                <div className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs">
-                  {item.valorInicial.toFixed(1)}% → {item.valorFinal.toFixed(1)}%
-                </div>
-                <div className={`text-xs mt-1 font-medium ${item.isPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  Rend: {item.isPositivo ? '+' : ''}{item.rendimiento.toFixed(1)}%
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {item.valorInicial.toFixed(1)}% → {item.valorFinal.toFixed(1)}%
+                  </span>
+                  <span className={`font-medium ${item.isPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    Rend: {item.isPositivo ? '+' : ''}{item.rendimiento.toFixed(1)}%
+                  </span>
                 </div>
               </div>
             ))
@@ -676,9 +733,26 @@ const WeeklyProgressChart: React.FC<{
       const [year, week] = weekKey.split('-W').map(Number)
       const isLastWeek = weekIndex === sortedWeeks.length - 1
 
+      // Calcular la fecha de fin de esta semana
+      const weekEndDate = getDateFromWeek(year, week, 7) // Domingo de esa semana
+
+      // Contar todos los registros (contratos, órdenes, convenios) que ya estaban guardados hasta esta semana
+      let contratosActivosCount = 0
+      contratos.forEach(contrato => {
+        // Buscar fecha en múltiples campos: fecha_guardado (SECOP), fecha_creacion (TVEC/Convenios), fecha_inicio_contrato
+        const fechaGuardado = (contrato as any).fecha_guardado || (contrato as any).fecha_creacion || (contrato as any).fecha_inicio_contrato
+        if (fechaGuardado) {
+          const fechaGuardadoDate = new Date(fechaGuardado)
+          if (!isNaN(fechaGuardadoDate.getTime()) && fechaGuardadoDate <= weekEndDate) {
+            contratosActivosCount++
+          }
+        }
+      })
+
       // Obtener el último reporte de cada contrato EN esta semana específica
       // EXCEPTO en la última semana, donde usamos el último reporte absoluto de cada contrato
       const lastReportByContract: { [contrato: string]: ReporteEmprestito } = {}
+      let reportesCount = 0 // Contador de reportes en esta semana
 
       data.forEach(reporte => {
         if (!reporte.fecha_reporte) return
@@ -694,6 +768,7 @@ const WeeklyProgressChart: React.FC<{
           // En la última semana, incluir el último reporte de cada contrato, sin importar la semana
           if (!lastReportByContract[contratoKey]) {
             lastReportByContract[contratoKey] = reporte
+            reportesCount++
           } else {
             const existingDate = new Date(lastReportByContract[contratoKey].fecha_reporte)
             if (fecha > existingDate) {
@@ -703,6 +778,7 @@ const WeeklyProgressChart: React.FC<{
         } else {
           // En semanas anteriores, solo considerar reportes DE esa semana específica
           if (reportYear === year && reportWeek === week) {
+            reportesCount++ // Contar todos los reportes de esta semana
             if (!lastReportByContract[contratoKey]) {
               lastReportByContract[contratoKey] = reporte
             } else {
@@ -739,6 +815,8 @@ const WeeklyProgressChart: React.FC<{
         periodo: weekKey,
         'Avance Físico': avanceFisicoPromedio,
         'Avance Financiero': avanceFinancieroPromedio,
+        reportesCount: reportesCount, // Contador de reportes
+        contratosCount: contratosActivosCount // Contratos activos acumulados hasta esta semana
       }
     })
   }, [data, contratos])
@@ -750,6 +828,7 @@ const WeeklyProgressChart: React.FC<{
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 flex flex-col"
+      style={{ height: '500px' }}
     >
       <div className="flex items-center gap-2 mb-3">
         <TrendingUp className="w-5 h-5 text-green-600" />
@@ -758,55 +837,83 @@ const WeeklyProgressChart: React.FC<{
         </h4>
       </div>
 
-      <div style={{ height: '300px', width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={timeSeriesData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis
-              dataKey="periodo"
-              tick={{ fontSize: 10 }}
-              stroke="#6b7280"
-            />
-            <YAxis
-              tick={{ fontSize: 10 }}
-              stroke="#6b7280"
-              tickFormatter={formatYAxis}
-              domain={[0, 100]}
-            />
-            <Tooltip
-              formatter={(value: number, name: string) => [
-                `${value.toFixed(2)}%`,
-                name
-              ]}
-              labelStyle={{ fontSize: '11px' }}
-              contentStyle={{
-                fontSize: '11px',
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px'
-              }}
-            />
+      <div className="overflow-x-auto flex-1">
+        <div style={{ height: '100%', width: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={timeSeriesData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey="periodo"
+                tick={{ fontSize: 10 }}
+                stroke="#6b7280"
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis
+                tick={{ fontSize: 10 }}
+                stroke="#6b7280"
+                tickFormatter={formatYAxis}
+                domain={[0, 100]}
+              />
+              <Tooltip
+                formatter={(value: number, name: string) => [
+                  `${value.toFixed(2)}%`,
+                  name
+                ]}
+                content={({ active, payload, label }: any) => {
+                  if (active && payload && payload.length) {
+                    const reportes = payload[0]?.payload?.reportesCount || 0
+                    const contratos = payload[0]?.payload?.contratosCount || 0
+                    return (
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{label}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          📊 Reportes: <span className="font-bold text-blue-600">{reportes}</span>
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          📋 Contratos: <span className="font-bold text-purple-600">{contratos}</span>
+                        </p>
+                        {payload.map((entry: any, index: number) => (
+                          <p key={index} className="text-xs" style={{ color: entry.color }}>
+                            {entry.name}: <span className="font-bold">{entry.value.toFixed(2)}%</span>
+                          </p>
+                        ))}
+                      </div>
+                    )
+                  }
+                  return null
+                }}
+                labelStyle={{ fontSize: '11px' }}
+                contentStyle={{
+                  fontSize: '11px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px'
+                }}
+              />
 
-            <Line
-              type="monotone"
-              dataKey="Avance Físico"
-              stroke="#10b981"
-              strokeWidth={3}
-              strokeDasharray="0"
-              dot={{ r: 4, fill: "#10b981" }}
-              name="Avance Físico"
-            />
-            <Line
-              type="monotone"
-              dataKey="Avance Financiero"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              dot={{ r: 3, fill: "#3b82f6", stroke: "#ffffff", strokeWidth: 1 }}
-              name="Avance Financiero"
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+              <Line
+                type="monotone"
+                dataKey="Avance Físico"
+                stroke="#10b981"
+                strokeWidth={3}
+                strokeDasharray="0"
+                dot={{ r: 4, fill: "#10b981" }}
+                name="Avance Físico"
+              />
+              <Line
+                type="monotone"
+                dataKey="Avance Financiero"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={{ r: 3, fill: "#3b82f6", stroke: "#ffffff", strokeWidth: 1 }}
+                name="Avance Financiero"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </motion.div>
   )
@@ -953,6 +1060,7 @@ const OrganismosWithPieChart: React.FC<{ data: AnalysisByCentroGestor[] }> = ({ 
                 <th className="px-3 py-2 text-center text-xs font-medium text-gray-700 dark:text-gray-300">Contratos</th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300">%</th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300">Adjudicado</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-green-700 dark:text-green-300">Pagos</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -984,6 +1092,9 @@ const OrganismosWithPieChart: React.FC<{ data: AnalysisByCentroGestor[] }> = ({ 
                   </td>
                   <td className="px-3 py-2 text-right font-medium text-gray-900 dark:text-white text-xs">
                     {formatNumber(item.valorAdjudicado, 'currency')}
+                  </td>
+                  <td className="px-3 py-2 text-right font-medium text-green-600 dark:text-green-400 text-xs">
+                    {formatNumber(item.valorPagado, 'currency')}
                   </td>
                 </motion.tr>
               ))}
@@ -1300,10 +1411,12 @@ interface BancoEmprestito {
 interface AnalysisByBank {
   banco: string
   totalContratos: number
-  valorAsignadoBanco: number // Suma de valores adjudicados de contratos por banco
+  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado_banco por banco)
+  valorPagosProyectados: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado_pago por banco)
+  valorAsignadoProyecciones: number // Valor de proyecciones (actualmente no usado, mantener para compatibilidad)
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all (valor_contrato)
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
-  valorPagado: number        // Inicialmente 0 (no hay información)
+  valorPagado: number        // Calculado desde pagos (suma de pagos por contrato)
   porcentajeEjecucion: number
   promedioAvance: number
 }
@@ -1311,10 +1424,12 @@ interface AnalysisByBank {
 interface AnalysisByCentroGestor {
   centroGestor: string
   totalContratos: number
-  valorAsignadoBanco: number // Suma de valores adjudicados de contratos por centro gestor
+  valorAsignadoBanco: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado_banco)
+  valorPagosProyectados: number // Desde /asignaciones-emprestito-banco-centro-gestor (suma de monto_programado_pago)
+  valorAsignadoProyecciones: number // Desde /api/emprestito/leer-tabla-proyecciones (suma de valor_proyectado)
   valorAdjudicado: number    // Del endpoint contratos_emprestito_all
   valorEjecutado: number     // Calculado desde reportes (avance_financiero * valor_contrato)
-  valorPagado: number        // Inicialmente 0 (no hay información)
+  valorPagado: number        // Calculado desde pagos (suma de pagos por contrato)
   sectores: string[]
   estadosContratos: Record<string, number>
   bancos: Array<{            // Detalle de bancos para este centro gestor
@@ -1322,7 +1437,38 @@ interface AnalysisByCentroGestor {
     valorAsignado: number      // Suma de valores adjudicados de contratos por banco
     valorAdjudicado: number
     valorEjecutado: number
+    valorPagado: number        // Suma de pagos por banco
     contratos: number
+  }>
+}
+
+interface AnalysisByCentroGestorV2 {
+  centroGestor: string
+  valorProgramadoPago: number
+  valorProgramadoAdjudicacion: number
+  totalAsignado: number
+  bancos: Array<{ nombre: string; valor: number }>
+}
+
+interface AnalysisByYear {
+  year: number
+  valorProgramadoPago: number
+  valorProgramadoAdjudicacion: number
+  valorPagado: number
+  totalAsignado: number
+  centrosGestores: Array<{
+    nombre: string
+    valorProgramadoPago: number
+    valorProgramadoAdjudicacion: number
+    valorPagado: number
+    totalAsignado: number
+  }>
+  bancos: Array<{
+    nombre: string
+    valorProgramadoPago: number
+    valorProgramadoAdjudicacion: number
+    valorPagado: number
+    totalAsignado: number
   }>
 }
 
@@ -1331,6 +1477,7 @@ interface YearlySummary {
     totalContratos: number
     valorTotalAsignado: number
     valorTotalAsignadoBanco: number
+    valorTotalPagosProyectados: number
     valorTotalEjecutado: number
     valorTotalPagado: number
     valorTotalFisico: number
@@ -1351,11 +1498,17 @@ const useSeguimientoData = () => {
       try {
         // Endpoint para reportes de contratos - usar el endpoint directo
         const reportesData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
+          '/api/proxy/reportes_contratos/',
           {},
           120000 // 2 minutos de timeout
         )
-        setSeguimiento(reportesData.data || [])
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const seguimientoFiltrado = filterByCentroGestor(
+          reportesData.data || [],
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'responsable']
+        )
+        setSeguimiento(seguimientoFiltrado)
         setLastUpdate(new Date().toISOString())
       } catch (error: any) {
         console.warn('⚠️ Error fetching seguimiento data:', error)
@@ -1384,6 +1537,9 @@ const useEmprestitoRealData = () => {
   const [reportes, setReportes] = useState<ReporteEmprestito[]>([])
   const [bancosEmprestito, setBancosEmprestito] = useState<BancoEmprestito[]>([])
   const [emprestitoBancos, setEmprestitoBancos] = useState<any[]>([]) // Para /emprestito_bancos_all
+  const [pagos, setPagos] = useState<PagoEmprestito[]>([])
+  const [proyecciones, setProyecciones] = useState<any[]>([])
+  const [asignaciones, setAsignaciones] = useState<any[]>([]) // Para /asignaciones-emprestito-banco-centro-gestor
   const [filteredData, setFilteredData] = useState<ContratoEmprestito[]>([])
   const [yearlySummary, setYearlySummary] = useState<YearlySummary>({})
 
@@ -1398,12 +1554,13 @@ const useEmprestitoRealData = () => {
     estado: '',
     sector: '',
     ano: '',
+    bp: '',
     fechaInicio: '',
     fechaFin: ''
   })
 
   // Función para calcular el resumen anual
-  const calculateYearlySummary = useCallback((allContratos: ContratoEmprestito[], allReportes: ReporteEmprestito[], allBancosEmprestito: BancoEmprestito[]) => {
+  const calculateYearlySummary = useCallback((allContratos: ContratoEmprestito[], allReportes: ReporteEmprestito[], allBancosEmprestito: BancoEmprestito[], allAsignaciones?: any[]) => {
     const yearlyData: YearlySummary = {}
 
     allContratos.forEach(contrato => {
@@ -1414,6 +1571,7 @@ const useEmprestitoRealData = () => {
           totalContratos: 0,
           valorTotalAsignado: 0,
           valorTotalAsignadoBanco: 0,
+          valorTotalPagosProyectados: 0,
           valorTotalEjecutado: 0,
           valorTotalPagado: 0,
           valorTotalFisico: 0,
@@ -1436,28 +1594,38 @@ const useEmprestitoRealData = () => {
       if (reporteContrato) {
         const avanceFinanciero = reporteContrato.avance_financiero || 0
         const avanceFisico = reporteContrato.avance_fisico || 0
-        // const porcentajePagado = (reporteContrato as any).porcentaje_pagado || 0 // No hay datos para esto actualmente
 
         yearSummary.valorTotalEjecutado += (valorContrato * avanceFinanciero) / 100
         yearSummary.valorTotalFisico += (valorContrato * avanceFisico) / 100
-        // yearSummary.valorTotalPagado += (valorContrato * porcentajePagado) / 100
       }
     })
 
-    // Calcular valorTotalAsignadoBanco por año (sumando de bancosEmprestito)
-    allBancosEmprestito.forEach(banco => {
-      // Asumiendo que banco.nombre_banco o similar puede ser usado para agrupar por año si la data lo permite
-      // Por ahora, sumaremos todo al total consolidado si no hay un campo de año en BancoEmprestito
-      // Si BancoEmprestito tuviera un campo de año, se usaría aquí.
-      // Para este ejemplo, asumimos que valor_asignado_banco es un total general o se distribuye.
-      // Si necesitamos por año, la API de bancos_emprestito_all debería proveerlo.
-      // Por simplicidad, si no hay año en el banco, lo sumamos al total general o al año del contrato.
-      // Para el resumen anual, necesitamos que el valor_asignado_banco esté asociado a un año.
-      // Si no lo está, este cálculo será menos preciso a nivel anual.
-      // Por ahora, lo dejaremos como 0 para los años individuales si no hay un campo de año en BancoEmprestito.
-      // Si la API de bancos_emprestito_all tuviera un campo 'año', lo usaríamos aquí.
-      // Por ahora, este valor se calculará de forma consolidada y no por año individualmente desde esta fuente.
-    })
+    // Calcular valorTotalAsignadoBanco y valorTotalPagosProyectados por año desde asignaciones
+    if (allAsignaciones && Array.isArray(allAsignaciones)) {
+      allAsignaciones.forEach(asignacion => {
+        const year = asignacion.anio?.toString() || 'Sin Año'
+        
+        if (!yearlyData[year]) {
+          yearlyData[year] = {
+            totalContratos: 0,
+            valorTotalAsignado: 0,
+            valorTotalAsignadoBanco: 0,
+            valorTotalPagosProyectados: 0,
+            valorTotalEjecutado: 0,
+            valorTotalPagado: 0,
+            valorTotalFisico: 0,
+            porcentajeFisicoPromedio: 0,
+            porcentajeFinancieroPromedio: 0,
+          }
+        }
+        
+        const montoBanco = Number(asignacion.monto_programado_banco) || 0
+        const montoPago = Number(asignacion.monto_programado_pago) || 0
+        
+        yearlyData[year].valorTotalAsignadoBanco += montoBanco
+        yearlyData[year].valorTotalPagosProyectados += montoPago
+      })
+    }
 
     // Recalcular promedios ponderados por año
     Object.keys(yearlyData).forEach(year => {
@@ -1469,6 +1637,8 @@ const useEmprestitoRealData = () => {
       allContratos.filter(c => (c.fecha_inicio_contrato ? new Date(c.fecha_inicio_contrato).getFullYear().toString() : 'Sin Año') === year)
         .forEach(contrato => {
           const valorContrato = Number(contrato.valor_contrato) || 0
+          totalPeso += valorContrato
+
           const reporteContrato = allReportes
             .filter(r => r.referencia_contrato === contrato.referencia_contrato)
             .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
@@ -1479,7 +1649,6 @@ const useEmprestitoRealData = () => {
 
             totalPonderadoFisico += avanceFisico * valorContrato
             totalPonderadoFinanciero += avanceFinanciero * valorContrato
-            totalPeso += valorContrato
           }
         })
 
@@ -1497,80 +1666,281 @@ const useEmprestitoRealData = () => {
         setLoading(true)
         setError(null)
 
-        console.log('🔄 Iniciando carga de datos de Empréstito...')
+        console.log('🔄 Iniciando carga PARALELA de datos de Empréstito...')
+        const startTime = performance.now()
 
-        // Obtener contratos con timeout extendido
-        console.log('📡 Solicitando contratos_emprestito_all...')
-        const contratosData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/contratos_emprestito_all',
-          {},
-          120000 // 2 minutos de timeout
+        // OPTIMIZACIÓN: Cargar todos los datos EN PARALELO con Promise.allSettled
+        const [contratosResult, reportesResult, bancosResult, pagosResult, proyeccionesResult] = await Promise.allSettled([
+          // 1. Contratos (timeout reducido a 30s)
+          fetchWithErrorHandling<any>(
+            '/api/proxy/contratos_emprestito_all',
+            {},
+            30000 // 30 segundos
+          ),
+          // 2. Reportes
+          fetchWithErrorHandling<any>(
+            '/api/proxy/reportes_contratos/',
+            {},
+            30000 // 30 segundos
+          ),
+          // 3. Bancos (desde asignaciones)
+          fetchWithErrorHandling<any>(
+            '/api/proxy/asignaciones-emprestito-banco-centro-gestor',
+            {},
+            30000 // 30 segundos
+          ),
+          // 4. Pagos
+          fetchPagosEmprestito(),
+          // 5. Proyecciones
+          (async () => {
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+            const timestamp = new Date().getTime()
+            const response = await fetch(`${baseUrl}/api/proxy/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+              },
+              signal: AbortSignal.timeout(30000) // 30 segundos
+            })
+            if (!response.ok) throw new Error('Error fetching proyecciones')
+            return response.json()
+          })()
+        ])
+
+        // Extraer datos de los resultados
+        const contratosData = contratosResult.status === 'fulfilled' ? contratosResult.value : { data: [] }
+        const reportesData = reportesResult.status === 'fulfilled' ? reportesResult.value : { data: [] }
+        const bancosData = bancosResult.status === 'fulfilled' ? bancosResult.value : { data: [] }
+        const pagosData = pagosResult.status === 'fulfilled' ? pagosResult.value : { success: true, data: [], count: 0, collection: '', timestamp: '', message: '' }
+        const proyeccionesData = proyeccionesResult.status === 'fulfilled' ? proyeccionesResult.value : { success: false, data: [] }
+
+        // Log de errores si los hay
+        if (contratosResult.status === 'rejected') console.warn('⚠️ Error en contratos:', contratosResult.reason)
+        if (reportesResult.status === 'rejected') console.warn('⚠️ Error en reportes:', reportesResult.reason)
+        if (bancosResult.status === 'rejected') console.warn('⚠️ Error en bancos:', bancosResult.reason)
+        if (pagosResult.status === 'rejected') console.warn('⚠️ Error en pagos:', pagosResult.reason)
+        if (proyeccionesResult.status === 'rejected') console.warn('⚠️ Error en proyecciones:', proyeccionesResult.reason)
+
+        // Obtener asignaciones banco-centro gestor
+        console.log('📡 Solicitando asignaciones-emprestito-banco-centro-gestor...')
+        let asignacionesData: any
+        try {
+          asignacionesData = await fetchWithErrorHandling<any>(
+            '/api/proxy/asignaciones-emprestito-banco-centro-gestor',
+            {},
+            120000 // 2 minutos de timeout
+          )
+          console.log('✅ Asignaciones - Respuesta completa:', JSON.stringify(asignacionesData, null, 2).substring(0, 500))
+          console.log('✅ Asignaciones - Tipo de respuesta:', typeof asignacionesData)
+          console.log('✅ Asignaciones - Es objeto:', asignacionesData && typeof asignacionesData === 'object')
+          console.log('✅ Asignaciones - success:', asignacionesData?.success)
+          console.log('✅ Asignaciones - count:', asignacionesData?.count)
+          console.log('✅ Asignaciones - data es array:', Array.isArray(asignacionesData?.data))
+          console.log('✅ Asignaciones - data length:', asignacionesData?.data?.length)
+        } catch (err: any) {
+          console.error('❌ Error capturado en asignaciones-emprestito-banco-centro-gestor:', err)
+          console.error('❌ Error tipo:', err?.type)
+          console.error('❌ Error mensaje:', err?.message)
+          asignacionesData = { success: false, data: [], error: err?.message }
+        }
+
+        // Extraer arrays de datos con validación
+        const contratosArray = (contratosData.data || []) as ContratoEmprestito[]
+        const reportesArray = (reportesData.data || []) as ReporteEmprestito[]
+        const bancosArray = (bancosData.data || []) as BancoEmprestito[]
+        const pagosArray = (pagosData.data || []) as PagoEmprestito[]
+        
+        // Validar y extraer asignaciones con múltiples checks
+        let asignacionesArray: any[] = []
+        if (asignacionesData) {
+          console.log('🔍 Validando estructura de asignacionesData...')
+          console.log('🔍 Claves del objeto:', Object.keys(asignacionesData))
+          
+          if (Array.isArray(asignacionesData.data)) {
+            asignacionesArray = asignacionesData.data
+            console.log('✅ asignacionesData.data es un array válido')
+          } else if (Array.isArray(asignacionesData)) {
+            // Por si el endpoint devuelve directamente el array
+            asignacionesArray = asignacionesData
+            console.log('✅ asignacionesData es directamente un array')
+          } else {
+            console.warn('⚠️ asignacionesData no tiene formato esperado:', {
+              tieneData: 'data' in asignacionesData,
+              tipoDeLaData: typeof asignacionesData.data,
+              esArray: Array.isArray(asignacionesData.data)
+            })
+          }
+        } else {
+          console.error('❌ asignacionesData es null o undefined')
+        }
+        
+        const proyeccionesArray = proyeccionesData.success && proyeccionesData.data ? proyeccionesData.data : []
+
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const normalizeCentro = (value: unknown): string => String(value || '').trim().toLowerCase()
+        const userCentro = normalizeCentro(centroGestorAccess.userCentroGestor)
+
+        const contratosFiltrados = filterByCentroGestor(
+          contratosArray,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'nombre_entidad', 'organismo']
+        ) as ContratoEmprestito[]
+
+        const referenciasPermitidas = new Set(
+          contratosFiltrados
+            .map((contrato: any) => String(contrato?.referencia_contrato || '').trim().toLowerCase())
+            .filter((value: string) => value.length > 0)
         )
-        console.log('✅ Contratos recibidos:', contratosData)
 
-        // Obtener reportes del endpoint correcto
-        console.log('📡 Solicitando reportes_contratos...')
-        const reportesData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/reportes_contratos/',
-          {},
-          120000 // 2 minutos de timeout
-        ).catch((err) => {
-          console.warn('⚠️ Error en reportes_contratos, usando array vacío:', err)
-          return { data: [] }
-        })
-        console.log('✅ Reportes recibidos:', reportesData)
+        const reportesFiltrados = (centroGestorAccess.canViewAll
+          ? reportesArray
+          : (reportesArray || []).filter((reporte: any) => {
+              const centroReporte = normalizeCentro(reporte?.nombre_centro_gestor || reporte?.centro_gestor || reporte?.responsable)
+              const referencia = String(reporte?.referencia_contrato || '').trim().toLowerCase()
+              return centroReporte === userCentro || referenciasPermitidas.has(referencia)
+            })) as ReporteEmprestito[]
 
-        // Obtener datos de bancos empréstito
-        console.log('📡 Solicitando bancos_emprestito_all...')
-        const bancosData = await fetchWithErrorHandling<any>(
-          'https://gestorproyectoapi-production.up.railway.app/bancos_emprestito_all',
-          {},
-          120000 // 2 minutos de timeout
-        ).catch((err) => {
-          console.warn('⚠️ Error en bancos_emprestito_all, usando array vacío:', err)
-          return { data: [] }
-        })
-        console.log('✅ Bancos recibidos:', bancosData)
+        const pagosFiltrados = (centroGestorAccess.canViewAll
+          ? pagosArray
+          : (pagosArray || []).filter((pago: any) => {
+              const centroPago = normalizeCentro(pago?.nombre_centro_gestor || pago?.centro_gestor || pago?.responsable)
+              const referencia = String(pago?.referencia_contrato || '').trim().toLowerCase()
+              return centroPago === userCentro || referenciasPermitidas.has(referencia)
+            })) as PagoEmprestito[]
 
-        const contratosArray = contratosData.data || []
-        const reportesArray = reportesData.data || []
-        const bancosArray = bancosData.data || []
+        const bancosFiltrados = filterByCentroGestor(
+          bancosArray,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'organismo', 'responsable']
+        ) as BancoEmprestito[]
 
-        setContratos(contratosArray)
-        setReportes(reportesArray)
-        setBancosEmprestito(bancosArray)
-        setEmprestitoBancos(bancosArray) // Usar los mismos datos de bancosEmprestito que tienen valor_asignado_banco
-        setFilteredData(contratosArray)
-        setYearlySummary(calculateYearlySummary(contratosArray, reportesArray, bancosArray))
+        const asignacionesFiltradas = filterByCentroGestor(
+          asignacionesArray,
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'centro_gestor', 'organismo', 'responsable']
+        )
 
-        console.log('✅ Datos cargados:', {
+        const proyeccionesFiltradas = centroGestorAccess.canViewAll
+          ? proyeccionesArray
+          : (proyeccionesArray || []).filter((proyeccion: any) => {
+              const centroProyeccion = normalizeCentro(
+                proyeccion?.nombre_centro_gestor ||
+                proyeccion?.nombre_organismo_reducido ||
+                proyeccion?.organismo ||
+                proyeccion?.centro_gestor
+              )
+              return centroProyeccion === userCentro
+            })
+        
+        console.log('📋 Arrays extraídos - Resumen:', {
           contratos: contratosArray.length,
           reportes: reportesArray.length,
           bancos: bancosArray.length,
-          bancosConValores: bancosArray.filter((b: any) => b.valor_asignado_banco).length
+          pagos: pagosArray.length,
+          asignaciones: asignacionesArray.length,
+          proyecciones: proyeccionesArray.length
+        })
+        
+        console.log('📋 Asignaciones extraídas:', {
+          esArray: Array.isArray(asignacionesArray),
+          longitud: asignacionesArray.length,
+          primerosElementos: asignacionesArray.slice(0, 2),
+          camposDelPrimero: asignacionesArray.length > 0 ? Object.keys(asignacionesArray[0]) : []
+        })
+        
+        const endTime = performance.now()
+        const loadTime = ((endTime - startTime) / 1000).toFixed(2)
+
+        console.log('💾 Guardando datos en estado...')
+        setContratos(contratosFiltrados)
+        setReportes(reportesFiltrados)
+        setBancosEmprestito(bancosFiltrados)
+        setEmprestitoBancos(bancosFiltrados)
+        setPagos(pagosFiltrados)
+        setProyecciones(proyeccionesFiltradas)
+        console.log('💾 Antes de setAsignaciones:', {
+          esArray: Array.isArray(asignacionesArray),
+          longitud: asignacionesArray.length,
+          muestra: asignacionesArray.slice(0, 1)
+        })
+        setAsignaciones(asignacionesFiltradas)
+        console.log('✅ Estado de asignaciones actualizado')
+        setFilteredData(contratosFiltrados)
+        setYearlySummary(calculateYearlySummary(contratosFiltrados, reportesFiltrados, bancosFiltrados, asignacionesFiltradas))
+
+        console.log(`✅ Datos cargados en ${loadTime}s (carga paralela):`, {
+          contratos: contratosArray.length,
+          reportes: reportesArray.length,
+          bancos: bancosArray.length,
+          pagos: pagosArray.length,
+          proyecciones: proyeccionesArray.length,
+          asignaciones: asignacionesArray.length,
+          bancosConValores: bancosArray.filter((b: any) => b.valor_asignado_banco).length,
+          tiempoCarga: `${loadTime}s`
         })
 
-        // Debug: Mostrar algunos datos de bancos para verificar estructura
-        console.log('📊 Muestra de datos de bancos (bancos_emprestito_all):', bancosArray.slice(0, 3))
-        console.log('� Muestra de datos de empréstito bancos (emprestito_bancos_all):', bancosArray.slice(0, 3))
-        console.log('�💰 Bancos con valor_asignado_banco:',
-          bancosArray.filter((b: any) => b.valor_asignado_banco).map((b: any) => ({
-            nombre: b.nombre_banco,
-            valor: b.valor_asignado_banco,
-            centro: b.nombre_centro_gestor
-          }))
-        )
-        console.log('💰 Empréstito bancos con valor_asignado_banco:',
-          bancosArray.filter((b: any) => b.valor_asignado_banco).map((b: any) => ({
-            nombre: b.nombre_banco || b.banco,
-            valorAsignadoBanco: b.valor_asignado_banco,
-            campos: Object.keys(b)
-          }))
+        console.log('💰 Muestra de asignaciones (todos los campos):', asignacionesArray.slice(0, 3))
+        console.log('💰 Muestra de asignaciones (campos específicos):', asignacionesArray.slice(0, 3).map((a: any) => ({
+          id: a.id,
+          banco: a.banco,
+          centro: a.nombre_centro_gestor,
+          bp: a.bp,
+          monto_programado_banco: a.monto_programado_banco,
+          monto_programado_adjudicacion: a.monto_programado_adjudicacion,
+          monto_programado_pago: a.monto_programado_pago,
+          anio: a.anio,
+          created_at: a.created_at,
+          todosCampos: Object.keys(a)
+        })))
+
+        // Calcular totales por banco desde asignaciones para debug
+        const totalesPorBancoAdj = new Map<string, number>()
+        const totalesPorBancoPago = new Map<string, number>()
+        const totalesPorBancoBanco = new Map<string, number>()
+        asignacionesArray.forEach((asig: any) => {
+          const banco = asig.banco || 'Sin definir'
+          const montoAdj = Number(asig.monto_programado_adjudicacion) || 0
+          const montoPago = Number(asig.monto_programado_pago) || 0
+          const montoBanco = Number(asig.monto_programado_banco) || 0
+          totalesPorBancoAdj.set(banco, (totalesPorBancoAdj.get(banco) || 0) + montoAdj)
+          totalesPorBancoPago.set(banco, (totalesPorBancoPago.get(banco) || 0) + montoPago)
+          totalesPorBancoBanco.set(banco, (totalesPorBancoBanco.get(banco) || 0) + montoBanco)
+        })
+        console.log('💵 Totales adjudicación por banco desde asignaciones:', Array.from(totalesPorBancoAdj.entries()).map(([banco, total]) => ({
+          banco,
+          total: total.toLocaleString('es-CO'),
+          totalNumerico: total
+        })))
+        console.log('💵 Totales BANCO (monto_programado_banco) por banco desde asignaciones:', Array.from(totalesPorBancoBanco.entries()).map(([banco, total]) => ({
+          banco,
+          total: total.toLocaleString('es-CO'),
+          totalNumerico: total
+        })))
+        console.log('💵 Totales pagos proyectados por banco desde asignaciones:', Array.from(totalesPorBancoPago.entries()).map(([banco, total]) => ({
+          banco,
+          total: total.toLocaleString('es-CO'),
+          totalNumerico: total
+        })))
+        console.log('💵 TOTAL GENERAL adjudicación desde asignaciones:', asignacionesArray.reduce((sum: number, a: any) => sum + (Number(a.monto_programado_adjudicacion) || 0), 0).toLocaleString('es-CO'))
+        console.log('💵 TOTAL GENERAL BANCO (monto_programado_banco) desde asignaciones:', asignacionesArray.reduce((sum: number, a: any) => sum + (Number(a.monto_programado_banco) || 0), 0).toLocaleString('es-CO'))
+        console.log('💵 TOTAL GENERAL pagos proyectados desde asignaciones:', asignacionesArray.reduce((sum: number, a: any) => sum + (Number(a.monto_programado_pago) || 0), 0).toLocaleString('es-CO'))
+
+        console.log('🔍 VERIFICAR PROYECCIONES - Muestra:', proyeccionesArray.slice(0, 2).map((p: any) => ({
+          organismo: p.nombre_organismo_reducido,
+          valor: p.valor_proyectado
+        })))
+
+        // Debug: Mostrar algunos datos de asignaciones banco-centro-gestor
+        console.log('📊 Muestra de datos de asignaciones banco-centro-gestor:', bancosArray.slice(0, 3))
+        console.log('💰 Bancos únicos desde asignaciones:',
+          Array.from(new Set(bancosArray.map((asig: any) => asig.banco).filter(Boolean)))
         )
 
-        // Debug: Calcular suma total de valor_asignado_banco para la card
-        const totalValorAsignadoBanco = bancosArray.reduce((sum: number, banco: any) => sum + (banco.valor_asignado_banco || 0), 0)
-        console.log('💵 Total Valor Asignado Banco calculado para card:', totalValorAsignadoBanco.toLocaleString())
+        // Debug: Calcular suma total de monto_programado_banco
+        const totalValorAsignadoBanco = bancosArray.reduce((sum: number, asig: any) => sum + (asig.monto_programado_banco || 0), 0)
+        console.log('💵 Total Monto Programado Banco calculado para card:', totalValorAsignadoBanco.toLocaleString())
 
       } catch (err: any) {
         const errorMessage = err?.message || err?.type || 'Error al cargar datos de Empréstito'
@@ -1590,6 +1960,17 @@ const useEmprestitoRealData = () => {
     fetchData()
   }, [calculateYearlySummary])
 
+  // Debug: Monitorear cambios en proyecciones
+  useEffect(() => {
+    console.log('🔍 Estado proyecciones actualizado:', {
+      total: proyecciones.length,
+      muestra: proyecciones.slice(0, 2).map((p: any) => ({
+        organismo: p.nombre_organismo_reducido,
+        valor: p.valor_proyectado
+      }))
+    })
+  }, [proyecciones])
+
   // Aplicar filtros
   useEffect(() => {
     let filtered = [...contratos]
@@ -1606,6 +1987,9 @@ const useEmprestitoRealData = () => {
     if (filters.sector) {
       filtered = filtered.filter(c => c.sector?.toLowerCase().includes(filters.sector.toLowerCase()))
     }
+    if (filters.bp) {
+      filtered = filtered.filter(c => c.bp?.toLowerCase().includes(filters.bp.toLowerCase()))
+    }
     if (filters.ano) {
       filtered = filtered.filter(c => {
         const fechaInicio = c.fecha_inicio_contrato ? new Date(c.fecha_inicio_contrato).getFullYear().toString() : null
@@ -1615,6 +1999,68 @@ const useEmprestitoRealData = () => {
 
     setFilteredData(filtered)
   }, [filters, contratos])
+
+  // Filtrar asignaciones según los filtros aplicados
+  const filteredAsignaciones = useMemo(() => {
+    console.log('🔄 Calculando filteredAsignaciones...', {
+      asignacionesDisponibles: !!asignaciones,
+      esArray: Array.isArray(asignaciones),
+      longitud: asignaciones?.length || 0,
+      filtros: filters
+    })
+    
+    if (!asignaciones || !Array.isArray(asignaciones)) {
+      console.warn('⚠️ Asignaciones no es un array válido:', asignaciones)
+      return []
+    }
+
+    if (asignaciones.length === 0) {
+      console.warn('⚠️ Asignaciones está vacío')
+      return []
+    }
+
+    let filtered = [...asignaciones]
+
+    // Filtrar por banco
+    if (filters.banco) {
+      filtered = filtered.filter(a => a.banco?.toLowerCase().includes(filters.banco.toLowerCase()))
+      console.log(`🔍 Filtro banco "${filters.banco}" aplicado: ${filtered.length} resultados`)
+    }
+
+    // Filtrar por centro gestor
+    if (filters.centroGestor) {
+      filtered = filtered.filter(a => a.nombre_centro_gestor?.toLowerCase().includes(filters.centroGestor.toLowerCase()))
+      console.log(`🔍 Filtro centro gestor "${filters.centroGestor}" aplicado: ${filtered.length} resultados`)
+    }
+
+    // Filtrar por BP
+    if (filters.bp) {
+      filtered = filtered.filter(a => a.bp?.toLowerCase().includes(filters.bp.toLowerCase()))
+      console.log(`🔍 Filtro BP "${filters.bp}" aplicado: ${filtered.length} resultados`)
+    }
+
+    // Filtrar por año
+    if (filters.ano) {
+      filtered = filtered.filter(a => a.anio?.toString() === filters.ano)
+      console.log(`🔍 Filtro año "${filters.ano}" aplicado: ${filtered.length} resultados`)
+    }
+
+    console.log('🔍 Asignaciones filtradas:', {
+      total: asignaciones.length,
+      filtradas: filtered.length,
+      filtros: filters,
+      muestra: filtered.slice(0, 3).map(a => ({
+        banco: a.banco,
+        centro: a.nombre_centro_gestor,
+        monto_programado_banco: a.monto_programado_banco,
+        monto_programado_adjudicacion: a.monto_programado_adjudicacion,
+        monto_programado_pago: a.monto_programado_pago,
+        anio: a.anio
+      }))
+    })
+
+    return filtered
+  }, [asignaciones, filters])
 
   // Función para abrir el modal con los datos del contrato
   const handleOpenModal = (contrato: ContratoEmprestito) => {
@@ -1654,8 +2100,72 @@ const useEmprestitoRealData = () => {
 
   // Análisis por banco
   const analysisByBank = useMemo((): AnalysisByBank[] => {
+    console.log('📊 Calculando analysisByBank...')
+    
+    // Validar que asignaciones filtradas existan
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
+      console.warn('⚠️ Asignaciones filtradas no disponibles aún para analysisByBank')
+      return []
+    }
+
+    console.log('✅ Procesando asignaciones filtradas:', {
+      cantidad: filteredAsignaciones.length,
+      muestra: filteredAsignaciones.slice(0, 2)
+    })
+
+    // Mapeo de nombres de bancos en asignaciones a nombres estándar
+    const mapeoBancosAsignaciones: Record<string, string> = {
+      'Banco Occidente': 'Banco de Occidente',
+      // Agregar otros mapeos si es necesario
+    }
+
+    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas (monto_programado_banco y monto_programado_pago)
+    const valoresAsignadosPorBanco = new Map<string, number>()
+    const valoresPagosProyectadosPorBanco = new Map<string, number>()
+    filteredAsignaciones.forEach((asignacion: any) => {
+      let banco = asignacion.banco || 'Sin definir'
+      // Normalizar nombre del banco
+      if (mapeoBancosAsignaciones[banco]) {
+        banco = mapeoBancosAsignaciones[banco]
+      }
+      const montoBanco = Number(asignacion.monto_programado_banco) || 0
+      const montoPago = Number(asignacion.monto_programado_pago) || 0
+      const valorActualBanco = valoresAsignadosPorBanco.get(banco) || 0
+      const valorActualPago = valoresPagosProyectadosPorBanco.get(banco) || 0
+      valoresAsignadosPorBanco.set(banco, valorActualBanco + montoBanco)
+      valoresPagosProyectadosPorBanco.set(banco, valorActualPago + montoPago)
+    })
+
+    console.log('💰 Valores asignados por banco (desde asignaciones - monto_programado_banco):', Array.from(valoresAsignadosPorBanco.entries()))
+    console.log('💰 Valores pagos proyectados por banco (desde asignaciones - monto_programado_pago):', Array.from(valoresPagosProyectadosPorBanco.entries()))
+    
+    // DEBUG: Log detallado de asignaciones procesadas
+    console.log('🔍 DEBUG: Asignaciones filtradas procesadas:', filteredAsignaciones.map((a: any) => ({
+      banco: a.banco,
+      monto_programado_banco: a.monto_programado_banco,
+      monto_programado_pago: a.monto_programado_pago,
+      anio: a.anio
+    })).slice(0, 5))
+
     const bankMap = new Map<string, AnalysisByBank>()
 
+    // PASO 2: Inicializar TODOS los bancos desde asignaciones
+    valoresAsignadosPorBanco.forEach((valorAsignado, nombreBanco) => {
+      bankMap.set(nombreBanco, {
+        banco: nombreBanco,
+        totalContratos: 0,
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_banco)
+        valorPagosProyectados: valoresPagosProyectadosPorBanco.get(nombreBanco) || 0, // Desde asignaciones (monto_programado_pago)
+        valorAsignadoProyecciones: 0, // No usado actualmente
+        valorAdjudicado: 0,                     // Del endpoint contratos_emprestito_all
+        valorEjecutado: 0,                      // Calculado desde reportes
+        valorPagado: 0,                         // Calculado desde pagos
+        porcentajeEjecucion: 0,
+        promedioAvance: 0
+      })
+    })
+
+    // PASO 3: Agregar datos de contratos
     filteredData.forEach(contrato => {
       const banco = contrato.banco || 'Sin definir'
       const valorContrato = Number(contrato.valor_contrato) || 0
@@ -1668,14 +2178,22 @@ const useEmprestitoRealData = () => {
       const avanceFinanciero = reporteContrato?.avance_financiero || 0
       const valorEjecutado = (valorContrato * avanceFinanciero) / 100
 
+      // Calcular pagos para este contrato
+      const valorPagadoContrato = pagos
+        .filter(p => p.referencia_contrato === contrato.referencia_contrato)
+        .reduce((sum, pago) => sum + (Number(pago.valor_pago) || 0), 0)
+
+      // Inicializar el banco si no existe (por si hay contratos de bancos que no están en asignaciones)
       if (!bankMap.has(banco)) {
         bankMap.set(banco, {
           banco,
           totalContratos: 0,
-          valorAsignadoBanco: 0,                  // Será la suma de valorAdjudicado por banco
+          valorAsignadoBanco: valoresAsignadosPorBanco.get(banco) || 0, // Desde asignaciones (monto_programado_banco)
+          valorPagosProyectados: valoresPagosProyectadosPorBanco.get(banco) || 0, // Desde asignaciones (monto_programado_pago)
+          valorAsignadoProyecciones: 0, // No usado
           valorAdjudicado: 0,                     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,                      // Calculado desde reportes
-          valorPagado: 0,                         // Inicialmente 0
+          valorPagado: 0,                         // Calculado desde pagos
           porcentajeEjecucion: 0,
           promedioAvance: 0
         })
@@ -1684,9 +2202,8 @@ const useEmprestitoRealData = () => {
       const analysis = bankMap.get(banco)!
       analysis.totalContratos += 1
       analysis.valorAdjudicado += valorContrato
-      analysis.valorAsignadoBanco += valorContrato // Asignado Banco = suma de contratos adjudicados
       analysis.valorEjecutado += valorEjecutado
-      // valorPagado se mantiene en 0 como solicitado
+      analysis.valorPagado += valorPagadoContrato
 
       // Solo sumar al promedio ponderado si hay reporte
       if (reporteContrato) {
@@ -1705,13 +2222,64 @@ const useEmprestitoRealData = () => {
         : 0
     })
 
-    return Array.from(bankMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
-  }, [filteredData, reportes])
+    const result = Array.from(bankMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
+    console.log('🏦 Análisis por Banco COMPLETO:', result.map(r => ({
+      banco: r.banco,
+      valorAsignadoBanco: r.valorAsignadoBanco,
+      valorPagosProyectados: r.valorPagosProyectados,
+      valorAsignadoProyecciones: r.valorAsignadoProyecciones,
+      valorAdjudicado: r.valorAdjudicado,
+      valorEjecutado: r.valorEjecutado,
+      valorPagado: r.valorPagado
+    })))
+    return result
+  }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones])
 
   // Análisis por centro gestor
   const analysisByCentroGestor = useMemo((): AnalysisByCentroGestor[] => {
+    // Validar que asignaciones filtradas existan
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
+      console.warn('⚠️ Asignaciones filtradas no disponibles aún en centro gestor')
+      return []
+    }
+
+    // PASO 1: Calcular valores asignados por centro gestor desde asignaciones filtradas
+    const valoresAsignadosPorCentro = new Map<string, number>()
+    const valoresPagosProyectadosPorCentro = new Map<string, number>()
+    filteredAsignaciones.forEach((asignacion: any) => {
+      const centro = asignacion.nombre_centro_gestor || 'Sin definir'
+      const montoPago = Number(asignacion.monto_programado_pago) || 0
+      const montoBanco = Number(asignacion.monto_programado_banco) || 0
+      
+      const valorActualBanco = valoresAsignadosPorCentro.get(centro) || 0
+      const valorActualPago = valoresPagosProyectadosPorCentro.get(centro) || 0
+      valoresAsignadosPorCentro.set(centro, valorActualBanco + montoBanco)
+      valoresPagosProyectadosPorCentro.set(centro, valorActualPago + montoPago)
+    })
+
+    console.log('💰 Valores asignados por centro gestor (desde asignaciones - monto_programado_banco):', Array.from(valoresAsignadosPorCentro.entries()))
+    console.log('💰 Valores pagos proyectados por centro gestor (desde asignaciones - monto_programado_pago):', Array.from(valoresPagosProyectadosPorCentro.entries()))
+
     const centroMap = new Map<string, AnalysisByCentroGestor>()
 
+    // PASO 2: Inicializar todos los centros gestores que tienen asignaciones
+    valoresAsignadosPorCentro.forEach((valorAsignado, nombreCentro) => {
+      centroMap.set(nombreCentro, {
+        centroGestor: nombreCentro,
+        totalContratos: 0,
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_banco)
+        valorPagosProyectados: valoresPagosProyectadosPorCentro.get(nombreCentro) || 0, // Desde asignaciones (monto_programado_pago)
+        valorAsignadoProyecciones: 0, // Se calculará desde proyecciones más adelante
+        valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
+        valorEjecutado: 0,      // Calculado desde reportes
+        valorPagado: 0,         // Calculado desde pagos
+        sectores: [],
+        estadosContratos: {},
+        bancos: []              // Array para almacenar detalle de bancos
+      })
+    })
+
+    // PASO 3: Agregar datos de contratos
     filteredData.forEach(contrato => {
       const centro = contrato.nombre_centro_gestor || 'Sin definir'
       const banco = contrato.banco || 'Sin definir'
@@ -1725,14 +2293,22 @@ const useEmprestitoRealData = () => {
       const avanceFinanciero = reporteContrato?.avance_financiero || 0
       const valorEjecutado = (valorContrato * avanceFinanciero) / 100
 
+      // Calcular pagos para este contrato
+      const valorPagadoContrato = pagos
+        .filter(p => p.referencia_contrato === contrato.referencia_contrato)
+        .reduce((sum, pago) => sum + (Number(pago.valor_pago) || 0), 0)
+
+      // Inicializar el centro si no existe (por si hay contratos de centros que no están en asignaciones)
       if (!centroMap.has(centro)) {
         centroMap.set(centro, {
           centroGestor: centro,
           totalContratos: 0,
-          valorAsignadoBanco: 0, // Será la suma de valorAdjudicado por centro gestor
+          valorAsignadoBanco: valoresAsignadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado_adjudicacion)
+          valorPagosProyectados: valoresPagosProyectadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado_pago)
+          valorAsignadoProyecciones: 0, // Se calculará desde proyecciones
           valorAdjudicado: 0,     // Del endpoint contratos_emprestito_all
           valorEjecutado: 0,      // Calculado desde reportes
-          valorPagado: 0,         // Inicialmente 0
+          valorPagado: 0,         // Calculado desde pagos
           sectores: [],
           estadosContratos: {},
           bancos: []              // Array para almacenar detalle de bancos
@@ -1742,8 +2318,8 @@ const useEmprestitoRealData = () => {
       const analysis = centroMap.get(centro)!
       analysis.totalContratos += 1
       analysis.valorAdjudicado += valorContrato
-      analysis.valorAsignadoBanco += valorContrato // Asignado Banco = suma de contratos adjudicados
       analysis.valorEjecutado += valorEjecutado
+      analysis.valorPagado += valorPagadoContrato
 
       // Agregar sector
       if (contrato.sector && !analysis.sectores.includes(contrato.sector)) {
@@ -1762,6 +2338,7 @@ const useEmprestitoRealData = () => {
         valorAsignado: number
         valorAdjudicado: number
         valorEjecutado: number
+        valorPagado: number
         contratos: number
       }>()
 
@@ -1780,12 +2357,18 @@ const useEmprestitoRealData = () => {
           const avanceFinanciero = reporteContrato?.avance_financiero || 0
           const valorEjecutado = (valorContrato * avanceFinanciero) / 100
 
+          // Calcular pagos para este contrato
+          const valorPagadoContrato = pagos
+            .filter(p => p.referencia_contrato === contrato.referencia_contrato)
+            .reduce((sum, pago) => sum + (Number(pago.valor_pago) || 0), 0)
+
           if (!bancosMap.has(banco)) {
             bancosMap.set(banco, {
               nombre: banco,
               valorAsignado: 0, // Se calculará como suma de valorAdjudicado
               valorAdjudicado: 0,
               valorEjecutado: 0,
+              valorPagado: 0,
               contratos: 0
             })
           }
@@ -1794,6 +2377,7 @@ const useEmprestitoRealData = () => {
           bancoInfo.valorAdjudicado += valorContrato
           bancoInfo.valorAsignado += valorContrato // Asignado = suma de adjudicados
           bancoInfo.valorEjecutado += valorEjecutado
+          bancoInfo.valorPagado += valorPagadoContrato
           bancoInfo.contratos += 1
         })
 
@@ -1803,37 +2387,148 @@ const useEmprestitoRealData = () => {
       )
     })
 
-    return Array.from(centroMap.values()).sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
-  }, [filteredData, reportes])
+    // Calcular valorAsignadoProyecciones por centro gestor desde proyecciones
+    // Agrupar proyecciones por centro gestor (nombre_organismo_reducido)
+    
+    // Mapeo de nombres abreviados en proyecciones a nombres oficiales de centros gestores
+    const mapeoNombresOrganismos: Record<string, string> = {
+      'Bienes': 'Unidad Administrativa Especial de Gestión de Bienes y Servicios',
+      'Bienestar Social': 'Secretaría de Bienestar Social',
+      'DATIC': 'Departamento Administrativo de Tecnologías de la Información y las Comunicaciones',
+      'Deportes': 'Secretaría del Deporte y la Recreación',
+      'Desarrollo Económico': 'Secretaría de Desarrollo Económico',
+      'Educación': 'Secretaría de Educación',
+      'Infraestructura': 'Secretaría de Infraestructura',
+      'MOVILIDAD': 'Secretaría de Movilidad',
+      'Movilidad': 'Secretaría de Movilidad',
+      'PLANEACION': 'Departamento Administrativo de Planeación Municipal',
+      'Planeacion': 'Departamento Administrativo de Planeación Municipal',
+      'Planeación': 'Departamento Administrativo de Planeación Municipal',
+      'Participación': 'Secretaría de Desarrollo Territorial y Participación Ciudadana',
+      'Riesgos': 'Secretaría de Gestión del Riesgo de Emergencias y Desastres',
+      'Salud': 'Secretaría de Salud Pública',
+      'Seguridad': 'Secretaría de Seguridad y Justicia',
+      'Vivienda': 'Secretaría de Vivienda Social y Hábitat',
+      'cultura': 'Secretaría de Cultura',
+      'Cultura': 'Secretaría de Cultura'
+    }
+    
+    const proyeccionesPorCentro = new Map<string, number>()
+    
+    console.log('🔍 DEBUG: Total proyecciones recibidas:', proyecciones.length)
+    console.log('🔍 DEBUG: Muestra de proyecciones:', proyecciones.slice(0, 3))
+    
+    proyecciones.forEach((proyeccion: any) => {
+      // El centro gestor está en nombre_organismo_reducido
+      let centroProyeccion = proyeccion.nombre_organismo_reducido || 'Sin definir'
+      const valorProyectado = Number(proyeccion.valor_proyectado) || 0
+      
+      // Aplicar mapeo si existe
+      if (mapeoNombresOrganismos[centroProyeccion]) {
+        centroProyeccion = mapeoNombresOrganismos[centroProyeccion]
+        console.log(`🔄 Mapeo aplicado: "${proyeccion.nombre_organismo_reducido}" → "${centroProyeccion}"`)
+      }
+      
+      if (valorProyectado > 0) {
+        const valorActual = proyeccionesPorCentro.get(centroProyeccion) || 0
+        proyeccionesPorCentro.set(centroProyeccion, valorActual + valorProyectado)
+      }
+    })
+
+    console.log('🔍 DEBUG: Proyecciones agrupadas por organismo (después del mapeo):', Array.from(proyeccionesPorCentro.entries()).slice(0, 5))
+    console.log('🔍 DEBUG: Centros gestores en contratos:', Array.from(centroMap.keys()).slice(0, 5))
+
+    // Asignar valores de proyecciones a cada centro gestor
+    centroMap.forEach(analysis => {
+      // Buscar coincidencia exacta (ahora con nombres mapeados)
+      const valorProyecciones = proyeccionesPorCentro.get(analysis.centroGestor) || 0
+      analysis.valorAsignadoProyecciones = valorProyecciones
+      
+      if (valorProyecciones > 0) {
+        console.log(`✅ Valor asignado a "${analysis.centroGestor}": $${valorProyecciones.toLocaleString()}`)
+      }
+    })
+
+    // Debug: Mostrar valores de proyecciones calculados
+    console.log('📊 Valores Asignados desde Proyecciones por Centro Gestor:', 
+      Array.from(centroMap.values()).map(c => ({
+        centro: c.centroGestor,
+        valorAsignadoBanco: c.valorAsignadoBanco,
+        valorProyecciones: c.valorAsignadoProyecciones,
+        valorAdjudicado: c.valorAdjudicado
+      }))
+    )
+
+    return Array.from(centroMap.values())
+      .filter(c => c.valorAsignadoBanco > 0 || c.valorAdjudicado > 0 || c.valorEjecutado > 0 || c.valorPagado > 0)
+      .sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
+  }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones])
 
   // Análisis por banco para el gráfico (solo bancos con contratos asignados)
   const analysisByBankForChart = useMemo((): AnalysisByBank[] => {
+    // Validar que asignaciones filtradas existan
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
+      console.warn('⚠️ Asignaciones filtradas no disponibles aún para gráfico')
+      return []
+    }
+
+    // Mapeo de nombres de bancos en asignaciones a nombres estándar
+    const mapeoBancosAsignaciones: Record<string, string> = {
+      'Banco Occidente': 'Banco de Occidente',
+      // Agregar otros mapeos si es necesario
+    }
+
+    // PASO 1: Calcular valores asignados por banco desde asignaciones filtradas
+    const valoresAsignadosPorBanco = new Map<string, number>()
+    const valoresPagosProyectadosPorBanco = new Map<string, number>()
+    filteredAsignaciones.forEach((asignacion: any) => {
+      let banco = asignacion.nombre_banco || asignacion.banco || 'Sin definir'
+      // Normalizar nombre del banco
+      if (mapeoBancosAsignaciones[banco]) {
+        banco = mapeoBancosAsignaciones[banco]
+      }
+      
+      const montoPago = Number(asignacion.monto_programado_pago) || 0
+      const montoBanco = Number(asignacion.monto_programado_banco) || 0  // ✅ Cambio principal: usar monto_programado_banco
+      
+      const valorActualAdj = valoresAsignadosPorBanco.get(banco) || 0
+      const valorActualPago = valoresPagosProyectadosPorBanco.get(banco) || 0
+      valoresAsignadosPorBanco.set(banco, valorActualAdj + montoBanco)  // ✅ Usar montoBanco
+      valoresPagosProyectadosPorBanco.set(banco, valorActualPago + montoPago)
+    })
+
+    console.log('📊 DEBUG: Valores asignados por banco (gráfico - monto_programado_banco):', Array.from(valoresAsignadosPorBanco.entries()))
+    console.log('📊 DEBUG: Valores pagos proyectados por banco (gráfico - monto_programado_pago):', Array.from(valoresPagosProyectadosPorBanco.entries()))
+
     const bankMap = new Map<string, AnalysisByBank>()
 
-    // PASO 1: Inicializar TODOS los bancos que tienen valor_asignado_banco válido del endpoint
-    emprestitoBancos.forEach((datosBanco: any) => {
-      if (datosBanco.valor_asignado_banco && datosBanco.valor_asignado_banco > 0) {
-        const nombreBanco = datosBanco.nombre_banco
-        bankMap.set(nombreBanco, {
-          banco: nombreBanco,
-          totalContratos: 0,
-          valorAsignadoBanco: datosBanco.valor_asignado_banco, // Del endpoint bancos_emprestito_all
-          valorAdjudicado: 0,                                  // Se calculará desde contratos
-          valorEjecutado: 0,                                   // Se calculará desde reportes
-          valorPagado: 0,                                      // Inicialmente 0
-          porcentajeEjecucion: 0,
-          promedioAvance: 0
-        })
-      }
+    // PASO 2: Inicializar TODOS los bancos desde asignaciones
+    valoresAsignadosPorBanco.forEach((valorAsignado, nombreBanco) => {
+      bankMap.set(nombreBanco, {
+        banco: nombreBanco,
+        totalContratos: 0,
+        valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_adjudicacion)
+        valorPagosProyectados: valoresPagosProyectadosPorBanco.get(nombreBanco) || 0, // Desde asignaciones (monto_programado_pago)
+        valorAsignadoProyecciones: 0, // No usado
+        valorAdjudicado: 0,                // Se calculará desde contratos
+        valorEjecutado: 0,                 // Se calculará desde reportes
+        valorPagado: 0,                    // Inicialmente 0
+        porcentajeEjecucion: 0,
+        promedioAvance: 0
+      })
     })
 
     // Debug: Log de bancos inicializados
     console.log('🏦 Bancos inicializados en analysisByBankForChart:', {
       totalBancosConValor: bankMap.size,
-      bancos: Array.from(bankMap.keys())
+      bancos: Array.from(bankMap.entries()).map(([nombre, data]) => ({
+        nombre,
+        valorAsignadoBanco: data.valorAsignadoBanco,
+        valorAsignadoProyecciones: data.valorAsignadoProyecciones
+      }))
     })
 
-    // PASO 2: Agregar datos de contratos a los bancos que los tienen
+    // PASO 4: Agregar datos de contratos a los bancos que los tienen
     filteredData.forEach(contrato => {
       const banco = contrato.banco || 'Sin definir'
       const valorContrato = Number(contrato.valor_contrato) || 0
@@ -1846,12 +2541,18 @@ const useEmprestitoRealData = () => {
       const avanceFinanciero = reporteContrato?.avance_financiero || 0
       const valorEjecutado = (valorContrato * avanceFinanciero) / 100
 
-      // Solo agregar datos si el banco ya existe en el mapa (tiene valor_asignado_banco)
+      // Calcular pagos para este contrato
+      const valorPagadoContrato = pagos
+        .filter(p => p.referencia_contrato === contrato.referencia_contrato)
+        .reduce((sum, pago) => sum + (Number(pago.valor_pago) || 0), 0)
+
+      // Agregar datos si el banco ya existe en el mapa
       if (bankMap.has(banco)) {
         const analysis = bankMap.get(banco)!
         analysis.totalContratos += 1
         analysis.valorAdjudicado += valorContrato
         analysis.valorEjecutado += valorEjecutado
+        analysis.valorPagado += valorPagadoContrato
 
         // Solo sumar al promedio ponderado si hay reporte
         if (reporteContrato) {
@@ -1871,11 +2572,198 @@ const useEmprestitoRealData = () => {
         : 0
     })
 
-    // Filtrar para mostrar solo bancos que tienen contratos asignados, luego ordenar por valorAsignadoBanco
-    return Array.from(bankMap.values())
-      .filter(banco => banco.totalContratos > 0) // Solo mostrar bancos con contratos
+    // Filtrar para mostrar bancos con datos relevantes (asignados o con contratos), luego ordenar por valorAsignadoBanco
+    const result = Array.from(bankMap.values())
+      .filter(banco => banco.valorAsignadoBanco > 0 || banco.totalContratos > 0) // ✅ Mostrar si tiene asignado O contratos
       .sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco)
-  }, [filteredData, reportes, emprestitoBancos])
+    
+    console.log('📊 analysisByBankForChart - Resultado final para gráfico:', {
+      totalBancos: result.length,
+      bancos: result.map(b => ({
+        banco: b.banco,
+        valorAsignadoBanco: b.valorAsignadoBanco,
+        valorAdjudicado: b.valorAdjudicado,
+        valorEjecutado: b.valorEjecutado,
+        valorPagado: b.valorPagado
+      }))
+    })
+    
+    return result
+  }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones])
+
+  // Análisis por Centro Gestor V2 (Datos de asignaciones)
+  const analysisByCentroGestorV2 = useMemo((): AnalysisByCentroGestorV2[] => {
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) return []
+
+    const map = new Map<string, AnalysisByCentroGestorV2>()
+
+    filteredAsignaciones.forEach((asig: any) => {
+      const centro = asig.nombre_centro_gestor || 'Sin definir'
+      const banco = asig.nombre_banco || asig.banco || 'Sin definir'
+      const pago = Number(asig.monto_programado_pago) || 0
+      const adj = Number(asig.monto_programado_adjudicacion) || 0
+      const total = pago + adj
+
+      if (!map.has(centro)) {
+        map.set(centro, {
+          centroGestor: centro,
+          valorProgramadoPago: 0,
+          valorProgramadoAdjudicacion: 0,
+          totalAsignado: 0,
+          bancos: []
+        })
+      }
+
+      const entry = map.get(centro)!
+      entry.valorProgramadoPago += pago
+      entry.valorProgramadoAdjudicacion += adj
+      entry.totalAsignado += total
+
+      // Agregar banco si no existe
+      let bancoEntry = entry.bancos.find(b => b.nombre === banco)
+      if (!bancoEntry) {
+        bancoEntry = { nombre: banco, valor: 0 }
+        entry.bancos.push(bancoEntry)
+      }
+      bancoEntry.valor += total
+    })
+
+    return Array.from(map.values()).sort((a, b) => b.totalAsignado - a.totalAsignado)
+  }, [filteredAsignaciones])
+
+  // Análisis por Año (Datos de asignaciones)
+  const analysisByYear = useMemo((): AnalysisByYear[] => {
+    if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) return []
+
+    const map = new Map<number, AnalysisByYear>()
+
+    // PASO 1: Procesar asignaciones
+    filteredAsignaciones.forEach((asig: any) => {
+      const anio = Number(asig.anio)
+      if (!anio) return
+
+      const centro = asig.nombre_centro_gestor || 'Sin definir'
+      const banco = asig.nombre_banco || asig.banco || 'Sin definir'
+      const pago = Number(asig.monto_programado_pago) || 0
+      const montoBanco = Number(asig.monto_programado_banco) || 0
+      const total = pago + montoBanco
+
+      if (!map.has(anio)) {
+        map.set(anio, {
+          year: anio,
+          valorProgramadoPago: 0,
+          valorProgramadoAdjudicacion: 0,
+          valorPagado: 0,
+          totalAsignado: 0,
+          centrosGestores: [],
+          bancos: []
+        })
+      }
+
+      const entry = map.get(anio)!
+      entry.valorProgramadoPago += pago
+      entry.valorProgramadoAdjudicacion += montoBanco
+      entry.totalAsignado += total
+
+      // Agregar o actualizar centro gestor
+      let centroEntry = entry.centrosGestores.find(c => c.nombre === centro)
+      if (!centroEntry) {
+        centroEntry = { nombre: centro, valorProgramadoPago: 0, valorProgramadoAdjudicacion: 0, valorPagado: 0, totalAsignado: 0 }
+        entry.centrosGestores.push(centroEntry)
+      }
+      centroEntry.valorProgramadoPago += pago
+      centroEntry.valorProgramadoAdjudicacion += montoBanco
+      centroEntry.totalAsignado += total
+
+      // Agregar o actualizar banco
+      let bancoEntry = entry.bancos.find(b => b.nombre === banco)
+      if (!bancoEntry) {
+        bancoEntry = { nombre: banco, valorProgramadoPago: 0, valorProgramadoAdjudicacion: 0, valorPagado: 0, totalAsignado: 0 }
+        entry.bancos.push(bancoEntry)
+      }
+      bancoEntry.valorProgramadoPago += pago
+      bancoEntry.valorProgramadoAdjudicacion += montoBanco
+      bancoEntry.totalAsignado += total
+    })
+
+    // PASO 2: Agregar pagos reales agrupados por año de pago
+    pagos.forEach(pago => {
+      // Intentar parsear la fecha usando fecha_transaccion
+      const fechaStr = pago.fecha_transaccion
+      
+      let fechaPago: Date | null = null
+      if (fechaStr) {
+        // Intentar formato ISO
+        fechaPago = new Date(fechaStr)
+        // Si es inválida, intentar otros formatos si es necesario (ej: DD/MM/YYYY)
+        if (isNaN(fechaPago.getTime())) {
+           // Intento simple para DD/MM/YYYY
+           const parts = fechaStr.split('/')
+           if (parts.length === 3) {
+             fechaPago = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
+           }
+        }
+      }
+      
+      // Si la fecha sigue siendo inválida, usar log para depurar (opcional)
+      if (!fechaPago || isNaN(fechaPago.getTime())) return
+
+      const anioPago = fechaPago.getFullYear()
+      if (!anioPago) return
+
+      // Encontrar el contrato asociado al pago
+      const contrato = filteredData.find(c => c.referencia_contrato === pago.referencia_contrato)
+      // Permitir pagos incluso si el contrato no está en filteredData? 
+      // Si filteredData tiene todos los contratos, debería estar. 
+      // Si filteredData está filtrado por filtro global, entonces es correcto excluirlo.
+      if (!contrato) return
+
+      const centro = contrato.nombre_centro_gestor || 'Sin definir'
+      const banco = contrato.banco || 'Sin definir'
+      const valorPago = Number(pago.valor_pago) || 0
+
+      // Crear año si no existe
+      if (!map.has(anioPago)) {
+        map.set(anioPago, {
+          year: anioPago,
+          valorProgramadoPago: 0,
+          valorProgramadoAdjudicacion: 0,
+          valorPagado: 0,
+          totalAsignado: 0,
+          centrosGestores: [],
+          bancos: []
+        })
+      }
+
+      const entry = map.get(anioPago)!
+      entry.valorPagado += valorPago
+
+      // Actualizar o crear centro gestor
+      let centroEntry = entry.centrosGestores.find(c => c.nombre === centro)
+      if (!centroEntry) {
+        centroEntry = { nombre: centro, valorProgramadoPago: 0, valorProgramadoAdjudicacion: 0, valorPagado: 0, totalAsignado: 0 }
+        entry.centrosGestores.push(centroEntry)
+      }
+      centroEntry.valorPagado += valorPago
+
+      // Actualizar o crear banco
+      let bancoEntry = entry.bancos.find(b => b.nombre === banco)
+      if (!bancoEntry) {
+        bancoEntry = { nombre: banco, valorProgramadoPago: 0, valorProgramadoAdjudicacion: 0, valorPagado: 0, totalAsignado: 0 }
+        entry.bancos.push(bancoEntry)
+      }
+      bancoEntry.valorPagado += valorPago
+    })
+
+
+    // Ordenar centros gestores y bancos por monto total en cada año
+    map.forEach(entry => {
+      entry.centrosGestores.sort((a, b) => b.totalAsignado - a.totalAsignado)
+      entry.bancos.sort((a, b) => b.totalAsignado - a.totalAsignado)
+    })
+
+    return Array.from(map.values()).sort((a, b) => a.year - b.year)
+  }, [filteredAsignaciones, filteredData, pagos])
 
   // Cálculo correcto del avance físico total basado en los contratos
   // Usa el último reporte de cada contrato (mismo que la gráfica semanal usa para la última semana)
@@ -1920,45 +2808,41 @@ const useEmprestitoRealData = () => {
     return totalEjecutado
   }, [filteredData, reportes])
 
-  // Cálculo correcto del valor pagado total basado en los contratos (igual lógica que físico)
+  // Cálculo correcto del valor pagado total basado en los pagos reales de la API
   const valorTotalPagado = useMemo(() => {
     let totalPagado = 0
 
-    filteredData.forEach(contrato => {
-      // Buscar el reporte más reciente para este contrato
-      const reporteContrato = reportes
-        .filter(r => r.referencia_contrato === contrato.referencia_contrato)
-        .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+    // Obtener contratos filtrados para sumar solo pagos relevantes
+    const contratosFiltradosSet = new Set(filteredData.map(c => c.referencia_contrato))
 
-      if (reporteContrato) {
-        const valorContrato = Number(contrato.valor_contrato) || 0
-        const porcentajePagado = (reporteContrato as any).porcentaje_pagado || 0
-        // Calcular el valor pagado (porcentaje_pagado ya viene como porcentaje 0-100)
-        // Nota: actualmente este campo no tiene datos en el endpoint
-        totalPagado += (valorContrato * porcentajePagado) / 100
+    pagos.forEach(pago => {
+      // Solo contar pagos de contratos que están en los datos filtrados
+      if (contratosFiltradosSet.has(pago.referencia_contrato)) {
+        totalPagado += Number(pago.valor_pago) || 0
       }
     })
 
     return totalPagado
-  }, [filteredData, reportes])
+  }, [filteredData, pagos])
 
   // Cálculo del porcentaje físico promedio ponderado por valor_contrato
+  // Incluye TODOS los contratos en el denominador (sin reporte = 0% avance)
+  // para que el porcentaje sea consistente con valorTotalFisico / valorTotalAsignado
   const porcentajeFisicoPromedio = useMemo(() => {
     let totalPonderado = 0
     let totalPeso = 0
 
     filteredData.forEach(contrato => {
-      // Buscar el reporte más reciente para este contrato
+      const valorContrato = Number(contrato.valor_contrato) || 0
+      totalPeso += valorContrato
+
       const reporteContrato = reportes
         .filter(r => r.referencia_contrato === contrato.referencia_contrato)
         .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
 
       if (reporteContrato) {
         const avanceFisico = reporteContrato.avance_fisico || 0
-        const valorContrato = Number(contrato.valor_contrato) || 0
-
         totalPonderado += avanceFisico * valorContrato
-        totalPeso += valorContrato
       }
     })
 
@@ -1966,56 +2850,79 @@ const useEmprestitoRealData = () => {
   }, [filteredData, reportes])
 
   // Cálculo del porcentaje financiero promedio ponderado por valor_contrato
+  // Incluye TODOS los contratos en el denominador (sin reporte = 0% avance)
+  // para que el porcentaje sea consistente con valorTotalEjecutado / valorTotalAsignado
   const porcentajeFinancieroPromedio = useMemo(() => {
     let totalPonderado = 0
     let totalPeso = 0
 
     filteredData.forEach(contrato => {
-      // Buscar el reporte más reciente para este contrato
+      const valorContrato = Number(contrato.valor_contrato) || 0
+      totalPeso += valorContrato
+
       const reporteContrato = reportes
         .filter(r => r.referencia_contrato === contrato.referencia_contrato)
         .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
 
       if (reporteContrato) {
         const avanceFinanciero = (reporteContrato as any).avance_financiero || 0
-        const valorContrato = Number(contrato.valor_contrato) || 0
-
         totalPonderado += avanceFinanciero * valorContrato
-        totalPeso += valorContrato
       }
     })
 
     return totalPeso > 0 ? totalPonderado / totalPeso : 0
   }, [filteredData, reportes])
 
-  // Cálculo del porcentaje de pagos promedio ponderado por valor_contrato
+  // Cálculo del porcentaje de pagos promedio basado en pagos reales
   const porcentajePagosPromedio = useMemo(() => {
     let totalPonderado = 0
     let totalPeso = 0
 
     filteredData.forEach(contrato => {
-      // Buscar el reporte más reciente para este contrato
-      const reporteContrato = reportes
-        .filter(r => r.referencia_contrato === contrato.referencia_contrato)
-        .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+      const valorContrato = Number(contrato.valor_contrato) || 0
+      
+      // Calcular total pagado para este contrato
+      const pagosPorContrato = pagos
+        .filter(p => p.referencia_contrato === contrato.referencia_contrato)
+        .reduce((sum, pago) => sum + (Number(pago.valor_pago) || 0), 0)
 
-      if (reporteContrato) {
-        const avancePagos = (reporteContrato as any).avance_pagos || 0
-        const valorContrato = Number(contrato.valor_contrato) || 0
+      // Calcular porcentaje de pagos (pagosPorContrato / valorContrato * 100)
+      const porcentajePagos = valorContrato > 0 ? (pagosPorContrato / valorContrato) * 100 : 0
 
-        totalPonderado += avancePagos * valorContrato
-        totalPeso += valorContrato
-      }
+      totalPonderado += porcentajePagos * valorContrato
+      totalPeso += valorContrato
     })
 
     return totalPeso > 0 ? totalPonderado / totalPeso : 0
-  }, [filteredData, reportes])
+  }, [filteredData, pagos])
+
+  // Cálculo del valorTotalAsignadoBanco con log de depuración (desde monto_programado_banco)
+  const valorTotalAsignadoBanco = useMemo(() => {
+    console.log('💰 Calculando valorTotalAsignadoBanco (desde monto_programado_banco):', {
+      filteredAsignacionesLength: filteredAsignaciones.length,
+      muestra: filteredAsignaciones.slice(0, 3).map(a => ({
+        banco: a.banco,
+        monto_programado_banco: a.monto_programado_banco,
+        monto_programado_adjudicacion: a.monto_programado_adjudicacion,
+        monto_programado_pago: a.monto_programado_pago
+      }))
+    })
+    
+    const totalBanco = filteredAsignaciones.reduce((sum, asignacion) => {
+      const monto = Number(asignacion.monto_programado_banco) || 0
+      return sum + monto
+    }, 0)
+    
+    console.log('💰 valorTotalAsignadoBanco (monto_programado_banco):', totalBanco)
+    return totalBanco
+  }, [filteredAsignaciones])
 
   return {
     loading,
     error,
     contratos: filteredData,
     reportes,
+    pagos,
     bancosEmprestito,
     emprestitoBancos,
     filters,
@@ -2023,11 +2930,13 @@ const useEmprestitoRealData = () => {
     analysisByBank,
     analysisByBankForChart,
     analysisByCentroGestor,
+    analysisByCentroGestorV2,
+    analysisByYear,
     totalContratos: filteredData.length,
     valorTotalAsignado: filteredData.reduce((sum, c) => sum + (Number(c.valor_contrato) || 0), 0),
-    valorTotalAsignadoBanco: bancosEmprestito.reduce((sum, banco) => sum + ((banco as any).valor_asignado_banco || 0), 0), // Suma directa de valor_asignado_banco del endpoint
+    valorTotalAsignadoBanco, // Ahora usa el cálculo con logs
     valorTotalEjecutado, // Ahora usa el cálculo correcto basado en contratos filtrados
-    valorTotalPagado, // Ahora usa el cálculo correcto basado en contratos filtrados
+    valorTotalPagado, // Ahora usa el cálculo correcto basado en pagos reales
     valorTotalFisico,
     porcentajeFisicoPromedio,
     porcentajeFinancieroPromedio,
@@ -2043,6 +2952,15 @@ const BankBarChart: React.FC<{
   maxItems?: number
 }> = ({ data, title = "Análisis por Banco", maxItems = 8 }) => {
   const chartData = data.slice(0, maxItems)
+  
+  // DEBUG: Verificar que los datos tengan valorAsignadoBanco
+  console.log('📊 BankBarChart - Datos recibidos:', chartData.map(b => ({
+    banco: b.banco,
+    valorAsignadoBanco: b.valorAsignadoBanco,
+    valorAdjudicado: b.valorAdjudicado,
+    valorEjecutado: b.valorEjecutado,
+    valorPagado: b.valorPagado
+  })))
 
   const metrics = [
     { key: 'valorAsignadoBanco', label: 'Asignado Banco', color: '#F59E0B' },
@@ -2055,7 +2973,7 @@ const BankBarChart: React.FC<{
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full max-w-full overflow-hidden"
     >
       <div className="flex items-center gap-3 mb-2">
         <BarChart3 className="w-6 h-6 text-blue-600" />
@@ -2075,7 +2993,7 @@ const BankBarChart: React.FC<{
       </div>
 
       {/* Gráfico con scroll horizontal */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden w-full">
         <div style={{ minWidth: `${Math.max(800, chartData.length * 85)}px`, height: '550px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -2155,57 +3073,64 @@ const BankBarChart: React.FC<{
                 }}
               />
 
-              {metrics.map(metric => (
-                <Bar
-                  key={metric.key}
-                  dataKey={metric.key}
-                  fill={metric.color}
-                  radius={[4, 4, 0, 0]}
-                  label={({ x, y, width, value, index }: any) => {
-                    if (!value || value === 0) return <g />
+              {metrics.map(metric => {
+                // DEBUG: Verificar si el dataKey existe en chartData
+                const dataKeyExists = chartData.some((item: any) => metric.key in item)
+                const firstValue = chartData.length > 0 ? (chartData[0] as any)[metric.key] : undefined
+                console.log(`📊 Barra "${metric.label}" (${metric.key}): existe=${dataKeyExists}, primer valor=${firstValue}`)
+                
+                return (
+                  <Bar
+                    key={metric.key}
+                    dataKey={metric.key}
+                    fill={metric.color}
+                    radius={[4, 4, 0, 0]}
+                    label={({ x, y, width, value, index }: any) => {
+                      if (!value || value === 0) return <g />
 
-                    // Formato correcto de pesos colombianos
-                    let formattedValue = ''
-                    if (value >= 1000000000000) { // Billones
-                      formattedValue = `$${(value / 1000000000000).toFixed(1)} Bill`
-                    } else if (value >= 1000000000) { // Miles de millones
-                      formattedValue = `$${(value / 1000000000).toFixed(1)} Mil M`
-                    } else if (value >= 2000000) { // Millones (plural)
-                      formattedValue = `$${(value / 1000000).toFixed(1)} Mill`
-                    } else if (value >= 1000000) { // Millón (singular)
-                      formattedValue = `$${(value / 1000000).toFixed(1)} Millón`
-                    } else if (value >= 1000) { // Miles
-                      formattedValue = `$${(value / 1000).toFixed(0)} Mil`
-                    } else {
-                      formattedValue = `$${value}`
-                    }
+                      // Formato correcto de pesos colombianos
+                      let formattedValue = ''
+                      if (value >= 1000000000000) { // Billones
+                        formattedValue = `$${(value / 1000000000000).toFixed(1)} Bill`
+                      } else if (value >= 1000000000) { // Miles de millones
+                        formattedValue = `$${(value / 1000000000).toFixed(1)} Mil M`
+                      } else if (value >= 2000000) { // Millones (plural)
+                        formattedValue = `$${(value / 1000000).toFixed(1)} Mill`
+                      } else if (value >= 1000000) { // Millón (singular)
+                        formattedValue = `$${(value / 1000000).toFixed(1)} Millón`
+                      } else if (value >= 1000) { // Miles
+                        formattedValue = `$${(value / 1000).toFixed(0)} Mil`
+                      } else {
+                        formattedValue = `$${value}`
+                      }
 
-                    return (
-                      <g>
-                        <rect
-                          x={x + width / 2 - 35}
-                          y={y - 32}
-                          width="70"
-                          height="24"
-                          fill={metric.color}
-                          opacity="0.95"
-                          rx="5"
-                        />
-                        <text
-                          x={x + width / 2}
-                          y={y - 15}
-                          fill="white"
-                          textAnchor="middle"
-                          fontSize="10"
-                          fontWeight="700"
-                        >
-                          {formattedValue}
-                        </text>
-                      </g>
-                    )
-                  }}
-                />
-              ))}
+                      return (
+                        <g>
+                          <rect
+                            x={x + width / 2 - 35}
+                            y={y - 32}
+                            width="70"
+                            height="24"
+                            fill={metric.color}
+                            opacity="0.95"
+                            rx="5"
+                          />
+                          <text
+                            x={x + width / 2}
+                            y={y - 15}
+                            fill="white"
+                            textAnchor="middle"
+                            fontSize="10"
+                            fontWeight="700"
+                          >
+                            {formattedValue}
+                          </text>
+                        </g>
+                      )
+                    }}
+                  />
+                )
+              })}
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -2226,10 +3151,23 @@ const CentroGestorBarChart: React.FC<{
   title?: string
   maxItems?: number
 }> = ({ data, title = "Análisis por Centro Gestor", maxItems = 100 }) => {
-  // Mostrar todos los centros gestores
-  const chartData = data
+  // Mostrar todos los centros gestores, ordenados por valor asignado descendente
+  const chartData = useMemo(() => {
+    return [...data].sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco)
+  }, [data])
+
+  // Debug: Verificar datos recibidos
+  console.log('📊 DEBUG CentroGestorBarChart - Datos recibidos:', chartData.map(d => ({
+    centro: d.centroGestor,
+    valorAsignadoBanco: d.valorAsignadoBanco,
+    valorAsignadoProyecciones: d.valorAsignadoProyecciones,
+    valorAdjudicado: d.valorAdjudicado,
+    valorEjecutado: d.valorEjecutado,
+    valorPagado: d.valorPagado
+  })))
 
   const metrics = [
+    { key: 'valorAsignadoBanco', label: 'Asignado Banco', color: '#F59E0B' },
     { key: 'valorAdjudicado', label: 'Valor Adjudicado', color: '#3B82F6' },
     { key: 'valorEjecutado', label: 'Ejecución Financiera', color: '#10B981' },
     { key: 'valorPagado', label: 'Pagos', color: '#8B5CF6' }
@@ -2239,7 +3177,7 @@ const CentroGestorBarChart: React.FC<{
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 flex flex-col border border-gray-100 dark:border-gray-700 w-full max-w-full overflow-hidden"
     >
       <div className="flex items-center gap-3 mb-2">
         <Building2 className="w-6 h-6 text-green-600" />
@@ -2259,12 +3197,12 @@ const CentroGestorBarChart: React.FC<{
       </div>
 
       {/* Gráfico con scroll horizontal */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden w-full">
         <div style={{ minWidth: `${Math.max(800, chartData.length * 120)}px`, height: '550px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 30, right: 10, left: 10, bottom: 60 }}
+              margin={{ top: 40, right: 10, left: 10, bottom: 60 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" opacity={0.5} />
 
@@ -2287,15 +3225,9 @@ const CentroGestorBarChart: React.FC<{
                   })
                   if (currentLine) lines.push(currentLine)
 
-                  // Limitar a 2 líneas para mejor legibilidad
-                  const displayLines = lines.slice(0, 2)
-                  if (lines.length > 2) {
-                    displayLines[1] = displayLines[1].substring(0, 18) + '...'
-                  }
-
                   return (
                     <g transform={`translate(${x},${y})`}>
-                      {displayLines.map((line, i) => (
+                      {lines.map((line, i) => (
                         <text
                           key={i}
                           x={0}
@@ -2311,7 +3243,7 @@ const CentroGestorBarChart: React.FC<{
                     </g>
                   )
                 }}
-                height={60}
+                height={90}
                 interval={0}
               />
 
@@ -2332,85 +3264,100 @@ const CentroGestorBarChart: React.FC<{
                 formatter={(value: any) => formatNumber(value, 'currency')}
                 labelFormatter={(label) => `${label}`}
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px',
-                  fontSize: '12px'
+                  backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                  border: '2px solid #E5E7EB',
+                  borderRadius: '12px',
+                  fontSize: '13px',
+                  padding: '12px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                }}
+                labelStyle={{
+                  fontWeight: 'bold',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  color: '#1F2937'
+                }}
+                itemStyle={{
+                  padding: '4px 0',
+                  fontSize: '13px'
                 }}
               />
 
-              {metrics.map(metric => (
+              {metrics.map((metric, metricIndex) => (
                 <Bar
                   key={metric.key}
                   dataKey={metric.key}
                   fill={metric.color}
                   radius={[4, 4, 0, 0]}
-                  label={({ x, y, width, value, index }: any) => {
-                    if (!value || value === 0) return <g />
+                >
+                  <LabelList
+                    dataKey={metric.key}
+                    content={({ x, y, width, height, value, index }: any) => {
+                      // Formato del valor - mostrar $0 si no hay valor
+                      let formattedValue = ''
+                      if (!value || value === 0) {
+                        formattedValue = '$0'
+                      } else if (value >= 1000000000000) {
+                        formattedValue = `$${(value / 1000000000000).toFixed(1)}B`
+                      } else if (value >= 1000000000) {
+                        formattedValue = `$${(value / 1000000000).toFixed(1)}MM`
+                      } else if (value >= 1000000) {
+                        formattedValue = `$${(value / 1000000).toFixed(1)}M`
+                      } else if (value >= 1000) {
+                        formattedValue = `$${(value / 1000).toFixed(0)}K`
+                      } else {
+                        formattedValue = `$${value}`
+                      }
 
-                    // Separar valor numérico y notación
-                    let numericValue = ''
-                    let notation = ''
-
-                    if (value >= 1000000000000) { // Billones
-                      numericValue = `$${(value / 1000000000000).toFixed(1)}`
-                      notation = 'Bill'
-                    } else if (value >= 1000000000) { // Miles de millones
-                      numericValue = `$${(value / 1000000000).toFixed(1)}`
-                      notation = 'Mil M'
-                    } else if (value >= 2000000) { // Millones (plural)
-                      numericValue = `$${(value / 1000000).toFixed(1)}`
-                      notation = 'Mill'
-                    } else if (value >= 1000000) { // Millón (singular)
-                      numericValue = `$${(value / 1000000).toFixed(1)}`
-                      notation = 'Millón'
-                    } else if (value >= 1000) { // Miles
-                      numericValue = `$${(value / 1000).toFixed(0)}`
-                      notation = 'Mil'
-                    } else {
-                      numericValue = `$${value}`
-                      notation = ''
-                    }
-
-                    const labelHeight = notation ? 32 : 24
-
-                    return (
-                      <g>
-                        <rect
-                          x={x}
-                          y={y - labelHeight - 5}
-                          width={width}
-                          height={labelHeight}
-                          fill={metric.color}
-                          opacity="0.95"
-                          rx="4"
-                        />
-                        <text
-                          x={x + width / 2}
-                          y={y - (notation ? 20 : 12)}
-                          fill="white"
-                          textAnchor="middle"
-                          fontSize="10"
-                          fontWeight="700"
-                        >
-                          {numericValue}
-                        </text>
-                        {notation && (
+                      // Determinar posición: dentro si hay espacio, fuera si no
+                      const hasSpace = height >= 50
+                      
+                      if (hasSpace) {
+                        // Etiqueta DENTRO de la barra
+                        return (
                           <text
                             x={x + width / 2}
-                            y={y - 8}
+                            y={y + height / 2}
                             fill="white"
                             textAnchor="middle"
-                            fontSize="8"
-                            fontWeight="600"
+                            dominantBaseline="middle"
+                            fontSize="10"
+                            fontWeight="700"
+                            transform={`rotate(-90 ${x + width / 2} ${y + height / 2})`}
+                            style={{ 
+                              textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                              pointerEvents: 'none'
+                            }}
                           >
-                            {notation}
+                            {formattedValue}
                           </text>
-                        )}
-                      </g>
-                    )
-                  }}
-                />
+                        )
+                      } else {
+                        // Etiqueta ENCIMA de la barra (vertical)
+                        // Offset muy pequeño, solo para separar del borde de la barra
+                        const labelY = y - 8
+                        
+                        return (
+                          <text
+                            x={x + width / 2}
+                            y={labelY}
+                            fill={metric.color}
+                            textAnchor="start"
+                            dominantBaseline="middle"
+                            fontSize="10"
+                            fontWeight="700"
+                            transform={`rotate(-90 ${x + width / 2} ${labelY})`}
+                            style={{ 
+                              pointerEvents: 'none'
+                            }}
+                          >
+                            {formattedValue}
+                          </text>
+                        )
+                      }
+                    }}
+                  />
+                </Bar>
               ))}
             </BarChart>
           </ResponsiveContainer>
@@ -2426,18 +3373,320 @@ const CentroGestorBarChart: React.FC<{
   )
 }
 
+// Componente AvanceFisicoChart
+const AvanceFisicoChart: React.FC<{
+  analysisByCentroGestor: AnalysisByCentroGestor[]
+  contratos: any[]
+  reportes: any[]
+}> = ({ analysisByCentroGestor, contratos, reportes }) => {
+  
+  const chartData = useMemo(() => {
+    return analysisByCentroGestor
+      .map(centro => {
+        const contratosDelCentro = contratos.filter(c =>
+          (c.nombre_centro_gestor || 'Sin definir') === centro.centroGestor
+        )
+
+        let totalAvanceFisicoPonderado = 0
+        let totalValorContratos = 0
+
+        contratosDelCentro.forEach(contrato => {
+          const reporteContrato = reportes
+            .filter(r => r.referencia_contrato === contrato.referencia_contrato)
+            .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
+
+          if (reporteContrato) {
+            const avanceFisico = reporteContrato.avance_fisico || 0
+            const valorContrato = Number(contrato.valor_contrato) || 0
+
+            totalAvanceFisicoPonderado += (avanceFisico * valorContrato)
+            totalValorContratos += valorContrato
+          }
+        })
+
+        const promedioAvanceFisico = totalValorContratos > 0 ? totalAvanceFisicoPonderado / totalValorContratos : 0
+
+        return {
+          name: centro.centroGestor,
+          avanceFisico: promedioAvanceFisico,
+          valorAdjudicado: centro.valorAdjudicado
+        }
+      })
+      .sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)
+  }, [analysisByCentroGestor, contratos, reportes])
+
+  return (
+    <div className="min-w-0 mb-3">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 pb-2"
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Building2 className="w-5 h-5 text-blue-600" />
+          <h4 className="text-base font-semibold text-gray-900 dark:text-white">
+            Avance Físico por Organismo
+          </h4>
+        </div>
+
+        <div className="overflow-x-auto w-full">
+          <div style={{ minWidth: `${Math.max(1000, chartData.length * 150)}px`, height: '500px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 30, right: 20, left: 20, bottom: 100 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" opacity={0.5} />
+
+                <XAxis
+                  dataKey="name"
+                  tick={({ x, y, payload }) => {
+                    const text = payload.value as string
+                    const words = text.split(' ')
+                    const lines: string[] = []
+                    let currentLine = ''
+
+                    words.forEach(word => {
+                      const testLine = currentLine ? `${currentLine} ${word}` : word
+                      if (testLine.length <= 20) {
+                        currentLine = testLine
+                      } else {
+                        if (currentLine) lines.push(currentLine)
+                        currentLine = word
+                      }
+                    })
+                    if (currentLine) lines.push(currentLine)
+
+                    return (
+                      <g transform={`translate(${x},${y})`}>
+                        {lines.map((line, i) => (
+                          <text
+                            key={i}
+                            x={0}
+                            y={5 + (i * 13)}
+                            textAnchor="middle"
+                            fill="#374151"
+                            fontSize="11"
+                            fontWeight="500"
+                          >
+                            {line}
+                          </text>
+                        ))}
+                      </g>
+                    )
+                  }}
+                  height={90}
+                  interval={0}
+                />
+
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fontSize: 11, fill: '#6B7280' }}
+                  tickFormatter={(value) => `${value}%`}
+                />
+
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value: number) => [`${value.toFixed(1)}%`, 'Avance Físico']}
+                  labelStyle={{ color: '#1F2937', fontWeight: 'bold' }}
+                />
+
+                <Bar dataKey="avanceFisico" fill="#3B82F6" radius={[4, 4, 0, 0]}>
+                  <LabelList
+                    dataKey="avanceFisico"
+                    position="top"
+                    formatter={(value: number) => `${value.toFixed(1)}%`}
+                    style={{ fontSize: '10px', fill: '#1F2937', fontWeight: 'bold' }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        
+        {chartData.length > 6 && (
+            <div className="text-center mt-3 p-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded">
+            Mostrando {chartData.length} organismos • Desliza para ver más
+            </div>
+        )}
+      </motion.div>
+    </div>
+  )
+}
+
 // Componente unificado para análisis financiero con toggle
 const FinancialAnalysisToggle: React.FC<{
   bankData: AnalysisByBank[]
   centroGestorData: AnalysisByCentroGestor[]
-}> = ({ bankData, centroGestorData }) => {
-  const [viewMode, setViewMode] = useState<'banco' | 'centroGestor'>('banco')
+  centroGestorV2Data: AnalysisByCentroGestorV2[]
+  yearData: AnalysisByYear[]
+}> = ({ bankData, centroGestorData, centroGestorV2Data, yearData }) => {
+  const [viewMode, setViewMode] = useState<'banco' | 'centroGestor' | 'year'>('banco')
+  const [selectedCentroGestor, setSelectedCentroGestor] = useState<string>('Todos')
+  const [selectedBanco, setSelectedBanco] = useState<string>('Todos')
+  const [showCentrosBreakdown, setShowCentrosBreakdown] = useState(false)
+  const [showBancosBreakdown, setShowBancosBreakdown] = useState(false)
+
+  // Obtener lista de centros gestores únicos desde yearData
+  const centrosGestoresOptions = useMemo(() => {
+    const centros = new Set<string>()
+    yearData.forEach(year => {
+      year.centrosGestores.forEach(c => centros.add(c.nombre))
+    })
+    return ['Todos', ...Array.from(centros).sort()]
+  }, [yearData])
+
+  // Obtener lista de bancos únicos desde yearData
+  const bancosOptions = useMemo(() => {
+    const bancos = new Set<string>()
+    yearData.forEach(year => {
+      year.bancos.forEach(b => bancos.add(b.nombre))
+    })
+    return ['Todos', ...Array.from(bancos).sort()]
+  }, [yearData])
+
+  // Filtrar datos por centro gestor y banco seleccionado
+  const filteredYearData = useMemo(() => {
+    if (selectedCentroGestor === 'Todos' && selectedBanco === 'Todos') return yearData
+
+    return yearData.map(year => {
+      let valorPago = 0
+      let valorAdj = 0
+      let valorReal = 0
+
+      year.centrosGestores.forEach(centro => {
+        if (selectedCentroGestor === 'Todos' || centro.nombre === selectedCentroGestor) {
+          // Si hay filtro de banco, buscar en asignaciones originales
+          if (selectedBanco === 'Todos') {
+            valorPago += centro.valorProgramadoPago
+            valorAdj += centro.valorProgramadoAdjudicacion
+            valorReal += centro.valorPagado
+          } else {
+            // Buscar en bancos del año que coincidan
+            year.bancos.forEach(banco => {
+              if (banco.nombre === selectedBanco) {
+                // Proporción del banco en el centro gestor (simplificación)
+                const proporcion = year.totalAsignado > 0 ? banco.totalAsignado / year.totalAsignado : 0
+                valorPago += centro.valorProgramadoPago * proporcion
+                valorAdj += centro.valorProgramadoAdjudicacion * proporcion
+                valorReal += centro.valorPagado * proporcion
+              }
+            })
+          }
+        }
+      })
+
+      return {
+        year: year.year,
+        valorProgramadoPago: valorPago,
+        valorProgramadoAdjudicacion: valorAdj,
+        valorPagado: valorReal,
+        totalAsignado: valorPago + valorAdj,
+        centrosGestores: year.centrosGestores,
+        bancos: year.bancos
+      }
+    })
+  }, [yearData, selectedCentroGestor, selectedBanco])
+
+  const renderYearChart = () => {
+    // Preparar datos para gráfico de breakdown si está activado
+    const chartData = showCentrosBreakdown 
+      ? filteredYearData.flatMap(year => 
+          year.centrosGestores
+            .filter(c => selectedCentroGestor === 'Todos' || c.nombre === selectedCentroGestor)
+            .slice(0, 5) // Top 5 centros
+            .map(centro => ({
+              name: `${year.year} - ${centro.nombre.substring(0, 20)}...`,
+              year: year.year,
+              valorProgramadoPago: centro.valorProgramadoPago,
+              valorProgramadoAdjudicacion: centro.valorProgramadoAdjudicacion,
+              valorPagado: centro.valorPagado,
+              centro: centro.nombre
+            }))
+        )
+      : showBancosBreakdown
+      ? filteredYearData.flatMap(year =>
+          year.bancos
+            .filter(b => selectedBanco === 'Todos' || b.nombre === selectedBanco)
+            .map(banco => ({
+              name: `${year.year} - ${banco.nombre}`,
+              year: year.year,
+              valorProgramadoPago: banco.valorProgramadoPago,
+              valorProgramadoAdjudicacion: banco.valorProgramadoAdjudicacion,
+              valorPagado: banco.valorPagado,
+              banco: banco.nombre
+            }))
+        )
+      : filteredYearData.map(year => ({
+          name: year.year.toString(),
+          year: year.year,
+          valorProgramadoPago: year.valorProgramadoPago,
+          valorProgramadoAdjudicacion: year.valorProgramadoAdjudicacion,
+          valorPagado: year.valorPagado
+        }))
+    
+    // DEBUG: Log de los datos del gráfico
+    console.log('📈 Datos para gráfico temporal (renderYearChart):', chartData.slice(0, 5))
+
+    return (
+    <div style={{ width: '100%', height: showCentrosBreakdown || showBancosBreakdown ? 600 : 400 }}>
+       <ResponsiveContainer width="100%" height="100%">
+          <BarChart 
+            data={chartData} 
+            margin={{ 
+              top: 20, 
+              right: 30, 
+              left: 20, 
+              bottom: showCentrosBreakdown || showBancosBreakdown ? 120 : 20 
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+            <XAxis 
+              dataKey="name" 
+              angle={showCentrosBreakdown || showBancosBreakdown ? -45 : 0}
+              textAnchor={showCentrosBreakdown || showBancosBreakdown ? "end" : "middle"}
+              height={showCentrosBreakdown || showBancosBreakdown ? 100 : 60}
+              tick={{fontSize: 10}}
+            />
+            <YAxis tickFormatter={(val: number) => `$${(val/1000000000).toFixed(0)}MM`} width={80} />
+             <Tooltip 
+              formatter={(value: number) => formatCurrency(value)}
+              labelStyle={{ color: 'black' }}
+               contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: '8px', color: 'black' }}
+            />
+            <Legend verticalAlign="top"/>
+            <Bar dataKey="valorProgramadoAdjudicacion" name="Asignado Banco" fill="#F59E0B" barSize={50}>
+              <LabelList 
+                dataKey="valorProgramadoAdjudicacion" 
+                position="top" 
+                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
+                style={{ fontSize: '11px', fill: '#D97706', fontWeight: 'bold' }}
+              />
+            </Bar>
+            <Bar dataKey="valorPagado" name="Pagos Reales" fill="#8B5CF6" barSize={50}>
+              <LabelList 
+                dataKey="valorPagado" 
+                position="top" 
+                formatter={(val: number) => val > 0 ? `$${(val/1000000).toFixed(0)}M` : ''}
+                style={{ fontSize: '11px', fill: '#5B21B6', fontWeight: 'bold' }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+    </div>
+    )
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 w-full"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 w-full max-w-full overflow-hidden"
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
@@ -2448,10 +3697,10 @@ const FinancialAnalysisToggle: React.FC<{
         </div>
 
         {/* Toggle para cambiar vista */}
-        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+        <div className="flex flex-wrap items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           <button
             onClick={() => setViewMode('banco')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'banco'
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'banco'
                 ? 'bg-teal-600 text-white shadow-sm'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
@@ -2461,7 +3710,7 @@ const FinancialAnalysisToggle: React.FC<{
           </button>
           <button
             onClick={() => setViewMode('centroGestor')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'centroGestor'
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'centroGestor'
                 ? 'bg-teal-600 text-white shadow-sm'
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
@@ -2469,19 +3718,29 @@ const FinancialAnalysisToggle: React.FC<{
             <Building2 className="w-4 h-4 inline mr-2" />
             Por Centro Gestor
           </button>
+          <button
+            onClick={() => setViewMode('year')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${viewMode === 'year'
+                ? 'bg-teal-600 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+          >
+            <Calendar className="w-4 h-4 inline mr-2" />
+            Temporal
+          </button>
         </div>
       </div>
 
       {/* Contenido según la vista seleccionada */}
       <AnimatePresence mode="wait">
-        {viewMode === 'banco' ? (
+        {viewMode === 'banco' && (
           <motion.div
             key="banco-view"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3 }}
-            className="min-h-[600px]"
+            className="min-h-[600px] w-full overflow-hidden"
           >
             <BankBarChart
               data={bankData}
@@ -2489,14 +3748,15 @@ const FinancialAnalysisToggle: React.FC<{
               maxItems={8}
             />
           </motion.div>
-        ) : (
+        )}
+        {viewMode === 'centroGestor' && (
           <motion.div
             key="centro-gestor-view"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="min-h-[600px]"
+            className="min-h-[600px] w-full overflow-hidden"
           >
             <CentroGestorBarChart
               data={centroGestorData}
@@ -2504,12 +3764,113 @@ const FinancialAnalysisToggle: React.FC<{
             />
           </motion.div>
         )}
+        {viewMode === 'year' && (
+          <motion.div
+            key="year-view"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="w-full overflow-hidden"
+          >
+             <h4 className="text-lg font-bold text-center mb-4 text-gray-700 dark:text-gray-200">
+               Flujo de Asignaciones por Año
+             </h4>
+             
+             {/* Filtros y controles */}
+             <div className="mb-4 space-y-3">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     <Building2 className="w-4 h-4 inline mr-1" />
+                     Centro Gestor
+                   </label>
+                   <select
+                     value={selectedCentroGestor}
+                     onChange={(e) => setSelectedCentroGestor(e.target.value)}
+                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                   >
+                     {centrosGestoresOptions.map(centro => (
+                       <option key={centro} value={centro}>{centro}</option>
+                     ))}
+                   </select>
+                 </div>
+                 
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                     <Briefcase className="w-4 h-4 inline mr-1" />
+                     Banco
+                   </label>
+                   <select
+                     value={selectedBanco}
+                     onChange={(e) => setSelectedBanco(e.target.value)}
+                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                   >
+                     {bancosOptions.map(banco => (
+                       <option key={banco} value={banco}>{banco}</option>
+                     ))}
+                   </select>
+                 </div>
+               </div>
+
+               <div className="flex gap-2">
+                 <button
+                   onClick={() => {
+                     setShowCentrosBreakdown(!showCentrosBreakdown)
+                     if (!showCentrosBreakdown) setShowBancosBreakdown(false)
+                   }}
+                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                     showCentrosBreakdown
+                       ? 'bg-teal-600 text-white'
+                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                   }`}
+                 >
+                   <Building2 className="w-3 h-3 inline mr-1" />
+                   Desglose Centros Gestores
+                 </button>
+                 
+                 <button
+                   onClick={() => {
+                     setShowBancosBreakdown(!showBancosBreakdown)
+                     if (!showBancosBreakdown) setShowCentrosBreakdown(false)
+                   }}
+                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                     showBancosBreakdown
+                       ? 'bg-teal-600 text-white'
+                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                   }`}
+                 >
+                   <Briefcase className="w-3 h-3 inline mr-1" />
+                   Desglose Bancos
+                 </button>
+
+                 {(selectedCentroGestor !== 'Todos' || selectedBanco !== 'Todos' || showCentrosBreakdown || showBancosBreakdown) && (
+                   <button
+                     onClick={() => {
+                       setSelectedCentroGestor('Todos')
+                       setSelectedBanco('Todos')
+                       setShowCentrosBreakdown(false)
+                       setShowBancosBreakdown(false)
+                     }}
+                     className="px-3 py-1.5 text-xs font-medium rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50"
+                   >
+                     ✕ Limpiar Filtros
+                   </button>
+                 )}
+               </div>
+             </div>
+
+             {renderYearChart()}
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Componente fusionado: Torta + Tabla de Organismos */}
-      <div className="mt-3">
-        <OrganismosWithPieChart data={centroGestorData} />
-      </div>
+      {(viewMode === 'centroGestor' || viewMode === 'banco') && (
+        <div className="mt-3">
+          <OrganismosWithPieChart data={centroGestorData} />
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -2522,7 +3883,8 @@ const AdvancedFilters: React.FC<{
   centrosGestores: string[]
   estados: string[]
   sectores: string[]
-}> = ({ filters, setFilters, bancos, centrosGestores, estados, sectores }) => {
+  bps: string[]
+}> = ({ filters, setFilters, bancos, centrosGestores, estados, sectores, bps }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -2536,7 +3898,7 @@ const AdvancedFilters: React.FC<{
         </h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {/* Filtro por Banco */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -2608,11 +3970,35 @@ const AdvancedFilters: React.FC<{
             ))}
           </select>
         </div>
+
+        {/* Filtro por BP */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <FileText className="w-4 h-4 inline mr-1" />
+            BP (Proyecto)
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={filters.bp}
+              onChange={(e) => setFilters({ ...filters, bp: e.target.value })}
+              placeholder="Buscar BP..."
+              list="bp-list"
+              className="w-full px-3 py-2 pl-9 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+            />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <datalist id="bp-list">
+              {bps.map(bp => (
+                <option key={bp} value={bp} />
+              ))}
+            </datalist>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end mt-4">
         <button
-          onClick={() => setFilters({ banco: '', centroGestor: '', estado: '', sector: '', fechaInicio: '', fechaFin: '' })}
+          onClick={() => setFilters({ banco: '', centroGestor: '', estado: '', sector: '', bp: '', ano: '', fechaInicio: '', fechaFin: '' })}
           className="px-4 py-2 text-sm text-teal-600 hover:text-teal-700 font-medium"
         >
           Limpiar filtros
@@ -2624,6 +4010,8 @@ const AdvancedFilters: React.FC<{
 
 // Componente principal del dashboard avanzado
 const EmprestitoAdvancedDashboard: React.FC = () => {
+  const { canModifyOrDeleteRecords } = useAuth()
+  const canManageRecordActions = canModifyOrDeleteRecords()
   const [showFilters, setShowFilters] = useState(false)
   const [selectedYear, setSelectedYear] = useState<string>('Consolidado')
 
@@ -2635,6 +4023,13 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedContrato, setSelectedContrato] = useState<any>(null)
 
+  // Estados para reportar avances
+  const [modalReporte, setModalReporte] = useState<{ open: boolean; contrato: any | null }>({ open: false, contrato: null })
+  const [modalHistorial, setModalHistorial] = useState<{ open: boolean; contrato: any | null }>({ open: false, contrato: null })
+  const activeRefReporte = modalReporte.contrato?.referencia_contrato || modalHistorial.contrato?.referencia_contrato || ''
+  const { reportes: reportesContrato, loading: loadingReportes, submitting: submittingReporte, crearReporte, refetch: refetchReportes } = useReportesContrato(activeRefReporte || undefined)
+  const resumenReportes = useResumenReportes(reportesContrato)
+
   // Estado para selector de columnas
   const [columnSettings, setColumnSettings] = useState({
     proceso: true,
@@ -2642,31 +4037,41 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     estado: true,
     valor: true,
     avance: true,
-    observaciones: true,
+    observaciones: false,
     detalle: true,
-    tipo: false,
+    tipo: true,
     modalidad: false,
     sector: false,
     supervisor: false,
     categoria: false,
-    fechaInicio: false,
-    fechaFin: false,
+    fechaInicio: true,
+    fechaFin: true,
     diasTranscurridos: false,
-    diasRestantes: false
+    diasRestantes: true,
+    acciones: canManageRecordActions
   })
   const [showColumnSelector, setShowColumnSelector] = useState(false)
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: '', direction: 'asc' })
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'dias_restantes', direction: 'asc' })
+
+  useEffect(() => {
+    if (!canManageRecordActions) {
+      setColumnSettings(prev => ({ ...prev, acciones: false }))
+    }
+  }, [canManageRecordActions])
 
   const {
     loading,
     error,
     contratos,
     reportes,
+    pagos,
     filters,
     setFilters,
     analysisByBank,
     analysisByBankForChart,
     analysisByCentroGestor,
+    analysisByCentroGestorV2,
+    analysisByYear,
     totalContratos,
     valorTotalAsignado,
     valorTotalAsignadoBanco,
@@ -2706,6 +4111,11 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   const centrosGestores = useMemo(() => {
     const uniqueCentros = Array.from(new Set(contratos.map(c => c.nombre_centro_gestor).filter(Boolean)))
     return uniqueCentros.sort()
+  }, [contratos])
+
+  const bps = useMemo(() => {
+    const uniqueBPs = Array.from(new Set(contratos.map(c => c.bp).filter(Boolean)))
+    return uniqueBPs.sort()
   }, [contratos])
 
   // Función para manejar ordenamiento
@@ -2882,10 +4292,10 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex relative w-full">
+    <div className="flex relative w-full max-w-full overflow-hidden">
       {/* Contenido principal */}
       <div
-        className="flex-1 space-y-3 sm:space-y-4 p-4 sm:p-6 transition-all duration-300"
+        className="flex-1 space-y-3 sm:space-y-4 p-4 sm:p-6 transition-all duration-300 min-w-0"
         style={{ marginRight: showFilters ? '320px' : '0' }}
       >
         {/* Título del Dashboard */}
@@ -2902,7 +4312,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 w-full"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 w-full max-w-full overflow-hidden"
         >
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -2927,7 +4337,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 <p className="text-sm font-bold text-green-700 dark:text-green-300">{formatNumber(valorTotalAsignado, 'currency')}</p>
               </div>
               <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
-                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">Valor Asignado Bancos</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">Asignado Banco</p>
                 <p className="text-sm font-bold text-orange-700 dark:text-orange-300">{formatNumber(valorTotalAsignadoBanco, 'currency')}</p>
               </div>
               <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
@@ -2954,11 +4364,13 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Ejecución Física"
-                  description="Progreso físico de los contratos"
+                  description="Aprox. (reportado por el organismo)"
                   percentage={porcentajeFisicoPromedio}
+                  value={valorTotalFisico}
+                  total={valorTotalAsignado}
                   color="text-cyan-500"
                   icon={<Activity className="w-5 h-5 text-cyan-600" />}
-                  showMonetaryValues={false}
+                  showMonetaryValues={true}
                 />
               </div>
 
@@ -2966,11 +4378,13 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Ejecución Financiera"
-                  description="Progreso financiero de los contratos"
+                  description="Aprox. (reportado por el organismo)"
                   percentage={porcentajeFinancieroPromedio}
+                  value={valorTotalEjecutado}
+                  total={valorTotalAsignado}
                   color="text-indigo-500"
                   icon={<TrendingUp className="w-5 h-5 text-indigo-600" />}
-                  showMonetaryValues={false}
+                  showMonetaryValues={true}
                 />
               </div>
 
@@ -2978,142 +4392,24 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Pagos Realizados"
-                  description="Pagos efectuados sobre el total"
+                  description="Gestión de RPC"
                   percentage={porcentajePagosPromedio}
+                  value={valorTotalPagado}
+                  total={valorTotalAsignado}
                   color="text-pink-500"
                   icon={<DollarSign className="w-5 h-5 text-pink-600" />}
-                  showMonetaryValues={false}
+                  showMonetaryValues={true}
                 />
               </div>
             </div>
 
             {/* Gráfica de Avance Físico por Organismo */}
-            <div className="min-w-0 mb-3">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-3 flex flex-col"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <Building2 className="w-5 h-5 text-blue-600" />
-                  <h4 className="text-base font-semibold text-gray-900 dark:text-white">
-                    Avance Físico por Organismo
-                  </h4>
-                </div>
+            <AvanceFisicoChart 
+              analysisByCentroGestor={analysisByCentroGestor}
+              contratos={contratos}
+              reportes={reportes}
+            />
 
-                <div className="overflow-x-auto">
-                  <div style={{ minWidth: '800px', height: '400px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={analysisByCentroGestor
-                          .map(centro => {
-                            // Calcular el promedio PONDERADO de avance físico para este centro gestor
-                            const contratosDelCentro = contratos.filter(c =>
-                              (c.nombre_centro_gestor || 'Sin definir') === centro.centroGestor
-                            )
-
-                            let totalAvanceFisicoPonderado = 0
-                            let totalValorContratos = 0
-
-                            contratosDelCentro.forEach(contrato => {
-                              const reporteContrato = reportes
-                                .filter(r => r.referencia_contrato === contrato.referencia_contrato)
-                                .sort((a, b) => new Date(b.fecha_reporte).getTime() - new Date(a.fecha_reporte).getTime())[0]
-
-                              if (reporteContrato) {
-                                const avanceFisico = reporteContrato.avance_fisico || 0
-                                const valorContrato = Number(contrato.valor_contrato) || 0
-
-                                totalAvanceFisicoPonderado += (avanceFisico * valorContrato)
-                                totalValorContratos += valorContrato
-                              }
-                            })
-
-                            const promedioAvanceFisico = totalValorContratos > 0 ? totalAvanceFisicoPonderado / totalValorContratos : 0
-
-                            return {
-                              name: centro.centroGestor,
-                              avanceFisico: promedioAvanceFisico,
-                              valorAdjudicado: centro.valorAdjudicado
-                            }
-                          })
-                          .sort((a, b) => b.valorAdjudicado - a.valorAdjudicado)}
-                        margin={{ top: 20, right: 10, left: 10, bottom: 60 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" opacity={0.5} />
-
-                        <XAxis
-                          dataKey="name"
-                          tick={({ x, y, payload }) => {
-                            const text = payload.value as string
-                            const words = text.split(' ')
-                            const lines: string[] = []
-                            let currentLine = ''
-
-                            // Dividir el texto en líneas sin límite de caracteres estricto
-                            words.forEach(word => {
-                              if ((currentLine + ' ' + word).length <= 30) {
-                                currentLine += (currentLine ? ' ' : '') + word
-                              } else {
-                                if (currentLine) lines.push(currentLine)
-                                currentLine = word
-                              }
-                            })
-                            if (currentLine) lines.push(currentLine)
-
-                            // Mostrar todas las líneas necesarias sin truncar
-                            return (
-                              <g transform={`translate(${x},${y})`}>
-                                {lines.map((line, i) => (
-                                  <text
-                                    key={i}
-                                    x={0}
-                                    y={i * 11 + 5}
-                                    textAnchor="middle"
-                                    fill="#4B5563"
-                                    fontSize="10"
-                                  >
-                                    {line}
-                                  </text>
-                                ))}
-                              </g>
-                            )
-                          }}
-                          height={80}
-                          interval={0}
-                        />
-
-                        <YAxis
-                          domain={[0, 100]}
-                          tick={{ fontSize: 11, fill: '#6B7280' }}
-                          tickFormatter={(value) => `${value}%`}
-                        />
-
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                            border: '1px solid #E5E7EB',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                          }}
-                          formatter={(value: number) => [`${value.toFixed(1)}%`, 'Avance Físico']}
-                          labelStyle={{ color: '#1F2937', fontWeight: 'bold' }}
-                        />
-
-                        <Bar dataKey="avanceFisico" fill="#3B82F6" radius={[4, 4, 0, 0]}>
-                          <LabelList
-                            dataKey="avanceFisico"
-                            position="top"
-                            formatter={(value: number) => `${value.toFixed(1)}%`}
-                            style={{ fontSize: '10px', fill: '#1F2937', fontWeight: 'bold' }}
-                          />
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
 
             {/* Gráfica de línea temporal + Variación */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
@@ -3139,6 +4435,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         <FinancialAnalysisToggle
           bankData={analysisByBankForChart}
           centroGestorData={analysisByCentroGestor}
+          centroGestorV2Data={analysisByCentroGestorV2}
+          yearData={analysisByYear}
         />
 
         {/* Tabla de Contratos Detallada */}
@@ -3202,7 +4500,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         { key: 'fechaFin', label: 'Fecha Fin' },
                         { key: 'diasTranscurridos', label: 'Días Transcurridos' },
                         { key: 'diasRestantes', label: 'Días Restantes' },
-                        { key: 'detalle', label: 'Detalle' }
+                        { key: 'detalle', label: 'Detalle' },
+                        ...(canManageRecordActions ? [{ key: 'acciones', label: 'Acciones Avance' }] : [])
                       ].map(col => (
                         <label key={col.key} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-1 rounded">
                           <input
@@ -3229,13 +4528,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
           </div>
 
           {/* Tabla Responsiva Mejorada */}
-          <div className="overflow-x-auto -mx-6 px-6">
-            <div className="min-w-full inline-block align-middle">
-              <table className="w-full min-w-[1200px] table-fixed">
+          <div className="overflow-x-auto">
+            <table className="w-full" style={{ tableLayout: 'auto' }}>
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     {columnSettings.proceso && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[300px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '150px', width: '20%' }}>
                         <div className="flex items-center gap-2">
                           <div>
                             <div>Proceso / Centro Gestor</div>
@@ -3252,7 +4550,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.banco && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '70px', width: '7%' }}>
                         <div className="flex items-center gap-2">
                           <span>Banco</span>
                           <button onClick={() => handleSort('banco')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3266,7 +4564,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.estado && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '70px', width: '6%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <span>Estado</span>
                           <button onClick={() => handleSort('estado')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3280,7 +4578,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.valor && (
-                      <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[130px]">
+                      <th className="text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '10%' }}>
                         <div className="flex items-center justify-end gap-2">
                           <span>Valor Contrato</span>
                           <button onClick={() => handleSort('valor_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3294,7 +4592,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.avance && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[160px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '9%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <div>
                             <div>Avance Ejecución</div>
@@ -3311,12 +4609,12 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.observaciones && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[200px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '150px', width: '15%' }}>
                         Observaciones / Alertas
                       </th>
                     )}
                     {columnSettings.tipo && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '70px', width: '6%' }}>
                         <div className="flex items-center gap-2">
                           <span>Tipo Contrato</span>
                           <button onClick={() => handleSort('tipo_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3330,7 +4628,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.modalidad && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[140px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '110px', width: '10%' }}>
                         <div className="flex items-center gap-2">
                           <span>Modalidad</span>
                           <button onClick={() => handleSort('modalidad_contratacion')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3344,7 +4642,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.sector && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '8%' }}>
                         <div className="flex items-center gap-2">
                           <span>Sector</span>
                           <button onClick={() => handleSort('sector')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3358,7 +4656,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.categoria && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[120px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '8%' }}>
                         <div className="flex items-center gap-2">
                           <span>Categoría</span>
                           <button onClick={() => handleSort('codigo_categoria')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3372,7 +4670,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.supervisor && (
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[140px]">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '110px', width: '10%' }}>
                         <div className="flex items-center gap-2">
                           <span>Supervisor</span>
                           <button onClick={() => handleSort('supervisor')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3386,7 +4684,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.fechaInicio && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[110px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '80px', width: '8%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <span>Fecha Inicio</span>
                           <button onClick={() => handleSort('fecha_firma_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3400,7 +4698,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.fechaFin && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[110px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '80px', width: '8%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <span>Fecha Fin</span>
                           <button onClick={() => handleSort('fecha_fin_contrato')} className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded">
@@ -3414,7 +4712,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.diasTranscurridos && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '90px', width: '8%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <div>
                             <div>Días</div>
@@ -3431,7 +4729,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.diasRestantes && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[100px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '75px', width: '6%' }}>
                         <div className="flex items-center justify-center gap-2">
                           <div>
                             <div>Días</div>
@@ -3448,8 +4746,13 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       </th>
                     )}
                     {columnSettings.detalle && (
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm w-[80px]">
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '60px', width: '5%' }}>
                         Detalle
+                      </th>
+                    )}
+                    {canManageRecordActions && columnSettings.acciones && (
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 text-sm" style={{ minWidth: '100px', width: '8%' }}>
+                        Acciones
                       </th>
                     )}
                   </tr>
@@ -3470,32 +4773,29 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         {columnSettings.proceso && (
-                          <td className="py-3 px-2 text-sm w-[300px]">
-                            <div className="space-y-1 overflow-hidden">
-                              <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight truncate"
-                                title={contrato.nombre_resumido_proceso || 'Sin proceso'}>
+                          <td className="py-3 px-2 text-sm align-top">
+                            <div className="space-y-1">
+                              <div className="font-medium text-gray-900 dark:text-white text-xs leading-tight break-words">
                                 {contrato.nombre_resumido_proceso || 'Sin proceso'}
                               </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight whitespace-normal break-words"
-                                title={contrato.nombre_centro_gestor || 'Sin centro gestor'}>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight break-words">
                                 {contrato.nombre_centro_gestor || 'Sin centro gestor'}
                               </div>
-                              <div className="text-xs text-blue-600 dark:text-blue-400 font-mono truncate"
-                                title={contrato.referencia_contrato || 'Sin referencia'}>
+                              <div className="text-xs text-blue-600 dark:text-blue-400 font-mono break-all">
                                 {contrato.referencia_contrato || 'Sin referencia'}
                               </div>
                             </div>
                           </td>
                         )}
                         {columnSettings.banco && (
-                          <td className="py-3 px-2 text-sm text-gray-700 dark:text-gray-300 w-[120px]">
+                          <td className="py-3 px-2 text-sm text-left text-gray-700 dark:text-gray-300">
                             <div className="truncate text-xs" title={contrato.banco || 'No especificado'}>
                               {contrato.banco || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.estado && (
-                          <td className="py-3 px-2 text-center w-[100px]">
+                          <td className="py-3 px-2 text-center">
                             <span className={`px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${contrato.estado_contrato === 'En ejecución'
                                 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                                 : contrato.estado_contrato === 'Aprobado'
@@ -3507,14 +4807,14 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.valor && (
-                          <td className="py-3 px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300 w-[130px]">
+                          <td className="py-3 px-2 text-sm text-right font-medium text-gray-700 dark:text-gray-300">
                             <div className="truncate text-xs" title={formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}>
                               {formatNumber(Number(contrato.valor_contrato || contrato.valor_del_contrato || 0), 'currency')}
                             </div>
                           </td>
                         )}
                         {columnSettings.avance && (
-                          <td className="py-3 px-2 w-[160px]">
+                          <td className="py-3 px-2 text-center">
                             <div className="space-y-2">
                               {/* Progress bar para Avance Financiero - más compacto */}
                               <div>
@@ -3562,7 +4862,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.observaciones && (
-                          <td className="py-3 px-2 text-sm text-gray-600 dark:text-gray-400 w-[200px]">
+                          <td className="py-3 px-2 text-sm text-gray-600 dark:text-gray-400">
                             <div className="text-xs break-words overflow-hidden" style={{ maxHeight: '4rem' }}>
                               {(() => {
                                 const observaciones = []
@@ -3621,42 +4921,42 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.tipo && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[120px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate" title={(contrato as any).tipo_contrato || (contrato as any).tipo_de_contrato || 'N/A'}>
                               {(contrato as any).tipo_contrato || (contrato as any).tipo_de_contrato || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.modalidad && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[140px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate" title={(contrato as any).modalidad_contratacion || (contrato as any).modalidad_de_selecci_n || 'N/A'}>
                               {(contrato as any).modalidad_contratacion || (contrato as any).modalidad_de_selecci_n || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.sector && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[120px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate" title={contrato.sector || 'N/A'}>
                               {contrato.sector || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.categoria && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[120px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate font-mono" title={(contrato as any).codigo_categoria_principal || (contrato as any).codigo_secop || 'N/A'}>
                               {(contrato as any).codigo_categoria_principal || (contrato as any).codigo_secop || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.supervisor && (
-                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300 w-[140px]">
+                          <td className="py-3 px-2 text-xs text-gray-700 dark:text-gray-300">
                             <div className="truncate" title={(contrato as any).nombre_supervisor || 'N/A'}>
                               {(contrato as any).nombre_supervisor || 'N/A'}
                             </div>
                           </td>
                         )}
                         {columnSettings.fechaInicio && (
-                          <td className="py-3 px-2 text-center text-xs text-gray-700 dark:text-gray-300 w-[110px]">
+                          <td className="py-3 px-2 text-center text-xs text-gray-700 dark:text-gray-300">
                             {contrato.fecha_inicio_contrato ? new Date(contrato.fecha_inicio_contrato).toLocaleDateString('es-CO', {
                               year: 'numeric',
                               month: 'short',
@@ -3665,7 +4965,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.fechaFin && (
-                          <td className="py-3 px-2 text-center text-xs text-gray-700 dark:text-gray-300 w-[110px]">
+                          <td className="py-3 px-2 text-center text-xs text-gray-700 dark:text-gray-300">
                             {contrato.fecha_fin_contrato ? new Date(contrato.fecha_fin_contrato).toLocaleDateString('es-CO', {
                               year: 'numeric',
                               month: 'short',
@@ -3674,7 +4974,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.diasTranscurridos && (
-                          <td className="py-3 px-2 text-center text-xs w-[100px]">
+                          <td className="py-3 px-2 text-center text-xs">
                             {(() => {
                               if (!contrato.fecha_inicio_contrato) return <span className="text-gray-400">N/A</span>
                               const inicio = new Date(contrato.fecha_inicio_contrato)
@@ -3689,8 +4989,11 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.diasRestantes && (
-                          <td className="py-3 px-2 text-center text-xs w-[100px]">
+                          <td className="py-3 px-2 text-center text-xs">
                             {(() => {
+                              if ((reporteContrato?.avance_fisico ?? 0) >= 100) {
+                                return <span className="font-semibold text-gray-400 dark:text-gray-500">Finalizado</span>
+                              }
                               if (!contrato.fecha_fin_contrato) return <span className="text-gray-400">N/A</span>
                               const fin = new Date(contrato.fecha_fin_contrato)
                               const hoy = new Date()
@@ -3709,7 +5012,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                           </td>
                         )}
                         {columnSettings.detalle && (
-                          <td className="py-3 px-2 text-center w-[80px]">
+                          <td className="py-3 px-2 text-center">
                             <button
                               onClick={() => handleOpenModal(contrato)}
                               className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"
@@ -3719,12 +5022,31 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             </button>
                           </td>
                         )}
+                        {canManageRecordActions && columnSettings.acciones && (
+                          <td className="py-3 px-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => setModalReporte({ open: true, contrato })}
+                                className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"
+                                title="Reportar avance"
+                              >
+                                <ClipboardEdit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setModalHistorial({ open: true, contrato })}
+                                className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 transition-colors hover:bg-purple-50 dark:hover:bg-purple-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"
+                                title="Ver historial de reportes"
+                              >
+                                <History className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </motion.tr>
                     )
                   })}
                 </tbody>
               </table>
-            </div>
           </div>
 
           {/* Controles de Paginación */}
@@ -3972,10 +5294,34 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   </select>
                 </div>
 
+                {/* Filtro por BP */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <FileText className="w-4 h-4 inline mr-2" />
+                    BP (Proyecto)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={filters.bp}
+                      onChange={(e) => setFilters({ ...filters, bp: e.target.value })}
+                      placeholder="Buscar BP..."
+                      list="bp-list-sidebar"
+                      className="w-full px-3 py-2 pl-9 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                    />
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <datalist id="bp-list-sidebar">
+                      {bps.map(bp => (
+                        <option key={bp} value={bp} />
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+
                 {/* Botón limpiar filtros */}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
                   <button
-                    onClick={() => setFilters({ banco: '', centroGestor: '', estado: '', sector: '', ano: '', fechaInicio: '', fechaFin: '' })}
+                    onClick={() => setFilters({ banco: '', centroGestor: '', estado: '', sector: '', bp: '', ano: '', fechaInicio: '', fechaFin: '' })}
                     className="w-full px-4 py-2 text-sm text-teal-600 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-900/20 font-medium rounded-lg transition-colors"
                   >
                     Limpiar todos los filtros
@@ -3997,6 +5343,33 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         contratoData={selectedContrato}
         referenciaContrato={selectedContrato?.referencia_contrato}
         reportes={reportes}
+        pagos={pagos}
+      />
+
+      {/* Modal para reportar avance de contrato */}
+      <RegistrarReporteContratoModal
+        isOpen={modalReporte.open}
+        onClose={() => setModalReporte({ open: false, contrato: null })}
+        referenciaContrato={modalReporte.contrato?.referencia_contrato || ''}
+        nombreContrato={modalReporte.contrato?.nombre_resumido_proceso || modalReporte.contrato?.objeto_contrato || ''}
+        onSubmit={async (formData) => {
+          const success = await crearReporte(formData)
+          if (success) setModalReporte({ open: false, contrato: null })
+          return success
+        }}
+        submitting={submittingReporte}
+      />
+
+      {/* Modal historial de reportes */}
+      <HistorialReportesContrato
+        isOpen={modalHistorial.open}
+        onClose={() => setModalHistorial({ open: false, contrato: null })}
+        referenciaContrato={modalHistorial.contrato?.referencia_contrato || ''}
+        nombreContrato={modalHistorial.contrato?.nombre_resumido_proceso || modalHistorial.contrato?.objeto_contrato || ''}
+        reportes={reportesContrato}
+        resumen={resumenReportes}
+        loading={loadingReportes}
+        onRefresh={refetchReportes}
       />
     </div>
   )

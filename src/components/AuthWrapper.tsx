@@ -1,19 +1,62 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import LoginPage from '@/components/LoginPage'
-import { motion } from 'framer-motion'
+import { ROLES_CONFIG } from '@/types/admin'
 
 interface AuthWrapperProps {
   children: React.ReactNode
 }
 
 export default function AuthWrapper({ children }: AuthWrapperProps) {
-  const { state } = useAuth()
+  const { state, validateSession } = useAuth()
+  const sessionCheckRef = useRef<string | null>(null)
+  const [isRevalidatingSession, setIsRevalidatingSession] = useState(false)
+
+  useEffect(() => {
+    const shouldHydrate =
+      state.isAuthenticated &&
+      !!state.user &&
+      state.user.session_valid !== true
+
+    if (!shouldHydrate) {
+      sessionCheckRef.current = null
+      setIsRevalidatingSession(false)
+      return
+    }
+
+    const userId = state.user?.uid || '__unknown__'
+    if (sessionCheckRef.current === userId) {
+      return
+    }
+
+    sessionCheckRef.current = userId
+    setIsRevalidatingSession(true)
+    validateSession().finally(() => {
+      setIsRevalidatingSession(false)
+    })
+  }, [state.isAuthenticated, state.user?.uid, state.user?.session_valid, validateSession])
+
+  // Si está cargando, mostrar loading
+  if (state.isLoading || isRevalidatingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Validando sesión y permisos...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Si no está autenticado, mostrar login
   if (!state.isAuthenticated) {
+    return <LoginPage />
+  }
+
+  // Si no se confirmó la sesión luego de revalidar, volver a login para evitar loop
+  if (state.user?.session_valid !== true) {
     return <LoginPage />
   }
 
@@ -23,13 +66,32 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
 // Componente para mostrar información del usuario autenticado
 export function UserProfile() {
-  const { state, signOut } = useAuth()
+  const { state, signOut, getHighestRole } = useAuth()
   
   if (!state.user) return null
 
+  const highestRole = getHighestRole()
+  const nombreCentroGestor = state.user.nombre_centro_gestor || state.user.centro_gestor_assigned
+  const roleAliasMap: Record<string, string> = {
+    admin: 'admin_general',
+    gestor_master: 'admin_centro_gestor',
+    gestor: 'editor_datos',
+    consultor_master: 'analista',
+    consultor: 'visualizador'
+  }
+
+  const normalizedRole = roleAliasMap[highestRole || ''] || highestRole || ''
+  const profileColor = ROLES_CONFIG[normalizedRole as keyof typeof ROLES_CONFIG]?.color || '#2563EB'
+  const isPublicRole = normalizedRole === 'publico'
+
   return (
-    <div className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-green-600 px-2 py-1 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
-      <div className="flex items-center space-x-2">
+    <div
+      className="flex items-center space-x-2 px-2 py-1 md:px-3 md:py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 max-w-full"
+      style={isPublicRole
+        ? { backgroundColor: '#374151', border: `1px solid ${profileColor}33` }
+        : { backgroundColor: profileColor }}
+    >
+      <div className="flex items-center space-x-2 min-w-0">
         {state.user.photoURL ? (
           <img
             src={state.user.photoURL}
@@ -47,9 +109,22 @@ export function UserProfile() {
           <p className="text-xs md:text-sm font-medium text-white truncate">
             {state.user.displayName || state.user.email?.split('@')[0]}
           </p>
-          <p className="text-xs text-blue-100 truncate">
-            {state.user.email}
+          {nombreCentroGestor && (
+            <p className="text-xs text-blue-100 truncate">
+              {nombreCentroGestor}
+            </p>
+          )}
+        </div>
+
+        <div className="md:hidden min-w-0 max-w-[130px]">
+          <p className="text-[10px] text-white font-medium truncate">
+            {state.user.displayName || state.user.email?.split('@')[0]}
           </p>
+          {nombreCentroGestor && (
+            <p className="text-[10px] text-blue-100 truncate">
+              {nombreCentroGestor}
+            </p>
+          )}
         </div>
       </div>
       <button

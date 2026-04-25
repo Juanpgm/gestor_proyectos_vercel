@@ -19,12 +19,60 @@ import {
   Plus,
   TrendingUp,
   Landmark,
-  Edit2,
-  Trash2,
+  Upload,
   Eye,
-  EyeOff
+  EyeOff,
+  CheckCircle,
+  Download
 } from 'lucide-react'
 import AgregarConvenioTransferenciaModal from '@/components/AgregarConvenioTransferenciaModal'
+import CargarRPCModal from '@/components/CargarRPCModal'
+import EditarRPCModal from '@/components/EditarRPCModal'
+import ManagementFeatureTour from './ManagementFeatureTour'
+
+// Interfaz para RPC
+interface DocumentoConEnlace {
+  filename: string
+  s3_key: string
+  s3_url: string
+  content_type: string
+  size: number
+  upload_date?: string
+  url_descarga?: string
+  url_visualizar?: string
+  url_presigned?: string
+  url_expiration_seconds?: number
+}
+
+interface RPC {
+  id: string
+  numero_rpc: string
+  referencia_contrato: string
+  numero_contrato?: string
+  beneficiario_id?: string
+  beneficiario_nombre?: string
+  descripcion_rpc?: string
+  fecha_contabilizacion?: string
+  fecha_impresion?: string
+  estado_liberacion?: string
+  bp?: string
+  valor_rpc?: number
+  cdp_asociados?: string[]
+  programacion_pac?: {[key: string]: string}
+  nombre_centro_gestor?: string
+  documentos_s3?: Array<{
+    s3_url: string
+    filename: string
+    content_type: string
+    size: number
+  }>
+  documentos_con_enlaces?: DocumentoConEnlace[]
+  total_documentos?: number
+  fecha_creacion?: string
+  fecha_actualizacion?: string
+  estado?: string
+  tipo?: string
+}
 
 // Interfaz para contrato de empréstito
 interface ContratoEmprestito {
@@ -38,7 +86,10 @@ interface ContratoEmprestito {
   nombre_centro_gestor?: string
   estado?: string
   tipo_contrato?: string
-  nombre_banco?: string
+  tipo?: string
+  tipo_registro?: string
+  modalidad_contrato?: string
+  banco?: string
   contratista?: string
   nit_contratista?: string
   supervisor?: string
@@ -72,6 +123,7 @@ interface GestionContratosProps {
 const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) => {
   // Estados para datos
   const [contratos, setContratos] = useState<ContratoEmprestito[]>([])
+  const [rpcs, setRpcs] = useState<RPC[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -81,8 +133,15 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
   const [showAgregarModal, setShowAgregarModal] = useState(false)
-  const [editingData, setEditingData] = useState<ContratoEmprestito | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<ContratoEmprestito | null>(null)
+  const [showCargarRPCModal, setShowCargarRPCModal] = useState(false)
+  const [selectedContratoForRPC, setSelectedContratoForRPC] = useState<ContratoEmprestito | null>(null)
+  const [showEditarRPCModal, setShowEditarRPCModal] = useState(false)
+  const [selectedRPCForEdit, setSelectedRPCForEdit] = useState<RPC | null>(null)
+  const [showDocumentosRPCModal, setShowDocumentosRPCModal] = useState(false)
+  const [selectedContratoForDocs, setSelectedContratoForDocs] = useState<ContratoEmprestito | null>(null)
+  const [selectedDocUrl, setSelectedDocUrl] = useState<string | null>(null)
+  const [selectedDocBlobUrl, setSelectedDocBlobUrl] = useState<string | null>(null)
+  const [loadingDoc, setLoadingDoc] = useState(false)
   const [showColumnSelector, setShowColumnSelector] = useState(false)
   const [columnSearchTerm, setColumnSearchTerm] = useState('')
   const [columnOrder, setColumnOrder] = useState<string[]>([])
@@ -92,14 +151,14 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     'numero_contrato',
     'objeto_contrato',
     'nombre_centro_gestor',
+    'banco',
     'estado_contrato',
     'modalidad_contratacion',
     'entidad_contratante',
     'valor_contrato',
     'fecha_firma_contrato',
     'contratista',
-    'nombre_resumido_proceso',
-    'contratista'
+    'nombre_resumido_proceso'
   ]))
   
   // Estados para paginación
@@ -121,9 +180,16 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       isSortable: true,
       accessor: (contrato: ContratoEmprestito) => contrato.referencia_contrato || contrato.numero_contrato
     },
+    { 
+      key: 'tipo_origen', 
+      label: 'Tipo', 
+      isSortable: true,
+      accessor: (contrato: ContratoEmprestito) => getTipoContrato(contrato)
+    },
     { key: 'objeto_contrato', label: 'Objeto del Contrato', isSortable: true },
+    { key: 'nombre_resumido_proceso', label: 'Nombre Proceso', isSortable: true },
     { key: 'nombre_centro_gestor', label: 'Centro Gestor', isSortable: true },
-    { key: 'nombre_banco', label: 'Banco', isSortable: true },
+    { key: 'banco', label: 'Banco', isSortable: true },
     { key: 'estado_contrato', label: 'Estado Contrato', isSortable: true },
     { key: 'estado', label: 'Estado', isSortable: true },
     { key: 'valor_contrato', label: 'Valor Contrato', isSortable: true },
@@ -137,7 +203,6 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     { key: 'contratista', label: 'Contratista', isSortable: true },
     { key: 'nit_contratista', label: 'NIT Contratista', isSortable: true },
     { key: 'supervisor', label: 'Supervisor', isSortable: true },
-    { key: 'nombre_resumido_proceso', label: 'Nombre Proceso', isSortable: true },
     { key: 'referencia_proceso', label: 'Ref. Proceso', isSortable: true },
   ], []);
 
@@ -172,6 +237,13 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
   }, [showFilters, showColumnSelector])
 
   // Función para cargar datos del endpoint
+  /**
+   * Carga todos los contratos desde el endpoint /contratos_emprestito_all
+   * Este endpoint retorna 60 registros en total:
+   * - 44 contratos de SECOP (solo lectura)
+   * - 12 órdenes de compra TVEC (editables - tipo: "orden_compra_manual")
+   * - 4 convenios/transferencias (editables - tipo: "convenio_transferencia_manual")
+   */
   const fetchContratos = async () => {
     try {
       setLoading(true)
@@ -182,7 +254,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         throw new Error('URL de API no configurada')
       }
 
-      const response = await fetch(`${apiUrl}/contratos_emprestito_all`)
+      const response = await fetch('/api/proxy/contratos_emprestito_all')
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -209,69 +281,180 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
     }
   }
 
+  const fetchRPCs = async () => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      if (!apiUrl) {
+        throw new Error('URL de API no configurada')
+      }
+
+      const response = await fetch('/api/proxy/rpc_all')
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('API Response (RPCs):', data)
+      
+      if (data.success && Array.isArray(data.data)) {
+        setRpcs(data.data)
+      } else {
+        console.warn('Formato de respuesta inesperado para RPCs:', data)
+        setRpcs([])
+      }
+    } catch (error) {
+      console.error('Error fetching RPCs:', error)
+      setRpcs([])
+    }
+  }
+
+  // Función para obtener TODOS los RPCs de un contrato
+  const obtenerRPCsDeContrato = (contrato: ContratoEmprestito): RPC[] => {
+    const referenciaContrato = contrato.referencia_contrato || contrato.numero_contrato
+    return rpcs.filter(rpc => rpc.referencia_contrato === referenciaContrato)
+  }
+
+  // Función para verificar si algún RPC del contrato tiene documentos
+  const tieneDocumentosRPC = (contrato: ContratoEmprestito): boolean => {
+    const contratosRpcs = obtenerRPCsDeContrato(contrato)
+    return contratosRpcs.some(rpc =>
+      (rpc.documentos_con_enlaces && rpc.documentos_con_enlaces.length > 0) ||
+      (rpc.documentos_s3 && rpc.documentos_s3.length > 0)
+    )
+  }
+
+  // URL remota del documento (usada como key de selección)
+  const getDocRemoteUrl = (doc: DocumentoConEnlace): string => {
+    return doc.url_visualizar || doc.url_presigned || doc.s3_url
+  }
+
+  // URL para descargar el documento (usa el proxy con Content-Disposition: attachment)
+  const getDocDownloadUrl = (doc: DocumentoConEnlace): string => {
+    const remoteUrl = doc.url_descarga || doc.url_visualizar || doc.url_presigned || doc.s3_url
+    const encoded = btoa(unescape(encodeURIComponent(remoteUrl)))
+    return `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}`
+  }
+
+  // Seleccionar documento: fetch como blob para visualizar inline
+  // (S3 envía Content-Disposition: attachment, así que el iframe descarga en lugar de mostrar.
+  //  La solución es fetch → blob → URL.createObjectURL que no tiene headers de descarga.)
+  const handleSelectDoc = async (doc: DocumentoConEnlace) => {
+    const remoteUrl = getDocRemoteUrl(doc)
+    console.log('[DocViewer] handleSelectDoc llamado, filename:', doc.filename)
+    if (selectedDocUrl === remoteUrl) {
+      console.log('[DocViewer] Ya seleccionado, ignorando')
+      return
+    }
+
+    // Liberar blob anterior
+    if (selectedDocBlobUrl) {
+      URL.revokeObjectURL(selectedDocBlobUrl)
+      setSelectedDocBlobUrl(null)
+    }
+
+    setSelectedDocUrl(remoteUrl)
+    setLoadingDoc(true)
+
+    try {
+      const encoded = btoa(unescape(encodeURIComponent(remoteUrl)))
+      const proxyUrl = `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}&inline=1`
+      console.log('[DocViewer] Fetching proxy URL:', proxyUrl.substring(0, 100))
+      const response = await fetch(proxyUrl)
+      console.log('[DocViewer] Response status:', response.status, 'Content-Type:', response.headers.get('Content-Type'))
+      if (!response.ok) throw new Error(`Error ${response.status}`)
+      const blob = await response.blob()
+      console.log('[DocViewer] Blob size:', blob.size, 'type:', blob.type)
+      const pdfBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' })
+      const blobUrl = URL.createObjectURL(pdfBlob)
+      console.log('[DocViewer] Blob URL creada:', blobUrl)
+      setSelectedDocBlobUrl(blobUrl)
+    } catch (err) {
+      console.error('[DocViewer] Error cargando documento:', err)
+      setSelectedDocBlobUrl(null)
+    } finally {
+      setLoadingDoc(false)
+    }
+  }
+
+  // Limpiar blob URL al cerrar modal
+  const handleCloseDocumentosModal = () => {
+    if (selectedDocBlobUrl) URL.revokeObjectURL(selectedDocBlobUrl)
+    setShowDocumentosRPCModal(false)
+    setSelectedContratoForDocs(null)
+    setSelectedDocUrl(null)
+    setSelectedDocBlobUrl(null)
+    setLoadingDoc(false)
+  }
+
+  // Abrir el modal de documentos RPC del contrato
+  // Si solo hay un documento, lo carga automáticamente en el visor
+  const handleOpenDocumentosRPC = (contrato: ContratoEmprestito) => {
+    setSelectedContratoForDocs(contrato)
+    setSelectedDocUrl(null)
+    setSelectedDocBlobUrl(null)
+    setShowDocumentosRPCModal(true)
+
+    // Auto-cargar si solo hay un documento
+    const rpcsDelContrato = rpcs.filter(r => {
+      const numContrato = (r.numero_contrato ?? r.referencia_contrato)?.toString() || ''
+      const contratoNum = contrato.numero_contrato?.toString() || ''
+      return numContrato === contratoNum
+    })
+    const allDocs: DocumentoConEnlace[] = []
+    rpcsDelContrato.forEach(rpc => {
+      allDocs.push(...getDocumentosDeRPC(rpc))
+    })
+    if (allDocs.length === 1) {
+      // Usar setTimeout para que el modal se renderice primero
+      setTimeout(() => handleSelectDoc(allDocs[0]), 100)
+    }
+  }
+
+  // Obtener documentos unificados de un RPC (prefiere documentos_con_enlaces)
+  const getDocumentosDeRPC = (rpc: RPC): DocumentoConEnlace[] => {
+    if (rpc.documentos_con_enlaces && rpc.documentos_con_enlaces.length > 0) {
+      return rpc.documentos_con_enlaces
+    }
+    if (rpc.documentos_s3 && rpc.documentos_s3.length > 0) {
+      return rpc.documentos_s3.map(d => ({
+        filename: d.filename,
+        s3_key: '',
+        s3_url: d.s3_url,
+        content_type: d.content_type,
+        size: d.size,
+      }))
+    }
+    return []
+  }
+
+  // Formatear tamaño de archivo
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
   useEffect(() => {
     fetchContratos()
+    fetchRPCs()
   }, [])
 
   const handleAgregarContratoSuccess = () => {
     fetchContratos()
   }
   
-  const handleEditContrato = (contrato: ContratoEmprestito) => {
-    setEditingData(contrato)
-    setShowAgregarModal(true)
-  }
-
-  const handleUpdateContrato = async (numeroContrato: string, formData: any) => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
-      const response = await fetch(`${apiUrl}/emprestito/contrato/${numeroContrato}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || `Error ${response.status}`)
-      }
-
-      await fetchContratos()
-      setEditingData(null)
-    } catch (error) {
-      console.error('Error al actualizar contrato:', error)
-      throw error
+  /**
+   * Obtiene el tipo de contrato para mostrar en la tabla
+   */
+  const getTipoContrato = (contrato: ContratoEmprestito): string => {
+    if (contrato.tipo_contrato === 'Orden de Compra - TVEC') {
+      return 'Orden TVEC'
     }
-  }
-
-  const handleDeleteContrato = async (numeroContrato: string) => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) {
-        throw new Error('URL de API no configurada')
-      }
-
-      const response = await fetch(`${apiUrl}/emprestito/contrato/${numeroContrato}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || `Error ${response.status}`)
-      }
-
-      await fetchContratos()
-      setDeleteConfirm(null)
-    } catch (error) {
-      console.error('Error al eliminar contrato:', error)
-      alert(`Error al eliminar: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+    if (contrato.tipo === 'convenio_transferencia_manual') {
+      return 'Convenio/Transferencia'
     }
+    return 'SECOP'
   }
 
   const getUniqueValues = (key: string): string[] => {
@@ -321,6 +504,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       return true
     })
 
+    // Aplicar ordenamiento si está configurado
     if (sortConfig.key) {
       const sortColumn = columns.find(col => col.key === sortConfig.key);
       
@@ -386,7 +570,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
 
     const bancos = new Set(
       allContratos
-        .map(contrato => contrato.nombre_banco)
+        .map(contrato => contrato.banco)
         .filter(Boolean)
     ).size
 
@@ -406,6 +590,19 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       ? (totalValorPagado / totalValorContrato) * 100 
       : 0
 
+    // Conteo por tipo
+    const contratosSECOP = allContratos.filter(c => 
+      c.tipo_contrato !== 'Orden de Compra - TVEC' && c.tipo !== 'convenio_transferencia_manual'
+    ).length
+    
+    const ordenesTV = allContratos.filter(c => 
+      c.tipo_contrato === 'Orden de Compra - TVEC'
+    ).length
+    
+    const convenios = allContratos.filter(c => 
+      c.tipo === 'convenio_transferencia_manual'
+    ).length
+
     return {
       totalContratos,
       filteredCount,
@@ -415,7 +612,10 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       centrosGestores,
       bancos,
       estados,
-      modalidades
+      modalidades,
+      contratosSECOP,
+      ordenesTV,
+      convenios
     }
   }, [contratos, allContratos])
 
@@ -632,6 +832,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-6 text-white shadow-lg"
+        data-tour-id="mgmt-contratos-header"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-4">
@@ -645,13 +846,16 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
               </p>
             </div>
           </div>
-          <button
-            onClick={onNavigateHome}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Volver al Dashboard</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ManagementFeatureTour moduleKey="contratos" />
+            <button
+              onClick={onNavigateHome}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Volver al Dashboard</span>
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -700,6 +904,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"
+          data-tour-id="mgmt-contratos-stats"
         >
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
@@ -766,11 +971,67 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         </motion.div>
       )}
 
+      {/* Métricas por Tipo de Contrato */}
+      {contratos.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-3"
+        >
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-4 shadow border border-purple-200 dark:border-purple-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-600 dark:text-purple-400 text-xs font-medium">Contratos SECOP</p>
+                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
+                  {stats.contratosSECOP}
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">Solo lectura</p>
+              </div>
+              <div className="bg-purple-500 p-2 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-4 shadow border border-green-200 dark:border-green-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-600 dark:text-green-400 text-xs font-medium">Órdenes TVEC</p>
+                <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
+                  {stats.ordenesTV}
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400">Solo lectura</p>
+              </div>
+              <div className="bg-green-500 p-2 rounded-lg">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg p-4 shadow border border-orange-200 dark:border-orange-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-600 dark:text-orange-400 text-xs font-medium">Convenios/Transfer.</p>
+                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100 mt-1">
+                  {stats.convenios}
+                </p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">Solo lectura</p>
+              </div>
+              <div className="bg-orange-500 p-2 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Controls */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+        data-tour-id="mgmt-contratos-filters"
       >
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -904,6 +1165,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        data-tour-id="mgmt-contratos-table"
       >
         <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
           <table className="w-full text-sm">
@@ -1064,6 +1326,28 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
 
                     const cellValue = column.accessor ? column.accessor(contrato) : contrato[column.key];
 
+                    // Renderizado especial para columna de tipo
+                    if (column.key === 'tipo_origen') {
+                      const tipo = getTipoContrato(contrato);
+                      const colorClass = tipo === 'Orden TVEC' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : tipo === 'Convenio/Transferencia'
+                        ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                        : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+
+                      return (
+                        <td 
+                          key={column.key} 
+                          className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700"
+                          style={{ width: `${getColumnWidth(column.key)}px`, maxWidth: `${getColumnWidth(column.key)}px` }}
+                        >
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
+                            {tipo}
+                          </span>
+                        </td>
+                      );
+                    }
+
                     return (
                       <td 
                         key={column.key} 
@@ -1081,20 +1365,36 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                   
                   <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700 sticky right-0 bg-white dark:bg-gray-800 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] dark:shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.3)]">
                     <div className="flex items-center space-x-2">
+                      {/* Botón para cargar RPC - siempre visible */}
                       <button
-                        onClick={() => handleEditContrato(contrato)}
-                        className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
-                        title="Editar"
+                        onClick={() => {
+                          setSelectedContratoForRPC(contrato)
+                          setShowCargarRPCModal(true)
+                        }}
+                        className="p-1.5 rounded transition-colors text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 relative"
+                        title="Cargar RPC"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Upload className="w-4 h-4" />
+                        {(() => {
+                          const count = obtenerRPCsDeContrato(contrato).length
+                          return count > 0 ? (
+                            <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                              {count}
+                            </span>
+                          ) : null
+                        })()}
                       </button>
-                      <button
-                        onClick={() => setDeleteConfirm(contrato)}
-                        className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+
+                      {/* Botón para ver documentos RPC (solo si tiene documentos) */}
+                      {tieneDocumentosRPC(contrato) && (
+                        <button
+                          onClick={() => handleOpenDocumentosRPC(contrato)}
+                          className="p-1.5 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors"
+                          title="Ver documentos RPC"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </motion.tr>
@@ -1137,62 +1437,236 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         )}
       </motion.div>
 
-      {/* Modal para agregar/editar convenio o transferencia */}
+      {/* Modal para agregar convenio o transferencia */}
       <AgregarConvenioTransferenciaModal
         isOpen={showAgregarModal}
         onClose={() => {
           setShowAgregarModal(false)
-          setEditingData(null)
         }}
         onSuccess={handleAgregarContratoSuccess}
-        editingData={editingData}
-        onEdit={handleUpdateContrato}
       />
       
-      {/* Delete Confirmation Dialog */}
+      {/* Modal de Cargar RPC */}
+      <CargarRPCModal
+        isOpen={showCargarRPCModal}
+        onClose={() => {
+          setShowCargarRPCModal(false)
+          setSelectedContratoForRPC(null)
+        }}
+        onSuccess={() => {
+          fetchContratos()
+          fetchRPCs()
+        }}
+        contratoData={selectedContratoForRPC}
+        rpcsExistentes={selectedContratoForRPC ? obtenerRPCsDeContrato(selectedContratoForRPC) : []}
+        onEditRPC={(rpc) => {
+          setShowCargarRPCModal(false)
+          setSelectedRPCForEdit(rpc)
+          setShowEditarRPCModal(true)
+        }}
+      />
+
+      {/* Modal de Editar RPC */}
+      <EditarRPCModal
+        isOpen={showEditarRPCModal}
+        onClose={() => {
+          setShowEditarRPCModal(false)
+          setSelectedRPCForEdit(null)
+        }}
+        onSuccess={() => {
+          fetchContratos()
+          fetchRPCs()
+        }}
+        rpcData={selectedRPCForEdit}
+        contratoData={selectedContratoForRPC}
+      />
+
+      {/* Modal de Documentos RPC */}
       <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-            onClick={() => setDeleteConfirm(null)}
-          >
+        {showDocumentosRPCModal && selectedContratoForDocs && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col"
             >
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Eliminar Contrato
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                ¿Está seguro que desea eliminar el contrato <strong>{deleteConfirm.numero_contrato}</strong>? Esta acción no se puede deshacer.
-              </p>
-              <div className="flex justify-end space-x-3">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <FileText className="w-6 h-6 text-white" />
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Documentos RPC</h2>
+                    <p className="text-sm text-white/80">
+                      {selectedContratoForDocs.referencia_contrato || selectedContratoForDocs.numero_contrato}
+                    </p>
+                  </div>
+                </div>
                 <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={handleCloseDocumentosModal}
+                  className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
                 >
-                  Cancelar
+                  <X className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={async () => {
-                    if (deleteConfirm?.numero_contrato) {
-                      await handleDeleteContrato(deleteConfirm.numero_contrato)
+              </div>
+
+              {/* Content: sidebar list + PDF viewer */}
+              <div className="flex-1 flex overflow-hidden">
+                {/* Sidebar: lista de RPCs y documentos */}
+                <div className="w-80 border-r border-gray-200 dark:border-gray-700 overflow-y-auto bg-gray-50 dark:bg-gray-900 flex-shrink-0">
+                  {(() => {
+                    const rpcsDelContrato = obtenerRPCsDeContrato(selectedContratoForDocs)
+                    if (rpcsDelContrato.length === 0) {
+                      return (
+                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                          <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No hay RPCs registrados</p>
+                        </div>
+                      )
                     }
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                    return rpcsDelContrato.map((rpc) => {
+                      const docs = getDocumentosDeRPC(rpc)
+                      return (
+                        <div key={rpc.id} className="border-b border-gray-200 dark:border-gray-700">
+                          {/* RPC header */}
+                          <div className="px-4 py-3 bg-white dark:bg-gray-800">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                RPC {rpc.numero_rpc}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                rpc.estado === 'activo'
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                              }`}>
+                                {rpc.estado_liberacion || rpc.estado || 'N/A'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                              {rpc.beneficiario_nombre || 'Sin beneficiario'}
+                            </p>
+                            {rpc.valor_rpc && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                ${rpc.valor_rpc.toLocaleString('es-CO')}
+                              </p>
+                            )}
+                          </div>
+                          {/* Documentos del RPC */}
+                          {docs.length > 0 ? (
+                            docs.map((doc, idx) => {
+                              const remoteUrl = getDocRemoteUrl(doc)
+                              const isSelected = selectedDocUrl === remoteUrl
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`px-4 py-2 flex items-center gap-2 cursor-pointer transition-colors ${
+                                    isSelected
+                                      ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500'
+                                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 border-l-4 border-transparent'
+                                  }`}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleSelectDoc(doc)
+                                  }}
+                                >
+                                  <FileText className={`w-4 h-4 flex-shrink-0 ${
+                                    isSelected ? 'text-orange-600' : 'text-gray-400'
+                                  }`} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-xs truncate ${
+                                      isSelected
+                                        ? 'font-semibold text-orange-700 dark:text-orange-400'
+                                        : 'text-gray-700 dark:text-gray-300'
+                                    }`}>
+                                      {doc.filename}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400">
+                                      {formatFileSize(doc.size)} · {doc.content_type.split('/')[1]?.toUpperCase() || 'DOC'}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      const downloadUrl = getDocDownloadUrl(doc)
+                                      window.open(downloadUrl, '_blank')
+                                    }}
+                                    className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex-shrink-0"
+                                    title="Descargar documento"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 italic">
+                              Sin documentos adjuntos
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+
+                {/* PDF Viewer */}
+                <div className="flex-1 bg-gray-100 dark:bg-gray-900 relative">
+                  {loadingDoc ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center text-gray-400 dark:text-gray-500">
+                        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                        <p className="text-sm">Cargando documento...</p>
+                      </div>
+                    </div>
+                  ) : selectedDocBlobUrl ? (
+                    <iframe
+                      src={selectedDocBlobUrl}
+                      className="absolute inset-0 w-full h-full border-0"
+                      title="Vista previa del documento RPC"
+                    />
+                  ) : selectedDocUrl ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center text-red-400 dark:text-red-500">
+                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                        <p className="text-sm">No se pudo cargar la vista previa</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center text-gray-400 dark:text-gray-500">
+                        <Eye className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                        <p className="text-sm">Selecciona un documento para previsualizarlo</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                {selectedDocBlobUrl && (
+                  <a
+                    href={selectedDocBlobUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2 text-sm"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>Abrir en Nueva Pestaña</span>
+                  </a>
+                )}
+                <button
+                  onClick={handleCloseDocumentosModal}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm ml-auto"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Eliminar</span>
+                  Cerrar
                 </button>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

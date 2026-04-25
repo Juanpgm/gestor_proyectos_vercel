@@ -8,7 +8,7 @@ import EmprestitoCharts from '@/components/EmprestitoCharts'
 import { Loader2 } from 'lucide-react'
 
 const EmprestitoPage: React.FC = () => {
-  const { data, loading, error } = useEmprestito()
+  const { data, loading, error } = useEmprestito(true) // Siempre activo en EmprestitoPage
   const metrics = useEmprestitoMetrics(data)
 
   if (error) {

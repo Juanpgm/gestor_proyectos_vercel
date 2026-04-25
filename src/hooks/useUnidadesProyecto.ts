@@ -1,55 +1,18 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { 
+  fetchGeometryData, 
+  fetchAttributeData, 
+  generateFiltersFromData,
+  type GeometryData,
+  type AttributeData,
+  type FilterData,
+  type FilterParams
+} from '@/services/unidades-proyecto.service';
 
-// Tipos de datos basados en la API
-export interface GeometryData {
-  type: string;
-  features: {
-    type: string;
-    geometry: {
-      type: string;
-      coordinates: [number, number];
-    };
-    properties: {
-      upid: string;
-      avance_obra?: number;
-      fuente_financiacion?: string;
-      nombre_centro_gestor?: string;
-      ano?: number;
-      presupuesto_base?: number;
-      [key: string]: any;
-    };
-  }[];
-}
-
-export interface AttributeData {
-  upid: string;
-  nombre_up: string;
-  estado: string;
-  tipo_intervencion: string;
-  tipo_equipamiento?: string;
-  nombre_centro_gestor: string;
-  comuna_corregimiento: string;
-  barrio_vereda: string;
-  presupuesto_base: number;
-  avance_obra: number;
-  fecha_inicio: string;
-  fecha_fin: string;
-  descripcion_intervencion: string;
-  fuente_financiacion: string;
-  ano: number;
-  [key: string]: any;
-}
-
-export interface FilterData {
-  estados: string[];
-  tipos_intervencion: string[];
-  centros_gestores: string[];
-  comunas_corregimientos: string[];
-  fuentes_financiacion: string[];
-  anos: number[];
-}
+// Re-exportar tipos para compatibilidad
+export type { GeometryData, AttributeData, FilterData };
 
 export interface UseUnidadesProyectoResult {
   // Datos
@@ -80,78 +43,29 @@ export const useUnidadesProyecto = (): UseUnidadesProyectoResult => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  // Función para obtener datos de la API
+  // Función para obtener datos de la API usando el servicio refactorizado
   const fetchData = async (): Promise<void> => {
     setLoading(true);
     setError(null);
     
     try {
-      const [geometryResponse, attributesResponse, filtersResponse] = await Promise.all([
-        fetch('/api/proxy/unidades-proyecto/geometry'),
-        fetch('/api/proxy/unidades-proyecto/attributes'),
-        fetch('/api/proxy/unidades-proyecto/filters')
+      console.log('🔄 useUnidadesProyecto: Iniciando carga de datos...');
+      
+      // Usar el servicio que ahora usa el endpoint unificado internamente
+      const [geometry, attributes] = await Promise.all([
+        fetchGeometryData(),
+        fetchAttributeData()
       ]);
-
-      // Procesar geometría
-      if (geometryResponse.ok) {
-        const geometry = await geometryResponse.json();
-        setGeometryData(geometry);
-      }
-
-      // Procesar atributos
-      if (attributesResponse.ok) {
-        const apiResponse = await attributesResponse.json();
-        const attributes = apiResponse?.success && apiResponse?.data ? apiResponse.data : apiResponse;
-        const attributesArray = Array.isArray(attributes) ? attributes : [];
-        
-        const processedAttributes = attributesArray.map(feature => {
-          if (feature.properties) {
-            return {
-              upid: feature.properties.upid || '',
-              nombre_up: feature.properties.nombre_up || '',
-              estado: feature.properties.estado || '',
-              tipo_intervencion: feature.properties.tipo_intervencion || '',
-              nombre_centro_gestor: feature.properties.nombre_centro_gestor || '',
-              comuna_corregimiento: feature.properties.comuna_corregimiento || '',
-              barrio_vereda: feature.properties.barrio_vereda || '',
-              presupuesto_base: parseFloat(feature.properties.presupuesto_base) || 0,
-              avance_obra: (parseFloat(feature.properties.avance_obra) || 0) * 100,
-              fecha_inicio: feature.properties.fecha_inicio || '',
-              fecha_fin: feature.properties.fecha_fin || '',
-              descripcion_intervencion: feature.properties.descripcion_intervencion || '',
-              fuente_financiacion: feature.properties.fuente_financiacion || '',
-              ano: parseInt(feature.properties.ano) || 0,
-              ...feature.properties
-            };
-          }
-          return feature;
-        });
-        
-        setAttributeData(processedAttributes);
-      }
-
-      // Procesar filtros
-      if (filtersResponse.ok) {
-        const apiResponse = await filtersResponse.json();
-        const apiFilters = apiResponse?.success && apiResponse?.filters ? apiResponse.filters : apiResponse;
-        
-        if (apiFilters && typeof apiFilters === 'object') {
-          const convertedFilters: FilterData = {
-            estados: apiFilters.estados || [],
-            tipos_intervencion: apiFilters.tipos_intervencion || [],
-            centros_gestores: apiFilters.centros_gestores || [],
-            comunas_corregimientos: apiFilters.comunas || apiFilters.comunas_corregimientos || [],
-            fuentes_financiacion: apiFilters.fuentes_financiacion || [],
-            anos: apiFilters.anos ? apiFilters.anos.map((ano: string) => parseInt(ano)).filter((ano: number) => !isNaN(ano)) : []
-          };
-          
-          setFilterData(convertedFilters);
-        }
-      }
-
+      
+      console.log('✅ useUnidadesProyecto: Datos cargados exitosamente');
+      
+      setGeometryData(geometry);
+      setAttributeData(attributes);
+      setFilterData(generateFiltersFromData(attributes));
       setLastUpdate(new Date());
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error desconocido');
+      console.error('❌ useUnidadesProyecto: Error al cargar datos', error);
+      setError(error instanceof Error ? error.message : 'Error desconocido al cargar datos');
     } finally {
       setLoading(false);
     }

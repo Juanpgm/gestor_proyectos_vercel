@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import { 
   Bell, 
@@ -17,7 +18,8 @@ import {
   AlertCircle,
   AlertTriangle,
   Info,
-  Sparkles
+  Sparkles,
+  ExternalLink
 } from 'lucide-react';
 import type { Notification, NotificationPriority } from '@/types/notifications';
 
@@ -27,6 +29,7 @@ interface NotificationPanelProps {
 }
 
 const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }) => {
+  const router = useRouter();
   const {
     notifications,
     stats,
@@ -37,21 +40,21 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
     deleteAllRead
   } = useNotifications();
 
-  const [filter, setFilter] = useState<'all' | 'unread' | 'today'>('today');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'recent'>('recent');
 
   const filteredNotifications = (() => {
     if (filter === 'unread') {
       return notifications.filter(n => !n.read);
     }
-    if (filter === 'today') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+    if (filter === 'recent') {
+      // Mostrar notificaciones de los últimos 5 días
+      const fiveDaysAgo = new Date();
+      fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+      fiveDaysAgo.setHours(0, 0, 0, 0);
       
       return notifications.filter(n => {
         const notifDate = new Date(n.timestamp);
-        return notifDate >= today && notifDate < tomorrow;
+        return notifDate >= fiveDaysAgo;
       });
     }
     return notifications;
@@ -110,7 +113,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
       markAsRead(notification.id);
     }
     if (notification.actionUrl) {
-      window.location.href = notification.actionUrl;
+      onClose(); // Cerrar el panel antes de navegar
+      router.push(notification.actionUrl);
     }
   };
 
@@ -152,14 +156,14 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose }
         <div className="flex items-center justify-between gap-2 p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => setFilter('today')}
+              onClick={() => setFilter('recent')}
               className={`px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors ${
-                filter === 'today'
+                filter === 'recent'
                   ? 'bg-blue-600 text-white'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              Hoy
+              Recientes (5d)
             </button>
             <button
               onClick={() => setFilter('unread')}

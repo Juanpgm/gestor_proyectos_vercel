@@ -1,24 +1,34 @@
-import { initializeApp, FirebaseOptions } from 'firebase/app'
 import { 
-  getAuth, 
+  signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
   User as FirebaseUser,
-  signOut
+  signOut as firebaseSignOut,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 import { AuthConfig, LoginCredentials, RegisterCredentials, User } from '@/types/auth'
-import { API_CONFIG, FIREBASE_CONFIG, AUTH_CONFIG } from '@/config/app'
+import { AUTH_CONFIG } from '@/config/app'
 
 class AuthService {
   private static instance: AuthService
-  private auth: any = null
   private googleProvider: GoogleAuthProvider | null = null
   private config: AuthConfig | null = null
   private isInitialized = false
 
   // Determinar la URL correcta basada en el entorno
   private getApiUrl(): string {
+    // Log de debug para producción
+    if (typeof window !== 'undefined') {
+      console.log('🔧 AuthService API Config:', {
+        windowOrigin: window.location.origin,
+        baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL,
+        environment: process.env.NODE_ENV
+      });
+    }
+    
     // SIEMPRE usar el proxy para consistencia entre entornos
     if (typeof window !== 'undefined') {
       return `${window.location.origin}/api/proxy`
@@ -26,6 +36,203 @@ class AuthService {
     
     // En el servidor (SSR), usar el proxy relativo
     return '/api/proxy'
+  }
+
+  private parseApiErrorMessage(data: any, fallback: string): string {
+    if (data?.detail && Array.isArray(data.detail) && data.detail.length > 0) {
+      return data.detail[0]?.msg || fallback
+    }
+
+    if (typeof data?.detail === 'string' && data.detail.trim()) {
+      return data.detail
+    }
+
+    if (typeof data?.error === 'string' && data.error.trim()) {
+      return data.error
+    }
+
+    if (typeof data?.message === 'string' && data.message.trim()) {
+      return data.message
+    }
+
+    return fallback
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  private extractBackendUserPayload(payload: any): any {
+    if (!payload) return null
+    return (
+      payload.user ||
+      payload.data?.user ||
+      payload.detail?.user ||
+      payload.detail?.data?.user ||
+      payload.data ||
+      payload.detail ||
+      null
+    )
+  }
+
+  private toBoolean(value: any, fallback: boolean = false): boolean {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'number') return value === 1
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase()
+      if (normalized === 'true' || normalized === '1') return true
+      if (normalized === 'false' || normalized === '0') return false
+    }
+    return fallback
+  }
+
+  private getRequestId(payload: any): string | null {
+    if (!payload) return null
+    return (
+      payload.request_id ||
+      payload.requestId ||
+      payload.data?.request_id ||
+      payload.detail?.request_id ||
+      null
+    )
+  }
+
+  private hasHydratedProfile(user: User | null | undefined): boolean {
+    if (!user) return false
+    const hasRoles = Array.isArray(user.roles) && user.roles.length > 0
+    const isSessionValid = user.session_valid === true
+    const hasCentroGestor = Boolean(
+      (user.nombre_centro_gestor && String(user.nombre_centro_gestor).trim()) ||
+      (user.centro_gestor_assigned && String(user.centro_gestor_assigned).trim())
+    )
+    return hasRoles && hasCentroGestor && isSessionValid
+  }
+
+  private async validateSessionWithRetry(
+    firebaseUser: FirebaseUser,
+    maxAttempts: number = 2
+  ): Promise<{ backendData: any; idToken: string }> {
+    let lastError: any = null
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const idToken = await firebaseUser.getIdToken(attempt > 1)
+        const response = await fetch(`${this.getApiUrl()}/auth/validate-session`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id_token: idToken })
+        })
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}))
+          throw new Error(this.parseApiErrorMessage(error, 'Validation failed'))
+        }
+
+        const backendData = await response.json()
+        const backendUser = this.extractBackendUserPayload(backendData)
+        const requestId = this.getRequestId(backendData)
+        const mappedUser = this.mapApiUser(backendUser, idToken, {
+          ...backendData,
+          request_id: requestId,
+          session_valid: backendData?.session_valid ?? backendData?.success ?? true
+        })
+
+        console.log(`🔎 validate-session login attempt ${attempt}/${maxAttempts}`, {
+          request_id: requestId,
+          session_valid: mappedUser.session_valid,
+          profile_complete: mappedUser.profile_complete,
+          roles: mappedUser.roles
+        })
+
+        if (this.hasHydratedProfile(mappedUser)) {
+          return { backendData, idToken }
+        }
+
+        const shouldRetry =
+          attempt < maxAttempts &&
+          (mappedUser.profile_complete === false || !this.hasHydratedProfile(mappedUser))
+
+        if (!shouldRetry) {
+          return { backendData, idToken }
+        }
+
+        const retryDelay = 300 + Math.floor(Math.random() * 401)
+        console.warn(`⚠️ Perfil incompleto en intento ${attempt}/${maxAttempts}. Reintentando validación...`, {
+          request_id: requestId,
+          roles: mappedUser.roles,
+          nombre_centro_gestor: mappedUser.nombre_centro_gestor,
+          centro_gestor_assigned: mappedUser.centro_gestor_assigned,
+          profile_complete: mappedUser.profile_complete,
+          retry_in_ms: retryDelay
+        })
+
+        await this.delay(retryDelay)
+      } catch (error: any) {
+        lastError = error
+        if (attempt === maxAttempts) {
+          // Last resort: if Firebase auth succeeded but backend is unreachable,
+          // build a minimal session from the Firebase user so login is not fully blocked.
+          const isNetworkError = error?.name === 'AbortError' ||
+            error?.message?.includes('Failed to fetch') ||
+            error?.message?.includes('Network') ||
+            error?.message?.includes('timeout') ||
+            error?.message?.includes('Validation failed')
+          if (isNetworkError) {
+            try {
+              const fallbackToken = await firebaseUser.getIdToken(false)
+              console.warn('⚠️ Backend validation unreachable — using Firebase-only session fallback:', error.message)
+              return {
+                backendData: {
+                  success: true,
+                  session_valid: true,
+                  user: { uid: firebaseUser.uid, email: firebaseUser.email }
+                },
+                idToken: fallbackToken,
+              }
+            } catch (tokenError) {
+              // Token fetch failed too — fall through to throw
+            }
+          }
+          break
+        }
+        await this.delay(300 + Math.floor(Math.random() * 401))
+      }
+    }
+
+    throw lastError || new Error('No fue posible hidratar perfil completo en el primer login')
+  }
+
+  async getRegisterHealthCheck(): Promise<any> {
+    const response = await fetch(`${this.getApiUrl()}/auth/register/health-check`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(this.parseApiErrorMessage(data, 'No se pudo consultar /auth/register/health-check'))
+    }
+
+    return data
+  }
+
+  async getWorkloadIdentityStatus(): Promise<any> {
+    const response = await fetch(`${this.getApiUrl()}/auth/workload-identity/status`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(this.parseApiErrorMessage(data, 'No se pudo consultar /auth/workload-identity/status'))
+    }
+
+    return data
   }
 
   private constructor() {}
@@ -43,8 +250,8 @@ class AuthService {
     try {
       // Configuración simple y directa
       this.config = {
-        projectId: 'unidad-cumplimiento-aa245',
-        authDomain: 'unidad-cumplimiento-aa245.firebaseapp.com',
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'calitrack-44403',
+        authDomain: `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'calitrack-44403'}.firebaseapp.com`,
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
         allowRegistration: true,
         rememberMeEnabled: AUTH_CONFIG.REMEMBER_ME_ENABLED,
@@ -58,31 +265,38 @@ class AuthService {
         }
       }
 
-      // Firebase solo si hay credenciales
+      // Firebase ya está inicializado en lib/firebase.ts
+      // Solo inicializar Google Provider
       if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'fake-key-for-development') {
         try {
-          const app = initializeApp({
-            projectId: this.config.projectId,
-            authDomain: this.config.authDomain,
-            apiKey: this.config.apiKey,
-          })
-          this.auth = getAuth(app)
           this.googleProvider = new GoogleAuthProvider()
         } catch (error) {
-          console.warn('Firebase disabled:', error)
+          console.warn('Google provider disabled:', error)
         }
       }
 
       this.isInitialized = true
+      
+      // Configurar persistencia local para mantener sesión por 15 días
+      if (auth) {
+        try {
+          await setPersistence(auth, browserLocalPersistence);
+          console.log('✅ Firebase Auth persistence set to local');
+        } catch (error) {
+          console.warn('⚠️ Error setting persistence:', error);
+        }
+      }
+      
+      console.log('✅ AuthService initialized')
     } catch (error) {
-      console.error('Auth init error:', error)
+      console.error('❌ Auth init error:', error)
     }
   }
 
 
 
   getAuth() {
-    return this.auth
+    return auth
   }
 
   getConfig(): AuthConfig | null {
@@ -90,133 +304,393 @@ class AuthService {
   }
 
   // Convertir respuesta de API a nuestro tipo User
-  private mapApiUser(apiUser: any): User {
-    return {
-      uid: apiUser.uid || apiUser.id,
-      email: apiUser.email,
-      displayName: apiUser.display_name || apiUser.name || apiUser.displayName || apiUser.fullname,
-      photoURL: apiUser.photoURL || apiUser.photo_url,
-      emailVerified: apiUser.emailVerified || apiUser.email_verified || false,
-      provider: apiUser.provider || 'email',
-      createdAt: apiUser.created_at || apiUser.createdAt || (apiUser.custom_claims?.created_at),
-      lastLoginAt: apiUser.last_login_at || apiUser.lastLoginAt || apiUser.last_sign_in
+  private mapApiUser(apiUser: any, idToken?: string, responseMeta?: any): User {
+    const safeApiUser = apiUser || {}
+    const safeMeta = responseMeta || {}
+
+    const toArray = (value: any): string[] => {
+      if (Array.isArray(value)) {
+        return value.filter(Boolean).map(String)
+      }
+
+      if (value && typeof value === 'object') {
+        const objectEntries = Object.entries(value as Record<string, any>)
+          .filter(([key, enabled]) => Boolean(key) && (enabled === true || enabled === 1 || enabled === 'true'))
+          .map(([key]) => key)
+
+        if (objectEntries.length > 0) {
+          return objectEntries
+        }
+      }
+
+      if (typeof value === 'string' && value.trim()) {
+        return value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      }
+
+      return []
+    }
+
+    const pickFirstArray = (...candidates: any[]): string[] => {
+      for (const candidate of candidates) {
+        const parsed = toArray(candidate)
+        if (parsed.length > 0) return parsed
+      }
+      return []
+    }
+
+    const normalizeRole = (role: string): string => {
+      const normalized = role.trim().toLowerCase().replace(/-/g, '_')
+      const aliases: Record<string, string> = {
+        admin: 'admin_general',
+        administrador: 'admin_general',
+        admin_master: 'admin_general',
+        superadmin: 'super_admin',
+        super_administrador: 'super_admin',
+        viewer: 'publico',
+        visualizador: 'publico'
+      }
+      return aliases[normalized] || normalized
+    }
+
+    const dedupe = (items: string[]) => Array.from(new Set(items))
+
+    const rawRoleCandidates = [
+      safeApiUser.primary_role,
+      safeApiUser.roles,
+      safeApiUser.role,
+      safeApiUser.user_role,
+      safeApiUser.firestore_data?.roles,
+      safeApiUser.firestore_data?.role,
+      safeApiUser.custom_claims?.roles,
+      safeApiUser.custom_claims?.role,
+      safeApiUser.claims?.roles,
+      safeApiUser.claims?.role,
+      safeApiUser.profile?.roles,
+      safeApiUser.profile?.role,
+      safeApiUser.data?.roles,
+      safeApiUser.data?.role,
+      safeMeta.primary_role,
+      safeMeta.role,
+      safeMeta.roles,
+      safeMeta.user?.primary_role,
+      safeMeta.user?.roles,
+      safeMeta.data?.primary_role,
+      safeMeta.data?.roles
+    ]
+
+    const parsedRoles = pickFirstArray(...rawRoleCandidates)
+    const normalizedRoles = dedupe(parsedRoles.map(normalizeRole))
+    const sessionValidFlag = this.toBoolean(
+      safeMeta.session_valid ?? safeApiUser.session_valid,
+      false
+    )
+
+    const roles = normalizedRoles.length > 0
+      ? normalizedRoles
+      : (sessionValidFlag ? ['publico'] : [])
+
+    const primaryRole = roles[0] || null
+
+    const permissions = dedupe(pickFirstArray(
+      safeApiUser.permissions,
+      safeApiUser.permisos,
+      safeApiUser.effective_permissions,
+      safeApiUser.permissions_effective,
+      safeApiUser.permission,
+      safeApiUser.permiso,
+      safeApiUser.firestore_data?.permissions,
+      safeApiUser.firestore_data?.permisos,
+      safeApiUser.firestore_data?.effective_permissions,
+      safeApiUser.firestore_data?.permissions_effective,
+      safeApiUser.custom_claims?.permissions,
+      safeApiUser.custom_claims?.permisos,
+      safeApiUser.custom_claims?.effective_permissions,
+      safeApiUser.custom_claims?.permissions_effective,
+      safeApiUser.claims?.permissions,
+      safeApiUser.claims?.permisos,
+      safeApiUser.claims?.effective_permissions,
+      safeApiUser.claims?.permissions_effective,
+      safeApiUser.profile?.permissions,
+      safeApiUser.profile?.permisos,
+      safeApiUser.profile?.effective_permissions,
+      safeApiUser.profile?.permissions_effective,
+      safeApiUser.data?.permissions,
+      safeApiUser.data?.permisos,
+      safeApiUser.data?.effective_permissions,
+      safeApiUser.data?.permissions_effective,
+      safeApiUser.authz?.permissions,
+      safeApiUser.authz?.effective_permissions,
+      safeApiUser.authorization?.permissions,
+      safeApiUser.authorization?.effective_permissions,
+      safeMeta.permissions,
+      safeMeta.permisos,
+      safeMeta.effective_permissions,
+      safeMeta.permissions_effective,
+      safeMeta.user?.permissions,
+      safeMeta.user?.permisos,
+      safeMeta.user?.effective_permissions,
+      safeMeta.user?.permissions_effective,
+      safeMeta.data?.permissions,
+      safeMeta.data?.permisos,
+      safeMeta.data?.effective_permissions,
+      safeMeta.data?.permissions_effective,
+      safeApiUser.authorization?.effective_permissions
+    ))
+
+    const profileComplete = this.toBoolean(
+      safeMeta.profile_complete ??
+      safeApiUser.profile_complete ??
+      safeApiUser.profile?.profile_complete,
+      true
+    )
+
+    const sessionValid = this.toBoolean(
+      safeMeta.session_valid ?? safeApiUser.session_valid,
+      false
+    )
+
+    const requestId =
+      safeMeta.request_id ||
+      safeApiUser.request_id ||
+      safeApiUser.requestId ||
+      null
+    
+    // Extraer centro_gestor desde firestore_data o custom_claims
+    const nombre_centro_gestor =
+      safeApiUser.nombre_centro_gestor ||
+      safeApiUser.centro_gestor ||
+      safeApiUser.nombre_centro ||
+      safeApiUser.firestore_data?.nombre_centro_gestor ||
+      safeApiUser.custom_claims?.nombre_centro_gestor ||
+      safeApiUser.custom_claims?.centro_gestor ||
+      safeApiUser.claims?.nombre_centro_gestor ||
+      safeApiUser.claims?.centro_gestor ||
+      safeApiUser.profile?.nombre_centro_gestor ||
+      safeApiUser.data?.nombre_centro_gestor ||
+      safeMeta?.nombre_centro_gestor ||
+      safeMeta?.centro_gestor ||
+      safeMeta?.user?.nombre_centro_gestor ||
+      safeMeta?.user?.centro_gestor ||
+      safeMeta?.data?.nombre_centro_gestor ||
+      safeMeta?.data?.centro_gestor ||
+      null
+
+    const centro_gestor_assigned = 
+      safeApiUser.centro_gestor_assigned || 
+      safeApiUser.centro_gestor ||
+      safeApiUser.firestore_data?.nombre_centro_gestor ||
+      safeApiUser.custom_claims?.nombre_centro_gestor ||
+      safeApiUser.custom_claims?.centro_gestor || 
+      safeApiUser.claims?.nombre_centro_gestor ||
+      safeApiUser.claims?.centro_gestor ||
+      safeMeta?.centro_gestor_assigned ||
+      safeMeta?.centro_gestor ||
+      safeMeta?.nombre_centro_gestor ||
+      safeMeta?.user?.centro_gestor_assigned ||
+      safeMeta?.user?.centro_gestor ||
+      safeMeta?.user?.nombre_centro_gestor ||
+      safeMeta?.data?.centro_gestor_assigned ||
+      safeMeta?.data?.centro_gestor ||
+      safeMeta?.data?.nombre_centro_gestor ||
+      null
+    
+    // Extraer is_active desde firestore_data
+    const is_active = safeApiUser.firestore_data?.is_active !== undefined 
+      ? safeApiUser.firestore_data.is_active 
+      : (safeApiUser.is_active !== undefined ? safeApiUser.is_active : true)
+    
+    // Extraer teléfono
+    const phone = safeApiUser.phone || safeApiUser.phone_number || safeApiUser.firestore_data?.cellphone || safeApiUser.cellphone || null
+    
+    console.log('🔄 Mapping API user:', {
+      email: safeApiUser.email,
+      rolesFound: roles,
+      rolesSource: roles.length > 0 ? 'multi-source-normalized' : 'none',
+      permissionsFound: permissions,
+      hasCustomClaims: !!safeApiUser.custom_claims,
+      hasFirestoreData: !!safeApiUser.firestore_data,
+      request_id: requestId,
+      profile_complete: profileComplete,
+      session_valid: sessionValid,
+      apiUserKeys: Object.keys(safeApiUser)
+    })
+    
+    const mappedUser = {
+      uid: safeApiUser.uid || safeApiUser.id,
+      email: safeApiUser.email,
+      displayName: safeApiUser.display_name || safeApiUser.fullname || safeApiUser.firestore_data?.full_name || safeApiUser.firestore_data?.fullname || safeApiUser.name || safeApiUser.displayName,
+      photoURL: safeApiUser.photoURL || safeApiUser.photo_url,
+      emailVerified: safeApiUser.email_verified || safeApiUser.emailVerified || false,
+      provider: safeApiUser.provider || 'email',
+      createdAt: safeApiUser.created_at || safeApiUser.createdAt || safeApiUser.firestore_data?.created_at || (safeApiUser.custom_claims?.created_at),
+      lastLoginAt: safeApiUser.last_login_at || safeApiUser.lastLoginAt || safeApiUser.firestore_data?.last_login || safeApiUser.last_sign_in,
+      // Roles y permisos extraídos de firestore_data
+      roles: roles,
+      primary_role: primaryRole,
+      permissions: permissions,
+      nombre_centro_gestor: nombre_centro_gestor,
+      centro_gestor_assigned: centro_gestor_assigned,
+      is_active: is_active,
+      phone: phone,
+      profile_complete: profileComplete,
+      session_valid: sessionValid,
+      request_id: requestId,
+      // Token de autenticación (puede venir de la API o ser pasado explícitamente)
+      idToken: idToken || safeApiUser.id_token || safeApiUser.idToken || null
+    }
+    
+    console.log('✅ User mapped successfully:', {
+      email: mappedUser.email,
+      roles: mappedUser.roles,
+      permissions: mappedUser.permissions,
+      isSuperAdmin: mappedUser.roles.includes('super_admin'),
+      hasManageUsers: mappedUser.permissions.includes('manage:users') || mappedUser.permissions.includes('*')
+    })
+    
+    return mappedUser
+  }
+
+  // Login con email y contraseña usando Firebase Auth SDK
+  async signInWithEmail({ email, password, remember = true }: LoginCredentials): Promise<User> {
+    try {
+      console.log('🔐 Attempting login with Firebase Auth SDK:', email)
+      
+      // Verificar que auth esté disponible
+      if (!auth) {
+        throw new Error('Firebase Auth no está inicializado. Verifique la configuración de Firebase.')
+      }
+      
+      // PASO 1: Autenticar con Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      console.log('✅ Firebase authentication successful')
+
+      // PASO 2: Obtener ID token
+      const idToken = await userCredential.user.getIdToken(true)
+      console.log('✅ ID token obtained:', idToken.substring(0, 20) + '...')
+
+      // PASO 3: Validar con backend y obtener roles/permisos
+      const { backendData, idToken: hydratedToken } = await this.validateSessionWithRetry(userCredential.user)
+      console.log('✅ Backend validation successful:', {
+        roles: this.extractBackendUserPayload(backendData)?.roles,
+        permissions: this.extractBackendUserPayload(backendData)?.permissions
+      })
+
+      // PASO 4: Mapear usuario con roles y permisos del backend
+      const user = this.mapApiUser(this.extractBackendUserPayload(backendData), hydratedToken, {
+        ...backendData,
+        request_id: this.getRequestId(backendData),
+        session_valid: backendData?.session_valid ?? backendData?.success ?? true
+      })
+      
+      // Guardar sesión localmente
+      this.saveSession(user, remember)
+      
+      console.log('✅ Login complete:', {
+        email: user.email,
+        roles: user.roles,
+        hasToken: !!user.idToken
+      })
+      
+      return user
+    } catch (error: any) {
+      console.error('❌ Login error:', error)
+      
+      // Mapear errores de Firebase a mensajes en español
+      const errorMessages: Record<string, string> = {
+        'auth/invalid-email': 'Correo electrónico inválido',
+        'auth/user-disabled': 'Usuario deshabilitado',
+        'auth/user-not-found': 'Usuario no encontrado',
+        'auth/wrong-password': 'Contraseña incorrecta',
+        'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
+        'auth/network-request-failed': 'Error de conexión',
+        'auth/invalid-credential': 'Credenciales inválidas',
+        'auth/api-key-not-valid': '🔧 Firebase API key inválida. Ver PROBLEMA_PANEL_ADMIN.md para configurar'
+      }
+
+      throw new Error(
+        errorMessages[error.code] || error.message || 'Error de autenticación'
+      )
     }
   }
 
-  // Login con email y contraseña usando API
-  async signInWithEmail({ email, password, remember = true }: LoginCredentials): Promise<User> {
+  // Autenticación con WIF (Workload Identity Federation)
+  private async signInWithEmailFallback({ email, password, remember = true }: LoginCredentials): Promise<User> {
     try {
-      console.log('🔐 Attempting login with email:', email)
-      console.log('🌐 Window hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server-side')
-      console.log('🌐 NODE_ENV:', process.env.NODE_ENV)
-      console.log('🌐 APP_ENV:', process.env.NEXT_PUBLIC_APP_ENV)
-      
-      // Agregar timeout y manejo robusto de errores de red
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 20000) // 20 segundos timeout
+      console.log('🔐 WIF: Iniciando autenticación automática...')
       
       const apiUrl = this.getApiUrl()
-      console.log('🌐 Using API URL:', apiUrl)
-      
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
-        signal: controller.signal
+        body: JSON.stringify({ email, password })
       })
 
-      clearTimeout(timeoutId)
-
-      console.log('📡 Response status:', response.status)
-      console.log('📡 Response ok:', response.ok)
-
-      // Manejar respuesta
-      let data
-      try {
-        data = await response.json()
-      } catch (parseError) {
-        console.error('❌ Failed to parse response as JSON:', parseError)
-        throw new Error('Error de comunicación con el servidor - respuesta inválida')
-      }
-
-      console.log('📄 Response data:', { success: data?.success, hasUser: !!data?.user })
-
       if (!response.ok) {
-        // Manejar diferentes tipos de respuestas de error de la API
-        let errorMessage = 'Error al iniciar sesión'
-        
-        if (response.status === 500) {
-          // Error interno del servidor - mensaje más informativo
-          errorMessage = 'Error interno del servidor. Su usuario puede tener problemas de configuración. Contacte al administrador del sistema.'
-        } else if (response.status === 401) {
-          // Error de autenticación
-          errorMessage = data.error || data.message || 'Credenciales inválidas'
-        } else if (response.status === 422 && data.detail && Array.isArray(data.detail)) {
-          // Error de validación (422) - Extraer el primer mensaje de validación
-          const firstError = data.detail[0]
-          errorMessage = firstError?.msg || 'Error de validación'
-        } else if (response.status === 0 || !response.status) {
-          errorMessage = 'Error de conexión con el servidor. Verifique su conexión a internet.'
-        } else if (data.error) {
-          // Error estándar con campo 'error'
-          errorMessage = data.error
-        } else if (data.detail && typeof data.detail === 'string') {
-          // Error con campo 'detail' como string
-          errorMessage = data.detail
-        } else if (data.message) {
-          // Error con campo 'message'
-          errorMessage = data.message
-        }
-        
-        console.error('❌ Login failed:', errorMessage)
-        throw new Error(errorMessage)
+        const error = await response.json()
+        throw new Error(error.message || error.error || 'Login failed')
       }
 
-      // Verificar si el login fue exitoso
-      if (data.success === false) {
-        // Manejar tanto data.error como data.message
-        const errorMessage = data.error || data.message || 'Credenciales inválidas'
-        throw new Error(errorMessage)
-      }
+      const data = await response.json()
       
-      // Si no hay campo success pero tampoco hay user, es un error
-      if (!data.user && data.success !== true) {
-        const errorMessage = data.error || data.message || 'No se pudo autenticar el usuario'
-        throw new Error(errorMessage)
+      if (!data.success || !data.user) {
+        throw new Error(data.message || 'Login failed')
       }
 
-      const user = this.mapApiUser(data.user)
+      // WIF: El backend retorna custom_token que se convierte automáticamente a id_token
+      const customToken = data.custom_token
+      let idToken: string | null = null
+
+      if (customToken && auth) {
+        // WIF: Autenticación automática con renovación de token
+        try {
+          console.log('🔄 WIF: Convirtiendo custom_token a id_token (automático)...')
+          const { authenticateWithWIF } = await import('@/lib/firebase')
+          idToken = await authenticateWithWIF(customToken)
+          console.log('✅ WIF: Token obtenido y configurado automáticamente')
+        } catch (conversionError: any) {
+          console.error('❌ WIF: Error en autenticación automática:', conversionError.message)
+          throw new Error('No se pudo autenticar con Firebase. Verifica la configuración.')
+        }
+      } else if (!auth) {
+        throw new Error('Firebase no está configurado correctamente')
+      } else {
+        throw new Error('El backend no retornó un custom_token válido')
+      }
+
+      const user = this.mapApiUser(data.user, idToken)
       
       // Guardar sesión localmente
       this.saveSession(user, remember)
       
-      console.log('✅ Login successful for:', user.email)
+      console.log('✅ WIF: Login exitoso con autenticación automática:', user.email)
       return user
-    } catch (error) {
-      console.error('❌ Login error:', error)
-      
-      // Manejar errores específicos de red
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new Error('Tiempo de espera agotado. Verifique su conexión a internet.')
-        } else if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
-          throw new Error('Error de conexión. Verifique su conexión a internet y que el servidor esté disponible.')
-        } else if (error.message?.includes('NetworkError') || error.message?.includes('network')) {
-          throw new Error('Error de red. Verifique su conexión a internet.')
-        }
-        throw error
-      }
-      
-      throw new Error('Error desconocido durante el login')
+    } catch (error: any) {
+      console.error('❌ WIF: Error en login:', error)
+      throw error
     }
   }
 
   // Registro con email y contraseña usando API
   async registerWithEmail({ name, email, password, confirmPassword, cellphone, nombre_centro_gestor }: RegisterCredentials): Promise<User> {
     try {
+      // Limpiar cualquier sesión/estado stale de Firebase Auth antes de registrar
+      // Esto evita conflictos con sesiones previas (ej: usuario parcialmente registrado)
+      this.clearSession()
+      if (auth?.currentUser) {
+        try {
+          await firebaseSignOut(auth)
+          console.log('🧹 Sesión Firebase previa limpiada antes de registro')
+        } catch (signOutError) {
+          console.warn('⚠️ Error limpiando sesión Firebase previa:', signOutError)
+        }
+      }
+
       const response = await fetch(`${this.getApiUrl()}/auth/register`, {
         method: 'POST',
         headers: {
@@ -255,6 +729,11 @@ class AuthService {
         } else if (data.message) {
           errorMessage = data.message
         }
+
+        // Normalizar códigos de error de Firebase Auth a mensajes amigables
+        if (errorMessage.includes('EMAIL_EXISTS') || errorMessage.includes('email-already-in-use')) {
+          errorMessage = 'Ya existe un usuario con este email'
+        }
         
         throw new Error(errorMessage)
       }
@@ -262,11 +741,13 @@ class AuthService {
       // Verificar si el registro fue exitoso
       let success = data.success
       let userData = data.user
+      let requestId = this.getRequestId(data)
 
       // Si la respuesta está anidada en detail
       if (data.detail) {
         success = data.detail.success
         userData = data.detail.user
+        requestId = requestId || this.getRequestId(data.detail)
       }
 
       if (!success) {
@@ -274,7 +755,46 @@ class AuthService {
         throw new Error(errorMessage)
       }
 
-      const user = this.mapApiUser(userData)
+      // Extraer el token de la respuesta si está disponible
+      let idToken = data.id_token || data.idToken || data.token || userData?.id_token || data.detail?.id_token || data.detail?.token
+
+      if (!idToken && auth?.currentUser) {
+        idToken = await auth.currentUser.getIdToken(true)
+      }
+
+      // Si no hay token, intentar auto-login con Firebase usando las credenciales del registro
+      // El backend crea el usuario en Firebase Auth pero no retorna token
+      if (!idToken && auth) {
+        try {
+          console.log('🔑 Auto-login post-registro con Firebase Auth...')
+          const firebaseResult = await signInWithEmailAndPassword(auth, email, password)
+          idToken = await firebaseResult.user.getIdToken(true)
+          console.log('✅ Auto-login post-registro exitoso')
+        } catch (autoLoginError) {
+          console.warn('⚠️ Auto-login post-registro falló:', autoLoginError)
+        }
+      }
+
+      let user = this.mapApiUser(userData, idToken, {
+        ...data,
+        request_id: requestId,
+        session_valid: data?.session_valid ?? data?.success ?? true
+      })
+
+      if (idToken) {
+        const validatedUser = await this.validateSession(idToken)
+        if (validatedUser) {
+          user = validatedUser
+        }
+      }
+
+      console.log('🧾 register response correlation:', {
+        request_id: requestId,
+        session_valid: user.session_valid,
+        profile_complete: user.profile_complete,
+        primary_role: user.primary_role,
+        roles: user.roles
+      })
       
       // Guardar sesión localmente después del registro exitoso
       this.saveSession(user, true)
@@ -286,104 +806,175 @@ class AuthService {
     }
   }
 
-  // Login con Google usando API
+  // Login con Google usando Firebase Auth SDK
   async signInWithGoogle(remember: boolean = true): Promise<User> {
     try {
-      if (!this.auth || !this.googleProvider) {
+      if (!this.googleProvider) {
         throw new Error('Google Authentication no está disponible. Verifica la configuración de Firebase.')
       }
 
-      console.log('Iniciando Google Auth...')
+      // Verificar que auth esté disponible
+      if (!auth) {
+        throw new Error('Firebase Auth no está inicializado. Verifique la configuración de Firebase.')
+      }
 
-      // Obtener credential de Google usando Firebase
-      const result = await signInWithPopup(this.auth, this.googleProvider)
-      console.log('Google popup completed:', result.user?.email)
+      console.log('🔐 Iniciando Google Auth con Firebase...')
+
+      // PASO 1: Autenticar con Google usando Firebase
+      const result = await signInWithPopup(auth, this.googleProvider)
+      console.log('✅ Google popup completed:', result.user?.email)
+
+      const googleCredential = GoogleAuthProvider.credentialFromResult(result)
+      const googleIdToken = googleCredential?.idToken || null
       
-      // Obtener el token de ID directamente del usuario
+      // PASO 2: Obtener ID token
       const idToken = await result.user.getIdToken()
-      
-      if (!idToken) {
-        throw new Error('No se pudo obtener el token de Google')
-      }
+      console.log('✅ ID token obtained')
 
-      console.log('Token obtenido, enviando a API...')
-
-      // Enviar token a nuestra API
+      // PASO 3: Intentar endpoint oficial /auth/google (OpenAPI)
       const apiUrl = this.getApiUrl()
-      console.log('🌐 Using API URL for Google:', apiUrl)
-      
-      const response = await fetch(`${apiUrl}/auth/google`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          google_token: idToken 
+      let backendData: any = null
+
+      if (googleIdToken) {
+        const formData = new URLSearchParams()
+        formData.append('google_token', googleIdToken)
+
+        const googleResponse = await fetch(`${apiUrl}/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
+          },
+          body: formData.toString()
         })
+
+        if (googleResponse.ok) {
+          backendData = await googleResponse.json()
+          console.log('✅ /auth/google successful')
+        } else {
+          const googleErrorData = await googleResponse.json().catch(() => ({}))
+          console.warn('⚠️ /auth/google failed, fallback to /auth/validate-session', googleErrorData)
+        }
+      }
+
+      // Fallback robusto: validar sesión con token Firebase
+      if (!backendData) {
+        console.log('🌐 Validating session with backend:', apiUrl)
+        const response = await fetch(`${apiUrl}/auth/validate-session`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}))
+          throw new Error(this.parseApiErrorMessage(error, 'Validation failed'))
+        }
+
+        backendData = await response.json()
+        console.log('✅ Backend validation successful')
+      }
+
+      // PASO 4: Mapear usuario con roles y permisos del backend
+      const backendUser = backendData?.user || backendData?.data?.user || backendData?.data || backendData
+      const backendToken = backendData?.id_token || backendData?.idToken || idToken
+      const user = this.mapApiUser(backendUser, backendToken, {
+        ...backendData,
+        request_id: this.getRequestId(backendData),
+        session_valid: backendData?.session_valid ?? backendData?.success ?? true
       })
-
-      const data = await response.json()
-      console.log('API response:', data)
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Error al autenticar con Google')
-      }
-
-      if (!data.success) {
-        throw new Error(data.message || 'Error en la autenticación con Google')
-      }
-
-      const user = this.mapApiUser(data.user)
       
       // Guardar sesión localmente
       this.saveSession(user, remember)
       
-      console.log('Google Auth successful for:', user.email)
+      console.log('✅ Google Auth complete for:', user.email)
       return user
     } catch (error: any) {
-      console.error('Google login error:', error)
+      console.error('❌ Google login error:', error)
       
       // Manejar errores específicos de Google Auth
-      if (error.code === 'auth/popup-closed-by-user') {
-        throw new Error('Autenticación cancelada por el usuario')
-      } else if (error.code === 'auth/popup-blocked') {
-        throw new Error('Popup bloqueado por el navegador. Permite popups para este sitio.')
-      } else if (error.code === 'auth/network-request-failed') {
-        throw new Error('Error de conexión. Verifica tu conexión a internet.')
+      const errorMessages: Record<string, string> = {
+        'auth/popup-closed-by-user': 'Autenticación cancelada por el usuario',
+        'auth/popup-blocked': 'Popup bloqueado por el navegador. Permite popups para este sitio.',
+        'auth/network-request-failed': 'Error de conexión. Verifica tu conexión a internet.',
+        'auth/cancelled-popup-request': 'Autenticación cancelada'
       }
       
-      throw error
+      throw new Error(
+        errorMessages[error.code] || error.message || 'Error con Google Auth'
+      )
     }
   }
 
   // Validar sesión actual
   async validateSession(idToken?: string): Promise<User | null> {
     try {
-      const token = idToken || this.getStoredToken()
-      if (!token) return null
+      let token = idToken || this.getStoredToken()
 
-      const response = await fetch(`${this.getApiUrl()}/auth/validate-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ id_token: token })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok || !data.success) {
-        this.clearSession()
-        return null
+      if (!token && auth?.currentUser) {
+        token = await auth.currentUser.getIdToken()
       }
 
-      const user = this.mapApiUser(data.user)
-      
-      // Actualizar sesión local
-      this.saveSession(user, true)
-      
-      return user
+      if (!token) return null
+
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const response = await fetch(`${this.getApiUrl()}/auth/validate-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ id_token: token })
+        })
+
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          if (attempt === 2) {
+            this.clearSession()
+            return null
+          }
+          await this.delay(300 + Math.floor(Math.random() * 401))
+          continue
+        }
+
+        const backendUser = this.extractBackendUserPayload(data)
+        const requestId = this.getRequestId(data)
+        const user = this.mapApiUser(backendUser, token, {
+          ...data,
+          request_id: requestId,
+          session_valid: data?.session_valid ?? data?.success ?? true
+        })
+
+        console.log(`🔎 validate-session check attempt ${attempt}/2`, {
+          request_id: requestId,
+          session_valid: user.session_valid,
+          profile_complete: user.profile_complete,
+          primary_role: user.primary_role,
+          roles: user.roles
+        })
+
+        if (user.profile_complete === false && attempt === 1) {
+          await this.delay(300 + Math.floor(Math.random() * 401))
+          if (!idToken && auth?.currentUser) {
+            token = await auth.currentUser.getIdToken(true)
+          }
+          continue
+        }
+
+        if (user.session_valid !== true) {
+          this.clearSession()
+          return null
+        }
+
+        this.saveSession(user, true)
+        return user
+      }
+
+      this.clearSession()
+      return null
     } catch (error) {
       console.error('Session validation error:', error)
       this.clearSession()
@@ -394,15 +985,17 @@ class AuthService {
   // Cerrar sesión
   async signOut(): Promise<void> {
     try {
-      // Cerrar sesión en Firebase si está activa
-      if (this.auth?.currentUser) {
-        await signOut(this.auth)
+      // WIF: Cerrar sesión en Firebase (limpia automáticamente tokens)
+      if (auth?.currentUser) {
+        const { signOutWIF } = await import('@/lib/firebase')
+        await signOutWIF()
+        console.log('✅ WIF: Sesión cerrada automáticamente')
       }
       
       // Limpiar sesión local
       this.clearSession()
     } catch (error) {
-      console.error('Sign out error:', error)
+      console.error('❌ WIF: Error cerrando sesión:', error)
       // Limpiar sesión local aunque haya error
       this.clearSession()
     }
@@ -410,6 +1003,16 @@ class AuthService {
 
   // Guardar sesión en localStorage/sessionStorage
   private saveSession(user: User, remember: boolean): void {
+    console.log('💾 Guardando sesión:', {
+      email: user.email,
+      roles: user.roles,
+      rolesLength: user.roles?.length,
+      permissions: user.permissions,
+      hasToken: !!user.idToken,
+      remember,
+      storageType: remember ? 'localStorage' : 'sessionStorage'
+    })
+    
     const storage = remember ? localStorage : sessionStorage
     const sessionData = {
       user,
@@ -418,6 +1021,17 @@ class AuthService {
     }
     
     storage.setItem('auth_session', JSON.stringify(sessionData))
+    
+    // Verificar que se guardó correctamente
+    const saved = storage.getItem('auth_session')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      console.log('✅ Sesión guardada correctamente:', {
+        email: parsed.user?.email,
+        roles: parsed.user?.roles,
+        rolesLength: parsed.user?.roles?.length
+      })
+    }
     
     // Limpiar del otro storage
     const otherStorage = remember ? sessionStorage : localStorage
@@ -431,11 +1045,41 @@ class AuthService {
       if (!data) return null
 
       const parsed = JSON.parse(data)
+      
+      // Verificar expiración de sesión (15 días = 1,296,000,000 ms)
+      const SESSION_EXPIRY_MS = 15 * 24 * 60 * 60 * 1000; // 15 días
+      if (parsed.timestamp && (Date.now() - parsed.timestamp) > SESSION_EXPIRY_MS) {
+        console.warn('⚠️ Sesión expirada (más de 15 días) - Requiriendo nuevo login')
+        this.clearSession()
+        return null
+      }
+      
+      // Validar que la sesión tenga roles
+      const hasRoles = parsed.user?.roles && Array.isArray(parsed.user.roles) && parsed.user.roles.length > 0
+      const hasSessionValid = parsed.user?.session_valid === true
+      
+      console.log('📖 Leyendo sesión guardada:', {
+        email: parsed.user?.email,
+        roles: parsed.user?.roles,
+        rolesLength: parsed.user?.roles?.length,
+        hasRoles: hasRoles,
+        session_valid: parsed.user?.session_valid,
+        isValidSession: hasRoles && hasSessionValid
+      })
+      
+      // Si la sesión no tiene roles o roles es undefined, invalidarla
+      if (!hasRoles || !hasSessionValid) {
+        console.warn('⚠️ Sesión incompleta detectada - Se requiere revalidación contra backend')
+        // NO limpiamos la sesión automáticamente para no desloguear al usuario
+        // Pero marcamos que necesita actualización
+      }
+      
       return {
         user: parsed.user,
         remember: parsed.remember || false
       }
     } catch (error) {
+      console.error('❌ Error leyendo sesión:', error)
       this.clearSession()
       return null
     }
@@ -444,7 +1088,7 @@ class AuthService {
   // Obtener token almacenado
   private getStoredToken(): string | null {
     const session = this.getStoredSession()
-    return session?.user?.uid || null
+    return (session?.user as any)?.idToken || (session?.user as any)?.id_token || null
   }
 
   // Limpiar sesión
@@ -471,80 +1115,63 @@ class AuthService {
     }
   }
 
-  // Solicitar restablecimiento de contraseña
+  // Solicitar restablecimiento de contraseña via Firebase Auth
   async requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${this.getApiUrl()}/auth/request-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        // Manejar errores de la misma manera que en login
-        let errorMessage = 'Error al solicitar el restablecimiento'
-        
-        if (response.status === 422 && data.detail && Array.isArray(data.detail)) {
-          const firstError = data.detail[0]
-          errorMessage = firstError?.msg || 'Error de validación'
-        } else if (data.error) {
-          errorMessage = data.error
-        } else if (data.detail && typeof data.detail === 'string') {
-          errorMessage = data.detail
-        } else if (data.message) {
-          errorMessage = data.message
-        }
-        
-        throw new Error(errorMessage)
+      const { sendPasswordResetEmail } = await import('firebase/auth')
+      const { auth } = await import('@/lib/firebase')
+      if (!auth) {
+        throw new Error('Firebase no está configurado. Contacta al administrador del sistema.')
       }
-
+      await sendPasswordResetEmail(auth, email)
       return {
-        success: data.success || false,
-        message: data.message || 'Se ha enviado un enlace de restablecimiento a tu correo'
+        success: true,
+        message: 'Se ha enviado un enlace de restablecimiento a tu correo'
       }
     } catch (error: any) {
       console.error('Password reset request error:', error)
-      throw error
+      const code = error?.code || ''
+      if (code === 'auth/user-not-found') {
+        throw new Error('No existe una cuenta registrada con este correo electrónico.')
+      } else if (code === 'auth/invalid-email') {
+        throw new Error('El correo electrónico ingresado no es válido.')
+      } else if (code === 'auth/too-many-requests') {
+        throw new Error('Demasiados intentos. Espera unos minutos antes de intentar nuevamente.')
+      }
+      throw new Error('Error al enviar el correo de recuperación. Intenta nuevamente.')
     }
   }
 
   // Cambiar contraseña
   async changePassword(email: string, newPassword: string, confirmPassword: string): Promise<{ success: boolean; message: string }> {
     try {
+      if (newPassword !== confirmPassword) {
+        throw new Error('Las contraseñas no coinciden')
+      }
+
+      const session = this.getStoredSession()
+      const uid = session?.user?.uid
+      if (!uid) {
+        throw new Error('No se encontró sesión activa para determinar el uid del usuario')
+      }
+
+      const formData = new URLSearchParams()
+      formData.append('uid', uid)
+      formData.append('new_password', newPassword)
+
       const response = await fetch(`${this.getApiUrl()}/auth/change-password`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({ 
-          email,
-          new_password: newPassword,
-          confirm_password: confirmPassword
-        })
+        body: formData.toString()
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        // Manejar errores de la misma manera que en login
-        let errorMessage = 'Error al cambiar la contraseña'
-        
-        if (response.status === 422 && data.detail && Array.isArray(data.detail)) {
-          const firstError = data.detail[0]
-          errorMessage = firstError?.msg || 'Error de validación'
-        } else if (data.error) {
-          errorMessage = data.error
-        } else if (data.detail && typeof data.detail === 'string') {
-          errorMessage = data.detail
-        } else if (data.message) {
-          errorMessage = data.message
-        }
-        
-        throw new Error(errorMessage)
+        throw new Error(this.parseApiErrorMessage(data, 'Error al cambiar la contraseña'))
       }
 
       return {

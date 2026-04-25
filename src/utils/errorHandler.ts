@@ -68,6 +68,20 @@ export function createAppError(
 // Función para manejar errores de API
 export function handleApiError(error: any, endpoint?: string): AppError {
   console.error(`❌ Error en API${endpoint ? ` (${endpoint})` : ''}:`, error);
+
+  const statusCode = error?.status ?? error?.code;
+  const backendDetail = error?.data?.detail;
+  const backendMessage = error?.data?.message;
+
+  const resolvedBackendMessage = (() => {
+    if (typeof backendDetail === 'string' && backendDetail.trim()) return backendDetail;
+    if (Array.isArray(backendDetail) && backendDetail.length > 0) {
+      const first = backendDetail[0];
+      if (typeof first?.msg === 'string' && first.msg.trim()) return first.msg;
+    }
+    if (typeof backendMessage === 'string' && backendMessage.trim()) return backendMessage;
+    return '';
+  })();
   
   // Determinar el tipo de error
   if (error.name === 'AbortError') {
@@ -88,33 +102,61 @@ export function handleApiError(error: any, endpoint?: string): AppError {
     );
   }
   
-  if (error.status === 401 || error.status === 403) {
+  if (statusCode === 401) {
     return createAppError(
       ErrorType.AUTHENTICATION,
-      'Error de autenticación o autorización',
+      resolvedBackendMessage || '401: Token ausente, inválido o expirado',
       error,
-      { endpoint },
-      error.status
+      { endpoint, statusCode, backendDetail },
+      statusCode
     );
   }
-  
-  if (error.status >= 400 && error.status < 500) {
+
+  if (statusCode === 403) {
+    const detailText = (resolvedBackendMessage || '').toLowerCase();
+    const forbiddenMessage =
+      detailText.includes('inactive') || detailText.includes('inactivo')
+        ? '403: Usuario inactivo. Contacta a un super_admin.'
+        : detailText.includes('permission') || detailText.includes('permiso')
+          ? `403: Permisos insuficientes. ${resolvedBackendMessage}`
+          : resolvedBackendMessage || '403: No tienes permisos para ejecutar esta operación';
+
+    return createAppError(
+      ErrorType.AUTHENTICATION,
+      forbiddenMessage,
+      error,
+      { endpoint, statusCode, backendDetail },
+      statusCode
+    );
+  }
+
+  if (statusCode === 404) {
     return createAppError(
       ErrorType.VALIDATION,
-      'Error en la solicitud',
+      resolvedBackendMessage || '404: Recurso no encontrado (usuario no existe o endpoint inválido)',
       error,
-      { endpoint },
-      error.status
+      { endpoint, statusCode, backendDetail },
+      statusCode
     );
   }
   
-  if (error.status >= 500) {
+  if (statusCode >= 400 && statusCode < 500) {
+    return createAppError(
+      ErrorType.VALIDATION,
+      resolvedBackendMessage || 'Error en la solicitud',
+      error,
+      { endpoint, statusCode, backendDetail },
+      statusCode
+    );
+  }
+  
+  if (statusCode >= 500) {
     return createAppError(
       ErrorType.API,
-      'Error en el servidor',
+      resolvedBackendMessage || 'Error en el servidor',
       error,
-      { endpoint },
-      error.status
+      { endpoint, statusCode, backendDetail },
+      statusCode
     );
   }
   
@@ -150,15 +192,35 @@ export async function fetchWithErrorHandling<T>(
     
     clearTimeout(timeoutId);
     
+    const rawResponse = await response.text().catch(() => '');
+    const trimmedResponse = rawResponse?.trim?.() || '';
+
+    const parsedResponse = (() => {
+      if (!trimmedResponse) return null;
+      try {
+        return JSON.parse(trimmedResponse);
+      } catch {
+        return trimmedResponse;
+      }
+    })();
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const error = new Error(errorData.message || `HTTP Error: ${response.status}`);
+      const errorData =
+        parsedResponse && typeof parsedResponse === 'object'
+          ? parsedResponse
+          : { message: typeof parsedResponse === 'string' ? parsedResponse : '' };
+
+      const error = new Error((errorData as any).message || `HTTP Error: ${response.status}`);
       (error as any).status = response.status;
       (error as any).data = errorData;
       throw error;
     }
-    
-    return await response.json();
+
+    if (!trimmedResponse || response.status === 204 || response.status === 205 || response.status === 304) {
+      return {} as T;
+    }
+
+    return parsedResponse as T;
   } catch (error) {
     clearTimeout(timeoutId);
     throw handleApiError(error, url);

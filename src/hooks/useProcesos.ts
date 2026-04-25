@@ -1,6 +1,11 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import {
+  getCentroGestorAccessFromSession,
+  buildAllowedBpinsSet,
+  toBpinKey
+} from '@/utils/centroGestorAccess'
 
 // Interfaces para los datos de procesos
 export interface Proceso {
@@ -145,9 +150,56 @@ export function useProcesos() {
           indexResponse.json()
         ])
 
+        const procesosTyped = (procesosData || []) as Proceso[]
+        const indexTyped = (indexData || {}) as Record<string, ProcesoIndex>
+
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const proyectosResponse = await fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json')
+        const proyectosData = proyectosResponse.ok ? await proyectosResponse.json() : []
+        const allowedBpins = buildAllowedBpinsSet(
+          proyectosData || [],
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'responsible', 'centro_gestor']
+        )
+
+        const indexFiltrado = allowedBpins
+          ? Object.entries(indexTyped).reduce((acc, [key, value]) => {
+              const bpinValue = toBpinKey(value?.bpin ?? key)
+              if (bpinValue && allowedBpins.has(bpinValue)) {
+                acc[key] = value
+              }
+              return acc
+            }, {} as Record<string, ProcesoIndex>)
+          : indexTyped
+
+        const allowedReferences = allowedBpins
+          ? new Set(
+              Object.values(indexFiltrado)
+                .flatMap((entry) => entry.procesos || [])
+                .map((entry) => [entry.referencia_proceso, entry.proceso_compra])
+                .flat()
+                .map((value) => String(value || '').trim().toLowerCase())
+                .filter((value) => value.length > 0)
+            )
+          : null
+
+        const procesosFiltrados = allowedReferences
+          ? procesosTyped.filter((proceso: Proceso) => {
+              const referenciaProceso = String(proceso.referencia_proceso || '').trim().toLowerCase()
+              const procesoCompra = String(proceso.proceso_compra || '').trim().toLowerCase()
+              const idProceso = String(proceso.id_proceso || '').trim().toLowerCase()
+
+              return (
+                allowedReferences.has(referenciaProceso) ||
+                allowedReferences.has(procesoCompra) ||
+                allowedReferences.has(idProceso)
+              )
+            })
+          : procesosTyped
+
         const data: ProcesosData = {
-          procesos: procesosData,
-          index: indexData
+          procesos: procesosFiltrados,
+          index: indexFiltrado
         }
 
         // Calcular métricas

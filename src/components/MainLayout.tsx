@@ -1,26 +1,75 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import GestionProcesos from '@/components/GestionProcesos'
 import GestionContratos from '@/components/GestionContratos'
 import ProyeccionesEmprestito from '@/components/ProyeccionesEmprestito'
+import GestionPagos from '@/components/GestionPagos'
+import GestionUnidadesProyecto from '@/components/GestionUnidadesProyecto'
+import GestionEmprestito from '@/components/GestionEmprestito'
+import { useAuth } from '@/context/AuthContext'
 
 interface MainLayoutProps {
   children: React.ReactNode
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const router = useRouter()
+  const { hasRole, canModifyOrDeleteRecords } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
+
+  const canAccessFullManagementSidebar =
+    hasRole('super_admin') || hasRole('admin_general') || hasRole('editor_datos')
+  const isAdminCentroGestor = hasRole('admin_centro_gestor')
+
+  const canAccessSection = (section: string): boolean => {
+    if (section === 'dashboard') return true
+    if (section === 'gestionar-usuarios') return hasRole('super_admin')
+
+    if (canAccessFullManagementSidebar) {
+      return [
+        'gestionar-procesos',
+        'gestionar-contratos',
+        'proyecciones-emprestito',
+        'gestion-pagos',
+        'gestionar-unidades-proyecto',
+        'gestionar-emprestito'
+      ].includes(section)
+    }
+
+    if (isAdminCentroGestor) {
+      return section === 'gestionar-unidades-proyecto' || section === 'gestionar-emprestito'
+    }
+
+    return false
+  }
+
+  useEffect(() => {
+    if (!canAccessSection(activeSection)) {
+      setActiveSection('dashboard')
+    }
+  }, [activeSection, canAccessFullManagementSidebar, isAdminCentroGestor, hasRole])
 
   const handleToggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
   }
 
   const handleSectionChange = (section: string) => {
-    setActiveSection(section)
+    if (!canAccessSection(section)) {
+      setActiveSection('dashboard')
+      return
+    }
+
+    // Si es gestionar-usuarios, navegar a la ruta dedicada
+    if (section === 'gestionar-usuarios') {
+      router.push('/admin/usuarios')
+    } else {
+      setActiveSection(section)
+    }
   }
 
   const handleNavigateHome = () => {
@@ -32,7 +81,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       case 'gestionar-procesos':
         return (
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-            <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
+            <div className="px-2 sm:px-4 lg:px-6 py-4">
               <GestionProcesos onNavigateHome={handleNavigateHome} />
             </div>
           </div>
@@ -40,7 +89,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       case 'gestionar-contratos':
         return (
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-            <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
+            <div className="px-2 sm:px-4 lg:px-6 py-4">
               <GestionContratos onNavigateHome={handleNavigateHome} />
             </div>
           </div>
@@ -48,8 +97,32 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       case 'proyecciones-emprestito':
         return (
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-            <div className="px-4 md:px-6 py-6 md:py-8 container mx-auto">
+            <div className="px-2 sm:px-4 lg:px-6 py-4">
               <ProyeccionesEmprestito onNavigateHome={handleNavigateHome} />
+            </div>
+          </div>
+        )
+      case 'gestion-pagos':
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+            <div className="px-2 sm:px-4 lg:px-6 py-4">
+              <GestionPagos onNavigateHome={handleNavigateHome} />
+            </div>
+          </div>
+        )
+      case 'gestionar-unidades-proyecto':
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+            <div className="px-2 sm:px-4 lg:px-6 py-4">
+              <GestionUnidadesProyecto onNavigateHome={handleNavigateHome} />
+            </div>
+          </div>
+        )
+      case 'gestionar-emprestito':
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+            <div className="px-2 sm:px-4 lg:px-6 py-4">
+              <GestionEmprestito onNavigateHome={handleNavigateHome} />
             </div>
           </div>
         )
@@ -60,7 +133,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   }
 
   return (
-    <>
+    <div data-record-access={canModifyOrDeleteRecords() ? 'can-modify-delete' : 'read-only'}>
       <Header onToggleSidebar={handleToggleSidebar} />
       
       <Sidebar
@@ -70,22 +143,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         onSectionChange={handleSectionChange}
       />
 
-      <main className="transition-all duration-300 tablet-safe-area">
-        {/* Contenedor optimizado para tablets */}
+      <main className="transition-all duration-300">
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-          {/* Espaciado responsivo específico para tablets */}
-          <div className="px-4 tablet:px-tablet-padding md:px-6 py-4 tablet:py-6 md:py-8">
-            {/* Grid container responsivo para diferentes orientaciones */}
-            <div className="container mx-auto">
-              {/* Orientación landscape en tablets - layout más amplio */}
-              <div className="ipad-landscape:max-w-none ipad-landscape:px-8">
-                {/* Orientación portrait en tablets - layout más compacto */}
-                <div className="ipad-portrait:max-w-4xl ipad-portrait:mx-auto">
-                  {renderContent()}
-                </div>
-              </div>
-            </div>
-          </div>
+          {renderContent()}
         </div>
       </main>
       
@@ -96,7 +156,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-    </>
+    </div>
   )
 }
 

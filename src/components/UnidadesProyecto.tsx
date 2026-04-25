@@ -1,24 +1,63 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RefreshCw, 
   Calendar,
+  Download,
   AlertCircle,
   Map,
   Filter as FilterIcon,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Building2,
+  DollarSign,
+  Settings,
+  MapPin,
+  Clock,
+  FileText,
+  ExternalLink,
+  Layers,
+  Award
 } from 'lucide-react';
 import { CSS_UTILS } from '@/lib/design-system';
 import dynamic from 'next/dynamic';
+import { useAuth } from '@/context/AuthContext';
+
+const CHUNK_ERROR_PATTERN = /ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module/i;
+
+const dynamicImportWithRetry = <TProps extends object>(
+  moduleName: string,
+  importer: () => Promise<{ default: React.ComponentType<TProps> }>
+) =>
+  dynamic(async () => {
+    try {
+      return await importer();
+    } catch (error) {
+      // In dev/hot-reload sessions a stale chunk can 404; retry once via full reload.
+      if (typeof window !== 'undefined') {
+        const retryKey = `chunk-retry:${moduleName}`;
+        const alreadyRetried = window.sessionStorage.getItem(retryKey) === '1';
+        const message = error instanceof Error ? error.message : String(error ?? '');
+
+        if (!alreadyRetried && CHUNK_ERROR_PATTERN.test(message)) {
+          window.sessionStorage.setItem(retryKey, '1');
+          window.location.reload();
+        } else {
+          window.sessionStorage.removeItem(retryKey);
+        }
+      }
+
+      throw error;
+    }
+  }, { ssr: false });
 
 // Componentes dinámicos para evitar problemas de SSR
-const UnidadesProyectoMapSimple = dynamic(() => import('./UnidadesProyectoMapSimple'), { ssr: false });
-const UnidadesProyectoFilters = dynamic(() => import('./UnidadesProyectoFilters'), { ssr: false });
-const UnidadesProyectoAttributesTable = dynamic(() => import('./UnidadesProyectoAttributesTable'), { ssr: false });
+const UnidadesProyectoMapSimple = dynamicImportWithRetry('UnidadesProyectoMapSimple', () => import('./UnidadesProyectoMapSimple'));
+const UnidadesProyectoFilters = dynamicImportWithRetry('UnidadesProyectoFilters', () => import('./UnidadesProyectoFilters'));
+const UnidadesProyectoTabularView = dynamicImportWithRetry('UnidadesProyectoTabularView', () => import('./UnidadesProyectoTabularView'));
 
 // Hooks mejorados
 import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
@@ -26,6 +65,59 @@ import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
 // Tipos
 import { type FilterParams } from '@/services/unidades-proyecto.service';
 import { type AttributeData } from '@/hooks/useUnidadesProyecto';
+import { formatDate, formatDateRange } from '@/types/unidades-proyecto';
+
+type GlobalFilterOptions = {
+  centros_gestores: string[];
+  estados: string[];
+  tipos_intervencion: string[];
+  identificadores: string[];
+  tipos_equipamiento: string[];
+  clases_up: string[];
+  frentes_activos: string[];
+  comunas_corregimientos: string[];
+  barrios_veredas: string[];
+  fuentes_financiacion: string[];
+  anos: string[];
+  proyectos_estrategicos: string[];
+};
+
+declare global {
+  interface Window {
+    UNIDADES_PROYECTO_FILTERS_GLOBAL?: Partial<GlobalFilterOptions>;
+    CENTROS_GESTORES?: string[];
+    ESTADOS?: string[];
+    ESTADOS_UP?: string[];
+    TIPOS_INTERVENCION?: string[];
+    TIPOS_INTERVENCIONES?: string[];
+    TIPOS_EQUIPAMIENTO?: string[];
+    IDENTIFICADORES?: string[];
+    FRENTES_ACTIVOS?: string[];
+    COMUNAS_CORREGIMIENTOS?: string[];
+    BARRIOS_VEREDAS?: string[];
+    FUENTES_FINANCIACION?: string[];
+    ANOS?: string[];
+    PROYECTOS_ESTRATEGICOS?: string[];
+    __UP_FILTER_DEBUG__?: Record<string, unknown>;
+    __UP_FILTER_TIMELINE__?: Array<Record<string, unknown>>;
+  }
+}
+
+const normalizeOptions = (values: unknown): string[] => {
+  if (!Array.isArray(values)) return [];
+  return Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)))
+    .sort((a, b) => a.localeCompare(b, 'es'));
+};
+
+const pickFirstNonEmpty = (...sources: unknown[]): string[] => {
+  for (const source of sources) {
+    const normalized = normalizeOptions(source);
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+  return [];
+};
 
 
 // Estados de vista
@@ -84,7 +176,7 @@ const ProjectDetailsModal: React.FC<{
     }).format(amount);
   };
 
-  const calculateProjectDuration = (fechaInicio: string, fechaFin: string) => {
+  const calculateProjectDuration = (fechaInicio: string | null | undefined, fechaFin: string | null | undefined) => {
     if (!fechaInicio || !fechaFin) {
       return {
         duration: 'N/A',
@@ -112,7 +204,7 @@ const ProjectDetailsModal: React.FC<{
       const formatDate = (date: Date) => {
         return date.toLocaleDateString('es-CO', {
           day: 'numeric',
-          month: 'long',
+          month: 'short',
           year: 'numeric'
         });
       };
@@ -146,173 +238,291 @@ const ProjectDetailsModal: React.FC<{
   const progress = Math.round(item.avance_obra || 0);
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-xl overflow-hidden">
-      {/* Header mejorado */}
-      <div className="relative bg-white dark:bg-gray-900 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col h-full bg-gradient-to-br from-white via-blue-50/20 to-purple-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 rounded-xl overflow-hidden shadow-2xl">
+      {/* Header moderno con gradiente */}
+      <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-700 dark:via-indigo-700 dark:to-purple-700 px-6 py-5">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="absolute top-3 right-3 p-2 rounded-full bg-white/20 hover:bg-white/30 dark:bg-black/20 dark:hover:bg-black/30 backdrop-blur-sm transition-all duration-200"
+          title="Cerrar"
         >
-          <X className="w-4 h-4 text-gray-400" />
+          <X className="w-5 h-5 text-white" />
         </button>
         
-        <div className="pr-8">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2 leading-tight line-clamp-2">
+        <div className="pr-12">
+          <h2 className="text-xl font-bold text-white mb-3 leading-tight line-clamp-2 drop-shadow-md">
             {item.nombre_up}
           </h2>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400 font-mono text-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-3 py-1.5 bg-white/90 dark:bg-white/20 backdrop-blur-sm rounded-lg text-gray-800 dark:text-white font-mono text-sm font-semibold shadow-sm">
               {item.upid}
             </span>
-            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 rounded text-blue-700 dark:text-blue-300 text-sm font-medium">
+            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold backdrop-blur-sm shadow-sm ${
+              item.estado.toLowerCase().includes('ejecución') || item.estado.toLowerCase().includes('activ')
+                ? 'bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200'
+                : item.estado.toLowerCase().includes('finaliz')
+                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200'
+                : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200'
+            }`}>
               {item.estado}
             </span>
+            {item.tipo_equipamiento && (
+              <span className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/60 backdrop-blur-sm rounded-lg text-purple-800 dark:text-purple-200 text-sm font-semibold shadow-sm">
+                {item.tipo_equipamiento}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Content scrolleable */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
-        <div className="space-y-4">
-          {/* Progreso mejorado */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Progreso</span>
-            <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full transition-all ${
-                  progress >= 70 ? 'bg-green-500' : 
-                  progress >= 40 ? 'bg-amber-500' : 
-                  'bg-red-500'
-                }`}
-                style={{ width: `${Math.min(progress, 100)}%` }}
-              />
+      {/* Content con scroll mejorado - Layout de 2 columnas */}
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Columna Izquierda */}
+          <div className="space-y-6">
+            {/* Barra de progreso destacada */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Avance de Obra</span>
+                <span className={`text-2xl font-bold ${
+                  progress >= 70 ? 'text-green-600 dark:text-green-400' : 
+                  progress >= 40 ? 'text-amber-600 dark:text-amber-400' : 
+                  'text-red-600 dark:text-red-400'
+                }`}>
+                  {progress}%
+                </span>
+              </div>
+              <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden shadow-inner">
+                <div 
+                  className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 shadow-md ${
+                    progress >= 70 ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
+                    progress >= 40 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 
+                    'bg-gradient-to-r from-red-500 to-rose-500'
+                  }`}
+                  style={{ width: `${Math.min(progress, 100)}%` }}
+                >
+                  <div className="absolute inset-0 bg-white/20"></div>
+                </div>
+              </div>
             </div>
-            <span className={`text-sm font-semibold w-8 text-right ${
-              progress >= 70 ? 'text-green-600' : 
-              progress >= 40 ? 'text-amber-600' : 
-              'text-red-600'
-            }`}>
-              {progress}%
-            </span>
+
+            {/* Información General */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Centro Gestor */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+                    <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Centro Gestor</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                      {item.nombre_centro_gestor || 'No especificado'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tipo de Intervención */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                    <Settings className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tipo Intervención</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                      {item.tipo_intervencion}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Clase UP - NUEVO CAMPO */}
+              {item.clase_up && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-teal-100 dark:bg-teal-900/40 rounded-lg">
+                      <Layers className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Clase de UP</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+                        {item.clase_up}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Año */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg">
+                    <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Año</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      {item.ano}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ubicación destacada */}
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl p-5 shadow-lg border border-orange-200 dark:border-orange-800">
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                <h3 className="text-lg font-bold text-orange-900 dark:text-orange-100">Ubicación</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Barrio/Vereda</p>
+                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">{item.barrio_vereda || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Comuna/Corregimiento</p>
+                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">{item.comuna_corregimiento || 'N/A'}</p>
+                </div>
+                {item.direccion && (
+                  <div>
+                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Dirección</p>
+                    <p className="text-sm font-semibold text-orange-900 dark:text-orange-100">{item.direccion}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Información contractual */}
+            {(item.referencia_contrato || item.referencia_proceso || item.url_proceso) && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 space-y-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Información Contractual</p>
+                {item.referencia_contrato && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Ref. Contrato</span>
+                    <span className="text-sm font-mono text-gray-900 dark:text-white">{item.referencia_contrato}</span>
+                  </div>
+                )}
+                {item.referencia_proceso && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Ref. Proceso</span>
+                    <span className="text-sm font-mono text-gray-900 dark:text-white">{item.referencia_proceso}</span>
+                  </div>
+                )}
+                {item.url_proceso && (
+                  <a 
+                    href={item.url_proceso} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white rounded-lg font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Ver Proceso en SECOP
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Información con tipografía balanceada */}
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Centro</span>
-              <span className="text-sm text-gray-900 dark:text-white font-medium leading-relaxed">
-                {item.nombre_centro_gestor || 'No especificado'}
-              </span>
+          {/* Columna Derecha */}
+          <div className="space-y-6">
+            {/* Presupuesto */}
+            {item.presupuesto_base && (
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 shadow-md border border-green-200 dark:border-green-800 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Presupuesto</p>
+                    <p className="text-sm font-bold text-green-700 dark:text-green-400 leading-tight">
+                      {formatCurrency(item.presupuesto_base)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Duración del proyecto */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Duración del Proyecto</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Duración estimada</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{projectDuration.duration}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Estado temporal</span>
+                  <span className={`px-3 py-1 text-xs rounded-full font-semibold ${
+                    projectDuration.status === 'en-curso' 
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                      : projectDuration.status === 'finalizado'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                  }`}>
+                    {projectDuration.status === 'en-curso' ? '🟢 En Curso' : 
+                     projectDuration.status === 'finalizado' ? '🔵 Finalizado' : '🟡 Planificado'}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Período</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{projectDuration.dateRange}</p>
+                </div>
+                {/* Fecha de Inauguración - NUEVO CAMPO */}
+                {item.fecha_inauguracion && (
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Award className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400">Fecha de Inauguración</p>
+                    </div>
+                    <p className="text-sm font-bold text-purple-900 dark:text-purple-100">{formatDate(item.fecha_inauguracion)}</p>
+                  </div>
+                )}
+              </div>
             </div>
-            
+
+            {/* Fuente de financiación */}
+            {item.fuente_financiacion && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 shadow-md border border-blue-200 dark:border-blue-800">
+                <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">Fuente de Financiación</p>
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{item.fuente_financiacion}</p>
+              </div>
+            )}
+
+            {/* Información adicional */}
             {item.nombre_up_detalle && (
-              <div className="flex items-start gap-3">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Detalle</span>
-                <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
-                  {item.nombre_up_detalle}
-                </span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Detalle de UP</p>
+                <p className="text-sm text-gray-900 dark:text-white leading-relaxed">{item.nombre_up_detalle}</p>
               </div>
             )}
             
             {item.identificador && (
-              <div className="flex items-start gap-3">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">ID</span>
-                <span className="text-sm text-gray-900 dark:text-white font-mono text-xs leading-relaxed">
-                  {item.identificador}
-                </span>
-              </div>
-            )}
-            
-            <div className="flex items-start gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Ubicación</span>
-              <div className="text-sm text-gray-900 dark:text-white leading-relaxed">
-                <div className="font-medium">{item.barrio_vereda || 'N/A'}</div>
-                <div className="text-gray-500 dark:text-gray-400 text-sm">{item.comuna_corregimiento || 'N/A'}</div>
-              </div>
-            </div>
-
-            {item.presupuesto_base && (
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Presupuesto</span>
-                <span className="text-sm text-green-600 dark:text-green-400 font-semibold">
-                  {formatCurrency(item.presupuesto_base)}
-                </span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Identificador</p>
+                <p className="text-sm text-gray-900 dark:text-white font-mono bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-lg">{item.identificador}</p>
               </div>
             )}
 
-            <div className="flex items-start gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Tipo</span>
-              <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
-                {item.tipo_intervencion}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Año</span>
-              <span className="text-sm text-gray-900 dark:text-white font-medium">
-                {item.ano}
-              </span>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Duración</span>
-              <div className="text-sm text-gray-900 dark:text-white">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium">{projectDuration.duration}</span>
-                  <span className={`px-2 py-0.5 text-xs rounded font-medium ${
-                    projectDuration.status === 'en-curso' 
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                      : projectDuration.status === 'finalizado'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                      : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
-                  }`}>
-                    {projectDuration.status === 'en-curso' ? 'En Curso' : 
-                     projectDuration.status === 'finalizado' ? 'Finalizado' : 'Planificado'}
-                  </span>
+            {/* Descripción de la intervención */}
+            {item.descripcion_intervencion && (
+              <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800 rounded-xl p-5 shadow-md border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Descripción de la Intervención</h3>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{projectDuration.dateRange}</div>
-              </div>
-            </div>
-
-            {item.fuente_financiacion && (
-              <div className="flex items-start gap-3">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">Fuente</span>
-                <span className="text-sm text-gray-900 dark:text-white leading-relaxed">
-                  {item.fuente_financiacion}
-                </span>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                  {item.descripcion_intervencion}
+                </p>
               </div>
             )}
           </div>
         </div>
-
-        {/* Fuente de financiación - solo si existe */}
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ubicación</h3>
-          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Barrio/Vereda</h4>
-                <p className="text-gray-900 dark:text-white font-medium">{item.barrio_vereda || 'N/A'}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Comuna/Corregimiento</h4>
-                <p className="text-gray-900 dark:text-white font-medium">{item.comuna_corregimiento || 'N/A'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Descripción */}
-        {item.descripcion_intervencion && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Descripción de la Intervención</h3>
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <p className="text-gray-900 dark:text-white leading-relaxed">
-                {item.descripcion_intervencion}
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -322,10 +532,12 @@ const ProjectDetailsModal: React.FC<{
 const CompactMetrics: React.FC<{
   metrics: {
     total: number;
+    totalUnidadesProyecto: number;
     byStatus: Record<string, number>;
     byType: Record<string, number>;
     avgProgress: number;
     totalBudget: number;
+    activeFronts: number;
   };
 }> = ({ metrics }) => {
   const formatCurrency = (amount: number, compact: boolean = false): string => {
@@ -345,22 +557,26 @@ const CompactMetrics: React.FC<{
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
       <div className="text-center">
-        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.total}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Total Intervenciones</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.total}</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Total Intervenciones</div>
       </div>
       <div className="text-center">
-        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{metrics.avgProgress.toFixed(1)}%</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Avance Promedio</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-600 dark:text-indigo-400">{metrics.totalUnidadesProyecto}</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Total Unidades de Proyecto</div>
       </div>
       <div className="text-center">
-        <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{Object.keys(metrics.byStatus).length}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Estados</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.activeFronts || 0}</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Frentes de Obra Activos</div>
       </div>
       <div className="text-center">
-        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(metrics.totalBudget)}</div>
-        <div className="text-xs text-gray-600 dark:text-gray-400">Presupuesto Total</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">{metrics.avgProgress.toFixed(1)}%</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Avance Promedio</div>
+      </div>
+      <div className="text-center">
+        <div className="text-base sm:text-lg lg:text-xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(metrics.totalBudget)}</div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Presupuesto Total</div>
       </div>
     </div>
   );
@@ -368,12 +584,35 @@ const CompactMetrics: React.FC<{
 
 // Componente principal
 const UnidadesProyecto: React.FC = () => {
+  const { hasRole, state: authState } = useAuth();
+
+  // Determinar si el usuario puede ver todos los centros gestores (por nombre_centro_gestor)
+  const userCentroGestor = authState.user?.nombre_centro_gestor || null;
+  const canViewAll = useMemo(() => {
+    if (!userCentroGestor) return true;
+    const normalized = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    return normalized === 'calitrack' || normalized === 'secretaria de gobierno' || normalized === 'otro';
+  }, [userCentroGestor]);
+
+  // Filtro inicial basado en el centro gestor del usuario logueado
+  const centroGestorInitialFilters = useMemo(() => {
+    if (canViewAll || !userCentroGestor) return {};
+    return { centro_gestor: userCentroGestor };
+  }, [canViewAll, userCentroGestor]);
+
   // Estados locales
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [showFilters, setShowFilters] = useState(true);
   const [focusedItem, setFocusedItem] = useState<string | null>(null);
   const [showOnlyFocused, setShowOnlyFocused] = useState(false);
   const [selectedItemForModal, setSelectedItemForModal] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const canExportFilteredData =
+    hasRole('admin_centro_gestor') ||
+    hasRole('analista') ||
+    hasRole('admin_general') ||
+    hasRole('super_admin');
 
   // Hook principal con configuración mejorada
   const {
@@ -384,9 +623,9 @@ const UnidadesProyecto: React.FC = () => {
     actions,
     filters
   } = useUnidadesProyecto({
-    enableLocalFiltering: true,
+    enableLocalFiltering: true, // Filtrado local - carga una vez y filtra en cliente
     autoRefresh: false,
-    initialFilters: {}
+    initialFilters: centroGestorInitialFilters
   });
 
   // Hook específico para dashboard - TEMPORALMENTE DESHABILITADO
@@ -402,8 +641,130 @@ const UnidadesProyecto: React.FC = () => {
   //   refetch: refetchDashboard
 
 
+  // 🔍 DIAGNÓSTICO: Monitorear el presupuesto total mostrado
+  useEffect(() => {
+    if (metrics.totalBudget > 0) {
+      console.log('');
+      console.log('🔍 ================================');
+      console.log('💰 PRESUPUESTO TOTAL MOSTRADO EN UI');
+      console.log('🔍 ================================');
+      console.log(`Valor mostrado: $${metrics.totalBudget.toLocaleString('es-CO')}`);
+      console.log(`Total de registros: ${filteredData.length}`);
+      console.log(`Total de registros cargados: ${state.attributeData.length}`);
+      console.log(`¿Hay filtros activos?: ${filteredData.length !== state.attributeData.length ? 'SÍ' : 'NO'}`);
+      
+      if (filteredData.length !== state.attributeData.length) {
+        const totalSinFiltros = state.attributeData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
+        console.log(`💰 Presupuesto SIN filtros: $${totalSinFiltros.toLocaleString('es-CO')}`);
+        console.log(`📉 Diferencia: $${(totalSinFiltros - metrics.totalBudget).toLocaleString('es-CO')}`);
+      }
+      
+      // Mostrar muestra de presupuestos
+      console.log('📋 Muestra de presupuestos (primeros 5):');
+      filteredData.slice(0, 5).forEach((item, i) => {
+        console.log(`  ${i + 1}. ${item.nombre_up}: $${(item.presupuesto_base || 0).toLocaleString('es-CO')}`);
+      });
+      console.log('================================\n');
+    }
+  }, [metrics.totalBudget, filteredData.length, state.attributeData.length]);
+
+  // Verificar centro_gestor cuando cambian los datos
+  useEffect(() => {
+    if (state.attributeData.length > 0) {
+      const withCentro = state.attributeData.filter(item => 
+        item.nombre_centro_gestor && item.nombre_centro_gestor.trim() !== ''
+      );
+      const withoutCentro = state.attributeData.filter(item => 
+        !item.nombre_centro_gestor || item.nombre_centro_gestor.trim() === ''
+      );
+      
+      const centrosUnicos = new Set(
+        withCentro.map(item => item.nombre_centro_gestor).filter(Boolean)
+      );
+      
+      console.log('📊 Centro Gestor Verification:');
+      console.log(`  Total UPs: ${state.attributeData.length}`);
+      console.log(`  ✅ Con Centro Gestor: ${withCentro.length} (${(withCentro.length/state.attributeData.length*100).toFixed(1)}%)`);
+      console.log(`  ❌ Sin Centro Gestor: ${withoutCentro.length} (${(withoutCentro.length/state.attributeData.length*100).toFixed(1)}%)`);
+      console.log(`  📋 Centros Únicos: ${centrosUnicos.size}`);
+      
+      if (withoutCentro.length > 0) {
+        console.warn('⚠️ UPs sin Centro Gestor (muestra):', 
+          withoutCentro.slice(0, 3).map(i => ({ upid: i.upid, nombre: i.nombre_up }))
+        );
+      }
+    }
+  }, [state.attributeData]);
+
+  // Publicar catálogos globales de filtros para la sección "Gestionar Unidades de Proyecto"
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const currentGlobal = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {};
+    const nextGlobal: GlobalFilterOptions = {
+      centros_gestores: pickFirstNonEmpty(state.filterData?.centros_gestores, currentGlobal.centros_gestores),
+      estados: pickFirstNonEmpty(state.filterData?.estados, currentGlobal.estados),
+      tipos_intervencion: pickFirstNonEmpty(state.filterData?.tipos_intervencion, currentGlobal.tipos_intervencion),
+      tipos_equipamiento: pickFirstNonEmpty(state.filterData?.tipos_equipamiento, currentGlobal.tipos_equipamiento),
+      clases_up: pickFirstNonEmpty(currentGlobal.clases_up),
+      frentes_activos: pickFirstNonEmpty(state.filterData?.frentes_activos, currentGlobal.frentes_activos),
+      comunas_corregimientos: pickFirstNonEmpty(state.filterData?.comunas, currentGlobal.comunas_corregimientos),
+      barrios_veredas: pickFirstNonEmpty(state.filterData?.barrios_veredas, currentGlobal.barrios_veredas),
+      fuentes_financiacion: pickFirstNonEmpty(state.filterData?.fuentes_financiacion, currentGlobal.fuentes_financiacion),
+      anos: pickFirstNonEmpty(state.filterData?.anos, currentGlobal.anos),
+      proyectos_estrategicos: pickFirstNonEmpty(state.filterData?.proyectos_estrategicos, currentGlobal.proyectos_estrategicos),
+      identificadores: pickFirstNonEmpty(currentGlobal.identificadores),
+    };
+
+    window.UNIDADES_PROYECTO_FILTERS_GLOBAL = nextGlobal;
+    window.CENTROS_GESTORES = nextGlobal.centros_gestores;
+    window.ESTADOS_UP = nextGlobal.estados;
+    window.ESTADOS = nextGlobal.estados;
+    window.TIPOS_INTERVENCIONES = nextGlobal.tipos_intervencion;
+    window.TIPOS_INTERVENCION = nextGlobal.tipos_intervencion;
+    window.TIPOS_EQUIPAMIENTO = nextGlobal.tipos_equipamiento;
+    window.FRENTES_ACTIVOS = nextGlobal.frentes_activos;
+    window.COMUNAS_CORREGIMIENTOS = nextGlobal.comunas_corregimientos;
+    window.BARRIOS_VEREDAS = nextGlobal.barrios_veredas;
+    window.FUENTES_FINANCIACION = nextGlobal.fuentes_financiacion;
+    window.ANOS = nextGlobal.anos;
+    window.PROYECTOS_ESTRATEGICOS = nextGlobal.proyectos_estrategicos;
+
+    const publishDetail = {
+      source: 'UnidadesProyecto',
+      timestamp: new Date().toISOString(),
+      hasFilterData: Boolean(state.filterData),
+      counts: {
+        centros_gestores: nextGlobal.centros_gestores.length,
+        estados: nextGlobal.estados.length,
+        tipos_intervencion: nextGlobal.tipos_intervencion.length,
+        tipos_equipamiento: nextGlobal.tipos_equipamiento.length,
+        frentes_activos: nextGlobal.frentes_activos.length,
+        comunas_corregimientos: nextGlobal.comunas_corregimientos.length,
+        barrios_veredas: nextGlobal.barrios_veredas.length,
+        fuentes_financiacion: nextGlobal.fuentes_financiacion.length,
+        anos: nextGlobal.anos.length,
+        proyectos_estrategicos: nextGlobal.proyectos_estrategicos.length,
+      }
+    };
+
+    const timeline = Array.isArray(window.__UP_FILTER_TIMELINE__) ? window.__UP_FILTER_TIMELINE__ : [];
+    timeline.push(publishDetail);
+    window.__UP_FILTER_TIMELINE__ = timeline.slice(-50);
+    window.__UP_FILTER_DEBUG__ = {
+      ...(window.__UP_FILTER_DEBUG__ || {}),
+      lastPublish: publishDetail,
+    };
+
+    window.dispatchEvent(new CustomEvent('up-filters-updated', { detail: publishDetail }));
+  }, [state.filterData]);
+
   // Handlers de eventos
   const handleFiltersChange = (newFilters: FilterParams) => {
+    // Siempre mantener el filtro de centro gestor para usuarios restringidos
+    if (!canViewAll && userCentroGestor) {
+      newFilters = { ...newFilters, centro_gestor: userCentroGestor };
+    }
     actions.setFilters(newFilters);
   };
 
@@ -413,7 +774,13 @@ const UnidadesProyecto: React.FC = () => {
 
   const handleClearFilters = () => {
     console.log('🧹 Limpiando filtros desde componente principal...');
-    actions.clearFilters();
+    if (!canViewAll && userCentroGestor) {
+      // Restaurar solo el filtro obligatorio de centro gestor
+      actions.setFilters({ centro_gestor: userCentroGestor });
+      actions.setSearchTerm('');
+    } else {
+      actions.clearFilters();
+    }
     // Forzar un refresh adicional para asegurar que se recarguen los datos
     setTimeout(() => {
       actions.refetch();
@@ -423,6 +790,133 @@ const UnidadesProyecto: React.FC = () => {
   const handleRefresh = () => {
     actions.refetch();
     refetchDashboard();
+  };
+
+  const handleExportFilteredData = async () => {
+    if (isExporting) return;
+
+    setIsExporting(true);
+    try {
+      // Build geometry lookup map from already-loaded filteredGeometry
+      const geometryMap: Record<string, object> = {};
+      if (filteredGeometry?.features) {
+        filteredGeometry.features.forEach((feature) => {
+          const upid = String(feature.properties?.upid || '').trim().toLowerCase();
+          if (upid && feature.geometry) {
+            geometryMap[upid] = feature.geometry;
+          }
+        });
+      }
+
+      // Generate XLSX on the frontend using exceljs (includes geometry).
+      // exceljs is a CJS module; with ESM dynamic import the exports live under `.default`.
+      const ExcelJSModule = await import('exceljs');
+      const ExcelJS = (ExcelJSModule.default ?? ExcelJSModule) as typeof import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Gestor de Proyectos';
+      workbook.created = new Date();
+
+      const sheet = workbook.addWorksheet('Unidades de Proyecto');
+
+      sheet.columns = [
+        { header: 'UPID', key: 'upid', width: 20 },
+        { header: 'Nombre UP', key: 'nombre_up', width: 40 },
+        { header: 'Nombre UP Detalle', key: 'nombre_up_detalle', width: 45 },
+        { header: 'Identificador', key: 'identificador', width: 25 },
+        { header: 'Unidad', key: 'unidad', width: 20 },
+        { header: 'Cantidad', key: 'cantidad', width: 15 },
+        { header: 'Estado', key: 'estado', width: 20 },
+        { header: 'Tipo Intervención', key: 'tipo_intervencion', width: 25 },
+        { header: 'Tipo Equipamiento', key: 'tipo_equipamiento', width: 25 },
+        { header: 'Clase UP', key: 'clase_up', width: 20 },
+        { header: 'Frente Activo', key: 'frente_activo', width: 20 },
+        { header: 'Centro Gestor', key: 'nombre_centro_gestor', width: 35 },
+        { header: 'Comuna / Corregimiento', key: 'comuna_corregimiento', width: 25 },
+        { header: 'Barrio / Vereda', key: 'barrio_vereda', width: 25 },
+        { header: 'Dirección', key: 'direccion', width: 35 },
+        { header: 'Presupuesto Base', key: 'presupuesto_base', width: 20 },
+        { header: 'Avance Obra (%)', key: 'avance_obra', width: 18 },
+        { header: 'Fecha Inicio', key: 'fecha_inicio', width: 18 },
+        { header: 'Fecha Fin', key: 'fecha_fin', width: 18 },
+        { header: 'Fecha Inauguración', key: 'fecha_inauguracion', width: 20 },
+        { header: 'Duración Proyecto', key: 'duracion_proyecto', width: 20 },
+        { header: 'Descripción', key: 'descripcion_intervencion', width: 50 },
+        { header: 'Fuente Financiación', key: 'fuente_financiacion', width: 28 },
+        { header: 'Referencia Contrato', key: 'referencia_contrato', width: 25 },
+        { header: 'Referencia Proceso', key: 'referencia_proceso', width: 25 },
+        { header: 'URL Proceso', key: 'url_proceso', width: 40 },
+        { header: 'Año', key: 'ano', width: 10 },
+        { header: 'Proyectos Estratégicos', key: 'proyectos_estrategicos', width: 30 },
+        { header: 'Geometría (GeoJSON)', key: 'geometry', width: 60 },
+      ];
+
+      // Style the header row
+      const headerRow = sheet.getRow(1);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E40AF' },
+      };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Add data rows
+      filteredData.forEach(item => {
+        const upidKey = String(item.upid || '').trim().toLowerCase();
+        const geometry = geometryMap[upidKey];
+        sheet.addRow({
+          upid: item.upid,
+          nombre_up: item.nombre_up,
+          nombre_up_detalle: item.nombre_up_detalle ?? '',
+          identificador: item.identificador ?? '',
+          unidad: item.unidad ?? '',
+          cantidad: item.cantidad ?? '',
+          estado: item.estado,
+          tipo_intervencion: item.tipo_intervencion,
+          tipo_equipamiento: item.tipo_equipamiento ?? '',
+          clase_up: item.clase_up ?? '',
+          frente_activo: item.frente_activo ?? '',
+          nombre_centro_gestor: item.nombre_centro_gestor ?? '',
+          comuna_corregimiento: item.comuna_corregimiento,
+          barrio_vereda: item.barrio_vereda,
+          direccion: item.direccion ?? '',
+          presupuesto_base: item.presupuesto_base,
+          avance_obra: item.avance_obra,
+          fecha_inicio: item.fecha_inicio,
+          fecha_fin: item.fecha_fin,
+          fecha_inauguracion: item.fecha_inauguracion ?? '',
+          duracion_proyecto: item.duracion_proyecto ?? '',
+          descripcion_intervencion: item.descripcion_intervencion,
+          fuente_financiacion: item.fuente_financiacion,
+          referencia_contrato: item.referencia_contrato ?? '',
+          referencia_proceso: item.referencia_proceso ?? '',
+          url_proceso: item.url_proceso ?? '',
+          ano: item.ano,
+          proyectos_estrategicos: Array.isArray(item.proyectos_estrategicos) ? item.proyectos_estrategicos.join(', ') : (item.proyectos_estrategicos ?? ''),
+          geometry: geometry ? JSON.stringify(geometry) : '',
+        });
+      });
+
+      // Generate buffer and trigger download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateTag = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `unidades_proyecto_${dateTag}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('❌ Error al descargar XLSX filtrado:', error);
+      window.alert('No se pudo descargar el archivo XLSX. Inténtalo nuevamente.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Handlers para enfoque
@@ -451,16 +945,25 @@ const UnidadesProyecto: React.FC = () => {
   };
 
   // Memorizar componentes pesados
-  const memoizedMap = useMemo(() => (
-    <UnidadesProyectoMapSimple
-      geometryData={filteredGeometry}
-      filteredData={filteredData}
-      className="h-full"
-      focusedItem={focusedItem}
-      showOnlyFocused={showOnlyFocused}
-      onItemClick={handleItemFocus}
-    />
-  ), [filteredGeometry, filteredData, focusedItem, showOnlyFocused]);
+  const memoizedMap = useMemo(() => {
+    console.log('🎯 Creating memoized map with:', {
+      filteredGeometryFeatures: filteredGeometry?.features?.length || 0,
+      filteredDataCount: filteredData.length,
+      hasFocusedItem: !!focusedItem,
+      showOnlyFocused
+    });
+    
+    return (
+      <UnidadesProyectoMapSimple
+        geometryData={filteredGeometry}
+        filteredData={filteredData}
+        className="h-full"
+        focusedItem={focusedItem}
+        showOnlyFocused={showOnlyFocused}
+        onItemClick={handleItemFocus}
+      />
+    );
+  }, [filteredGeometry, filteredData, focusedItem, showOnlyFocused]);
 
   // Renderizar loading principal
   if (state.loading) {
@@ -507,6 +1010,19 @@ const UnidadesProyecto: React.FC = () => {
 
             {/* Controles de vista y acciones */}
             <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+              {canExportFilteredData && (
+                <button
+                  onClick={handleExportFilteredData}
+                  disabled={isExporting}
+                  className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                  title="Descargar datos filtrados"
+                >
+                  <Download className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">{isExporting ? 'Descargando...' : 'Descargar datos filtrados'}</span>
+                  <span className="inline sm:hidden">{isExporting ? '...' : 'XLSX'}</span>
+                </button>
+              )}
+
               {/* Selector de vista */}
               <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                 <button
@@ -579,11 +1095,13 @@ const UnidadesProyecto: React.FC = () => {
           >
             <UnidadesProyectoFilters
               filterData={state.filterData}
+              records={state.attributeData as unknown as Array<Record<string, unknown>>}
               filters={filters}
               onFiltersChange={handleFiltersChange}
               onSearchChange={handleSearchChange}
               onClearFilters={handleClearFilters}
               isLoading={state.loading}
+              lockedCentroGestor={!canViewAll ? userCentroGestor : null}
             />
           </motion.section>
         )}
@@ -636,12 +1154,14 @@ const UnidadesProyecto: React.FC = () => {
                       >
                         <UnidadesProyectoFilters
                           filterData={state.filterData}
+                          records={state.attributeData as unknown as Array<Record<string, unknown>>}
                           filters={filters}
                           onFiltersChange={handleFiltersChange}
                           onSearchChange={handleSearchChange}
                           onClearFilters={handleClearFilters}
                           isLoading={state.loading}
                           compact={true}
+                          lockedCentroGestor={!canViewAll ? userCentroGestor : null}
                         />
                       </motion.div>
                     )}
@@ -650,40 +1170,22 @@ const UnidadesProyecto: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Tabla de Atributos - Con scroll horizontal en tablets */}
+            {/* Tabla de Intervenciones en el Territorio */}
             <motion.div
               key="split-attributes"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`${CSS_UTILS.card} p-0 overflow-x-auto`}
+              className={`${CSS_UTILS.card} p-5`}
             >
-              <div className="min-w-[640px]">
-                <UnidadesProyectoAttributesTable
-                  data={filteredData}
-                  className="h-[600px] md:h-[700px]"
-                  maxHeight="550px"
-                  pageSize={20}
-                  onRowClick={handleItemFocus}
-                  focusedItem={focusedItem}
-                  onShowDetails={handleShowDetails}
-                />
-              </div>
+              <UnidadesProyectoTabularView
+                data={filteredData}
+                onRowClick={handleItemFocus}
+                focusedItem={focusedItem}
+              />
             </motion.div>
           </div>
         )}
       </section>
-
-      {/* Indicador de elemento enfocado - Esquina inferior derecha (más abajo para no tapar controles) */}
-      {focusedItem && (
-        <motion.div
-          initial={{ opacity: 0, x: 20, y: 20 }}
-          animate={{ opacity: 1, x: 0, y: 0 }}
-          exit={{ opacity: 0, x: 20, y: 20 }}
-          className="fixed bottom-16 right-4 z-30 bg-blue-600 dark:bg-blue-500 text-white px-3 py-2 rounded-lg shadow-lg text-sm font-medium"
-        >
-          Enfocado: {focusedItem}
-        </motion.div>
-      )}
 
       {/* Modal de detalles */}
       <AnimatePresence>
@@ -701,7 +1203,7 @@ const UnidadesProyecto: React.FC = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col"
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               <ProjectDetailsModal

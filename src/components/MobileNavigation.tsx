@@ -107,6 +107,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   key={tab.id}
                   onClick={() => !isDisabled && onTabChange(tab.id)}
                   disabled={isDisabled}
+                  data-tour-id={`nav-${tab.id}`}
                   className={`flex items-center space-x-2 tablet:space-x-3 px-3 tablet:px-6 py-2 tablet:py-4 rounded-lg tablet:rounded-xl font-medium transition-all duration-200 text-sm tablet:text-base min-w-0 tablet-interactive ${
                     isDisabled
                       ? 'text-gray-400 dark:text-gray-600 opacity-50 cursor-not-allowed'
@@ -176,7 +177,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 flex items-center justify-center p-4"
+              style={{ zIndex: 9999 }}
               onClick={() => setIsOpen(false)}
             >
               {/* Backdrop */}
@@ -189,6 +191,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 exit={{ scale: 0.9, opacity: 0 }}
                 transition={{ type: "spring", damping: 20 }}
                 className={`${CSS_UTILS.card} w-full max-w-md relative`}
+                style={{ zIndex: 10000 }}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
@@ -218,6 +221,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                         key={tab.id}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        data-tour-id={`nav-${tab.id}`}
                         onClick={() => {
                           if (!isDisabled) {
                             onTabChange(tab.id)

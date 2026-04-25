@@ -50,14 +50,12 @@ Un dashboard interactivo optimizado para la gestión y visualización de proyect
 ### 🎯 Sistema de Búsqueda Inteligente v2.1.0
 
 - **Búsqueda Comprehensiva Multi-Categoría**:
-
   - Búsqueda optimizada por BPIN (detección automática numérica)
   - Búsqueda en nombres completos de proyectos sin truncamiento
   - Búsqueda en centros gestores, comunas, barrios y fuentes de financiamiento
   - Búsqueda en actividades, productos y datos generales de proyectos
 
 - **Sugerencias Inteligentes con Auto-Aplicación**:
-
   - **16 sugerencias máximo** con distribución balanceada por categoría
   - **Aplicación automática de filtros**: Seleccionar una comuna agrega automáticamente al filtro de comunas
   - **Categorización visual**: Tags de colores distintivos por tipo (BPIN: cyan, Proyecto: rosa, Comuna: azul, etc.)
@@ -200,6 +198,11 @@ yarn install
 cp .env.example .env.local
 # Editar las variables según sea necesario
 ```
+
+Variables recomendadas para caché de Unidades de Proyecto:
+
+- `NEXT_PUBLIC_UNIDADES_CACHE_TTL_MS=3600000`
+- `NEXT_PUBLIC_INTERVENCIONES_CACHE_TTL_MS=3600000`
 
 ### Comandos Disponibles
 

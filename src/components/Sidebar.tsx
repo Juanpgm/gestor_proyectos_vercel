@@ -1,8 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Home, FileText, ChevronRight, TrendingUp } from 'lucide-react'
+import { X, Home, FileText, ChevronRight, TrendingUp, DollarSign, Users, ClipboardCheck } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
 interface SidebarProps {
   isOpen: boolean
@@ -15,15 +16,35 @@ const Sidebar: React.FC<SidebarProps> = ({
   isOpen, 
   onClose, 
   activeSection, 
-  onSectionChange 
+  onSectionChange
 }) => {
-  const menuItems = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard Principal',
-      icon: Home,
-      description: 'Panel principal del sistema'
-    },
+  const { isSuperAdmin, state, signOut, getHighestRole, hasRole } = useAuth()
+
+  const canAccessFullManagementSidebar =
+    hasRole('super_admin') || hasRole('admin_general') || hasRole('editor_datos')
+  const isAdminCentroGestor = hasRole('admin_centro_gestor')
+  
+  // Debug: Mostrar información del usuario y roles en consola
+  useEffect(() => {
+    if (state.isAuthenticated && state.user) {
+      console.log('👤 Usuario actual:', {
+        email: state.user.email,
+        roles: state.user.roles,
+        permissions: state.user.permissions,
+        isSuperAdmin: isSuperAdmin(),
+        highestRole: getHighestRole()
+      })
+    }
+  }, [state.isAuthenticated, state.user, isSuperAdmin, getHighestRole])
+  
+  const dashboardMenuItem = {
+    id: 'dashboard',
+    label: 'Dashboard Principal',
+    icon: Home,
+    description: 'Panel principal del sistema'
+  }
+
+  const managementMenuItems = [
     {
       id: 'gestionar-procesos',
       label: 'Gestionar Procesos',
@@ -41,8 +62,68 @@ const Sidebar: React.FC<SidebarProps> = ({
       label: 'Proyecciones de Empréstito',
       icon: TrendingUp,
       description: 'Gestión y seguimiento de proyecciones'
+    },
+    {
+      id: 'gestion-pagos',
+      label: 'Gestión de Pagos',
+      icon: DollarSign,
+      description: 'Gestión de RPCs y pagos de empréstito'
+    },
+    {
+      id: 'gestionar-unidades-proyecto',
+      label: 'Gestionar Unidades de Proyecto',
+      icon: ClipboardCheck,
+      description: 'Control de calidad de unidades de proyecto'
+    },
+    {
+      id: 'gestionar-emprestito',
+      label: 'Gestionar Empréstito',
+      icon: TrendingUp,
+      description: 'Gestión unificada de contratos, procesos, RPCs, pagos y convenios'
     }
   ]
+
+  const visibleManagementMenuItems = canAccessFullManagementSidebar
+    ? managementMenuItems
+    : isAdminCentroGestor
+      ? managementMenuItems.filter((item) => item.id === 'gestionar-unidades-proyecto' || item.id === 'gestionar-emprestito')
+      : []
+
+  const baseMenuItems = [dashboardMenuItem, ...visibleManagementMenuItems]
+
+  // Agregar "Gestionar Usuarios" solo para super_admin
+  const shouldShowUserManagement = isSuperAdmin()
+  
+  // Debug log para ver si debe mostrar el módulo
+  useEffect(() => {
+    console.log('🔍 Sidebar - Validación de módulo Gestionar Usuarios:', {
+      shouldShow: shouldShowUserManagement,
+      isSuperAdmin: isSuperAdmin(),
+      userRoles: state.user?.roles,
+      canAccessFullManagementSidebar,
+      isAdminCentroGestor,
+      totalMenuItems: shouldShowUserManagement ? baseMenuItems.length + 1 : baseMenuItems.length
+    })
+  }, [
+    shouldShowUserManagement,
+    state.user?.roles,
+    canAccessFullManagementSidebar,
+    isAdminCentroGestor,
+    baseMenuItems.length,
+    isSuperAdmin
+  ])
+  
+  const menuItems = shouldShowUserManagement
+    ? [
+        ...baseMenuItems,
+        {
+          id: 'gestionar-usuarios',
+          label: 'Gestionar Usuarios',
+          icon: Users,
+          description: 'Administración de usuarios y roles'
+        }
+      ]
+    : baseMenuItems
 
   return (
     <AnimatePresence>
@@ -54,7 +135,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black bg-opacity-50 lg:hidden"
+            style={{ zIndex: 8000 }}
             onClick={onClose}
           />
 
@@ -64,17 +146,25 @@ const Sidebar: React.FC<SidebarProps> = ({
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-xl z-50 flex flex-col"
+            className="fixed left-0 top-0 h-full w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-xl flex flex-col"
+            style={{ zIndex: 8500 }}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <div>
+              <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                   Navegación
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Sistema de Gestión
                 </p>
+                {state.user && state.user.roles && state.user.roles.length > 0 && (
+                  <div className="mt-2">
+                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200">
+                      {getHighestRole()}
+                    </span>
+                  </div>
+                )}
               </div>
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 90 }}
@@ -86,8 +176,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               </motion.button>
             </div>
 
-            {/* Menu Items */}
-            <div className="flex-1 p-4 space-y-2">
+            {/* Menu Items - Con scroll */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {menuItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeSection === item.id

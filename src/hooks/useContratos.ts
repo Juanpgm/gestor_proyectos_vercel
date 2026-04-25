@@ -1,6 +1,12 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import {
+  getCentroGestorAccessFromSession,
+  buildAllowedBpinsSet,
+  filterByAllowedBpins,
+  toBpinKey
+} from '@/utils/centroGestorAccess'
 
 // Interfaces para los datos de contratos
 export interface Contrato {
@@ -150,9 +156,33 @@ export function useContratos() {
           indexResponse.json()
         ])
 
+        const contratosTyped = (contratosData || []) as Contrato[]
+        const indexTyped = (indexData || {}) as Record<string, ContratoIndex>
+
+        const centroGestorAccess = getCentroGestorAccessFromSession()
+        const proyectosResponse = await fetch('/data/ejecucion_presupuestal/datos_caracteristicos_proyectos.json')
+        const proyectosData = proyectosResponse.ok ? await proyectosResponse.json() : []
+        const allowedBpins = buildAllowedBpinsSet(
+          proyectosData || [],
+          centroGestorAccess,
+          ['nombre_centro_gestor', 'responsible', 'centro_gestor']
+        )
+
+        const contratosFiltrados = filterByAllowedBpins(contratosTyped, allowedBpins)
+
+        const indexFiltrado = allowedBpins
+          ? Object.entries(indexTyped).reduce((acc, [key, value]) => {
+              const bpinValue = toBpinKey(value?.bpin ?? key)
+              if (bpinValue && allowedBpins?.has(bpinValue)) {
+                acc[key] = value
+              }
+              return acc
+            }, {} as Record<string, ContratoIndex>)
+          : indexTyped
+
         const data: ContratosData = {
-          contratos: contratosData,
-          index: indexData
+          contratos: contratosFiltrados,
+          index: indexFiltrado
         }
 
         // Calcular métricas
