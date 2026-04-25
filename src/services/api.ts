@@ -125,7 +125,7 @@ export class ApiClient {
           // Attempt token refresh before giving up
           try {
             const { auth } = await import('@/lib/firebase');
-            const newToken = await auth.currentUser?.getIdToken(true);
+            const newToken = await auth?.currentUser?.getIdToken(true);
             if (newToken && attempt < maxAttempts - 1) {
               attempt++; // retry with refreshed token
               continue;

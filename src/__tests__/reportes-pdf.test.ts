@@ -59,7 +59,10 @@ vi.mock('jspdf', () => ({
   default: vi.fn().mockImplementation(() => createMockDoc()),
 }))
 
-vi.mock('jspdf-autotable', () => ({}))
+vi.mock('jspdf-autotable', () => ({
+  default: vi.fn(),
+  applyPlugin: vi.fn(),
+}))
 
 // ── Imports (después del mock) ───────────────────────────
 import { generarReporteUPsPorCentroGestor } from '@/utils/reporteUPsPdf'

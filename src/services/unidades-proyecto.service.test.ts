@@ -1,3 +1,4 @@
+// @ts-nocheck — test file uses minimal TestItem type; full type compatibility not required
 import { describe, expect, it } from 'vitest'
 import { consolidateAttributeData, filterAttributeData } from './unidades-proyecto.service'
 
