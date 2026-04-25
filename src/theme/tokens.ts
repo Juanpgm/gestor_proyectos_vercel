@@ -4,16 +4,27 @@
  * FUENTE ÚNICA DE VERDAD para todos los valores visuales del proyecto.
  * No uses valores hardcoded en los componentes — importa desde aquí.
  *
+ * ── Principios de diseño ──────────────────────────────────────────────
+ * GovTech · Analítica de datos · Plataforma empresarial
+ *
+ * • Sin emojis — solo iconos SVG de Lucide (tamaño 16-20px, strokeWidth 1.5)
+ * • Minimalismo funcional: jerarquía clara, sin decoración innecesaria
+ * • Paleta institucional: navy profundo + gris frío neutro + acentos contenidos
+ * • Tipografía de datos: números en tabular-nums, etiquetas en uppercase tracking-wide
+ * • Bordes sobre sombras: preferir 1px border a box-shadow para separación
+ * • Radios conservadores: md=4px, lg=8px (no pills salvo badges de estado)
+ * • Motion austero: fast=120ms, normal=200ms — sin rebotes ni springs llamativos
+ *
  * Uso:
  *   import { tokens } from '@/theme'
- *   const color = tokens.colors.brand.primary   // '#2563eb'
+ *   const color = tokens.colors.brand.primary   // '#1d4ed8'
  */
 
 // ─────────────────────────────────────────────
 // COLORS
 // ─────────────────────────────────────────────
 export const colors = {
-  // Brand — identidad de CaliTrack (azul institucional)
+  // Brand — identidad institucional de CaliTrack (navy governamental)
   brand: {
     50:      '#eff6ff',
     100:     '#dbeafe',
@@ -21,10 +32,13 @@ export const colors = {
     300:     '#93c5fd',
     400:     '#60a5fa',
     500:     '#3b82f6',
-    primary: '#2563eb',  // blue-600 — color principal
-    700:     '#1d4ed8',
-    800:     '#1e40af',
-    900:     '#1e3a8a',
+    primary: '#1d4ed8',  // blue-700 — institucional, no consumer
+    700:     '#1e40af',
+    800:     '#1e3a8a',
+    900:     '#172554',
+    // Navy profundo para headers y barras de navegación
+    navy:    '#1e3a5f',
+    navyDark:'#0d1f36',
   },
 
   // Semánticos — estados y feedback
@@ -215,37 +229,35 @@ export const spacing = {
 } as const
 
 // ─────────────────────────────────────────────
-// BORDER RADIUS
+// BORDER RADIUS (conservador — govtech/enterprise)
 // ─────────────────────────────────────────────
 export const radii = {
   none:  '0px',
-  xs:    '0.125rem',  // 2px
-  sm:    '0.25rem',   // 4px
-  md:    '0.375rem',  // 6px
-  lg:    '0.5rem',    // 8px
-  xl:    '0.75rem',   // 12px
-  '2xl': '1rem',      // 16px
-  '3xl': '1.5rem',    // 24px
-  full:  '9999px',
+  xs:    '0.125rem',  // 2px — microdetalles
+  sm:    '0.1875rem', // 3px — inputs pequeños
+  md:    '0.25rem',   // 4px — cards, inputs, botones
+  lg:    '0.375rem',  // 6px — panels, modals
+  xl:    '0.5rem',    // 8px — drawers, popovers
+  '2xl': '0.75rem',   // 12px — uso excepcional
+  '3xl': '1rem',      // 16px — nunca en enterprise
+  full:  '9999px',    // solo badges de estado
 } as const
 
 // ─────────────────────────────────────────────
-// SHADOWS
+// SHADOWS (austeras — preferir bordes sobre sombras)
 // ─────────────────────────────────────────────
 export const shadows = {
   none:  'none',
-  xs:    '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-  sm:    '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-  md:    '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-  lg:    '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-  xl:    '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-  '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-  inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
-  // Coloreadas (glow por dominio)
-  brand:   '0 4px 14px 0 rgba(37, 99, 235, 0.25)',
-  success: '0 4px 14px 0 rgba(5, 150, 105, 0.25)',
-  warning: '0 4px 14px 0 rgba(217, 119, 6, 0.25)',
-  error:   '0 4px 14px 0 rgba(220, 38, 38, 0.25)',
+  // Sombras muy sutiles — el diseño usa bordes como separadores primarios
+  xs:    '0 1px 2px 0 rgb(0 0 0 / 0.04)',
+  sm:    '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04)',
+  md:    '0 2px 6px -1px rgb(0 0 0 / 0.08), 0 1px 4px -2px rgb(0 0 0 / 0.04)',
+  lg:    '0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.04)',
+  xl:    '0 8px 20px -4px rgb(0 0 0 / 0.10), 0 4px 8px -2px rgb(0 0 0 / 0.05)',
+  '2xl': '0 16px 32px -8px rgb(0 0 0 / 0.14)',
+  inner: 'inset 0 1px 3px 0 rgb(0 0 0 / 0.04)',
+  // Elevación de foco (acción primaria) — no glow decorativo
+  focus: '0 0 0 3px rgba(29, 78, 216, 0.18)',
 } as const
 
 // ─────────────────────────────────────────────
@@ -271,42 +283,42 @@ export const zIndex = {
 // ─────────────────────────────────────────────
 // MOTION / ANIMACIONES
 // ─────────────────────────────────────────────
+// Motion austero: sin rebotes, sin springs — transiciones funcionales, no decorativas
 export const motion = {
   duration: {
     instant: '0ms',
-    fast:    '150ms',
-    normal:  '250ms',
-    slow:    '400ms',
-    slower:  '600ms',
+    fast:    '120ms',  // interacciones inmediatas (hover, active)
+    normal:  '200ms',  // transiciones de estado (tabs, modals)
+    slow:    '300ms',  // entradas de pantalla
+    slower:  '450ms',  // sólo animaciones de datos (progress bars)
   },
   easing: {
-    linear:     'linear',
-    easeIn:     'cubic-bezier(0.4, 0, 1, 1)',
-    easeOut:    'cubic-bezier(0, 0, 0.2, 1)',
-    easeInOut:  'cubic-bezier(0.4, 0, 0.2, 1)',
-    spring:     'cubic-bezier(0.34, 1.56, 0.64, 1)',
-    bounce:     'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+    linear:    'linear',
+    easeIn:    'cubic-bezier(0.4, 0, 1, 1)',
+    easeOut:   'cubic-bezier(0, 0, 0.2, 1)',
+    easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',  // estándar — úsalo por defecto
+    // No usar spring/bounce en UI empresarial
   },
-  // Framer Motion variants reutilizables
+  // Framer Motion variants — minimalistas, sin overshooting
   variants: {
     fadeIn: {
       hidden:  { opacity: 0 },
-      visible: { opacity: 1, transition: { duration: 0.25 } },
+      visible: { opacity: 1, transition: { duration: 0.2 } },
     },
     slideUp: {
-      hidden:  { opacity: 0, y: 16 },
-      visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0, 0, 0.2, 1] } },
+      hidden:  { opacity: 0, y: 8 },
+      visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } },
     },
     slideDown: {
-      hidden:  { opacity: 0, y: -16 },
-      visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0, 0, 0.2, 1] } },
+      hidden:  { opacity: 0, y: -8 },
+      visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } },
     },
     scaleIn: {
-      hidden:  { opacity: 0, scale: 0.95 },
-      visible: { opacity: 1, scale: 1, transition: { duration: 0.2, ease: [0, 0, 0.2, 1] } },
+      hidden:  { opacity: 0, scale: 0.97 },
+      visible: { opacity: 1, scale: 1, transition: { duration: 0.15, ease: [0, 0, 0.2, 1] } },
     },
     stagger: {
-      visible: { transition: { staggerChildren: 0.07 } },
+      visible: { transition: { staggerChildren: 0.05 } },
     },
   },
 } as const

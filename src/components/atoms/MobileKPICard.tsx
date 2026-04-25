@@ -1,14 +1,16 @@
 /**
  * MobileKPICard — Átomo de tarjeta KPI para Mobile LITE
  *
- * Muestra un número grande con un icono y etiqueta.
+ * Muestra un número grande con un icono SVG y etiqueta.
  * Adaptado para pantallas de 375-430px.
  * Link opcional a detalle de la sección.
  *
  * Uso:
  *   import { MobileKPICard } from '@/components/atoms'
- *   <MobileKPICard label="Proyectos" value={42} icon="📋" color="blue" />
+ *   import { FolderKanban } from 'lucide-react'
+ *   <MobileKPICard label="Proyectos" value={42} icon={<FolderKanban size={18} />} color="blue" />
  */
+import { type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 type ColorName = 'blue' | 'red' | 'orange' | 'violet' | 'green' | 'teal' | 'amber'
@@ -16,7 +18,8 @@ type ColorName = 'blue' | 'red' | 'orange' | 'violet' | 'green' | 'teal' | 'ambe
 export interface MobileKPICardProps {
   label:  string
   value:  number | null
-  icon:   string
+  /** Pasar siempre un componente Lucide — nunca un emoji */
+  icon:   ReactNode
   color:  ColorName
   href?:  string
   className?: string
@@ -36,16 +39,16 @@ function CardContent({ label, value, icon, color }: Omit<MobileKPICardProps, 'hr
   const c = colorMap[color]
   return (
     <>
-      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-2', c.iconBg)}>
-        {icon}
+      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center mb-3', c.iconBg)}>
+        <span className={c.text}>{icon}</span>
       </div>
-      <div className={cn('text-2xl font-bold tabular-nums leading-none mb-1', c.number)}>
+      <div className={cn('text-2xl font-semibold tabular-nums leading-none mb-1 tracking-tight', c.number)}>
         {value === null
-          ? <span className="inline-block w-10 h-7 bg-current opacity-10 rounded animate-pulse" />
+          ? <span className="inline-block w-10 h-6 bg-current opacity-10 rounded animate-pulse" />
           : value.toLocaleString('es-CO')
         }
       </div>
-      <div className={cn('text-xs font-medium', c.text)}>
+      <div className={cn('text-[11px] font-medium uppercase tracking-wide mt-0.5', c.text)}>
         {label}
       </div>
     </>
@@ -55,10 +58,11 @@ function CardContent({ label, value, icon, color }: Omit<MobileKPICardProps, 'hr
 export function MobileKPICard({ label, value, icon, color, href, className }: MobileKPICardProps) {
   const c = colorMap[color]
   const baseClass = cn(
-    'flex flex-col p-4 rounded-2xl border',
-    c.bg,
-    'border-current/10',
-    href && 'active:scale-95 transition-transform duration-[150ms]',
+    'flex flex-col p-4 rounded-lg border',
+    'bg-white dark:bg-gray-800/60',
+    'border-gray-200 dark:border-gray-700',
+    'shadow-sm',
+    href && 'active:scale-[0.98] transition-transform duration-[150ms]',
     className,
   )
 
