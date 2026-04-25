@@ -8,15 +8,6 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 // Next.js API proxy URL for better error handling and CORS
 export const API_PROXY_URL = '/api/proxy';
 
-// Log de configuración para debug
-if (typeof window !== 'undefined') {
-  console.log('🔧 API Configuration:', {
-    API_BASE_URL,
-    fromEnv: !!process.env.NEXT_PUBLIC_API_BASE_URL,
-    environment: process.env.NODE_ENV
-  });
-}
-
 // Timeout for API requests (30 seconds)
 export const DEFAULT_TIMEOUT = 30000;
 
@@ -67,7 +58,7 @@ export class ApiClient {
       }
       return null;
     } catch (error) {
-      console.error('❌ WIF: Error obteniendo token de autenticación:', error);
+      console.error(' WIF: Error obteniendo token de autenticación:', error);
       return null;
     }
   }
@@ -88,13 +79,13 @@ export class ApiClient {
 
     while (attempt < maxAttempts) {
       try {
-        console.log(`🌐 API Request (attempt ${attempt + 1}/${maxAttempts}): ${url}`);
+        console.log(` API Request (attempt ${attempt + 1}/${maxAttempts}): ${url}`);
 
         // Get auth token and add to headers (now async)
         const token = await this.getAuthToken();
 
         if (!token) {
-          console.warn('⚠️ No authentication token available for request');
+          console.warn('No authentication token available for request');
         }
 
         // Build headers object properly to avoid TypeScript errors
@@ -120,22 +111,31 @@ export class ApiClient {
           headers,
         }, this.timeout);
 
-        console.log(`✅ API Request successful: ${url}`);
+        console.log(`API Request successful: ${url}`);
         return response;
 
       } catch (error: any) {
         lastError = error;
         attempt++;
 
-        console.error(`❌ API Request failed (attempt ${attempt}/${maxAttempts}): ${url}`, error);
+        console.error(`API Request failed (attempt ${attempt}/${maxAttempts}): ${url}`, error);
 
-        // Proporcionar mejor contexto de error para problemas de autenticación
+        // Provide better error context for auth issues
         if (error.status === 401) {
-          console.error('❌ Error de autenticación: Token inválido o expirado');
-          lastError = new Error('Error de autenticación. Por favor, inicia sesión nuevamente.');
+          // Attempt token refresh before giving up
+          try {
+            const { auth } = await import('@/lib/firebase');
+            const newToken = await auth.currentUser?.getIdToken(true);
+            if (newToken && attempt < maxAttempts - 1) {
+              attempt++; // retry with refreshed token
+              continue;
+            }
+          } catch (_) {}
+          console.error('Authentication error: token invalid or expired');
+          lastError = new Error('Error de autenticacion. Por favor, inicia sesion nuevamente.');
         } else if (error.status === 403) {
-          console.error('❌ Error de autorización: No tienes permisos suficientes');
-          lastError = new Error('No tienes permisos para realizar esta acción.');
+          console.error('Authorization error: insufficient permissions');
+          lastError = new Error('No tienes permisos para realizar esta accion.');
         }
 
         // Don't retry on certain errors

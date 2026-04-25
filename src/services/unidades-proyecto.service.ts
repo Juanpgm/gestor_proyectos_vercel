@@ -862,6 +862,14 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
     const unidad = group.find(i => i.unidad != null && i.unidad !== '')?.unidad ?? base.unidad;
     const cantidad = group.find(i => i.cantidad != null && i.cantidad !== '')?.cantidad ?? base.cantidad;
 
+    // Consolidar proyectos_estrategicos de TODOS los items del grupo (unión de valores únicos)
+    const allProyectosEstrategicos = new Set<string>();
+    group.forEach(i => {
+      const normalized = normalizeProyectosEstrategicos(i.proyectos_estrategicos);
+      normalized.forEach(pe => allProyectosEstrategicos.add(pe));
+    });
+    const proyectosEstrategicosConsolidados = Array.from(allProyectosEstrategicos);
+
     // Recalcular frente_activo basándose en los estados, avances, tipo y centro del grupo
     // Una UP al 100% con estado "En ejecución" NO es frente activo → es Terminado
     // Excluir ciertos tipos de intervención y centros gestores
@@ -890,7 +898,7 @@ export const consolidateAttributeData = (data: AttributeData[]): AttributeData[]
       avance_obra: avancePromedio,
       presupuesto_base: presupuestoTotal,
       frente_activo: frenteActivoConsolidado,
-      proyectos_estrategicos: normalizeProyectosEstrategicos(base.proyectos_estrategicos),
+      proyectos_estrategicos: proyectosEstrategicosConsolidados,
       identificador,
       unidad,
       cantidad

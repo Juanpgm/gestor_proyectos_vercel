@@ -1,47 +1,101 @@
-name: Deploy to Production
+﻿name: CI/CD Frontend
 
 on:
   push:
+    branches: [master, dev]
+  pull_request:
     branches: [master]
   workflow_dispatch:
 
 jobs:
-  verify-and-deploy:
+  test:
+    name: Lint, Type Check and Tests
     runs-on: ubuntu-latest
-    steps:
-      - name: Verificar permisos de deploy
-        run: |
-          ALLOWED_USER="Juanpgm"
-          echo "Usuario que activó el workflow: ${{ github.actor }}"
-          if [ "${{ github.actor }}" != "$ALLOWED_USER" ]; then
-            echo "❌ ERROR: Solo $ALLOWED_USER puede hacer deploy a producción."
-            echo "Tu usuario (${{ github.actor }}) no tiene permisos para deploy a producción."
-            exit 1
-          fi
-          echo "✅ Usuario autorizado para deploy a producción."
 
-      - name: Checkout
+    steps:
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: front/package-lock.json
 
-      - name: Instalar dependencias
-        run: npm install --legacy-peer-deps
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: front
+
+      - name: Run ESLint
+        run: npm run lint
+        working-directory: front
+
+      - name: Type check
+        run: npx tsc --noEmit
+        working-directory: front
+
+      - name: Run vitest
+        run: npx vitest run
+        working-directory: front
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL_DEV }}
+          NEXT_PUBLIC_APP_ENV: test
 
       - name: Build
         run: npm run build
+        working-directory: front
         env:
-          NODE_ENV: production
-          NEXT_PUBLIC_APP_ENV: production
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL_DEV }}
+          NEXT_PUBLIC_APP_ENV: test
 
-      - name: Deploy a Vercel Production
+  deploy-dev:
+    name: Deploy to Vercel Preview (dev)
+    needs: test
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
+      - name: Deploy preview to Vercel
+        run: vercel --token=${{ secrets.VERCEL_TOKEN }} --yes
+        working-directory: front
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  deploy-prod:
+    name: Deploy to Vercel Production (master)
+    needs: test
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Verify deployer identity
         run: |
-          npm i -g vercel
-          vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+          ALLOWED_USER="Juanpgm"
+          if [ "${{ github.actor }}" != "$ALLOWED_USER" ]; then
+            echo "ERROR: Only $ALLOWED_USER can deploy to production."
+            exit 1
+          fi
+          echo "Authorized: $ALLOWED_USER"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
+      - name: Deploy to Vercel Production
+        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        working-directory: front
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
