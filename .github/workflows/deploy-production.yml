@@ -64,7 +64,7 @@ jobs:
         run: npm i -g vercel
 
       - name: Deploy preview to Vercel
-        run: vercel --token=${{ secrets.VERCEL_TOKEN }} --yes
+        run: vercel --token=${{ secrets.VERCEL_DEPLOY_TOKEN }} --yes
         working-directory: front
         env:
           VERCEL_ORG_ID: team_SzZM9UUotBq10Z80gIsZpAzv
@@ -94,7 +94,7 @@ jobs:
         run: npm i -g vercel
 
       - name: Deploy to Vercel Production
-        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        run: vercel --prod --token=${{ secrets.VERCEL_DEPLOY_TOKEN }} --yes
         working-directory: front
         env:
           VERCEL_ORG_ID: team_SzZM9UUotBq10Z80gIsZpAzv
