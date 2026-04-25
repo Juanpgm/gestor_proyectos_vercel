@@ -39,14 +39,14 @@ jobs:
         run: npx vitest run
         working-directory: front
         env:
-          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL_DEV }}
+          NEXT_PUBLIC_API_BASE_URL: https://gestorproyectoapi-dev.up.railway.app
           NEXT_PUBLIC_APP_ENV: test
 
       - name: Build
         run: npm run build
         working-directory: front
         env:
-          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL_DEV }}
+          NEXT_PUBLIC_API_BASE_URL: https://gestorproyectoapi-dev.up.railway.app
           NEXT_PUBLIC_APP_ENV: test
 
   deploy-dev:
@@ -67,8 +67,8 @@ jobs:
         run: vercel --token=${{ secrets.VERCEL_TOKEN }} --yes
         working-directory: front
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: team_SzZM9UUotBq10Z80gIsZpAzv
+          VERCEL_PROJECT_ID: prj_cgN6j6t6SBf6hAP9IOScdxcwWG9l
 
   deploy-prod:
     name: Deploy to Vercel Production (master)
@@ -97,5 +97,5 @@ jobs:
         run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
         working-directory: front
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: team_SzZM9UUotBq10Z80gIsZpAzv
+          VERCEL_PROJECT_ID: prj_cgN6j6t6SBf6hAP9IOScdxcwWG9l
