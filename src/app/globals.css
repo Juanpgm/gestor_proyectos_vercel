@@ -40,6 +40,65 @@
     --tablet-spacing: 1.5rem;
     --tablet-border-radius: 0.75rem;
     --touch-target-size: 44px;
+
+    /* ── Design System Tokens ─────────────────────── */
+
+    /* Border Radius */
+    --radius-xs:   0.125rem;
+    --radius-sm:   0.25rem;
+    --radius-md:   0.375rem;
+    --radius-lg:   0.5rem;
+    --radius-xl:   0.75rem;
+    --radius-2xl:  1rem;
+    --radius-3xl:  1.5rem;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* Motion */
+    --motion-fast:   150ms;
+    --motion-normal: 250ms;
+    --motion-slow:   400ms;
+    --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --motion-ease-enter:    cubic-bezier(0, 0, 0.2, 1);
+    --motion-ease-exit:     cubic-bezier(0.4, 0, 1, 1);
+    --motion-ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Surface — Light mode */
+    --color-surface-bg:      #f9fafb;
+    --color-surface-card:    #ffffff;
+    --color-surface-subtle:  #f3f4f6;
+    --color-surface-border:  #e5e7eb;
+    --color-text-primary:    #111827;
+    --color-text-secondary:  #4b5563;
+    --color-text-muted:      #9ca3af;
+
+    /* Z-index semántico */
+    --z-header:   100;
+    --z-dropdown: 200;
+    --z-sticky:   300;
+    --z-overlay:  400;
+    --z-modal:    500;
+    --z-popover:  600;
+    --z-toast:    700;
+    --z-tooltip:  800;
+    --z-tour:    1000;
+  }
+
+  .dark {
+    /* Surface — Dark mode */
+    --color-surface-bg:      #111827;
+    --color-surface-card:    #1f2937;
+    --color-surface-subtle:  #1f2937;
+    --color-surface-border:  #374151;
+    --color-text-primary:    #f9fafb;
+    --color-text-secondary:  #d1d5db;
+    --color-text-muted:      #6b7280;
   }
 
   * {

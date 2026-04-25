@@ -273,15 +273,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     return data.filter(item => {
       // Filtro por BPIN específico (desde búsqueda)
       if (searchFilters.search && searchFilters.search.trim() !== '') {
-        const searchTerm = searchFilters.search.toLowerCase().trim()
+        const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = normalize(searchFilters.search.trim())
         
         // Buscar por BPIN exacto (convertir número a string)
-        if (item.bpin && item.bpin.toString().includes(searchTerm)) {
+        if (item.bpin && normalize(item.bpin.toString()).includes(searchTerm)) {
           // Si encuentra coincidencia en BPIN, continúa con otros filtros
         } else {
           // Buscar en todos los campos
           const matchesSearch = Object.values(item).some(value => 
-            value && value.toString().toLowerCase().includes(searchTerm)
+            value && normalize(value.toString()).includes(searchTerm)
           )
           
           if (!matchesSearch) return false
@@ -359,9 +360,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       
       // Aplicar filtros adicionales específicos (como búsqueda)
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
+        const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = _norm(filters.search.trim())
         const matchesSearch = Object.values(item).some(value => 
-          value && value.toString().toLowerCase().includes(searchTerm)
+          value && _norm(value.toString()).includes(searchTerm)
         )
         if (!matchesSearch) return false
       }
@@ -376,9 +378,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       
       // Aplicar filtros adicionales específicos (como búsqueda)
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
+        const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = _norm(filters.search.trim())
         const matchesSearch = Object.values(item).some(value => 
-          value && value.toString().toLowerCase().includes(searchTerm)
+          value && _norm(value.toString()).includes(searchTerm)
         )
         if (!matchesSearch) return false
       }
@@ -393,9 +396,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       
       // Aplicar filtros adicionales específicos (como búsqueda)
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
+        const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = _norm(filters.search.trim())
         const matchesSearch = Object.values(item).some(value => 
-          value && value.toString().toLowerCase().includes(searchTerm)
+          value && _norm(value.toString()).includes(searchTerm)
         )
         if (!matchesSearch) return false
       }
@@ -409,9 +413,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       
       // Aplicar filtros adicionales específicos (como búsqueda)
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
+        const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = _norm(filters.search.trim())
         const matchesSearch = Object.values(item).some(value => 
-          value && value.toString().toLowerCase().includes(searchTerm)
+          value && _norm(value.toString()).includes(searchTerm)
         )
         if (!matchesSearch) return false
       }
@@ -425,9 +430,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       
       // Aplicar filtros adicionales específicos (como búsqueda)
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
+        const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = _norm(filters.search.trim())
         const matchesSearch = Object.values(item).some(value => 
-          value && value.toString().toLowerCase().includes(searchTerm)
+          value && _norm(value.toString()).includes(searchTerm)
         )
         if (!matchesSearch) return false
       }
@@ -452,9 +458,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       
       // Aplicar filtros adicionales específicos (como búsqueda)
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
+        const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = _norm(filters.search.trim())
         const matchesSearch = Object.values(item).some(value => 
-          value && value.toString().toLowerCase().includes(searchTerm)
+          value && _norm(value.toString()).includes(searchTerm)
         )
         if (!matchesSearch) return false
       }
@@ -479,9 +486,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       
       // Aplicar filtros adicionales específicos (como búsqueda)
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
+        const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = _norm(filters.search.trim())
         const matchesSearch = Object.values(item).some(value => 
-          value && value.toString().toLowerCase().includes(searchTerm)
+          value && _norm(value.toString()).includes(searchTerm)
         )
         if (!matchesSearch) return false
       }

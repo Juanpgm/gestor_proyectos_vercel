@@ -335,8 +335,9 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
     return projects.filter(project => {
       // Filtro de búsqueda
       if (localFilters.searchTerm) {
-        const searchTerm = localFilters.searchTerm.toLowerCase()
-        const searchableText = [
+        const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        const searchTerm = _norm(localFilters.searchTerm)
+        const searchableText = _norm([
           project.name,
           project.bpin,
           project.responsible,
@@ -346,7 +347,7 @@ const ProjectsTable: React.FC<ProjectsTableProps> = ({
           project.texto2 || '',
           project.nombre_fondo || '',
           project.clasificacion_fondo || ''
-        ].join(' ').toLowerCase()
+        ].join(' '))
         
         if (!searchableText.includes(searchTerm)) return false
       }

@@ -5166,7 +5166,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       {/* Botón flotante fijo para filtros - siempre visible */}
       <motion.button
         onClick={() => setShowFilters(!showFilters)}
-        className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-all duration-200 shadow-2xl transform hover:scale-110 active:scale-95"
+        className="fixed top-36 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-all duration-200 shadow-2xl transform hover:scale-110 active:scale-95"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         initial={{ opacity: 0, scale: 0 }}

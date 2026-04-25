@@ -156,9 +156,11 @@ const ContratosDetalladosTable: React.FC<ContratosDetalladosTableProps> = ({
 
     // Aplicar búsqueda global
     if (searchTerm) {
+      const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      const term = _norm(searchTerm)
       filtered = filtered.filter(contrato =>
         Object.values(contrato).some(value =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
+          _norm(String(value)).includes(term)
         )
       )
     }

@@ -250,11 +250,13 @@ const SectionFeatureTour: React.FC<SectionFeatureTourProps> = ({ activeTab, high
       setTooltipPosition({ top, left })
     }
 
-    updatePosition()
+    // Delay initial positioning to allow smooth scroll to settle
+    const positionTimer = setTimeout(updatePosition, 400)
     window.addEventListener('resize', updatePosition)
     window.addEventListener('scroll', updatePosition, true)
 
     return () => {
+      clearTimeout(positionTimer)
       target.style.outline = originalOutline
       target.style.outlineOffset = originalOutlineOffset
       target.style.zIndex = originalZIndex

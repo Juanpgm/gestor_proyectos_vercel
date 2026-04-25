@@ -82,8 +82,9 @@ export default function AvancesEmprestitoTab() {
     }
 
     if (busqueda.trim()) {
-      const term = busqueda.toLowerCase().trim()
-      lista = lista.filter((c) => c.nombre_centro_gestor.toLowerCase().includes(term))
+      const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      const term = _norm(busqueda.trim())
+      lista = lista.filter((c) => _norm(c.nombre_centro_gestor).includes(term))
     }
 
     switch (filtroEstado) {

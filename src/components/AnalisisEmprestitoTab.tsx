@@ -122,17 +122,18 @@ export default function AnalisisEmprestitoTab() {
         ? 'nombre_centro_gestor'
         : 'bp'
 
-    const term = searchTerm.toLowerCase().trim()
+    const _norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    const term = _norm(searchTerm.trim())
 
     const filtradas = term
       ? items.filter((i) => {
           return (
-            (i.nombre_centro_gestor || '').toLowerCase().includes(term) ||
-            (i.banco || '').toLowerCase().includes(term) ||
-            (i.bp || '').toLowerCase().includes(term) ||
-            (i.referencia_contrato || '').toLowerCase().includes(term) ||
-            (i.referencia_proceso || '').toLowerCase().includes(term) ||
-            (i.nombre_proyecto || '').toLowerCase().includes(term)
+            _norm(i.nombre_centro_gestor || '').includes(term) ||
+            _norm(i.banco || '').includes(term) ||
+            _norm(i.bp || '').includes(term) ||
+            _norm(i.referencia_contrato || '').includes(term) ||
+            _norm(i.referencia_proceso || '').includes(term) ||
+            _norm(i.nombre_proyecto || '').includes(term)
           )
         })
       : items

@@ -555,7 +555,7 @@ const TiendaVirtualTable: React.FC = () => {
       )}
 
       {errorToast && (
-        <div className="fixed top-20 right-4 z-50">
+        <div className="fixed top-36 right-4 z-40">
           <div className="bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
             <span className="text-sm font-medium">{errorToast}</span>
             <button
