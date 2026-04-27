@@ -605,9 +605,8 @@ const UnidadesProyectoAttributesTable: React.FC<
       setLoadingIntervenciones((prev) => new Set(prev).add(upid));
 
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
         const response = await fetch(
-          `${apiUrl}/intervenciones?upid=${upid}&limit=10000`,
+          `/api/proxy/intervenciones?upid=${upid}&limit=10000`,
         );
 
         if (!response.ok) {
@@ -680,8 +679,6 @@ const UnidadesProyectoAttributesTable: React.FC<
     const loadMetricsForVisibleUPs = async () => {
       if (!paginatedData || paginatedData.length === 0) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-
       // Cargar intervenciones para cada UP visible que no esté en cache
       for (const item of paginatedData) {
         if (isGroupRow(item)) {
@@ -720,7 +717,7 @@ const UnidadesProyectoAttributesTable: React.FC<
 
         try {
           const response = await fetch(
-            `${apiUrl}/intervenciones?upid=${upid}&limit=10000`,
+            `/api/proxy/intervenciones?upid=${upid}&limit=10000`,
           );
 
           if (!response.ok) {
