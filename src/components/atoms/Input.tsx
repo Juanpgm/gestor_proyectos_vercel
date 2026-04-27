@@ -11,15 +11,15 @@
  *   import { Input } from '@/components/atoms'
  *   <Input label="Buscar" placeholder="Nombre de proyecto..." leadingIcon={<Search size={14}/>} />
  */
-import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
-import { cn } from '@/lib/cn'
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?:       string
-  error?:       string
-  helper?:      string
-  leadingIcon?: ReactNode
-  trailingIcon?: ReactNode
+  label?: string;
+  error?: string;
+  helper?: string;
+  leadingIcon?: ReactNode;
+  trailingIcon?: ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -37,14 +37,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
-    const inputId = id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined)
+    const inputId =
+      id ?? (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
 
     return (
       <div className="flex flex-col gap-1 w-full">
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-gray-700 dark:text-gray-300 select-none"
+            className="text-[11px] uppercase tracking-wide font-medium text-gray-500 dark:text-gray-400 select-none"
           >
             {label}
           </label>
@@ -63,25 +64,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             aria-invalid={!!error}
             aria-describedby={
-              error  ? `${inputId}-error`  :
-              helper ? `${inputId}-helper` :
-              undefined
+              error
+                ? `${inputId}-error`
+                : helper
+                  ? `${inputId}-helper`
+                  : undefined
             }
             className={cn(
-              'w-full h-10 rounded-lg border bg-white dark:bg-gray-800',
-              'text-sm text-gray-900 dark:text-gray-100',
-              'placeholder:text-gray-400 dark:placeholder:text-gray-500',
-              'transition-colors duration-[var(--motion-fast,150ms)]',
-              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 focus:border-blue-500',
+              "w-full h-10 rounded-md border bg-white dark:bg-gray-800",
+              "text-sm text-gray-900 dark:text-gray-100",
+              "placeholder:text-gray-400 dark:placeholder:text-gray-500",
+              "transition-colors duration-[var(--motion-fast,150ms)]",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-0 focus:border-blue-700",
               // Borde
               error
-                ? 'border-red-400 dark:border-red-600 focus:ring-red-500 focus:border-red-500'
-                : 'border-gray-300 dark:border-gray-600',
+                ? "border-red-400 dark:border-red-600 focus:ring-red-500 focus:border-red-500"
+                : "border-gray-300 dark:border-gray-600",
               // Padding dinámico
-              leadingIcon  ? 'pl-9'  : 'pl-3',
-              trailingIcon ? 'pr-9'  : 'pr-3',
+              leadingIcon ? "pl-9" : "pl-3",
+              trailingIcon ? "pr-9" : "pr-3",
               // Estado
-              disabled && 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-900',
+              disabled &&
+                "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-900",
               className,
             )}
             {...props}
@@ -95,18 +99,25 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {error && (
-          <p id={`${inputId}-error`} role="alert" className="text-xs text-red-600 dark:text-red-400">
+          <p
+            id={`${inputId}-error`}
+            role="alert"
+            className="text-xs text-red-600 dark:text-red-400"
+          >
             {error}
           </p>
         )}
         {!error && helper && (
-          <p id={`${inputId}-helper`} className="text-xs text-gray-500 dark:text-gray-400">
+          <p
+            id={`${inputId}-helper`}
+            className="text-xs text-gray-500 dark:text-gray-400"
+          >
             {helper}
           </p>
         )}
       </div>
-    )
+    );
   },
-)
+);
 
-Input.displayName = 'Input'
+Input.displayName = "Input";

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
@@ -107,7 +107,7 @@ const PagosTable: React.FC<PagosTableProps> = ({ pagos, loading, onRefresh }) =>
   const filteredData = useMemo(() => {
     let filtered = [...pagos]
 
-    // Aplicar búsqueda global
+    // Aplicar bÃºsqueda global
     if (searchTerm) {
       filtered = filtered.filter(item =>
         Object.values(item).some(value =>
@@ -174,16 +174,16 @@ const PagosTable: React.FC<PagosTableProps> = ({ pagos, loading, onRefresh }) =>
   }
 
   const columns: Column[] = [
-    { key: 'numero_rpc', label: 'Número RPC', isSortable: true },
+    { key: 'numero_rpc', label: 'NÃºmero RPC', isSortable: true },
     { key: 'referencia_contrato', label: 'Referencia Contrato', isSortable: true },
     { key: 'nombre_centro_gestor', label: 'Centro Gestor', isSortable: true },
     { key: 'valor_pago', label: 'Valor Pago', isSortable: true },
-    { key: 'fecha_transaccion', label: 'Fecha Transacción', isSortable: true },
+    { key: 'fecha_transaccion', label: 'Fecha TransacciÃ³n', isSortable: true },
     { key: 'estado', label: 'Estado', isSortable: true },
     { key: 'tipo', label: 'Tipo', isSortable: true },
     { key: 'fecha_registro', label: 'Fecha Registro', isSortable: true },
-    { key: 'fecha_creacion', label: 'Fecha Creación', isSortable: true },
-    { key: 'fecha_actualizacion', label: 'Fecha Actualización', isSortable: true },
+    { key: 'fecha_creacion', label: 'Fecha CreaciÃ³n', isSortable: true },
+    { key: 'fecha_actualizacion', label: 'Fecha ActualizaciÃ³n', isSortable: true },
   ]
 
   const visibleColumnsList = columns.filter(col => visibleColumns.has(col.key))
@@ -228,7 +228,7 @@ const PagosTable: React.FC<PagosTableProps> = ({ pagos, loading, onRefresh }) =>
         >
           {searchTerm && (
             <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm">
-              <span>Búsqueda: &quot;{searchTerm}&quot;</span>
+              <span>BÃºsqueda: &quot;{searchTerm}&quot;</span>
               <button
                 onClick={() => setSearchTerm('')}
                 className="ml-2 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
@@ -261,7 +261,7 @@ const PagosTable: React.FC<PagosTableProps> = ({ pagos, loading, onRefresh }) =>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4"
+        className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 p-4"
       >
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -389,7 +389,7 @@ const PagosTable: React.FC<PagosTableProps> = ({ pagos, loading, onRefresh }) =>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -413,7 +413,7 @@ const PagosTable: React.FC<PagosTableProps> = ({ pagos, loading, onRefresh }) =>
                         <span>{column.label}</span>
                       )}
                       
-                      {/* Botón de filtro */}
+                      {/* BotÃ³n de filtro */}
                       <div className="relative">
                         <button
                           onClick={(e) => {
@@ -468,7 +468,7 @@ const PagosTable: React.FC<PagosTableProps> = ({ pagos, loading, onRefresh }) =>
                     colSpan={visibleColumnsList.length}
                     className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
                   >
-                    {searchTerm ? 'No se encontraron resultados para la búsqueda' : 'No hay pagos registrados'}
+                    {searchTerm ? 'No se encontraron resultados para la bÃºsqueda' : 'No hay pagos registrados'}
                   </td>
                 </tr>
               ) : (
@@ -534,7 +534,7 @@ const PagosTable: React.FC<PagosTableProps> = ({ pagos, loading, onRefresh }) =>
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="px-3 py-1 text-sm">
-                Página {currentPage} de {totalPages}
+                PÃ¡gina {currentPage} de {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}

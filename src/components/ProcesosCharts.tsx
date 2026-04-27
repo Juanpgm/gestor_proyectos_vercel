@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { motion } from 'framer-motion'
 import {
@@ -35,7 +35,7 @@ export default function ProcesosCharts({
   procesosPorEntidad
 }: ProcesosChartsProps) {
 
-  // Preparar datos para gráficos
+  // Preparar datos para grÃ¡ficos
   const estadosData = Object.entries(procesosPorEstado)
     .map(([estado, cantidad]) => ({ estado, cantidad }))
     .sort((a, b) => b.cantidad - a.cantidad)
@@ -94,10 +94,10 @@ export default function ProcesosCharts({
         initial={ANIMATIONS.slideUp.initial}
         animate={ANIMATIONS.slideUp.animate}
         transition={ANIMATIONS.slideUp.transition}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-          Distribución por Estado
+          DistribuciÃ³n por Estado
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
@@ -124,10 +124,10 @@ export default function ProcesosCharts({
         initial={ANIMATIONS.slideUp.initial}
         animate={ANIMATIONS.slideUp.animate}
         transition={{ ...ANIMATIONS.slideUp.transition, delay: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-          Distribución por Fase
+          DistribuciÃ³n por Fase
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={fasesData} layout="horizontal">
@@ -151,15 +151,15 @@ export default function ProcesosCharts({
         </ResponsiveContainer>
       </motion.div>
 
-      {/* Evolución Temporal */}
+      {/* EvoluciÃ³n Temporal */}
       <motion.div
         initial={ANIMATIONS.slideUp.initial}
         animate={ANIMATIONS.slideUp.animate}
         transition={{ ...ANIMATIONS.slideUp.transition, delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-          Evolución Temporal de Procesos
+          EvoluciÃ³n Temporal de Procesos
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={evolucionData}>
@@ -186,15 +186,15 @@ export default function ProcesosCharts({
         </ResponsiveContainer>
       </motion.div>
 
-      {/* Modalidades de Contratación */}
+      {/* Modalidades de ContrataciÃ³n */}
       <motion.div
         initial={ANIMATIONS.slideUp.initial}
         animate={ANIMATIONS.slideUp.animate}
         transition={{ ...ANIMATIONS.slideUp.transition, delay: 0.3 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-          Top Modalidades de Contratación
+          Top Modalidades de ContrataciÃ³n
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={modalidadesData}>
@@ -223,10 +223,10 @@ export default function ProcesosCharts({
         initial={ANIMATIONS.slideUp.initial}
         animate={ANIMATIONS.slideUp.animate}
         transition={{ ...ANIMATIONS.slideUp.transition, delay: 0.4 }}
-        className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-          Top Entidades por Número de Procesos
+          Top Entidades por NÃºmero de Procesos
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={topEntidadesData}>

@@ -4,20 +4,26 @@
  * Importa cualquier átomo desde aquí:
  *   import { Button, Badge, Card, Input, Spinner, MobileKPICard } from '@/components/atoms'
  */
-export { Button }        from './Button'
-export type { ButtonProps } from './Button'
+export { Button } from "./Button";
+export type { ButtonProps } from "./Button";
 
-export { Input }         from './Input'
-export type { InputProps } from './Input'
+export { Input } from "./Input";
+export type { InputProps } from "./Input";
 
-export { Badge }         from './Badge'
-export type { BadgeProps } from './Badge'
+export { Badge } from "./Badge";
+export type { BadgeProps } from "./Badge";
 
-export { Card }          from './Card'
-export type { CardProps } from './Card'
+export { Card } from "./Card";
+export type { CardProps } from "./Card";
 
-export { Spinner, SpinnerOverlay } from './Spinner'
-export type { SpinnerProps }       from './Spinner'
+export { Spinner, SpinnerOverlay } from "./Spinner";
+export type { SpinnerProps } from "./Spinner";
 
-export { MobileKPICard } from './MobileKPICard'
-export type { MobileKPICardProps } from './MobileKPICard'
+export { MobileKPICard } from "./MobileKPICard";
+export type { MobileKPICardProps } from "./MobileKPICard";
+
+export { IconButton } from "./IconButton";
+export type { IconButtonProps } from "./IconButton";
+
+export { Select } from "./Select";
+export type { SelectProps, SelectOption } from "./Select";

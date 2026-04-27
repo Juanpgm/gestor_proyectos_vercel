@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React from 'react'
 import { motion } from 'framer-motion'
@@ -98,7 +98,7 @@ export default function ActividadesStats({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 animate-pulse">
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700 animate-pulse">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
@@ -122,7 +122,7 @@ export default function ActividadesStats({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
-            className={`${stat.bgColor} rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-xl hover:scale-105`}
+            className={`${stat.bgColor} rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-sm hover:scale-105`}
           >
             <div className="flex items-center justify-between">
               <div className="space-y-1">
@@ -143,7 +143,7 @@ export default function ActividadesStats({
               </div>
             </div>
             
-            {/* Indicador de progreso visual para algunas métricas */}
+            {/* Indicador de progreso visual para algunas mÃ©tricas */}
             {stat.title === 'Progreso Promedio' && (
               <div className="mt-4">
                 <div className="w-full bg-white dark:bg-gray-700 rounded-full h-2">

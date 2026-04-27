@@ -1,8 +1,5 @@
-import { expect, vi } from 'vitest'
-import * as matchers from '@testing-library/jest-dom/matchers'
-
-// Register jest-dom matchers with Vitest's expect
-expect.extend(matchers)
+import { vi } from 'vitest'
+import '@testing-library/jest-dom'
 
 // Provide reliable localStorage/sessionStorage in jsdom (some jsdom builds lack .clear)
 const makeStorage = () => {

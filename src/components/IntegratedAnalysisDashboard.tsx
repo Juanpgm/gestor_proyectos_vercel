@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -34,7 +34,7 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
   const [selectedComuna, setSelectedComuna] = useState<string | null>(null)
   const { filteredMovimientosPresupuestales, filteredEjecucionPresupuestal } = useDataContext()
 
-  // Procesar métricas rápidas para overlay
+  // Procesar mÃ©tricas rÃ¡pidas para overlay
   const quickMetrics = useMemo(() => {
     if (!filteredMovimientosPresupuestales || !filteredEjecucionPresupuestal) {
       return {
@@ -45,7 +45,7 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
       }
     }
 
-    // Obtener valores más recientes
+    // Obtener valores mÃ¡s recientes
     const latestMovimientos = filteredMovimientosPresupuestales.reduce((latest, item) => {
       return item.periodo_corte > latest.periodo_corte ? item : latest
     }, filteredMovimientosPresupuestales[0])
@@ -54,7 +54,7 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
       return item.periodo_corte > latest.periodo_corte ? item : latest
     }, filteredEjecucionPresupuestal[0])
 
-    // Sumar todos los valores del período más reciente
+    // Sumar todos los valores del perÃ­odo mÃ¡s reciente
     const totalPresupuesto = filteredMovimientosPresupuestales
       .filter(item => item.periodo_corte === latestMovimientos?.periodo_corte)
       .reduce((sum, item) => sum + (item.ppto_modificado || 0), 0)
@@ -121,7 +121,7 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
   )
 
   const viewModes = [
-    { id: 'budget', name: 'Presupuesto', icon: BarChart3, description: 'Análisis presupuestal completo' }
+    { id: 'budget', name: 'Presupuesto', icon: BarChart3, description: 'AnÃ¡lisis presupuestal completo' }
   ]
 
   const renderContent = () => {
@@ -140,7 +140,7 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
       transition={{ duration: 0.6 }}
     >
       {/* Header con selector de modo de vista */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
@@ -151,7 +151,7 @@ const IntegratedAnalysisDashboard: React.FC<IntegratedAnalysisProps> = ({
                 Dashboard Integrado
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Análisis presupuestal y geográfico unificado
+                AnÃ¡lisis presupuestal y geogrÃ¡fico unificado
               </p>
             </div>
           </div>

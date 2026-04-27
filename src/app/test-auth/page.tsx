@@ -154,7 +154,7 @@ export default function TestAuthPage() {
           </h3>
           <ol className="list-decimal list-inside space-y-1 text-yellow-700 dark:text-yellow-300">
             <li>Abre la consola del navegador (F12)</li>
-            <li>Revisa los logs que comienzan con "=== TEST AUTH PAGE ==="</li>
+            <li>Revisa los logs que comienzan con &quot;=== TEST AUTH PAGE ===&quot;</li>
             <li>Verifica que los roles estén presentes</li>
             <li>
               Si no hay roles, verifica que el backend esté retornando los datos correctamente

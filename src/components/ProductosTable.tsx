@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
@@ -43,15 +43,15 @@ export default function ProductosTable({
     setMounted(true)
   }, [])
 
-  // Función para obtener presupuesto total por BPIN
+  // FunciÃ³n para obtener presupuesto total por BPIN
   const getPresupuestoTotalPorBpin = (bpin: number): number => {
     if (!filteredMovimientosPresupuestales) return 0
     
-    // Buscar el movimiento más reciente para este BPIN
+    // Buscar el movimiento mÃ¡s reciente para este BPIN
     const movimientosBpin = filteredMovimientosPresupuestales.filter((mov: any) => mov.bpin === bpin)
     if (movimientosBpin.length === 0) return 0
     
-    // Ordenar por periodo y tomar el más reciente
+    // Ordenar por periodo y tomar el mÃ¡s reciente
     const movimientoReciente = movimientosBpin.sort((a: any, b: any) => 
       b.periodo_corte?.localeCompare(a.periodo_corte || '') || 0
     )[0]
@@ -92,16 +92,16 @@ export default function ProductosTable({
       const diffTime = Math.abs(end.getTime() - start.getTime())
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       
-      if (diffDays < 30) return `${diffDays} días`
+      if (diffDays < 30) return `${diffDays} dÃ­as`
       if (diffDays < 365) return `${Math.round(diffDays / 30)} meses`
-      return `${Math.round(diffDays / 365)} años`
+      return `${Math.round(diffDays / 365)} aÃ±os`
     } catch {
       return 'N/A'
     }
   }
 
   const getProductState = (progress: number | null | undefined): { label: string, color: string } => {
-    // Convertir el progreso de la ponderación (0-1) a porcentaje (0-100)
+    // Convertir el progreso de la ponderaciÃ³n (0-1) a porcentaje (0-100)
     const progressPercent = (progress || 0) * 100
     
     if (progressPercent === 0) return { label: 'No Iniciado', color: 'bg-gray-100 text-gray-800' }
@@ -133,7 +133,7 @@ export default function ProductosTable({
     })
   }, [filteredProductos, sortKey, sortDirection])
 
-  // Paginación
+  // PaginaciÃ³n
   const totalPages = Math.ceil(sortedProductos.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedProductos = sortedProductos.slice(startIndex, startIndex + itemsPerPage)
@@ -167,7 +167,7 @@ export default function ProductosTable({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+    <div className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-100 dark:border-gray-700 transition-colors duration-300">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -185,7 +185,7 @@ export default function ProductosTable({
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                {/* Columna principal: Información de producto */}
+                {/* Columna principal: InformaciÃ³n de producto */}
                 <th 
                   className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                   style={{ width: '50%' }}
@@ -206,7 +206,7 @@ export default function ProductosTable({
                 >
                   <div className="flex items-center justify-center space-x-1">
                     <Calendar className="w-4 h-4" />
-                    <span>Período</span>
+                    <span>PerÃ­odo</span>
                     {getSortIcon('periodo_corte')}
                   </div>
                 </th>
@@ -226,7 +226,7 @@ export default function ProductosTable({
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedProductos.map((producto) => {
-                // Usar ponderación_producto para TODOS los cálculos para ser consistente
+                // Usar ponderaciÃ³n_producto para TODOS los cÃ¡lculos para ser consistente
                 const progress = (producto.ponderacion_producto || 0) * 100
                 const productState = getProductState(producto.ponderacion_producto)
                 
@@ -237,7 +237,7 @@ export default function ProductosTable({
                     animate={{ opacity: 1 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                   >
-                    {/* Columna principal: Información de producto */}
+                    {/* Columna principal: InformaciÃ³n de producto */}
                     <td className="px-3 py-3 align-top" style={{ width: '50%' }}>
                       <div>
                         {/* Nombre del producto */}
@@ -245,14 +245,14 @@ export default function ProductosTable({
                           {producto.nombre_producto || 'Producto sin nombre'}
                         </div>
                         
-                        {/* BPIN y Código */}
+                        {/* BPIN y CÃ³digo */}
                         <div className="text-xs mb-1 space-y-0.5">
                           <div>
                             <span className="text-gray-500 dark:text-gray-400">BPIN:</span>
                             <span className="ml-1 text-blue-700 dark:text-blue-300 font-medium">{producto.bpin}</span>
                           </div>
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">Código:</span>
+                            <span className="text-gray-500 dark:text-gray-400">CÃ³digo:</span>
                             <span className="ml-1 text-purple-700 dark:text-purple-300 font-medium">{producto.cod_producto}</span>
                           </div>
                         </div>
@@ -296,7 +296,7 @@ export default function ProductosTable({
                           </div>
                         )}
                         
-                        {/* Descripción */}
+                        {/* DescripciÃ³n */}
                         {producto.descripcion_avance_producto && (
                           <div className="text-xs text-gray-600 dark:text-gray-400 font-medium italic break-words mt-1">
                             {producto.descripcion_avance_producto}
@@ -310,7 +310,7 @@ export default function ProductosTable({
                       <div className="space-y-1">
                         <div className="text-xs">
                           <div className="text-blue-600 dark:text-blue-400 font-medium">
-                            Período: {producto.periodo_corte}
+                            PerÃ­odo: {producto.periodo_corte}
                           </div>
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -346,7 +346,7 @@ export default function ProductosTable({
           </table>
         </div>
 
-        {/* Paginación */}
+        {/* PaginaciÃ³n */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">

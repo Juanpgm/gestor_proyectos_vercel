@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
@@ -11,7 +11,7 @@ interface ProductosChartsProps {
 }
 
 export default function ProductosCharts({ productos, loading = false }: ProductosChartsProps) {
-  // Análisis por tipo de producto
+  // AnÃ¡lisis por tipo de producto
   const porTipo = useMemo(() => {
     const grupos = productos.reduce((acc, producto) => {
       const tipo = producto.nombre_producto || 'Tipo no especificado'
@@ -56,10 +56,10 @@ export default function ProductosCharts({ productos, loading = false }: Producto
       .slice(0, 6) // Top 6 tipos
   }, [productos])
 
-  // Análisis por período
+  // AnÃ¡lisis por perÃ­odo
   const porPeriodo = useMemo(() => {
     const grupos = productos.reduce((acc, producto) => {
-      const periodo = producto.periodo_corte || 'Sin período'
+      const periodo = producto.periodo_corte || 'Sin perÃ­odo'
       if (!acc[periodo]) {
         acc[periodo] = {
           total: 0,
@@ -86,7 +86,7 @@ export default function ProductosCharts({ productos, loading = false }: Producto
     })).sort((a, b) => a.periodo.localeCompare(b.periodo))
   }, [productos])
 
-  // Análisis por rango de avance
+  // AnÃ¡lisis por rango de avance
   const porAvance = useMemo(() => {
     const rangos = [
       { label: '0%', min: 0, max: 0, count: 0, color: 'bg-red-500' },
@@ -124,7 +124,7 @@ export default function ProductosCharts({ productos, loading = false }: Producto
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 animate-pulse">
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700 animate-pulse">
             <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-40 mb-4"></div>
             <div className="space-y-3">
               {[...Array(4)].map((_, j) => (
@@ -143,12 +143,12 @@ export default function ProductosCharts({ productos, loading = false }: Producto
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {/* Gráfico por tipo de producto */}
+      {/* GrÃ¡fico por tipo de producto */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center space-x-3 mb-6">
           <PieChart className="w-5 h-5 text-purple-500" />
@@ -194,17 +194,17 @@ export default function ProductosCharts({ productos, loading = false }: Producto
         </div>
       </motion.div>
 
-      {/* Gráfico por período */}
+      {/* GrÃ¡fico por perÃ­odo */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center space-x-3 mb-6">
           <BarChart3 className="w-5 h-5 text-blue-500" />
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-            Productos por Período
+            Productos por PerÃ­odo
           </h3>
         </div>
         
@@ -238,17 +238,17 @@ export default function ProductosCharts({ productos, loading = false }: Producto
         </div>
       </motion.div>
 
-      {/* Gráfico por rango de avance */}
+      {/* GrÃ¡fico por rango de avance */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center space-x-3 mb-6">
           <TrendingUp className="w-5 h-5 text-green-500" />
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-            Distribución por Avance
+            DistribuciÃ³n por Avance
           </h3>
         </div>
         

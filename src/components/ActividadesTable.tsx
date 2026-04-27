@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
@@ -70,9 +70,9 @@ export default function ActividadesTable({
       const diffTime = Math.abs(end.getTime() - start.getTime())
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       
-      if (diffDays < 30) return `${diffDays} días`
+      if (diffDays < 30) return `${diffDays} dÃ­as`
       if (diffDays < 365) return `${Math.round(diffDays / 30)} meses`
-      return `${Math.round(diffDays / 365)} años`
+      return `${Math.round(diffDays / 365)} aÃ±os`
     } catch {
       return 'N/A'
     }
@@ -94,7 +94,7 @@ export default function ActividadesTable({
     if (!progress) return { label: 'No Iniciada', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' }
     if (progress === 1) return { label: 'Completada', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' }
     if (progress >= 0.8) return { label: 'Cercana a Terminar', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' }
-    return { label: 'En Ejecución', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' }
+    return { label: 'En EjecuciÃ³n', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' }
   }
 
   // Ordenamiento
@@ -118,7 +118,7 @@ export default function ActividadesTable({
     })
   }, [filteredActividades, sortKey, sortDirection])
 
-  // Paginación
+  // PaginaciÃ³n
   const totalPages = Math.ceil(sortedActividades.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedActividades = sortedActividades.slice(startIndex, startIndex + itemsPerPage)
@@ -150,7 +150,7 @@ export default function ActividadesTable({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+    <div className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-100 dark:border-gray-700 transition-colors duration-300">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -168,7 +168,7 @@ export default function ActividadesTable({
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                {/* Columna principal: Información de actividad */}
+                {/* Columna principal: InformaciÃ³n de actividad */}
                 <th 
                   className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                   style={{ width: '55%' }}
@@ -218,7 +218,7 @@ export default function ActividadesTable({
                     animate={{ opacity: 1 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                   >
-                    {/* Columna principal: Información de actividad */}
+                    {/* Columna principal: InformaciÃ³n de actividad */}
                     <td className="px-3 py-3 align-top" style={{ width: '55%' }}>
                       <div>
                         {/* Nombre de la actividad */}
@@ -226,14 +226,14 @@ export default function ActividadesTable({
                           {actividad.nombre_actividad || 'Actividad sin nombre'}
                         </div>
                         
-                        {/* BPIN y Código */}
+                        {/* BPIN y CÃ³digo */}
                         <div className="text-xs mb-1 space-y-0.5">
                           <div>
                             <span className="text-gray-500 dark:text-gray-400">BPIN:</span>
                             <span className="ml-1 text-blue-700 dark:text-blue-300 font-medium">{actividad.bpin}</span>
                           </div>
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">Código:</span>
+                            <span className="text-gray-500 dark:text-gray-400">CÃ³digo:</span>
                             <span className="ml-1 text-purple-700 dark:text-purple-300 font-medium">{actividad.cod_actividad}</span>
                           </div>
                         </div>
@@ -245,7 +245,7 @@ export default function ActividadesTable({
                           </div>
                         </div>
                         
-                        {/* Descripción */}
+                        {/* DescripciÃ³n */}
                         {actividad.descripcion_actividad && (
                           <div className="text-xs text-gray-600 dark:text-gray-400 font-medium italic break-words">
                             {actividad.descripcion_actividad}
@@ -303,7 +303,7 @@ export default function ActividadesTable({
           </table>
         </div>
 
-        {/* Paginación */}
+        {/* PaginaciÃ³n */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">

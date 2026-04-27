@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 const extractArrayPayload = <T = any>(payload: any): T[] => {
   if (Array.isArray(payload)) return payload as T[]
@@ -159,7 +159,7 @@ const TiendaVirtualTable: React.FC = () => {
   const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
 
   const columns = useMemo(() => [
-    { key: 'numero_orden', label: 'Número de Orden', isSortable: true },
+    { key: 'numero_orden', label: 'NÃºmero de Orden', isSortable: true },
     { key: 'solicitud_id', label: 'ID Solicitud', isSortable: true },
     { key: 'nombre_resumido_proceso', label: 'Nombre del Proceso', isSortable: true },
     { key: 'nombre_proveedor', label: 'Proveedor', isSortable: true },
@@ -169,7 +169,7 @@ const TiendaVirtualTable: React.FC = () => {
     { key: 'valor_orden', label: 'Valor Orden', isSortable: true },
     { key: 'valor_proyectado', label: 'Valor Proyectado', isSortable: true },
     { key: 'estado_orden', label: 'Estado', isSortable: true },
-    { key: 'fecha_publicacion_orden', label: 'Fecha Publicación', isSortable: true },
+    { key: 'fecha_publicacion_orden', label: 'Fecha PublicaciÃ³n', isSortable: true },
     { key: 'fecha_vencimiento_orden', label: 'Fecha Vencimiento', isSortable: true },
     { key: 'bp', label: 'BP', isSortable: true },
     { key: 'nombre_banco', label: 'Banco', isSortable: true },
@@ -178,7 +178,7 @@ const TiendaVirtualTable: React.FC = () => {
     { key: 'ordenador_gasto', label: 'Ordenador Gasto', isSortable: true },
     { key: 'solicitante', label: 'Solicitante', isSortable: true },
     { key: 'sector', label: 'Sector', isSortable: true },
-    { key: 'ano_orden', label: 'Año', isSortable: true }
+    { key: 'ano_orden', label: 'AÃ±o', isSortable: true }
   ], [])
 
   const fetchOrdenes = async () => {
@@ -196,7 +196,7 @@ const TiendaVirtualTable: React.FC = () => {
         const ordenesData = extractArrayPayload(result)
         setOrdenes(ordenesData)
     } catch (error) {
-      console.error('Error fetching órdenes:', error)
+      console.error('Error fetching Ã³rdenes:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')
     } finally {
       setLoading(false)
@@ -209,7 +209,7 @@ const TiendaVirtualTable: React.FC = () => {
       const numeroOrden = String(orden.numero_orden || (orden as any).numeroOrden || '').trim()
 
       if (!numeroOrden) {
-        throw new Error('No se encontró numero_orden para eliminar esta orden')
+        throw new Error('No se encontrÃ³ numero_orden para eliminar esta orden')
       }
 
       const response = await fetch(`/api/proxy/emprestito/eliminar-orden-compra/${encodeURIComponent(numeroOrden)}`, {
@@ -514,7 +514,7 @@ const TiendaVirtualTable: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Cargando órdenes de compra...</p>
+          <p className="text-gray-600 dark:text-gray-400">Cargando Ã³rdenes de compra...</p>
         </div>
       </div>
     )
@@ -546,9 +546,9 @@ const TiendaVirtualTable: React.FC = () => {
             <button
               onClick={() => setSuccessToast(null)}
               className="text-white/80 hover:text-white text-lg leading-none"
-              aria-label="Cerrar notificación"
+              aria-label="Cerrar notificaciÃ³n"
             >
-              ×
+              Ã—
             </button>
           </div>
         </div>
@@ -561,9 +561,9 @@ const TiendaVirtualTable: React.FC = () => {
             <button
               onClick={() => setErrorToast(null)}
               className="text-white/80 hover:text-white text-lg leading-none"
-              aria-label="Cerrar notificación de error"
+              aria-label="Cerrar notificaciÃ³n de error"
             >
-              ×
+              Ã—
             </button>
           </div>
         </div>
@@ -576,10 +576,10 @@ const TiendaVirtualTable: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Total Órdenes</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Total Ã“rdenes</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {stats.filteredCount}
                   {stats.filteredCount !== stats.totalOrdenes && (
@@ -591,10 +591,10 @@ const TiendaVirtualTable: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Total Órdenes</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Total Ã“rdenes</p>
                 <p className="text-lg font-bold text-gray-900 dark:text-white">
                   {formatCompactCurrency(stats.totalValorOrdenes)}
                 </p>
@@ -603,7 +603,7 @@ const TiendaVirtualTable: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Proyectado</p>
@@ -615,7 +615,7 @@ const TiendaVirtualTable: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Proveedores</p>
@@ -625,7 +625,7 @@ const TiendaVirtualTable: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
                 <p className="text-gray-600 dark:text-gray-400 text-sm">Centros Gestores</p>
@@ -641,7 +641,7 @@ const TiendaVirtualTable: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4"
+        className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 p-4"
       >
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -779,7 +779,7 @@ const TiendaVirtualTable: React.FC = () => {
         >
           {searchTerm && (
             <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm">
-              <span>Búsqueda: &quot;{searchTerm}&quot;</span>
+              <span>BÃºsqueda: &quot;{searchTerm}&quot;</span>
               <button
                 onClick={() => setSearchTerm('')}
                 className="ml-2 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
@@ -812,7 +812,7 @@ const TiendaVirtualTable: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
           <table className="w-full text-sm">
@@ -859,7 +859,7 @@ const TiendaVirtualTable: React.FC = () => {
                             <div className="p-2">
                               <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
                                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                  Filtro múltiple
+                                  Filtro mÃºltiple
                                 </span>
                                 <div className="flex space-x-1">
                                   <button
@@ -973,7 +973,7 @@ const TiendaVirtualTable: React.FC = () => {
                   {canManageRecordActions && (
                     <td className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700">
                       <div className="flex items-center gap-1">
-                        {/* Botón Modificar Valor */}
+                        {/* BotÃ³n Modificar Valor */}
                         <button
                           onClick={() => {
                             setOrdenToEdit(orden)
@@ -985,7 +985,7 @@ const TiendaVirtualTable: React.FC = () => {
                           <span className="text-lg font-bold">$</span>
                         </button>
                         
-                        {/* Botón Editar Completo */}
+                        {/* BotÃ³n Editar Completo */}
                         <button
                           onClick={() => {
                             setOrdenToEditComplete(orden)
@@ -1028,7 +1028,7 @@ const TiendaVirtualTable: React.FC = () => {
           >
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Eliminar Orden de Compra</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              ¿Está seguro que desea eliminar la orden <strong>{ordenToDelete.numero_orden || (ordenToDelete as any).numeroOrden}</strong>? Esta acción no se puede deshacer.
+              Â¿EstÃ¡ seguro que desea eliminar la orden <strong>{ordenToDelete.numero_orden || (ordenToDelete as any).numeroOrden}</strong>? Esta acciÃ³n no se puede deshacer.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -1064,9 +1064,9 @@ const TiendaVirtualTable: React.FC = () => {
           setOrdenToEditComplete(null)
         }}
         onSuccess={async (updatedData?: any) => {
-          // Actualización optimista si recibimos datos actualizados
+          // ActualizaciÃ³n optimista si recibimos datos actualizados
           if (updatedData && updatedData.numero_orden) {
-            console.log('🔄 Actualización optimista de orden:', updatedData)
+            console.log('ðŸ”„ ActualizaciÃ³n optimista de orden:', updatedData)
             setOrdenes(prevOrdenes =>
               prevOrdenes.map(orden =>
                 orden.numero_orden === updatedData.numero_orden
@@ -1075,9 +1075,9 @@ const TiendaVirtualTable: React.FC = () => {
               )
             )
             
-            // Sincronizar con Firebase después de 5 segundos
+            // Sincronizar con Firebase despuÃ©s de 5 segundos
             setTimeout(async () => {
-              console.log('🔄 Sincronizando con Firebase...')
+              console.log('ðŸ”„ Sincronizando con Firebase...')
               await fetchOrdenes()
             }, 5000)
           } else {

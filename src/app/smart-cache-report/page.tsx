@@ -45,7 +45,7 @@ export default function SmartCacheReportPage() {
               <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-2">⚙️ Configuración</h3>
               <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
                 <li>• <strong>NEXT_PUBLIC_API_URL:</strong> URL del backend</li>
-                <li>• <strong>NEXT_PUBLIC_DATA_MODE:</strong> 'api' o 'offline'</li>
+                <li>• <strong>NEXT_PUBLIC_DATA_MODE:</strong> &apos;api&apos; o &apos;offline&apos;</li>
                 <li>• Cache automático con timestamps</li>
                 <li>• Reintentos automáticos en fallos</li>
               </ul>

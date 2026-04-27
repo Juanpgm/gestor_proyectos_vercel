@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React from 'react'
 import { motion } from 'framer-motion'
@@ -33,7 +33,7 @@ export default function ProductosStats({
   productsByType,
   loading = false
 }: ProductosStatsProps) {
-  // Obtener los tipos de producto más comunes
+  // Obtener los tipos de producto mÃ¡s comunes
   const topProductTypes = Object.entries(productsByType)
     .sort(([,a], [,b]) => b - a)
     .slice(0, 3)
@@ -93,7 +93,7 @@ export default function ProductosStats({
     return (
       <div className="space-y-6">
         <div className="text-center text-gray-500 dark:text-gray-400 animate-pulse py-12">
-          Cargando estadísticas de productos...
+          Cargando estadÃ­sticas de productos...
         </div>
       </div>
     )
@@ -101,7 +101,7 @@ export default function ProductosStats({
 
   return (
     <div className="space-y-6">
-      {/* Métricas principales */}
+      {/* MÃ©tricas principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon
@@ -111,7 +111,7 @@ export default function ProductosStats({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`${stat.bgColor} rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:shadow-xl hover:scale-105`}
+              className={`${stat.bgColor} rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-sm hover:scale-105`}
             >
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -132,7 +132,7 @@ export default function ProductosStats({
                 </div>
               </div>
               
-              {/* Indicador de progreso visual para algunas métricas */}
+              {/* Indicador de progreso visual para algunas mÃ©tricas */}
               {stat.title === 'Progreso Promedio' && (
                 <div className="mt-4">
                   <div className="w-full bg-white dark:bg-gray-700 rounded-full h-2">
@@ -148,18 +148,18 @@ export default function ProductosStats({
         })}
       </div>
 
-      {/* Distribución por tipo de producto */}
+      {/* DistribuciÃ³n por tipo de producto */}
       {topProductTypes.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-100 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center space-x-3 mb-4">
             <BarChart3 className="w-5 h-5 text-orange-500" />
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-              Tipos de Productos Más Comunes
+              Tipos de Productos MÃ¡s Comunes
             </h3>
           </div>
           
@@ -198,7 +198,7 @@ export default function ProductosStats({
           {Object.keys(productsByType).length > 3 && (
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Y {Object.keys(productsByType).length - 3} tipos más...
+                Y {Object.keys(productsByType).length - 3} tipos mÃ¡s...
               </p>
             </div>
           )}

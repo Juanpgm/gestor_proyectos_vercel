@@ -41,7 +41,7 @@ const CompactMetricsCard: React.FC<CompactMetricsCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
       whileHover={{ scale: 1.02 }}
-      className={`bg-gradient-to-r ${color} rounded-lg p-4 text-white shadow-lg hover:shadow-xl transition-all duration-300`}
+      className={`bg-gradient-to-r ${color} rounded-lg p-4 text-white shadow-lg hover:shadow-sm transition-all duration-300`}
     >
       <div className="flex items-center justify-between">
         <div className="flex-1">

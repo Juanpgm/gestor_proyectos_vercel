@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React from 'react'
 import { motion } from 'framer-motion'
@@ -13,8 +13,8 @@ import {
 import { CATEGORIES, formatNumber, ANIMATIONS } from '@/lib/design-system'
 
 /**
- * Componente de estadísticas de contratos simplificado
- * Muestra 6 métricas principales en cards responsivas
+ * Componente de estadÃ­sticas de contratos simplificado
+ * Muestra 6 mÃ©tricas principales en cards responsivas
  */
 
 interface ContratosStatsProps {
@@ -49,7 +49,7 @@ const ContratosStats: React.FC<ContratosStatsProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <p className="text-gray-600 dark:text-gray-400">Cargando estadísticas de contratos...</p>
+        <p className="text-gray-600 dark:text-gray-400">Cargando estadÃ­sticas de contratos...</p>
       </div>
     )
   }
@@ -130,8 +130,8 @@ const ContratosStats: React.FC<ContratosStatsProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1, ...ANIMATIONS.fadeIn }}
             className={`
-              bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-lg border 
-              border-gray-200 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 
+              bg-white dark:bg-gray-800 rounded-md p-4 md:p-6 shadow-none border 
+              border-gray-200 dark:border-gray-700 hover:shadow-sm hover:-translate-y-1 
               transition-all duration-300 ${stat.bgColor}
             `}
           >

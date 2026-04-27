@@ -1,10 +1,17 @@
-'use client'
+"use client";
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
-import { AuthState, User } from '@/types/auth'
-import authService from '@/services/authService'
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode,
+} from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { AuthState, User } from "@/types/auth";
+import authService from "@/services/authService";
+import { safeConsole } from "@/lib/safe-console";
 
 // Estado inicial optimizado - comenzar con isLoading false para mostrar UI más rápido
 const initialState: AuthState = {
@@ -12,296 +19,349 @@ const initialState: AuthState = {
   firebaseUser: null,
   isAuthenticated: false,
   isLoading: true, // Mostrar loading mientras se verifica la sesión
-  error: null
-}
+  error: null,
+};
 
 // Tipos de acciones
 type AuthAction =
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_USER'; payload: User | null }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'CLEAR_ERROR' }
-  | { type: 'SIGN_OUT' }
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "SET_USER"; payload: User | null }
+  | { type: "SET_ERROR"; payload: string | null }
+  | { type: "CLEAR_ERROR" }
+  | { type: "SIGN_OUT" };
 
 // Reducer
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
-    case 'SET_LOADING':
+    case "SET_LOADING":
       return {
         ...state,
-        isLoading: action.payload
-      }
-    case 'SET_USER':
-      console.log('📦 AuthReducer SET_USER:', {
+        isLoading: action.payload,
+      };
+    case "SET_USER":
+      safeConsole.debug("AuthReducer SET_USER:", {
         hasUser: !!action.payload,
         email: action.payload?.email,
         roles: action.payload?.roles,
-        rolesLength: action.payload?.roles?.length
-      })
+        rolesLength: action.payload?.roles?.length,
+      });
       return {
         ...state,
         user: action.payload,
         isAuthenticated: !!action.payload,
         isLoading: false,
-        error: null
-      }
-    case 'SET_ERROR':
+        error: null,
+      };
+    case "SET_ERROR":
       return {
         ...state,
         error: action.payload,
-        isLoading: false
-      }
-    case 'CLEAR_ERROR':
+        isLoading: false,
+      };
+    case "CLEAR_ERROR":
       return {
         ...state,
-        error: null
-      }
-    case 'SIGN_OUT':
+        error: null,
+      };
+    case "SIGN_OUT":
       return {
         ...initialState,
-        isLoading: false
-      }
+        isLoading: false,
+      };
     default:
-      return state
+      return state;
   }
 }
 
 // Contexto
 interface AuthContextType {
-  state: AuthState
-  signIn: (email: string, password: string, remember?: boolean) => Promise<void>
-  signUp: (name: string, email: string, password: string, confirmPassword: string, cellphone: string, nombre_centro_gestor: string) => Promise<void>
-  signInWithGoogle: (remember?: boolean) => Promise<void>
-  signOut: () => Promise<void>
-  clearError: () => void
-  validateSession: () => Promise<void>
+  state: AuthState;
+  signIn: (
+    email: string,
+    password: string,
+    remember?: boolean,
+  ) => Promise<void>;
+  signUp: (
+    name: string,
+    email: string,
+    password: string,
+    confirmPassword: string,
+    cellphone: string,
+    nombre_centro_gestor: string,
+  ) => Promise<void>;
+  signInWithGoogle: (remember?: boolean) => Promise<void>;
+  signOut: () => Promise<void>;
+  clearError: () => void;
+  validateSession: () => Promise<void>;
   // Helpers para roles y permisos
-  hasRole: (role: string) => boolean
-  hasPermission: (permission: string) => boolean
-  canModifyOrDeleteRecords: () => boolean
-  getHighestRole: () => string | null
-  isSuperAdmin: () => boolean
+  hasRole: (role: string) => boolean;
+  hasPermission: (permission: string) => boolean;
+  canModifyOrDeleteRecords: () => boolean;
+  getHighestRole: () => string | null;
+  isSuperAdmin: () => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider
 interface AuthProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [state, dispatch] = useReducer(authReducer, initialState)
+  const [state, dispatch] = useReducer(authReducer, initialState);
 
   const isUserSessionReady = (candidate: User | null | undefined): boolean => {
-    if (!candidate) return false
-    const hasRoles = Array.isArray(candidate.roles) && candidate.roles.length > 0
-    return candidate.session_valid === true && hasRoles
-  }
+    if (!candidate) return false;
+    const hasRoles =
+      Array.isArray(candidate.roles) && candidate.roles.length > 0;
+    return candidate.session_valid === true && hasRoles;
+  };
 
   // Inicialización simplificada
   useEffect(() => {
     const initAuth = async () => {
       try {
-        dispatch({ type: 'SET_LOADING', payload: true })
-        
+        dispatch({ type: "SET_LOADING", payload: true });
+
         // Inicializar servicio primero para configurar persistencia
-        await authService.initialize()
-        
+        await authService.initialize();
+
         // Verificar sesión almacenada
-        const storedSession = authService.getStoredSession()
-        
+        const storedSession = authService.getStoredSession();
+
         if (storedSession?.user) {
           try {
-            const updatedUser = await authService.validateSession()
+            const updatedUser = await authService.validateSession();
             if (isUserSessionReady(updatedUser)) {
-              dispatch({ type: 'SET_USER', payload: updatedUser })
-              return
+              dispatch({ type: "SET_USER", payload: updatedUser });
+              return;
             }
           } catch (error) {
-            console.error('❌ Error validando sesión almacenada:', error)
+            safeConsole.debug("Error validando sesión almacenada:", error);
           }
 
-          await authService.signOut()
-          dispatch({ type: 'SIGN_OUT' })
-          return
+          await authService.signOut();
+          dispatch({ type: "SIGN_OUT" });
+          return;
         }
-        
-        // Si no hay sesión almacenada, terminar loading
-        dispatch({ type: 'SET_LOADING', payload: false })
-        
-      } catch (error) {
-        console.error('Auth init error:', error)
-        dispatch({ type: 'SET_LOADING', payload: false })
-      }
-    }
 
-    initAuth()
-  }, [])
+        // Si no hay sesión almacenada, terminar loading
+        dispatch({ type: "SET_LOADING", payload: false });
+      } catch (error) {
+        safeConsole.debug("Auth init error:", error);
+        dispatch({ type: "SET_LOADING", payload: false });
+      }
+    };
+
+    initAuth();
+  }, []);
 
   // Funciones de autenticación
-  const signIn = async (email: string, password: string, remember: boolean = true) => {
+  const signIn = async (
+    email: string,
+    password: string,
+    remember: boolean = true,
+  ) => {
     try {
-      dispatch({ type: 'CLEAR_ERROR' })
-      let user = await authService.signInWithEmail({ email, password, remember })
+      dispatch({ type: "CLEAR_ERROR" });
+      let user = await authService.signInWithEmail({
+        email,
+        password,
+        remember,
+      });
 
       if (!isUserSessionReady(user)) {
-        const refreshedUser = await authService.validateSession()
+        const refreshedUser = await authService.validateSession();
         if (isUserSessionReady(refreshedUser)) {
-          user = refreshedUser as User
+          user = refreshedUser as User;
         }
       }
 
       if (!isUserSessionReady(user)) {
-        throw new Error('No se pudo validar la sesión completa. Intenta nuevamente.')
+        throw new Error(
+          "No se pudo validar la sesión completa. Intenta nuevamente.",
+        );
       }
-      
-      console.log('🎯 AuthContext - User received from authService:', {
+
+      safeConsole.debug("AuthContext - User received from authService:", {
         email: user.email,
         roles: user.roles,
         permissions: user.permissions,
-        hasRoles: user.roles && user.roles.length > 0
-      })
-      
-      dispatch({ type: 'SET_USER', payload: user })
-    } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Error al iniciar sesión' })
-      throw error
-    }
-  }
+        hasRoles: user.roles && user.roles.length > 0,
+      });
 
-  const signUp = async (name: string, email: string, password: string, confirmPassword: string, cellphone: string, nombre_centro_gestor: string) => {
+      dispatch({ type: "SET_USER", payload: user });
+    } catch (error: any) {
+      dispatch({
+        type: "SET_ERROR",
+        payload: error.message || "Error al iniciar sesión",
+      });
+      throw error;
+    }
+  };
+
+  const signUp = async (
+    name: string,
+    email: string,
+    password: string,
+    confirmPassword: string,
+    cellphone: string,
+    nombre_centro_gestor: string,
+  ) => {
     try {
-      dispatch({ type: 'CLEAR_ERROR' })
-      
-      const user = await authService.registerWithEmail({ 
-        name, 
-        email, 
-        password, 
+      dispatch({ type: "CLEAR_ERROR" });
+
+      const user = await authService.registerWithEmail({
+        name,
+        email,
+        password,
         confirmPassword,
         cellphone,
-        nombre_centro_gestor
-      })
+        nombre_centro_gestor,
+      });
 
       if (!isUserSessionReady(user)) {
-        const refreshedUser = await authService.validateSession()
+        const refreshedUser = await authService.validateSession();
         if (!isUserSessionReady(refreshedUser)) {
-          throw new Error('Registro completado, pero la sesión aún no está lista. Intenta iniciar sesión nuevamente.')
+          throw new Error(
+            "Registro completado, pero la sesión aún no está lista. Intenta iniciar sesión nuevamente.",
+          );
         }
-        dispatch({ type: 'SET_USER', payload: refreshedUser })
-        return
+        dispatch({ type: "SET_USER", payload: refreshedUser });
+        return;
       }
-      
-      dispatch({ type: 'SET_USER', payload: user })
+
+      dispatch({ type: "SET_USER", payload: user });
     } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Error al registrar usuario' })
-      throw error
+      dispatch({
+        type: "SET_ERROR",
+        payload: error.message || "Error al registrar usuario",
+      });
+      throw error;
     }
-  }
+  };
 
   const signInWithGoogle = async (remember: boolean = true) => {
     try {
-      dispatch({ type: 'CLEAR_ERROR' })
-      
-      let user = await authService.signInWithGoogle(remember)
+      dispatch({ type: "CLEAR_ERROR" });
+
+      let user = await authService.signInWithGoogle(remember);
       if (!isUserSessionReady(user)) {
-        const refreshedUser = await authService.validateSession()
+        const refreshedUser = await authService.validateSession();
         if (isUserSessionReady(refreshedUser)) {
-          user = refreshedUser as User
+          user = refreshedUser as User;
         }
       }
 
       if (!isUserSessionReady(user)) {
-        throw new Error('No se pudo validar sesión completa con Google. Intenta nuevamente.')
+        throw new Error(
+          "No se pudo validar sesión completa con Google. Intenta nuevamente.",
+        );
       }
 
-      dispatch({ type: 'SET_USER', payload: user })
+      dispatch({ type: "SET_USER", payload: user });
     } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Error al iniciar sesión con Google' })
-      throw error
+      dispatch({
+        type: "SET_ERROR",
+        payload: error.message || "Error al iniciar sesión con Google",
+      });
+      throw error;
     }
-  }
+  };
 
   const signOut = async () => {
     try {
-      await authService.signOut()
-      dispatch({ type: 'SIGN_OUT' })
+      await authService.signOut();
+      dispatch({ type: "SIGN_OUT" });
     } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Error al cerrar sesión' })
+      dispatch({
+        type: "SET_ERROR",
+        payload: error.message || "Error al cerrar sesión",
+      });
     }
-  }
+  };
 
   const clearError = () => {
-    dispatch({ type: 'CLEAR_ERROR' })
-  }
+    dispatch({ type: "CLEAR_ERROR" });
+  };
 
   const validateSession = async () => {
     try {
-      dispatch({ type: 'SET_LOADING', payload: true })
+      dispatch({ type: "SET_LOADING", payload: true });
       // Intentar validar con el backend para obtener roles actualizados
-      const user = await authService.validateSession()
+      const user = await authService.validateSession();
       if (isUserSessionReady(user)) {
-        dispatch({ type: 'SET_USER', payload: user })
+        dispatch({ type: "SET_USER", payload: user });
       } else {
-        dispatch({ type: 'SET_USER', payload: null })
+        dispatch({ type: "SET_USER", payload: null });
       }
     } catch (error: any) {
-      dispatch({ type: 'SET_USER', payload: null })
-      dispatch({ type: 'SET_ERROR', payload: 'Error validando sesión' })
+      dispatch({ type: "SET_USER", payload: null });
+      dispatch({ type: "SET_ERROR", payload: "Error validando sesión" });
     }
-  }
+  };
 
   // Helper: Verificar si el usuario tiene un rol específico
   const hasRole = (role: string): boolean => {
-    return state.user?.roles?.includes(role) || false
-  }
+    return state.user?.roles?.includes(role) || false;
+  };
 
   // Helper: Verificar si el usuario tiene un permiso específico
   const hasPermission = (permission: string): boolean => {
-    return state.user?.permissions?.includes(permission) || state.user?.permissions?.includes('*') || false
-  }
+    return (
+      state.user?.permissions?.includes(permission) ||
+      state.user?.permissions?.includes("*") ||
+      false
+    );
+  };
 
   // Helper: Verificar si el usuario puede modificar o borrar registros
   const canModifyOrDeleteRecords = (): boolean => {
-    const allowedRoles = ['admin_centro_gestor', 'admin_general', 'super_admin', 'editor_datos']
-    const roles = state.user?.roles || []
-    return roles.some(role => allowedRoles.includes(role))
-  }
+    const allowedRoles = [
+      "admin_centro_gestor",
+      "admin_general",
+      "super_admin",
+      "editor_datos",
+    ];
+    const roles = state.user?.roles || [];
+    return roles.some((role) => allowedRoles.includes(role));
+  };
 
   // Helper: Obtener el rol con mayor jerarquía del usuario
   const getHighestRole = (): string | null => {
-    const roles = state.user?.roles || []
-    if (roles.length === 0) return null
-    
+    const roles = state.user?.roles || [];
+    if (roles.length === 0) return null;
+
     // Orden jerárquico de roles (de mayor a menor)
     const roleHierarchy = [
-      'super_admin',
-      'admin',
-      'gestor_master',
-      'gestor',
-      'consultor_master',
-      'consultor',
-      'publico'
-    ]
-    
+      "super_admin",
+      "admin",
+      "gestor_master",
+      "gestor",
+      "consultor_master",
+      "consultor",
+      "publico",
+    ];
+
     for (const role of roleHierarchy) {
-      if (roles.includes(role)) return role
+      if (roles.includes(role)) return role;
     }
-    
-    return roles[0] // Devolver el primero si no coincide ninguno
-  }
+
+    return roles[0]; // Devolver el primero si no coincide ninguno
+  };
 
   // Helper: Verificar si es super admin
   const isSuperAdmin = (): boolean => {
-    const result = hasRole('super_admin')
-    console.log('🔐 isSuperAdmin() called:', {
+    const result = hasRole("super_admin");
+    safeConsole.debug("isSuperAdmin() called:", {
       result,
       userRoles: state.user?.roles,
       hasUser: !!state.user,
-      isAuthenticated: state.isAuthenticated
-    })
-    return result
-  }
+      isAuthenticated: state.isAuthenticated,
+    });
+    return result;
+  };
 
   const contextValue: AuthContextType = {
     state,
@@ -315,23 +375,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     hasPermission,
     canModifyOrDeleteRecords,
     getHighestRole,
-    isSuperAdmin
-  }
+    isSuperAdmin,
+  };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  )
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  );
 }
 
 // Hook personalizado
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
+  return context;
 }
 
-export default AuthContext
+export default AuthContext;

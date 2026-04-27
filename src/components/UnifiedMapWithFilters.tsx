@@ -1,38 +1,36 @@
-'use client'
+﻿"use client";
 
-import React, { useState, useCallback, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
 // import UnifiedMapComponent from './UnifiedMapComponent' // Temporalmente comentado
+import { IconButton } from "@/components/atoms";
+import { MapToolbar } from "@/components/molecules";
 
 // Componente temporal de reemplazo
 const UnifiedMapComponent = ({ className, ...props }: any) => (
-  <section className={`${className} bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center`}>
-    <p className="text-gray-500 dark:text-gray-400">Mapa no disponible temporalmente</p>
+  <section
+    className={`${className} bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center`}
+  >
+    <p className="text-gray-500 dark:text-gray-400">
+      Mapa no disponible temporalmente
+    </p>
   </section>
-)
-import UnifiedFilters, { type FilterState } from './UnifiedFilters'
+);
+import UnifiedFilters, { type FilterState } from "./UnifiedFilters";
 // Removed import of UnidadProyectoGeo and UnidadProyectoFilters as Unidades de Proyecto section was deleted
-import { 
-  MapPin, 
-  Filter,
-  BarChart3,
-  Layers,
-  Maximize2,
-  Minimize2,
-  X
-} from 'lucide-react'
+import { MapPin, Filter, Layers, Maximize2, X } from "lucide-react";
 
 // ===============================================
 // INTERFACES
 // ===============================================
 
 interface UnifiedMapWithFiltersProps {
-  className?: string
-  height?: number
-  showFiltersPanel?: boolean
-  showAnalytics?: boolean
-  onUnidadClick?: (unidad: any) => void // Replaced UnidadProyectoGeo with any since the type was removed
-  isDarkMode?: boolean
+  className?: string;
+  height?: number;
+  showFiltersPanel?: boolean;
+  showAnalytics?: boolean;
+  onUnidadClick?: (unidad: any) => void; // Replaced UnidadProyectoGeo with any since the type was removed
+  isDarkMode?: boolean;
 }
 
 // ===============================================
@@ -45,17 +43,17 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
   showFiltersPanel = true,
   showAnalytics = true,
   onUnidadClick,
-  isDarkMode = false
+  isDarkMode = false,
 }) => {
   // ===============================================
   // ESTADOS
   // ===============================================
-  
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [showMobileFilters, setShowMobileFilters] = useState(false)
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<FilterState>({
-    search: '',
-    estado: 'all',
+    search: "",
+    estado: "all",
     filtrosPersonalizados: [],
     centroGestor: [],
     comunas: [],
@@ -65,8 +63,8 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
     fuentesFinanciamiento: [],
     fechaInicio: null,
     fechaFin: null,
-    periodos: []
-  })
+    periodos: [],
+  });
 
   // ===============================================
   // CONVERSIÓN DE FILTROS
@@ -74,85 +72,97 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
 
   // Convertir filtros del dashboard a filtros de la API
   const apiFilters = useMemo((): any => {
-    const filters: any = {}
+    const filters: any = {};
 
     // Búsqueda global
     if (dashboardFilters.search && dashboardFilters.search.trim()) {
-      filters.search = dashboardFilters.search.trim()
+      filters.search = dashboardFilters.search.trim();
     }
 
     // Estado
-    if (dashboardFilters.estado && dashboardFilters.estado !== 'all') {
-      filters.estado = dashboardFilters.estado
+    if (dashboardFilters.estado && dashboardFilters.estado !== "all") {
+      filters.estado = dashboardFilters.estado;
     }
 
     // Comuna (tomar la primera seleccionada)
     if (dashboardFilters.comunas && dashboardFilters.comunas.length > 0) {
-      filters.comuna = dashboardFilters.comunas[0]
+      filters.comuna = dashboardFilters.comunas[0];
     }
 
     // Centro gestor (tomar el primero seleccionado)
-    if (dashboardFilters.centroGestor && dashboardFilters.centroGestor.length > 0) {
-      filters.centro_gestor = dashboardFilters.centroGestor[0]
+    if (
+      dashboardFilters.centroGestor &&
+      dashboardFilters.centroGestor.length > 0
+    ) {
+      filters.centro_gestor = dashboardFilters.centroGestor[0];
     }
 
     // Año (tomar el primer período seleccionado)
     if (dashboardFilters.periodos && dashboardFilters.periodos.length > 0) {
-      filters.ano = dashboardFilters.periodos[0]
+      filters.ano = dashboardFilters.periodos[0];
     }
 
     // Fuente financiamiento (tomar la primera seleccionada)
-    if (dashboardFilters.fuentesFinanciamiento && dashboardFilters.fuentesFinanciamiento.length > 0) {
-      filters.fuente_financiacion = dashboardFilters.fuentesFinanciamiento[0]
+    if (
+      dashboardFilters.fuentesFinanciamiento &&
+      dashboardFilters.fuentesFinanciamiento.length > 0
+    ) {
+      filters.fuente_financiacion = dashboardFilters.fuentesFinanciamiento[0];
     }
 
-    return filters
-  }, [dashboardFilters])
+    return filters;
+  }, [dashboardFilters]);
 
   // ===============================================
   // HANDLERS
   // ===============================================
 
   const handleFiltersChange = useCallback((newFilters: FilterState) => {
-    setDashboardFilters(newFilters)
-  }, [])
+    setDashboardFilters(newFilters);
+  }, []);
 
-  const handleUnidadClick = useCallback((unidad: any) => { // Replaced UnidadProyectoGeo with any since the type was removed
-    onUnidadClick?.(unidad)
-  }, [onUnidadClick])
+  const handleUnidadClick = useCallback(
+    (unidad: any) => {
+      // Replaced UnidadProyectoGeo with any since the type was removed
+      onUnidadClick?.(unidad);
+    },
+    [onUnidadClick],
+  );
 
   const handleFullscreenToggle = useCallback(() => {
-    setIsFullscreen(!isFullscreen)
-  }, [isFullscreen])
+    setIsFullscreen(!isFullscreen);
+  }, [isFullscreen]);
 
   const handleApiFiltersChange = useCallback((newApiFilters: any) => {
     // Sincronizar cambios desde el mapa hacia los filtros del dashboard
-    
+
     // Actualizar solo los campos relevantes sin sobrescribir todo
-    setDashboardFilters(prev => ({
+    setDashboardFilters((prev) => ({
       ...prev,
       search: newApiFilters.search || prev.search,
       estado: newApiFilters.estado || prev.estado,
       comunas: newApiFilters.comuna ? [newApiFilters.comuna] : prev.comunas,
-      centroGestor: newApiFilters.centro_gestor ? [newApiFilters.centro_gestor] : prev.centroGestor,
-      periodos: newApiFilters.ano ? [newApiFilters.ano] : prev.periodos
-    }))
-  }, [])
+      centroGestor: newApiFilters.centro_gestor
+        ? [newApiFilters.centro_gestor]
+        : prev.centroGestor,
+      periodos: newApiFilters.ano ? [newApiFilters.ano] : prev.periodos,
+    }));
+  }, []);
 
   // ===============================================
   // CONTADOR DE FILTROS ACTIVOS
   // ===============================================
 
   const activeFiltersCount = useMemo(() => {
-    let count = 0
-    if (dashboardFilters.search) count++
-    if (dashboardFilters.estado !== 'all') count++
-    if (dashboardFilters.comunas.length > 0) count++
-    if (dashboardFilters.centroGestor.length > 0) count++
-    if (dashboardFilters.periodos.length > 0) count++
-    if (dashboardFilters.fuentesFinanciamiento.length > 0) count++
-    return count
-  }, [dashboardFilters])
+    let count = 0;
+    if (dashboardFilters.search) count++;
+    if (dashboardFilters.estado !== "all") count++;
+    if (dashboardFilters.comunas.length > 0) count++;
+    if (dashboardFilters.centroGestor.length > 0) count++;
+    if (dashboardFilters.periodos.length > 0) count++;
+    if (dashboardFilters.fuentesFinanciamiento.length > 0) count++;
+    return count;
+  }, [dashboardFilters]);
 
   // ===============================================
   // RENDER
@@ -175,60 +185,45 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
           onFullscreenToggle={handleFullscreenToggle}
         />
       </main>
-    )
+    );
   }
 
   return (
     <main className={className}>
       {/* Header con información y controles */}
-      <motion.header
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        className="mb-4"
       >
-        <section className="flex items-center gap-3">
-          <span className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-            <MapPin className="w-5 h-5 text-white" />
-          </span>
-          <hgroup>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              Mapa Territorial Unificado
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Visualización interactiva con mapas y filtros integrados
-            </p>
-          </hgroup>
-        </section>
+        <MapToolbar
+          title="Mapa territorial unificado"
+          subtitle="Visualizacion institucional con filtros estandarizados"
+          actions={
+            <>
+              {activeFiltersCount > 0 && (
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 border border-blue-200 bg-blue-50 text-blue-700 rounded-md text-[11px] uppercase tracking-wide font-medium dark:bg-blue-900/20 dark:border-blue-900/30 dark:text-blue-300">
+                  <Filter size={12} strokeWidth={1.5} />
+                  <span>{activeFiltersCount} activos</span>
+                </span>
+              )}
 
-        {/* Controles de la interfaz */}
-        <nav className="flex items-center gap-2">
-          {/* Contador de filtros activos */}
-          {activeFiltersCount > 0 && (
-            <span className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
-              <Filter className="w-4 h-4" />
-              <span>{activeFiltersCount} filtro{activeFiltersCount !== 1 ? 's' : ''} activo{activeFiltersCount !== 1 ? 's' : ''}</span>
-            </span>
-          )}
+              <IconButton
+                icon={<Filter size={14} strokeWidth={1.5} />}
+                label="Filtros"
+                className="md:hidden"
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+              />
 
-          {/* Toggle filtros en móvil */}
-          <button
-            onClick={() => setShowMobileFilters(!showMobileFilters)}
-            className="md:hidden p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Filtros"
-          >
-            <Filter className="w-4 h-4" />
-          </button>
-
-          {/* Pantalla completa */}
-          <button
-            onClick={handleFullscreenToggle}
-            className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Pantalla completa"
-          >
-            <Maximize2 className="w-4 h-4" />
-          </button>
-        </nav>
-      </motion.header>
+              <IconButton
+                icon={<Maximize2 size={14} strokeWidth={1.5} />}
+                label="Pantalla completa"
+                onClick={handleFullscreenToggle}
+              />
+            </>
+          }
+        />
+      </motion.div>
 
       {/* Layout responsivo */}
       <section className="flex flex-col lg:flex-row gap-4">
@@ -237,25 +232,31 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
           <motion.aside
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`lg:w-80 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}
+            className={`lg:w-80 ${showMobileFilters ? "block" : "hidden lg:block"}`}
           >
             <section className="sticky top-4">
-              <article className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+              <article className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 p-4">
                 <header className="flex items-center justify-between mb-4">
                   <hgroup className="flex items-center gap-2">
-                    <Filter className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-gray-900 dark:text-white">Filtros</h3>
+                    <Filter
+                      size={16}
+                      strokeWidth={1.5}
+                      className="text-blue-700"
+                    />
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      Filtros
+                    </h3>
                   </hgroup>
                   {showMobileFilters && (
                     <button
                       onClick={() => setShowMobileFilters(false)}
                       className="md:hidden p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <X size={14} strokeWidth={1.5} />
                     </button>
                   )}
                 </header>
-                
+
                 <UnifiedFilters
                   filters={dashboardFilters}
                   onFiltersChange={handleFiltersChange}
@@ -301,18 +302,24 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
             <header className="p-4 border-b border-gray-200 dark:border-gray-700">
               <hgroup className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Filtros</h3>
+                  <Filter
+                    size={16}
+                    strokeWidth={1.5}
+                    className="text-blue-700"
+                  />
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    Filtros
+                  </h3>
                 </span>
                 <button
                   onClick={() => setShowMobileFilters(false)}
                   className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X size={14} strokeWidth={1.5} />
                 </button>
               </hgroup>
             </header>
-            
+
             <section className="p-4">
               <UnifiedFilters
                 filters={dashboardFilters}
@@ -325,14 +332,14 @@ const UnifiedMapWithFilters: React.FC<UnifiedMapWithFiltersProps> = ({
         </aside>
       )}
     </main>
-  )
-}
+  );
+};
 
-export default UnifiedMapWithFilters
+export default UnifiedMapWithFilters;
 
 // ===============================================
 // EXPORTS PARA COMPATIBILIDAD
 // ===============================================
 
-export type { UnifiedMapWithFiltersProps }
-export { UnifiedMapComponent }
+export type { UnifiedMapWithFiltersProps };
+export { UnifiedMapComponent };

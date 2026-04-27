@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
@@ -180,7 +180,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
     })
   }, [flujoCajaData, selectedBancos, selectedOrganismos])
 
-  // Análisis por banco
+  // AnÃ¡lisis por banco
   const bankAnalysis = useMemo(() => {
     if (!flujoCajaData?.data) return []
 
@@ -219,7 +219,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
       .sort((a: any, b: any) => b.total - a.total)
   }, [flujoCajaData, selectedBancos, selectedOrganismos])
 
-  // Análisis por organismo
+  // AnÃ¡lisis por organismo
   const organismoAnalysis = useMemo(() => {
     if (!flujoCajaData?.data) return []
 
@@ -255,7 +255,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
       .sort((a: any, b: any) => b.total - a.total)
   }, [flujoCajaData, selectedBancos, selectedOrganismos])
 
-  // Comparación planeado vs real
+  // ComparaciÃ³n planeado vs real
   const plannedVsRealData = useMemo(() => {
     if (!flujoCajaData?.data) return []
 
@@ -329,7 +329,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Métricas Financieras Avanzadas */}
+      {/* MÃ©tricas Financieras Avanzadas */}
       <EmprestitoFinancialMetrics 
         data={flujoCajaData?.data.filter(row => 
           selectedBancos.has(row.banco) && 
@@ -399,8 +399,8 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
       </div>
 
       {/* Filtros */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Filtros de Análisis</h4>
+      <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Filtros de AnÃ¡lisis</h4>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Filtro de Bancos */}
@@ -465,7 +465,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
@@ -476,7 +476,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
               Serie de Tiempo - Flujo de Caja
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Flujo de caja mensual por banco (barras) y acumulado total (línea)
+              Flujo de caja mensual por banco (barras) y acumulado total (lÃ­nea)
             </p>
           </div>
         </div>
@@ -520,7 +520,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
                 />
               ))}
               
-              {/* Línea de acumulado */}
+              {/* LÃ­nea de acumulado */}
               <Line
                 yAxisId="left"
                 type="monotone"
@@ -535,13 +535,13 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
         </div>
       </motion.div>
 
-      {/* Análisis por Banco y Organismo */}
+      {/* AnÃ¡lisis por Banco y Organismo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Análisis por Banco */}
+        {/* AnÃ¡lisis por Banco */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
@@ -549,10 +549,10 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Distribución por Banco
+                DistribuciÃ³n por Banco
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Participación de cada entidad financiera
+                ParticipaciÃ³n de cada entidad financiera
               </p>
             </div>
           </div>
@@ -584,7 +584,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-green-600">
@@ -635,11 +635,11 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
         </motion.div>
       </div>
 
-      {/* Comparación Planeado vs Real */}
+      {/* ComparaciÃ³n Planeado vs Real */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
@@ -650,7 +650,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
               Planeado vs Real
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Comparación de desembolsos planeados y ejecutados
+              ComparaciÃ³n de desembolsos planeados y ejecutados
             </p>
           </div>
         </div>
@@ -697,7 +697,7 @@ const EmprestitoFlujoCajaDashboard: React.FC<EmprestitoFlujoCajaDashboardProps> 
         </div>
       </motion.div>
 
-      {/* Análisis Detallado por Proyecto */}
+      {/* AnÃ¡lisis Detallado por Proyecto */}
       <EmprestitoProjectAnalysis 
         data={flujoCajaData?.data || []}
         selectedBancos={selectedBancos}

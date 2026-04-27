@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
@@ -44,7 +44,7 @@ const EmprestitoProjectAnalysis: React.FC<EmprestitoProjectAnalysisProps> = ({
   const [expandedProject, setExpandedProject] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'total' | 'cumplimiento' | 'nombre'>('total')
 
-  // Análisis por proyecto
+  // AnÃ¡lisis por proyecto
   const projectAnalysis = useMemo(() => {
     const filteredData = data.filter(row =>
       selectedBancos.has(row.banco) &&
@@ -58,7 +58,7 @@ const EmprestitoProjectAnalysis: React.FC<EmprestitoProjectAnalysisProps> = ({
       if (!acc[projectId]) {
         acc[projectId] = {
           id: projectId,
-          descripcion: row.descripcion_bp || 'Sin descripción',
+          descripcion: row.descripcion_bp || 'Sin descripciÃ³n',
           organismo: row.organismo,
           responsable: row.responsable || 'No especificado',
           totalPlaneado: 0,
@@ -98,7 +98,7 @@ const EmprestitoProjectAnalysis: React.FC<EmprestitoProjectAnalysisProps> = ({
   const filteredProjects = useMemo(() => {
     let filtered = projectAnalysis
 
-    // Filtrar por búsqueda
+    // Filtrar por bÃºsqueda
     if (searchTerm) {
       filtered = filtered.filter(
         (p: any) =>
@@ -131,14 +131,14 @@ const EmprestitoProjectAnalysis: React.FC<EmprestitoProjectAnalysisProps> = ({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header y Controles */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Análisis por Proyecto
+              AnÃ¡lisis por Proyecto
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {totalProjects} proyectos • Cumplimiento promedio: {avgCumplimiento.toFixed(1)}%
+              {totalProjects} proyectos â€¢ Cumplimiento promedio: {avgCumplimiento.toFixed(1)}%
             </p>
           </div>
 
@@ -186,7 +186,7 @@ const EmprestitoProjectAnalysis: React.FC<EmprestitoProjectAnalysisProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
               {/* Header del Proyecto */}
               <div
@@ -261,7 +261,7 @@ const EmprestitoProjectAnalysis: React.FC<EmprestitoProjectAnalysisProps> = ({
                   className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 p-6"
                 >
                   <div className="space-y-4">
-                    {/* Información adicional */}
+                    {/* InformaciÃ³n adicional */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center gap-3">
                         <Building2 className="w-4 h-4 text-gray-400" />
@@ -303,7 +303,7 @@ const EmprestitoProjectAnalysis: React.FC<EmprestitoProjectAnalysisProps> = ({
                     {/* Timeline mensual */}
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                        Evolución mensual
+                        EvoluciÃ³n mensual
                       </p>
                       <div className="space-y-2 max-h-60 overflow-y-auto">
                         {project.meses.map((mes: any, idx: number) => {

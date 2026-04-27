@@ -97,7 +97,7 @@ export default function TestLoginPage() {
           </h3>
           <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-300 text-sm">
             <li>Ingresa tus credenciales arriba</li>
-            <li>Haz clic en "Iniciar Sesión"</li>
+            <li>Haz clic en &quot;Iniciar Sesión&quot;</li>
             <li>Abre la consola del navegador (F12) para ver logs detallados</li>
             <li>Si hay error, aparecerá el mensaje exacto</li>
             <li>Si es exitoso, verás el objeto User completo</li>

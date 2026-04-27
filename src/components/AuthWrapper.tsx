@@ -1,20 +1,31 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import LoginPage from '@/components/LoginPage'
 import { ROLES_CONFIG } from '@/types/admin'
+
+/** Routes that bypass auth in development — never reaches production */
+const DEV_PUBLIC_ROUTES = ['/test-design-system']
 
 interface AuthWrapperProps {
   children: React.ReactNode
 }
 
 export default function AuthWrapper({ children }: AuthWrapperProps) {
+  const pathname = usePathname()
   const { state, validateSession } = useAuth()
   const sessionCheckRef = useRef<string | null>(null)
   const [isRevalidatingSession, setIsRevalidatingSession] = useState(false)
 
+  const isDevBypassRoute =
+    process.env.NODE_ENV === 'development' &&
+    DEV_PUBLIC_ROUTES.some(r => pathname?.startsWith(r))
+
   useEffect(() => {
+    if (isDevBypassRoute) return
+
     const shouldHydrate =
       state.isAuthenticated &&
       !!state.user &&
@@ -36,16 +47,22 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     validateSession().finally(() => {
       setIsRevalidatingSession(false)
     })
-  }, [state.isAuthenticated, state.user?.uid, state.user?.session_valid, validateSession])
+  }, [isDevBypassRoute, state.isAuthenticated, state.user?.uid, state.user?.session_valid, validateSession])
+
+  // Dev-only showcase bypass — no auth needed
+  if (isDevBypassRoute) {
+    return <>{children}</>
+  }
 
   // Si está cargando, mostrar loading
   if (state.isLoading || isRevalidatingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Validando sesión y permisos...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f6f9]">
+        <div className="w-7 h-7 rounded-md bg-[#1d4ed8] flex items-center justify-center mb-5">
+          <span className="text-white text-[11px] font-bold tracking-tight">CT</span>
         </div>
+        <div className="w-5 h-5 rounded-full border-2 border-[#1d4ed8]/20 border-t-[#1d4ed8] animate-spin" />
+        <p className="mt-4 text-[13px] text-gray-500 tracking-wide">Validando sesión...</p>
       </div>
     )
   }

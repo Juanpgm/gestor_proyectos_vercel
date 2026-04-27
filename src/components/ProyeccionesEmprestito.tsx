@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
@@ -29,7 +29,7 @@ import AgregarProcesoModal from './AgregarProcesoModal'
 import ManagementFeatureTour from './ManagementFeatureTour'
 import { useAuth } from '@/context/AuthContext'
 
-// Interfaz para proyección de empréstito
+// Interfaz para proyecciÃ³n de emprÃ©stito
 interface ProyeccionEmprestito {
   id?: string
   item?: string
@@ -48,12 +48,12 @@ interface ProyeccionEmprestito {
   fecha_carga?: string
   fecha_guardado?: string
   descripcion_bp?: string
-  sin_proceso?: boolean // Indica si la proyección no tiene proceso asociado
+  sin_proceso?: boolean // Indica si la proyecciÃ³n no tiene proceso asociado
   estado_proceso?: string // Estado del proceso o 'Sin Proceso'
   [key: string]: any // Para permitir propiedades adicionales
 }
 
-// Interfaz para filtros de columna (ahora soporta múltiples valores)
+// Interfaz para filtros de columna (ahora soporta mÃºltiples valores)
 interface ColumnFilter {
   [key: string]: string[]
 }
@@ -158,7 +158,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       const baseUrl = window.location.origin
       const timestamp = new Date().getTime()
       
-      // Cargar solo desde el endpoint principal con parámetro false
+      // Cargar solo desde el endpoint principal con parÃ¡metro false
       const response = await fetch(`${baseUrl}/api/proxy/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`, {
         cache: 'no-store',
         headers: {
@@ -175,7 +175,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       const data = await response.json()
 
       if (!data.success || !data.data) {
-        throw new Error('Respuesta inválida del servidor')
+        throw new Error('Respuesta invÃ¡lida del servidor')
       }
 
       // Cargar proyecciones sin proceso desde el segundo endpoint
@@ -195,27 +195,27 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
           proyeccionesSinProceso = sinProcesoData.data
         }
       } else {
-        console.error('❌ Error al cargar proyecciones sin proceso:', sinProcesoResponse.status)
+        console.error('âŒ Error al cargar proyecciones sin proceso:', sinProcesoResponse.status)
       }
 
       // Crear un Set con los IDs de proyecciones sin proceso
       const idsSinProceso = new Set(proyeccionesSinProceso.map(p => p.id))
       
-      // Verificar cuáles IDs de sin-proceso están en los datos principales
+      // Verificar cuÃ¡les IDs de sin-proceso estÃ¡n en los datos principales
       const idsEnPrincipal = new Set(data.data.map((p: any) => p.id))
       const faltantesEnPrincipal = proyeccionesSinProceso.filter(p => !idsEnPrincipal.has(p.id))
       
       if (faltantesEnPrincipal.length > 0) {
-        console.log(`➕ Agregando ${faltantesEnPrincipal.length} registros sin proceso que faltan en el endpoint principal`)
+        console.log(`âž• Agregando ${faltantesEnPrincipal.length} registros sin proceso que faltan en el endpoint principal`)
         // Agregar los registros faltantes al array principal
         data.data = [...data.data, ...faltantesEnPrincipal]
       }
 
       // Procesar todas las proyecciones del endpoint principal (ahora incluye los agregados)
       const todasLasProyecciones = data.data.map((p: ProyeccionEmprestito) => {
-        // Una proyección está "Sin Proceso" SOLO si no tiene referencia_proceso
+        // Una proyecciÃ³n estÃ¡ "Sin Proceso" SOLO si no tiene referencia_proceso
         // El endpoint /proyecciones-sin-proceso puede incluir registros con referencia_proceso
-        // que no existen en procesos_emprestito, pero eso no significa que estén "sin proceso"
+        // que no existen en procesos_emprestito, pero eso no significa que estÃ©n "sin proceso"
         const sinRefProceso = !p.referencia_proceso || p.referencia_proceso.trim() === ''
         
         return {
@@ -235,7 +235,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     }
   }
 
-  // Función para obtener valores únicos de una columna para los filtros
+  // FunciÃ³n para obtener valores Ãºnicos de una columna para los filtros
   const getUniqueValues = (key: string): string[] => {
     const values = proyecciones
       .map(item => item[key])
@@ -245,10 +245,10 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     return Array.from(new Set(values)).sort()
   }
 
-  // Aplicar filtros y búsqueda
+  // Aplicar filtros y bÃºsqueda
   const filteredProyecciones = useMemo(() => {
     return proyecciones.filter(proyeccion => {
-      // Filtro de búsqueda global
+      // Filtro de bÃºsqueda global
       if (searchTerm) {
         const searchValue = searchTerm.toLowerCase()
         const searchableFields = [
@@ -290,7 +290,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         return a.sin_proceso ? -1 : 1 // sin_proceso=true va primero
       }
       
-      // ORDEN SECUNDARIO: Si hay configuración de ordenamiento, aplicarla
+      // ORDEN SECUNDARIO: Si hay configuraciÃ³n de ordenamiento, aplicarla
       if (sortConfig.key) {
         const aValue = a[sortConfig.key]
         const bValue = b[sortConfig.key]
@@ -299,7 +299,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         if (aValue === null || aValue === undefined) return 1
         if (bValue === null || bValue === undefined) return -1
 
-        // Conversión a string para comparación
+        // ConversiÃ³n a string para comparaciÃ³n
         const aString = String(aValue).toLowerCase()
         const bString = String(bValue).toLowerCase()
 
@@ -315,9 +315,9 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     })
   }, [filteredProyecciones, sortConfig])
 
-  // Calcular paginación
+  // Calcular paginaciÃ³n
   const totalItems = sortedProyecciones.length
-  // Todos los datos sin paginación
+  // Todos los datos sin paginaciÃ³n
   const allProyecciones = sortedProyecciones
 
   // Funciones para manejar filtros
@@ -370,7 +370,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     
     const handleMouseMove = (e: MouseEvent) => {
       const diff = e.clientX - startX
-      const newWidth = Math.max(80, startWidth + diff) // Mínimo 80px
+      const newWidth = Math.max(80, startWidth + diff) // MÃ­nimo 80px
       setColumnWidths(prev => ({ ...prev, [columnKey]: newWidth }))
     }
     
@@ -419,7 +419,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     });
   };
 
-  // Función para obtener el ícono de ordenamiento
+  // FunciÃ³n para obtener el Ã­cono de ordenamiento
   const getSortIcon = (key: string) => {
     if (sortConfig.key !== key) {
       return <ArrowUpDown className="w-4 h-4 text-gray-400" />
@@ -429,7 +429,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       : <ArrowDown className="w-4 h-4 text-blue-500" />
   }
 
-  // Función para formatear valores
+  // FunciÃ³n para formatear valores
   const formatValue = (value: any, type: 'currency' | 'date' | 'text' = 'text'): string => {
     if (value === null || value === undefined || value === '') {
       return '-'
@@ -499,9 +499,9 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
   // Calcular stats basadas en datos filtrados usando useMemo
   const stats = useMemo(() => {
-    // Usar datos FILTRADOS para las estadísticas
+    // Usar datos FILTRADOS para las estadÃ­sticas
     const datosParaStats = filteredProyecciones
-    const totalProyecciones = proyecciones.length // Total sin filtros para comparación
+    const totalProyecciones = proyecciones.length // Total sin filtros para comparaciÃ³n
     
     // Separar proyecciones con y sin contrato (de los datos filtrados)
     const proyeccionesConContrato = datosParaStats.filter(p => !p.sin_proceso && p.referencia_proceso)
@@ -515,11 +515,11 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     const organismos = new Set(proyeccionesConContrato.map(p => p.nombre_organismo_reducido).filter(Boolean)).size
     const bancos = new Set(proyeccionesConContrato.map(p => p.nombre_banco).filter(Boolean)).size
     
-    // Nuevas estadísticas para proyecciones con y sin proceso
+    // Nuevas estadÃ­sticas para proyecciones con y sin proceso
     const conProceso = proyeccionesConContrato.length
     const sinProceso = proyeccionesSinContrato.length
     
-    // Estadísticas adicionales para proyecciones sin contrato
+    // EstadÃ­sticas adicionales para proyecciones sin contrato
     const organismosSinContrato = new Set(proyeccionesSinContrato.map(p => p.nombre_organismo_reducido).filter(Boolean)).size
     const bancosSinContrato = new Set(proyeccionesSinContrato.map(p => p.nombre_banco).filter(Boolean)).size
 
@@ -538,15 +538,15 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
     }
   }, [filteredProyecciones, proyecciones])
 
-  // Configuración de columnas
+  // ConfiguraciÃ³n de columnas
   const columns: Column[] = [
-    { key: 'item', label: 'Ítem', sortable: true, filterable: true, width: 'w-20' },
+    { key: 'item', label: 'Ãtem', sortable: true, filterable: true, width: 'w-20' },
     { key: 'referencia_proceso', label: 'Referencia Proceso', sortable: true, filterable: true, width: 'w-40' },
     { key: 'estado_proceso', label: 'Estado', sortable: true, filterable: true, width: 'w-28' },
     { key: 'nombre_organismo_reducido', label: 'Organismo', sortable: true, filterable: true, width: 'w-32' },
     { key: 'nombre_banco', label: 'Banco', sortable: true, filterable: true, width: 'w-36' },
     { key: 'BP', label: 'BP', sortable: true, filterable: true, width: 'w-32' },
-    { key: 'nombre_generico_proyecto', label: 'Proyecto Genérico', sortable: true, filterable: true, width: 'w-64' },
+    { key: 'nombre_generico_proyecto', label: 'Proyecto GenÃ©rico', sortable: true, filterable: true, width: 'w-64' },
     { key: 'nombre_resumido_proceso', label: 'Proceso Resumido', sortable: true, filterable: true, width: 'w-64' },
     { key: 'id_paa', label: 'ID PAA', sortable: true, filterable: true, width: 'w-24' },
     { key: 'valor_proyectado', label: 'Valor Proyectado', sortable: true, filterable: false, type: 'currency', width: 'w-40' },
@@ -558,7 +558,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin text-indigo-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Cargando proyecciones de empréstito...</p>
+          <p className="text-gray-600 dark:text-gray-400">Cargando proyecciones de emprÃ©stito...</p>
         </div>
       </div>
     )
@@ -597,9 +597,9 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
               <TrendingUp className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Proyecciones de Empréstito</h1>
+              <h1 className="text-2xl font-bold">Proyecciones de EmprÃ©stito</h1>
               <p className="text-indigo-100">
-                Gestión y seguimiento de proyecciones de empréstito
+                GestiÃ³n y seguimiento de proyecciones de emprÃ©stito
               </p>
             </div>
           </div>
@@ -616,7 +616,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         </div>
       </motion.div>
 
-      {/* Stats Cards - Diseño en 2 Columnas */}
+      {/* Stats Cards - DiseÃ±o en 2 Columnas */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -721,7 +721,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         >
           {searchTerm && (
             <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm">
-              <span>Búsqueda: &quot;{searchTerm}&quot;</span>
+              <span>BÃºsqueda: &quot;{searchTerm}&quot;</span>
               <button
                 onClick={() => setSearchTerm('')}
                 className="ml-2 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
@@ -751,11 +751,11 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+        className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 p-4 mb-6"
         data-tour-id="mgmt-proyecciones-filters"
       >
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Búsqueda global */}
+          {/* BÃºsqueda global */}
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -771,7 +771,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
 
           {/* Controles */}
           <div className="flex items-center gap-2">
-            {/* Botón limpiar filtros */}
+            {/* BotÃ³n limpiar filtros */}
             {(Object.values(columnFilters).some(filters => filters.length > 0) || searchTerm) && (
               <button
                 onClick={() => {
@@ -866,7 +866,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 overflow-hidden"
       >
         <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
           <table className="w-full text-sm">
@@ -908,7 +908,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                                       className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                     />
                                     <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                                      {formatValue(value, column.type as any) || '(vacío)'}
+                                      {formatValue(value, column.type as any) || '(vacÃ­o)'}
                                     </span>
                                   </label>
                                 ))}
@@ -944,7 +944,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
                       ? 'bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border-l-4 border-amber-500 dark:border-amber-600' 
                       : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
-                  title={proyeccion.sin_proceso ? 'Esta proyección no tiene proceso asociado' : ''}
+                  title={proyeccion.sin_proceso ? 'Esta proyecciÃ³n no tiene proceso asociado' : ''}
                 >
                   {columns.filter(col => visibleColumns.has(col.key)).map((column) => (
                     <td 
@@ -1012,7 +1012,7 @@ const ProyeccionesEmprestito: React.FC<ProyeccionesEmprestitoProps> = ({ onNavig
         </div>
       </motion.div>
 
-      {/* Modal para agregar proceso desde proyección */}
+      {/* Modal para agregar proceso desde proyecciÃ³n */}
       <AgregarProcesoModal
         isOpen={canManageRecordActions && showAgregarProcesoModal}
         onClose={() => {

@@ -1,86 +1,96 @@
-/* Estilos para Leaflet Map */
-@import 'leaflet/dist/leaflet.css';
+@import "leaflet/dist/leaflet.css";
 
-/* Arreglar el problema de los iconos de Leaflet */
 .leaflet-default-icon-path {
-  background-image: url('/leaflet/marker-icon.png');
+  background-image: url("/leaflet/marker-icon.png");
 }
 
-/* Estilos personalizados para el mapa */
+.ct-map-shell .leaflet-container,
 .leaflet-container {
   height: 100%;
   width: 100%;
-  font-family: inherit;
+  font-family:
+    "Space Grotesk",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  background: #f8fafc;
 }
 
-/* Estilos para los popups */
-.leaflet-popup-content-wrapper {
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.leaflet-popup-content {
-  margin: 0;
-  font-family: inherit;
-}
-
-/* Estilos para controles de zoom */
 .leaflet-control-zoom {
-  border: none !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  overflow: hidden;
 }
 
 .leaflet-control-zoom a {
-  border-radius: 6px !important;
-  color: #374151 !important;
-  font-size: 18px !important;
+  width: 28px !important;
+  height: 28px !important;
   line-height: 26px !important;
+  font-size: 14px !important;
+  color: #334155 !important;
+  border: 1px solid #d1d5db !important;
+  background: #ffffff !important;
 }
 
 .leaflet-control-zoom a:hover {
-  background-color: #f3f4f6 !important;
-  color: #1f2937 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
 }
 
-/* Tema oscuro */
 .dark .leaflet-control-zoom a {
-  background-color: #374151 !important;
+  background: #1f2937 !important;
   color: #d1d5db !important;
-  border: 1px solid #4b5563 !important;
+  border-color: #4b5563 !important;
 }
 
 .dark .leaflet-control-zoom a:hover {
-  background-color: #4b5563 !important;
-  color: #f9fafb !important;
+  background: #374151 !important;
 }
 
-/* Estilos para atribución */
 .leaflet-control-attribution {
-  background-color: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(4px);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 4px !important;
   font-size: 10px !important;
+  color: #64748b !important;
 }
 
 .dark .leaflet-control-attribution {
-  background-color: rgba(0, 0, 0, 0.8) !important;
-  color: #d1d5db !important;
+  background: rgba(17, 24, 39, 0.9) !important;
+  border-color: #374151 !important;
+  color: #9ca3af !important;
 }
 
 .leaflet-control-attribution a {
   color: inherit !important;
 }
 
-/* Estilos para etiquetas de medición */
+.leaflet-popup-content-wrapper {
+  border-radius: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+}
+
+.leaflet-popup-tip {
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+}
+
 .measure-segment-label {
-  background: rgba(255, 255, 255, 0.92) !important;
-  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #d1d5db !important;
   border-radius: 4px !important;
   padding: 2px 6px !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
   font-weight: 600 !important;
-  color: #374151 !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
+  color: #334155 !important;
+  box-shadow: none !important;
   white-space: nowrap !important;
 }
 
@@ -89,7 +99,158 @@
 }
 
 .dark .measure-segment-label {
-  background: rgba(31, 41, 55, 0.92) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(31, 41, 55, 0.96) !important;
+  border-color: #4b5563 !important;
   color: #e5e7eb !important;
+}
+
+.ct-map-popup {
+  min-width: 260px;
+  max-width: 320px;
+  padding: 12px;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.ct-map-popup.is-dark {
+  background: #1f2937;
+  color: #f3f4f6;
+}
+
+.ct-map-popup__header {
+  margin: -12px -12px 10px;
+  padding: 10px 12px;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ct-map-popup__meta {
+  margin-bottom: 10px;
+}
+
+.ct-map-popup__chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #1e3a8a;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+}
+
+.ct-map-popup.is-dark .ct-map-popup__chip {
+  background: #374151;
+  color: #bfdbfe;
+}
+
+.ct-map-popup__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.ct-map-popup.is-dark .ct-map-popup__label {
+  color: #9ca3af;
+}
+
+.ct-map-popup__progress-block {
+  margin-bottom: 10px;
+}
+
+.ct-map-popup__progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.ct-map-popup__value {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ct-map-popup__progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.ct-map-popup.is-dark .ct-map-popup__progress-track {
+  background: #374151;
+}
+
+.ct-map-popup__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.ct-map-popup__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ct-map-popup__kpi {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: #f8fafc;
+}
+
+.ct-map-popup.is-dark .ct-map-popup__kpi {
+  border-color: #4b5563;
+  background: #374151;
+}
+
+.ct-map-popup__kpi-value {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.ct-map-popup__money,
+.ct-map-popup__location {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.ct-map-popup.is-dark .ct-map-popup__money,
+.ct-map-popup.is-dark .ct-map-popup__location {
+  border-color: #4b5563;
+}
+
+.ct-map-popup__money-value {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.ct-map-popup.is-dark .ct-map-popup__money-value {
+  color: #6ee7b7;
+}
+
+.ct-map-popup__location-main {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ct-map-popup__location-sub {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.ct-map-popup.is-dark .ct-map-popup__location-sub {
+  color: #9ca3af;
 }

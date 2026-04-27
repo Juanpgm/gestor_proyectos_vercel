@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React from 'react'
 import { motion } from 'framer-motion'
@@ -32,7 +32,7 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
       return []
     }
 
-    // Recopilar todos los periodos únicos
+    // Recopilar todos los periodos Ãºnicos
     const periodosSet = new Set<string>()
     Object.values(data.hechos).forEach(proyecto => {
       Object.keys(proyecto).forEach(periodo => periodosSet.add(periodo))
@@ -78,7 +78,7 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
         desembolsoPlaneadoFormatted: formatNumber(totalDesembolso, 'currency')
       }
     }).filter(item => item.proyectosActivos > 0 || item.desembolsoReal > 0) // Solo periodos con datos
-     .slice(-12) // Últimos 12 meses
+     .slice(-12) // Ãšltimos 12 meses
   }, [data.hechos])
 
   // Tooltip personalizado
@@ -123,10 +123,10 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
-          Cargando gráfico de contratos...
+          Cargando grÃ¡fico de contratos...
         </div>
       </motion.div>
     )
@@ -138,7 +138,7 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center gap-3 mb-6">
           <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -146,10 +146,10 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Contratos de Empréstito
+              Contratos de EmprÃ©stito
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Evolución temporal de desembolsos y avances
+              EvoluciÃ³n temporal de desembolsos y avances
             </p>
           </div>
         </div>
@@ -168,7 +168,7 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+      className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
     >
       <div className="flex items-center gap-3 mb-6">
         <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -176,10 +176,10 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Contratos de Empréstito
+            Contratos de EmprÃ©stito
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Evolución temporal de desembolsos y avances ({chartData.length} períodos)
+            EvoluciÃ³n temporal de desembolsos y avances ({chartData.length} perÃ­odos)
           </p>
         </div>
       </div>
@@ -246,7 +246,7 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
               radius={[2, 2, 0, 0]}
             />
 
-            {/* Línea para avance promedio */}
+            {/* LÃ­nea para avance promedio */}
             <Line 
               yAxisId="porcentaje"
               type="monotone" 
@@ -258,7 +258,7 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
               connectNulls={false}
             />
 
-            {/* Línea para proyectos activos */}
+            {/* LÃ­nea para proyectos activos */}
             <Line 
               yAxisId="porcentaje"
               type="monotone" 
@@ -278,7 +278,7 @@ const EmprestitoContractsChart: React.FC<EmprestitoContractsChartProps> = ({
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Total Períodos</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Total PerÃ­odos</p>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
               {chartData.length}
             </p>

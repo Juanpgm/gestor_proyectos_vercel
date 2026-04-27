@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
@@ -35,7 +35,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const itemsPerPage = 20
 
-  // Obtener valores únicos para filtros
+  // Obtener valores Ãºnicos para filtros
   const estados = Array.from(new Set(procesos.map(p => p.estado_procedimiento).filter(Boolean)))
   const modalidades = Array.from(new Set(procesos.map(p => p.modalidad_contratacion).filter(Boolean)))
 
@@ -76,7 +76,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
     return filtered
   }, [procesos, searchTerm, estadoFilter, modalidadFilter, sortField, sortDirection])
 
-  // Paginación
+  // PaginaciÃ³n
   const totalPages = Math.ceil(filteredProcesos.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedProcesos = filteredProcesos.slice(startIndex, startIndex + itemsPerPage)
@@ -91,7 +91,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
   }
 
   const getEstadoBadge = (estado: string, adjudicado: string) => {
-    if (adjudicado === 'Sí' || adjudicado === 'Si') {
+    if (adjudicado === 'SÃ­' || adjudicado === 'Si') {
       return (
         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
           <CheckCircle className="w-3 h-3 mr-1" />
@@ -101,7 +101,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
     }
     
     const statusColors: Record<string, string> = {
-      'Evaluación': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+      'EvaluaciÃ³n': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
       'Publicado': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
       'Cerrado': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
       'Adjudicado': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
@@ -125,7 +125,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
         <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
           Cargando tabla de procesos...
         </div>
@@ -138,7 +138,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
       initial={ANIMATIONS.slideUp.initial}
       animate={ANIMATIONS.slideUp.animate}
       transition={ANIMATIONS.slideUp.transition}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
+      className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700"
     >
       {/* Header y Filtros */}
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -148,7 +148,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
           </h3>
           
           <div className="flex flex-col sm:flex-row gap-3">
-            {/* Búsqueda */}
+            {/* BÃºsqueda */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
@@ -211,7 +211,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
                 onClick={() => handleSort('fecha_publicacion_proceso')}
               >
                 <div className="flex items-center gap-1">
-                  Fecha Publicación
+                  Fecha PublicaciÃ³n
                   <ArrowUpDown className="w-3 h-3" />
                 </div>
               </th>
@@ -310,7 +310,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
         </table>
       </div>
 
-      {/* Paginación */}
+      {/* PaginaciÃ³n */}
       {totalPages > 1 && (
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
@@ -326,7 +326,7 @@ export default function ProcesosTable({ procesos, loading = false }: ProcesosTab
                 Anterior
               </button>
               <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">
-                Página {currentPage} de {totalPages}
+                PÃ¡gina {currentPage} de {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}

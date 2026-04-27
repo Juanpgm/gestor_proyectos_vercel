@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { motion } from 'framer-motion'
 import { 
@@ -112,8 +112,8 @@ export default function ProcesosStats({
             animate={ANIMATIONS.fadeIn.animate}
             transition={{ ...ANIMATIONS.fadeIn.transition, delay: index * 0.1 }}
             className={`
-              bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-lg border 
-              border-gray-200 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 
+              bg-white dark:bg-gray-800 rounded-md p-4 md:p-6 shadow-none border 
+              border-gray-200 dark:border-gray-700 hover:shadow-sm hover:-translate-y-1 
               transition-all duration-300 ${stat.bgColor}
             `}
           >

@@ -140,7 +140,7 @@ export default function UserManagementPage({
 
     return Array.from(new Set([...fromEndpoint, ...fromGlobalUsers, ...fromSession].filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, 'es'))
-  }, [centrosGestores, allUsers, state.user?.centro_gestor_assigned])
+  }, [centrosGestores, allUsers, state.user])
 
   const detectedUserRole = currentUserRole || getHighestRole((state.user?.roles as RoleId[] | undefined) || []) || 'publico'
   const isPublicRoleTheme = (state.user?.roles || []).includes('publico')
@@ -207,11 +207,11 @@ export default function UserManagementPage({
     ...normalizePermissionList(connectedUserPermissions),
     ...normalizePermissionList(state.user?.permissions),
     ...inferPermissionsFromRoles()
-  ])), [connectedUserPermissions, state.user?.permissions, rolesCatalog])
+  ])), [connectedUserPermissions, state.user?.permissions, state.user?.roles, rolesCatalog])
   const roleNameMap = useMemo(() => new Map(roleFilterOptions.map((roleId) => [
     roleId,
     getRoleMeta(roleId).label
-  ])), [roleFilterOptions])
+  ])), [roleFilterOptions, rolesCatalog])
   const hasToken = hasBearerToken
   const isUserActive = state.user?.is_active !== false
   const hasManageUsers = useMemo(() => isSuperAdmin || effectivePermissions.includes('manage:users') || effectivePermissions.includes('*'), [isSuperAdmin, effectivePermissions])
@@ -890,6 +890,10 @@ export default function UserManagementPage({
     if (activeTab === 'recomendaciones') {
       loadRecommendations()
     }
+    // loadBugReports/loadEscalationRequests/loadRecommendations are intentionally omitted:
+    // they are not wrapped in useCallback and their identity changes every render.
+    // This effect should only fire on tab/auth changes, not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, authReady])
 
   if (!canManageUsers && !isAdminGeneral) {
@@ -1288,7 +1292,7 @@ export default function UserManagementPage({
 
           {!endpointDiagnosticsLoading && endpointDiagnostics.length === 0 && (
             <div className="text-xs rounded-md px-3 py-2 border bg-gray-50 dark:bg-gray-700/30 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700">
-              Sin diagnóstico aún. Usa "Reprobar endpoints".
+              Sin diagnóstico aún. Usa &quot;Reprobar endpoints&quot;.
             </div>
           )}
         </div>

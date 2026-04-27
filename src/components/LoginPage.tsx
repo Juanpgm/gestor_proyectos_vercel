@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { Eye, EyeOff } from 'lucide-react'
 import { API_CONFIG, AUTH_CONFIG } from '@/config/app'
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator'
 import ForgotPasswordModal from '@/components/ForgotPasswordModal'
@@ -227,7 +227,7 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f4f6f9] dark:bg-[#0d1f36] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo y encabezado */}
         <motion.div
@@ -236,8 +236,8 @@ export default function LoginPage() {
           transition={{ duration: 0.3 }}
           className="text-center mb-6"
         >
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-green-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-            <span className="text-white text-2xl font-bold">AC</span>
+          <div className="mx-auto w-12 h-12 bg-[#1e3a5f] rounded-md flex items-center justify-center mb-4">
+            <span className="text-white text-lg font-bold tracking-tight">CT</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Sistema de Gestión de Proyectos
@@ -408,9 +408,9 @@ export default function LoginPage() {
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     {showPassword ? (
-                      <EyeSlashIcon className="w-5 h-5" />
+                      <EyeOff size={16} strokeWidth={1.5} />
                     ) : (
-                      <EyeIcon className="w-5 h-5" />
+                      <Eye size={16} strokeWidth={1.5} />
                     )}
                   </button>
                 </div>
@@ -455,9 +455,9 @@ export default function LoginPage() {
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       >
                         {showConfirmPassword ? (
-                          <EyeSlashIcon className="w-5 h-5" />
-                        ) : (
-                          <EyeIcon className="w-5 h-5" />
+                          <EyeOff size={16} strokeWidth={1.5} />
+                          ) : (
+                          <Eye size={16} strokeWidth={1.5} />
                         )}
                       </button>
                     </div>
@@ -628,7 +628,7 @@ export default function LoginPage() {
                 type="submit"
                 disabled={!isFormValid || isLoading}
 
-                className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
+                className="w-full bg-[#1e3a5f] hover:bg-[#163355] text-white font-semibold py-3 px-4 rounded-xl transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-2">

@@ -370,7 +370,7 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                 <nav className="flex items-center space-x-2">
                   <button
                     onClick={handleExportPDF}
-                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-sm transform hover:scale-105"
                     aria-label="Exportar ficha"
                   >
                     <Download className="w-4 h-4" />
@@ -599,7 +599,7 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                   </button>
                   <button
                     onClick={handleExportPDF}
-                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-sm transform hover:scale-105"
                   >
                     <Download className="w-4 h-4" />
                     <span className="text-sm">Exportar PDF</span>

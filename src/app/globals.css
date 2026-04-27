@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* Importar tipografía personalizada */
-@import '../styles/fonts.css';
+@import "../styles/fonts.css";
 
 @layer base {
   :root {
@@ -11,23 +11,23 @@
     --projects-primary: #2563eb;
     --projects-light: #3b82f6;
     --projects-bg: #dbeafe;
-    
+
     --units-primary: #059669;
     --units-light: #10b981;
     --units-bg: #d1fae5;
-    
+
     --activities-primary: #dc2626;
     --activities-light: #ef4444;
     --activities-bg: #fee2e2;
-    
+
     --products-primary: #ea580c;
     --products-light: #f97316;
     --products-bg: #fed7aa;
-    
+
     --contracts-primary: #7c3aed;
     --contracts-light: #8b5cf6;
     --contracts-bg: #ede9fe;
-    
+
     /* Variables legacy */
     --cali-blue: #2563eb;
     --cali-green: #059669;
@@ -35,7 +35,7 @@
     --cali-orange: #ea580c;
     --cali-purple: #7c3aed;
     --cali-gray: #6b7280;
-    
+
     /* Variables específicas para tablets */
     --tablet-spacing: 1.5rem;
     --tablet-border-radius: 0.75rem;
@@ -44,61 +44,64 @@
     /* ── Design System Tokens ─────────────────────── */
 
     /* Border Radius */
-    --radius-xs:   0.125rem;
-    --radius-sm:   0.25rem;
-    --radius-md:   0.375rem;
-    --radius-lg:   0.5rem;
-    --radius-xl:   0.75rem;
-    --radius-2xl:  1rem;
-    --radius-3xl:  1.5rem;
+    --radius-xs: 0.125rem;
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
+    --radius-3xl: 1.5rem;
     --radius-full: 9999px;
 
     /* Shadows */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-md:
+      0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg:
+      0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl:
+      0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
     /* Motion */
-    --motion-fast:   120ms;
+    --motion-fast: 120ms;
     --motion-normal: 200ms;
-    --motion-slow:   300ms;
+    --motion-slow: 300ms;
     --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-    --motion-ease-enter:    cubic-bezier(0, 0, 0.2, 1);
-    --motion-ease-exit:     cubic-bezier(0.4, 0, 1, 1);
-    --motion-ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+    --motion-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+    --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+    --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
     /* Surface — Light mode */
-    --color-surface-bg:      #f9fafb;
-    --color-surface-card:    #ffffff;
-    --color-surface-subtle:  #f3f4f6;
-    --color-surface-border:  #e5e7eb;
-    --color-text-primary:    #111827;
-    --color-text-secondary:  #4b5563;
-    --color-text-muted:      #9ca3af;
+    --color-surface-bg: #f9fafb;
+    --color-surface-card: #ffffff;
+    --color-surface-subtle: #f3f4f6;
+    --color-surface-border: #e5e7eb;
+    --color-text-primary: #111827;
+    --color-text-secondary: #4b5563;
+    --color-text-muted: #9ca3af;
 
     /* Z-index semántico */
-    --z-header:   100;
+    --z-header: 100;
     --z-dropdown: 200;
-    --z-sticky:   300;
-    --z-overlay:  400;
-    --z-modal:    500;
-    --z-popover:  600;
-    --z-toast:    700;
-    --z-tooltip:  800;
-    --z-tour:    1000;
+    --z-sticky: 300;
+    --z-overlay: 400;
+    --z-modal: 500;
+    --z-popover: 600;
+    --z-toast: 700;
+    --z-tooltip: 800;
+    --z-tour: 1000;
   }
 
   .dark {
     /* Surface — Dark mode */
-    --color-surface-bg:      #111827;
-    --color-surface-card:    #1f2937;
-    --color-surface-subtle:  #1f2937;
-    --color-surface-border:  #374151;
-    --color-text-primary:    #f9fafb;
-    --color-text-secondary:  #d1d5db;
-    --color-text-muted:      #6b7280;
+    --color-surface-bg: #111827;
+    --color-surface-card: #1f2937;
+    --color-surface-subtle: #1f2937;
+    --color-surface-border: #374151;
+    --color-text-primary: #f9fafb;
+    --color-text-secondary: #d1d5db;
+    --color-text-muted: #6b7280;
   }
 
   * {
@@ -107,72 +110,89 @@
 
   body {
     @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
     line-height: 1.6;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      "Noto Sans",
+      sans-serif;
     /* Mejorar smooth scrolling en tablets */
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
 
   /* Tipografía responsiva mejorada con soporte específico para tablets */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-semibold text-gray-900 dark:text-white;
     line-height: 1.25;
   }
 
   /* Escalado de tipografía más preciso para diferentes dispositivos */
-  h1 { 
-    @apply text-xl tablet:text-2xl md:text-3xl lg:text-4xl; 
+  h1 {
+    @apply text-xl tablet:text-2xl md:text-3xl lg:text-4xl;
     @apply tablet:text-tablet-xl;
   }
-  h2 { 
-    @apply text-lg tablet:text-xl md:text-2xl lg:text-3xl; 
+  h2 {
+    @apply text-lg tablet:text-xl md:text-2xl lg:text-3xl;
     @apply tablet:text-tablet-lg;
   }
-  h3 { 
-    @apply text-base tablet:text-lg md:text-xl lg:text-2xl; 
+  h3 {
+    @apply text-base tablet:text-lg md:text-xl lg:text-2xl;
     @apply tablet:text-tablet-base;
   }
-  h4 { 
-    @apply text-sm tablet:text-base md:text-lg lg:text-xl; 
+  h4 {
+    @apply text-sm tablet:text-base md:text-lg lg:text-xl;
     @apply tablet:text-tablet-sm;
   }
-  h5 { 
-    @apply text-xs tablet:text-sm md:text-base lg:text-lg; 
+  h5 {
+    @apply text-xs tablet:text-sm md:text-base lg:text-lg;
     @apply tablet:text-tablet-xs;
   }
-  h6 { 
-    @apply text-xs tablet:text-xs md:text-sm lg:text-base; 
+  h6 {
+    @apply text-xs tablet:text-xs md:text-sm lg:text-base;
   }
 
   /* Texto responsive mejorado */
-  .text-responsive-lg { 
-    @apply text-sm tablet:text-base md:text-lg lg:text-xl; 
+  .text-responsive-lg {
+    @apply text-sm tablet:text-base md:text-lg lg:text-xl;
     @apply tablet:text-tablet-base;
   }
-  .text-responsive { 
-    @apply text-xs tablet:text-sm md:text-base; 
+  .text-responsive {
+    @apply text-xs tablet:text-sm md:text-base;
     @apply tablet:text-tablet-sm;
   }
-  .text-responsive-sm { 
-    @apply text-xs tablet:text-xs md:text-sm; 
+  .text-responsive-sm {
+    @apply text-xs tablet:text-xs md:text-sm;
     @apply tablet:text-tablet-xs;
   }
-  
+
   /* Mejoras específicas para tablets */
   @media (min-width: 768px) and (max-width: 1024px) {
     body {
       font-size: 16px; /* Tamaño base más grande en tablets */
     }
-    
+
     /* Elementos interactivos más grandes en tablets */
-    button, .btn, [role="button"] {
+    button,
+    .btn,
+    [role="button"] {
       min-height: var(--touch-target-size);
       min-width: var(--touch-target-size);
       padding: 0.75rem 1rem;
     }
-    
+
     /* Links más fáciles de tocar */
     a {
       padding: 0.25rem 0.5rem;
@@ -180,12 +200,12 @@
       border-radius: 0.375rem;
       transition: background-color 0.2s ease;
     }
-    
+
     a:hover {
       background-color: rgba(0, 0, 0, 0.05);
     }
   }
-  
+
   /* Mejoras para orientación landscape en tablets */
   @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
     .container {
@@ -194,33 +214,35 @@
       padding-right: 2rem;
     }
   }
-  
+
   /* Mejoras para orientación portrait en tablets */
   @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
     .container {
       padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
-    
+
     /* Grids más compactos en portrait */
     .grid {
       gap: 1rem;
     }
   }
-  
+
   /* Soporte para dispositivos táctiles */
   @media (hover: none) and (pointer: coarse) {
     /* Elementos hover convertidos a estados focus/active */
     [class*="hover:"]:hover {
       /* Desactivar hover en dispositivos táctiles */
     }
-    
+
     /* Mejorar feedback táctil */
-    button:active, .btn:active, [role="button"]:active {
+    button:active,
+    .btn:active,
+    [role="button"]:active {
       transform: scale(0.98);
       transition: transform 0.1s ease;
     }
-    
+
     /* Scrollbars más gruesos en dispositivos táctiles */
     ::-webkit-scrollbar {
       width: 12px;
@@ -266,7 +288,7 @@
   .z-max {
     z-index: 99999;
   }
-  
+
   /* Utilidades específicas para tablets */
   .tablet-safe-area {
     padding-left: env(safe-area-inset-left);
@@ -274,44 +296,44 @@
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .touch-action-pan-x {
     touch-action: pan-x;
   }
-  
+
   .touch-action-pan-y {
     touch-action: pan-y;
   }
-  
+
   .touch-action-none {
     touch-action: none;
   }
-  
+
   /* Utilidades para scrolling suave en tablets */
   .scroll-smooth-tablet {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* Utilidades para hover en dispositivos táctiles */
   @media (hover: none) {
     .touch-hover\:bg-gray-100:active {
       background-color: #f3f4f6;
     }
-    
+
     .touch-hover\:bg-gray-200:active {
       background-color: #e5e7eb;
     }
-    
+
     .touch-hover\:scale-105:active {
       transform: scale(1.05);
     }
-    
+
     .touch-hover\:scale-95:active {
       transform: scale(0.95);
     }
   }
-  
+
   /* Utilidades para elementos que deben ser más grandes en tablets */
   .tablet-interactive {
     @media (min-width: 768px) and (max-width: 1024px) {
@@ -321,59 +343,59 @@
       border-radius: var(--tablet-border-radius);
     }
   }
-  
+
   /* Grid responsivo optimizado para tablets */
   .grid-responsive {
     display: grid;
     gap: 1rem;
     grid-template-columns: 1fr;
   }
-  
+
   @media (min-width: 640px) {
     .grid-responsive {
       grid-template-columns: repeat(2, 1fr);
     }
   }
-  
+
   @media (min-width: 768px) and (max-width: 1024px) {
     .grid-responsive {
       grid-template-columns: repeat(2, 1fr);
       gap: 1.5rem;
     }
   }
-  
+
   @media (min-width: 1024px) {
     .grid-responsive {
       grid-template-columns: repeat(3, 1fr);
     }
   }
-  
+
   @media (min-width: 1280px) {
     .grid-responsive {
       grid-template-columns: repeat(4, 1fr);
     }
   }
-  
+
   /* Flexbox helpers para tablets */
   .flex-tablet-column {
     @media (min-width: 768px) and (max-width: 1024px) {
       flex-direction: column;
     }
   }
-  
+
   .flex-tablet-row {
     @media (min-width: 768px) and (max-width: 1024px) {
       flex-direction: row;
     }
   }
-  
+
   /* Espaciado específico para tablets */
   .space-tablet {
     @media (min-width: 768px) and (max-width: 1024px) {
       margin: var(--tablet-spacing);
     }
   }
-  
+
   .gap-tablet {
     @media (min-width: 768px) and (max-width: 1024px) {
       gap: var(--tablet-spacing);
@@ -442,7 +464,9 @@ body.map-fullscreen {
 
 .leaflet-popup-content-wrapper {
   border-radius: 0.5rem;
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 25px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   padding: 0;
 }
 
@@ -462,7 +486,9 @@ body.map-fullscreen {
 .custom-popup .leaflet-popup-content-wrapper {
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .custom-popup .leaflet-popup-tip {
@@ -575,23 +601,23 @@ body.map-fullscreen {
 
 /* Dark mode adjustments for leaflet */
 .dark .leaflet-container a {
-  color: #3B82F6;
+  color: #3b82f6;
 }
 
 .dark .leaflet-control-attribution {
   background: rgba(31, 41, 55, 0.8) !important;
-  color: #D1D5DB !important;
+  color: #d1d5db !important;
 }
 
 .dark .leaflet-control-zoom a {
   background: #374151 !important;
-  color: #D1D5DB !important;
-  border-color: #4B5563 !important;
+  color: #d1d5db !important;
+  border-color: #4b5563 !important;
 }
 
 .dark .leaflet-control-zoom a:hover {
-  background: #4B5563 !important;
-  color: #F9FAFB !important;
+  background: #4b5563 !important;
+  color: #f9fafb !important;
   border-color: #6b7280 !important;
 }
 
@@ -651,7 +677,7 @@ body.map-fullscreen {
 }
 
 .dark .shimmer {
-  background: linear-gradient(90deg, #374151 25%, #4B5563 50%, #374151 75%);
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
   background-size: 200px 100%;
 }
 
@@ -673,7 +699,9 @@ body.map-fullscreen {
   background: white;
   color: #333;
   border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid #e5e7eb;
   padding: 0;
 }
@@ -711,46 +739,50 @@ body.map-fullscreen {
 }
 
 /* Leaflet CSS - Importado globalmente para dynamic imports */
-@import 'leaflet/dist/leaflet.css';
+@import "leaflet/dist/leaflet.css";
 
 /* Estilos mejorados para popups de Unidades de Proyecto */
 .custom-popup .leaflet-popup-content-wrapper {
   background: white !important;
-  color: #1e293b !important;
-  border-radius: 12px !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #0f172a !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  border: 1px solid #e5e7eb !important;
   padding: 0 !important;
   max-width: 320px !important;
-  min-width: 280px !important;
+  min-width: 260px !important;
 }
 
 .custom-popup .leaflet-popup-content {
   margin: 0 !important;
   padding: 0 !important;
-  line-height: 1.5 !important;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  line-height: 1.4 !important;
+  font-family:
+    "Space Grotesk",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif !important;
 }
 
 .custom-popup .leaflet-popup-tip {
   background: white !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
 }
 
 .custom-popup .leaflet-popup-close-button {
-  color: #6b7280 !important;
-  font-size: 18px !important;
-  font-weight: 700 !important;
-  padding: 8px 12px !important;
-  background: rgba(255, 255, 255, 0.9) !important;
-  border-radius: 50% !important;
-  margin: 8px 8px 0 0 !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  color: #64748b !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 4px 8px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-radius: 4px !important;
+  margin: 6px 6px 0 0 !important;
+  box-shadow: none !important;
   border: 1px solid #e5e7eb !important;
   text-decoration: none !important;
-  width: 32px !important;
-  height: 32px !important;
+  width: 24px !important;
+  height: 24px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -758,16 +790,16 @@ body.map-fullscreen {
 }
 
 .custom-popup .leaflet-popup-close-button:hover {
-  color: #dc2626 !important;
-  background: #fef2f2 !important;
-  border-color: #fecaca !important;
-  transform: scale(1.05) !important;
+  color: #1d4ed8 !important;
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  transform: none !important;
 }
 
 /* Modo oscuro para popups */
 .dark .custom-popup .leaflet-popup-content-wrapper {
   background: #1f2937 !important;
-  color: #f9fafb !important;
+  color: #f3f4f6 !important;
   border-color: #374151 !important;
 }
 
@@ -777,15 +809,15 @@ body.map-fullscreen {
 }
 
 .dark .custom-popup .leaflet-popup-close-button {
-  background: rgba(31, 41, 55, 0.9) !important;
+  background: rgba(31, 41, 55, 0.95) !important;
   color: #9ca3af !important;
   border-color: #4b5563 !important;
 }
 
 .dark .custom-popup .leaflet-popup-close-button:hover {
-  color: #f87171 !important;
-  background: #7f1d1d !important;
-  border-color: #dc2626 !important;
+  color: #bfdbfe !important;
+  background: #1e3a8a !important;
+  border-color: #1d4ed8 !important;
 }
 
 /* Animación suave para popups */
@@ -951,18 +983,18 @@ div[class*="fixed inset-0"] {
   .overflow-x-auto::-webkit-scrollbar {
     height: 14px;
   }
-  
+
   .overflow-x-auto::-webkit-scrollbar-track {
     @apply bg-gray-200 dark:bg-gray-700 rounded-lg;
     margin: 0 8px;
   }
-  
+
   .overflow-x-auto::-webkit-scrollbar-thumb {
     @apply bg-blue-500 dark:bg-blue-500 rounded-lg;
     border: 3px solid transparent;
     background-clip: padding-box;
   }
-  
+
   .overflow-x-auto::-webkit-scrollbar-thumb:hover {
     @apply bg-blue-600 dark:bg-blue-400;
   }

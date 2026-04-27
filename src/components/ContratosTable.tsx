@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -94,7 +94,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
   // Aplicar filtros y ordenamiento
   const processedData = useMemo(() => {
     let filtered = filteredContratos.filter(contrato => {
-      // Filtro de búsqueda
+      // Filtro de bÃºsqueda
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase()
         const searchableText = [
@@ -109,7 +109,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
         if (!searchableText.includes(searchTerm)) return false
       }
 
-      // Filtros específicos
+      // Filtros especÃ­ficos
       if (filters.estado && contrato.estado_contrato !== filters.estado) return false
       if (filters.sector && contrato.sector !== filters.sector) return false
       if (filters.entidad && contrato.nombre_entidad !== filters.entidad) return false
@@ -128,8 +128,8 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
       if (filters.valorMax && contrato.valor_contrato > parseFloat(filters.valorMax)) return false
 
       // Filtros booleanos
-      if (filters.soloActivos && !['Vigente', 'En Ejecución', 'Activo'].includes(contrato.estado_contrato || '')) return false
-      if (filters.soloPyme && contrato.es_pyme !== 'Sí') return false
+      if (filters.soloActivos && !['Vigente', 'En EjecuciÃ³n', 'Activo'].includes(contrato.estado_contrato || '')) return false
+      if (filters.soloPyme && contrato.es_pyme !== 'SÃ­') return false
 
       return true
     })
@@ -160,7 +160,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
     return filtered
   }, [filteredContratos, filters, sortField, sortDirection])
 
-  // Paginación
+  // PaginaciÃ³n
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
     return processedData.slice(startIndex, startIndex + itemsPerPage)
@@ -191,7 +191,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
   const getEstadoIcon = (estado: string) => {
     switch (estado) {
       case 'Vigente':
-      case 'En Ejecución':
+      case 'En EjecuciÃ³n':
       case 'Activo':
         return <CheckCircle className="w-4 h-4 text-green-500" />
       case 'Liquidado':
@@ -210,7 +210,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700">
         <div className="p-6">
           <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
             Cargando tabla de contratos...
@@ -223,7 +223,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
   return (
     <motion.div
       {...ANIMATIONS.slideUp}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
+      className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700"
     >
       {/* Header con filtros */}
       <div className="p-3 sm:p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
@@ -271,10 +271,10 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
               className="mt-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-600"
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {/* Búsqueda */}
+                {/* BÃºsqueda */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Búsqueda
+                    BÃºsqueda
                   </label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -335,7 +335,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                     <option value="">Todas las entidades</option>
                     {filterOptions.entidades.map(entidad => (
                       <option key={entidad} value={entidad}>
-                        {entidad.replace('SECRETARIA DE ', '').replace('SECRETARÍA DE ', '')}
+                        {entidad.replace('SECRETARIA DE ', '').replace('SECRETARÃA DE ', '')}
                       </option>
                     ))}
                   </select>
@@ -364,7 +364,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                 </div>
               </div>
 
-              {/* Botón para limpiar filtros */}
+              {/* BotÃ³n para limpiar filtros */}
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={() => setFilters({
@@ -467,21 +467,21 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200"
                   >
-                    {/* Información del contrato */}
+                    {/* InformaciÃ³n del contrato */}
                     <td className="px-4 py-4">
                       <div className="flex flex-col max-w-xs">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm font-bold text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 rounded">
                             {contrato.referencia_contrato}
                           </span>
-                          {contrato.es_pyme === 'Sí' && (
+                          {contrato.es_pyme === 'SÃ­' && (
                             <span className="text-xs text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 rounded font-medium">
                               PYME
                             </span>
                           )}
                         </div>
                         <span className="text-xs text-gray-600 dark:text-gray-300 truncate">
-                          {contrato.nombre_entidad?.replace('SECRETARIA DE ', '').replace('SECRETARÍA DE ', '')}
+                          {contrato.nombre_entidad?.replace('SECRETARIA DE ', '').replace('SECRETARÃA DE ', '')}
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
                           BPIN: {contrato.bpin}
@@ -604,16 +604,16 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                                   Detalles del Contrato
                                 </h4>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  Información completa y enlaces
+                                  InformaciÃ³n completa y enlaces
                                 </p>
                               </div>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                              {/* Información general */}
+                              {/* InformaciÃ³n general */}
                               <div className="space-y-3">
                                 <h5 className="text-sm font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-1">
-                                  Información General
+                                  InformaciÃ³n General
                                 </h5>
                                 <div className="space-y-2 text-sm">
                                   <div>
@@ -631,7 +631,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                                 </div>
                               </div>
 
-                              {/* Información del proveedor */}
+                              {/* InformaciÃ³n del proveedor */}
                               <div className="space-y-3">
                                 <h5 className="text-sm font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-1">
                                   Proveedor
@@ -646,20 +646,20 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                                     <p className="text-gray-700 dark:text-gray-300">{contrato.nombre_representante_legal}</p>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    {contrato.es_pyme === 'Sí' && (
+                                    {contrato.es_pyme === 'SÃ­' && (
                                       <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">PYME</span>
                                     )}
-                                    {contrato.es_grupo === 'Sí' && (
+                                    {contrato.es_grupo === 'SÃ­' && (
                                       <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Grupo</span>
                                     )}
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Información financiera */}
+                              {/* InformaciÃ³n financiera */}
                               <div className="space-y-3">
                                 <h5 className="text-sm font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-1">
-                                  Información Financiera
+                                  InformaciÃ³n Financiera
                                 </h5>
                                 <div className="space-y-2 text-sm">
                                   <div>
@@ -669,7 +669,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                                     </p>
                                   </div>
                                   <div>
-                                    <span className="text-gray-500 dark:text-gray-400">Pendiente Ejecución:</span>
+                                    <span className="text-gray-500 dark:text-gray-400">Pendiente EjecuciÃ³n:</span>
                                     <p className="font-semibold text-orange-600 dark:text-orange-400">
                                       {formatNumber(Number(contrato.valor_pendiente_ejecucion || 0), 'currency')}
                                     </p>
@@ -686,11 +686,11 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
                               </div>
                             </div>
 
-                            {/* Descripción del proceso */}
+                            {/* DescripciÃ³n del proceso */}
                             {contrato.descripcion_proceso && (
                               <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
                                 <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                                  Descripción del Proceso
+                                  DescripciÃ³n del Proceso
                                 </h5>
                                 <p className="text-sm text-gray-700 dark:text-gray-400 leading-relaxed">
                                   {contrato.descripcion_proceso}
@@ -734,7 +734,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
         </IPadOptimizedTable>
       </div>
 
-      {/* Paginación */}
+      {/* PaginaciÃ³n */}
       {totalPages > 1 && (
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
@@ -752,7 +752,7 @@ const ContratosTable: React.FC<ContratosTableProps> = ({
               </button>
               
               <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">
-                Página {currentPage} de {totalPages}
+                PÃ¡gina {currentPage} de {totalPages}
               </span>
               
               <button

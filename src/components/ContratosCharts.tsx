@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React from 'react'
 import { motion } from 'framer-motion'
@@ -35,7 +35,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
   contratos,
   loading = false
 }) => {
-  // Procesar datos para gráficos simplificados
+  // Procesar datos para grÃ¡ficos simplificados
   const chartData = React.useMemo(() => {
     if (!contratos.length) return null
 
@@ -56,7 +56,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
       valueFormatted: formatNumber(data.valor, 'currency')
     }))
 
-    // 2. Valor por modalidad de contratación (BarChart)
+    // 2. Valor por modalidad de contrataciÃ³n (BarChart)
     const contratosPorModalidad = contratos.reduce((acc, contrato) => {
       const modalidad = contrato.modalidad_contratacion || 'Sin Modalidad'
       if (!acc[modalidad]) {
@@ -78,7 +78,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 8) // Solo las top 8 modalidades
 
-    // 3. Evolución temporal de contratos (ComposedChart)
+    // 3. EvoluciÃ³n temporal de contratos (ComposedChart)
     const contratosPorMes = contratos.reduce((acc, contrato) => {
       if (contrato.fecha_firma) {
         const fecha = new Date(contrato.fecha_firma)
@@ -100,7 +100,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
         valorPromedio: data.count > 0 ? data.valor / data.count : 0
       }))
       .sort((a, b) => a.mes.localeCompare(b.mes))
-      .slice(-12) // Últimos 12 meses
+      .slice(-12) // Ãšltimos 12 meses
 
     // 4. Top entidades por valor de contratos (BarChart)
     const contratosPorEntidad = contratos.reduce((acc, contrato) => {
@@ -141,7 +141,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
           >
             <div className="animate-pulse">
               <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded mb-4"></div>
@@ -155,7 +155,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
 
   if (!chartData) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
         <p className="text-center text-gray-500 dark:text-gray-400">No hay datos de contratos disponibles</p>
       </div>
     )
@@ -163,7 +163,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Primera fila - Gráficos principales */}
+      {/* Primera fila - GrÃ¡ficos principales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* 1. Estados de Contratos - PieChart */}
@@ -171,7 +171,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, ...ANIMATIONS.fadeIn }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-violet-100 dark:bg-violet-900/30 rounded-lg">
@@ -179,7 +179,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Estados de Contratos</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Distribución por estado</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">DistribuciÃ³n por estado</p>
             </div>
           </div>
           
@@ -214,7 +214,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, ...ANIMATIONS.fadeIn }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -222,7 +222,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Valor por Modalidad</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Top modalidades de contratación</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Top modalidades de contrataciÃ³n</p>
             </div>
           </div>
           
@@ -250,23 +250,23 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
         </motion.div>
       </div>
 
-      {/* Segunda fila - Análisis temporal y entidades */}
+      {/* Segunda fila - AnÃ¡lisis temporal y entidades */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* 3. Evolución Temporal - ComposedChart */}
+        {/* 3. EvoluciÃ³n Temporal - ComposedChart */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, ...ANIMATIONS.fadeIn }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Evolución Temporal</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Últimos 12 meses</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">EvoluciÃ³n Temporal</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Ãšltimos 12 meses</p>
             </div>
           </div>
           
@@ -313,7 +313,7 @@ const ContratosCharts: React.FC<ContratosChartsProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, ...ANIMATIONS.fadeIn }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">

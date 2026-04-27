@@ -713,7 +713,7 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                                 window.open(url.trim(), '_blank', 'noopener,noreferrer')
                               }
                             }}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 duration-200"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg hover:shadow-sm transform hover:scale-105 duration-200"
                           >
                             <ExternalLink className="w-4 h-4" />
                             Ver en SECOP

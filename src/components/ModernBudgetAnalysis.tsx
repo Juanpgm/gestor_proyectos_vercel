@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -61,7 +61,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
   const [showDetails, setShowDetails] = useState(false)
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null)
 
-  // Procesar datos según el rango de tiempo seleccionado
+  // Procesar datos segÃºn el rango de tiempo seleccionado
   const processedData = useMemo(() => {
     if (!filteredMovimientosPresupuestales || !filteredEjecucionPresupuestal) return []
 
@@ -91,7 +91,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
     const filteredMovimientos = filterByTime(filteredMovimientosPresupuestales)
     const filteredEjecucion = filterByTime(filteredEjecucionPresupuestal)
 
-    // Agrupar por período
+    // Agrupar por perÃ­odo
     const periodTotals: { [key: string]: any } = {}
     
     filteredMovimientos.forEach((item: any) => {
@@ -136,7 +136,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
     return Object.values(periodTotals).sort((a: any, b: any) => a.period.localeCompare(b.period))
   }, [filteredMovimientosPresupuestales, filteredEjecucionPresupuestal, timeRange])
 
-  // Calcular métricas totales
+  // Calcular mÃ©tricas totales
   const totalMetrics = useMemo(() => {
     if (processedData.length === 0) {
       return {
@@ -181,7 +181,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
     return totals
   }, [processedData])
 
-  // Datos para gráfico de torta
+  // Datos para grÃ¡fico de torta
   const pieData = useMemo(() => {
     return [
       { name: 'Ejecutado', value: totalMetrics.totalEjecucion, color: CHART_COLORS[1] },
@@ -200,7 +200,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
           transition={{ duration: 0.2 }}
         >
           <p className="font-semibold text-gray-900 dark:text-white mb-2 border-b border-gray-200 dark:border-gray-600 pb-1">
-            {`Período: ${label}`}
+            {`PerÃ­odo: ${label}`}
           </p>
           <div className="space-y-1">
             {payload.map((entry: any, index: number) => (
@@ -284,9 +284,9 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
   )
 
   const chartTypes = [
-    { id: 'area', name: 'Área', icon: Activity },
+    { id: 'area', name: 'Ãrea', icon: Activity },
     { id: 'bar', name: 'Barras', icon: BarChart3 },
-    { id: 'line', name: 'Líneas', icon: TrendingUp },
+    { id: 'line', name: 'LÃ­neas', icon: TrendingUp },
     { id: 'composed', name: 'Combinado', icon: Zap },
     { id: 'pie', name: 'Torta', icon: PieChartIcon }
   ]
@@ -389,7 +389,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
         )
 
       default:
-        // Fallback: devolver un gráfico de área básico
+        // Fallback: devolver un grÃ¡fico de Ã¡rea bÃ¡sico
         return (
           <AreaChart {...commonProps}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
@@ -410,7 +410,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
       transition={{ duration: 0.6 }}
     >
       {/* Header con controles modernos */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
@@ -418,7 +418,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Análisis Presupuestal
+                AnÃ¡lisis Presupuestal
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
                 Monitoreo financiero integral y tendencias del presupuesto municipal
@@ -428,7 +428,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
           
           {showControls && (
             <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-              {/* Selector de tipo de gráfico */}
+              {/* Selector de tipo de grÃ¡fico */}
               <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
                 {chartTypes.map((type) => (
                   <button
@@ -467,7 +467,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
         </div>
       </div>
 
-      {/* Métricas principales */}
+      {/* MÃ©tricas principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Presupuesto Total"
@@ -510,12 +510,12 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
         />
       </div>
 
-      {/* Gráfico principal */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* GrÃ¡fico principal */}
+      <div className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Evolución Presupuestal {timeRange !== 'all' && `- ${timeRanges.find(r => r.id === timeRange)?.name}`}
+              EvoluciÃ³n Presupuestal {timeRange !== 'all' && `- ${timeRanges.find(r => r.id === timeRange)?.name}`}
             </h3>
             <button
               onClick={() => setShowDetails(!showDetails)}
@@ -556,7 +556,7 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
                       <span className="font-medium">{totalMetrics.liquidezPromedio.toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Variación presupuestal:</span>
+                      <span className="text-gray-600 dark:text-gray-400">VariaciÃ³n presupuestal:</span>
                       <span className={`font-medium ${totalMetrics.variacionPresupuestal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {totalMetrics.variacionPresupuestal.toFixed(1)}%
                       </span>
@@ -565,26 +565,26 @@ const ModernBudgetAnalysis: React.FC<ModernBudgetAnalysisProps> = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Período de Análisis</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">PerÃ­odo de AnÃ¡lisis</h4>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Períodos incluidos:</span>
+                      <span className="text-gray-600 dark:text-gray-400">PerÃ­odos incluidos:</span>
                       <span className="font-medium">{processedData.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Tipo de visualización:</span>
+                      <span className="text-gray-600 dark:text-gray-400">Tipo de visualizaciÃ³n:</span>
                       <span className="font-medium capitalize">{chartTypes.find(t => t.id === chartType)?.name}</span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Últimos Datos</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Ãšltimos Datos</h4>
                   <div className="space-y-1 text-sm">
                     {processedData.length > 0 && (
                       <>
                         <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Último período:</span>
+                          <span className="text-gray-600 dark:text-gray-400">Ãšltimo perÃ­odo:</span>
                           <span className="font-medium">{processedData[processedData.length - 1]?.name}</span>
                         </div>
                         <div className="flex justify-between">

@@ -503,7 +503,7 @@ function DashboardContent() {
             <div className="text-center">
               <div className="text-blue-500 text-4xl mb-4">🚧</div>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Sección "{activeTab}" en desarrollo
+                {`Sección "${activeTab}" en desarrollo`}
               </p>
               <p className="text-gray-500 dark:text-gray-500 text-sm">
                 Esta funcionalidad se agregará pronto

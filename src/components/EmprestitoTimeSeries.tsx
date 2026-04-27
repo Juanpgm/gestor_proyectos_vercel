@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React from 'react'
 import { motion } from 'framer-motion'
@@ -52,7 +52,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
-  // Función para formatear valores del eje Y de forma compacta
+  // FunciÃ³n para formatear valores del eje Y de forma compacta
   const formatAxisValue = (value: number): string => {
     if (value === 0) return '$0'
     const absValue = Math.abs(value)
@@ -63,11 +63,11 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
     return `$${value.toFixed(0)}`
   }
   
-  // Estado para controlar qué bancos están seleccionados
+  // Estado para controlar quÃ© bancos estÃ¡n seleccionados
   const [selectedBancos, setSelectedBancos] = React.useState<Set<string>>(new Set())
   const [isInitialized, setIsInitialized] = React.useState(false)
 
-  // Estado para filtro de meses (permite múltiples selecciones)
+  // Estado para filtro de meses (permite mÃºltiples selecciones)
   const [selectedMeses, setSelectedMeses] = React.useState<Set<string>>(new Set())
 
   // Fetch data from API
@@ -89,7 +89,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
           const filteredData = filterByCentroGestor(result.data, centroGestorAccess, ['responsable', 'organismo', 'centro_gestor'])
           setData(filteredData)
         } else {
-          throw new Error('Formato de respuesta inválido')
+          throw new Error('Formato de respuesta invÃ¡lido')
         }
       } catch (err) {
         console.error('Error fetching flujo de caja data:', err)
@@ -102,13 +102,13 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
     fetchData()
   }, [])
 
-  // Obtener bancos únicos (fuera del useMemo para poder usar en useEffect)
+  // Obtener bancos Ãºnicos (fuera del useMemo para poder usar en useEffect)
   const bancos = React.useMemo(() => {
     if (!data || data.length === 0) return []
     return Array.from(new Set(data.map(row => row.banco))).sort()
   }, [data])
 
-  // Obtener meses únicos ordenados cronológicamente
+  // Obtener meses Ãºnicos ordenados cronolÃ³gicamente
   const mesesDisponibles = React.useMemo(() => {
     if (!data || data.length === 0) return []
     
@@ -128,7 +128,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
     return meses
   }, [data])
 
-  // Inicializar mes actual (el más reciente disponible)
+  // Inicializar mes actual (el mÃ¡s reciente disponible)
   React.useEffect(() => {
     if (mesesDisponibles.length > 0 && selectedMeses.size === 0) {
       setSelectedMeses(new Set([mesesDisponibles[mesesDisponibles.length - 1]]))
@@ -166,7 +166,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
             }
             break
           case 'i':
-            // Ctrl+I: Invertir selección
+            // Ctrl+I: Invertir selecciÃ³n
             event.preventDefault()
             if (bancos.length > 0) {
               const newSelected = new Set<string>()
@@ -192,27 +192,27 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
       return { data: [], bancoColors: {} }
     }
 
-    // Mapeo de meses a números para ordenamiento
+    // Mapeo de meses a nÃºmeros para ordenamiento
     const mesMap: Record<string, number> = {
       'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4, 'may': 5, 'jun': 6,
       'jul': 7, 'ago': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dic': 12
     }
 
-    // Obtener meses únicos y ordenarlos cronológicamente
+    // Obtener meses Ãºnicos y ordenarlos cronolÃ³gicamente
     const mesesUnicos = Array.from(new Set(data.map(r => r.mes)))
       .sort((a, b) => {
-        // Extraer mes y año de formato "jul-25"
+        // Extraer mes y aÃ±o de formato "jul-25"
         const [mesA, yearA] = a.split('-')
         const [mesB, yearB] = b.split('-')
         
-        // Ordenar primero por año, luego por mes
+        // Ordenar primero por aÃ±o, luego por mes
         const yearDiff = parseInt('20' + yearA) - parseInt('20' + yearB)
         if (yearDiff !== 0) return yearDiff
         
         return (mesMap[mesA] || 0) - (mesMap[mesB] || 0)
       })
     
-    // Filtrar bancos según selección
+    // Filtrar bancos segÃºn selecciÃ³n
     const bancosToShow = bancos.filter(banco => selectedBancos.has(banco))
     
     // Colores para cada banco
@@ -335,7 +335,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
       })
   }, [data])
 
-  // Análisis por organismo
+  // AnÃ¡lisis por organismo
   const analisisOrganismos = React.useMemo(() => {
     if (!data || data.length === 0) return []
 
@@ -365,7 +365,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
       .slice(0, 10) // Top 10
   }, [data])
 
-  // Función para obtener color de intensidad para las barras
+  // FunciÃ³n para obtener color de intensidad para las barras
   const getColorIntensity = (value: number, maxValue: number, baseColor: [number, number, number]) => {
     if (maxValue === 0) return `rgb(${baseColor[0]}, ${baseColor[1]}, ${baseColor[2]})`
     const intensity = Math.max(0.3, value / maxValue)
@@ -383,7 +383,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
     bancoColors = {} as Record<string, string>
   } = timeSeriesData
 
-  // Función helper para obtener color de banco
+  // FunciÃ³n helper para obtener color de banco
   const getBancoColor = (banco: string): string => {
     const colorMap = bancoColors as Record<string, string>
     return colorMap[banco] || '#6B7280'
@@ -429,10 +429,10 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700 ${className}`}
       >
         <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
-          Cargando serie temporal de empréstito...
+          Cargando serie temporal de emprÃ©stito...
         </div>
       </motion.div>
     )
@@ -444,7 +444,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-red-200 dark:border-red-700 ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-red-200 dark:border-red-700 ${className}`}
       >
         <div className="text-center text-red-500 dark:text-red-400">
           <p className="font-semibold mb-2">Error al cargar datos</p>
@@ -460,7 +460,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700 ${className}`}
       >
         <div className="flex items-center gap-3 mb-6">
           <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -468,10 +468,10 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Serie de Tiempo - Empréstito
+              Serie de Tiempo - EmprÃ©stito
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Evolución temporal de ejecución presupuestal y pagos
+              EvoluciÃ³n temporal de ejecuciÃ³n presupuestal y pagos
             </p>
           </div>
         </div>
@@ -488,10 +488,10 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700 ${className}`}
       >
         <div className="animate-pulse text-center text-gray-500 dark:text-gray-400">
-          Cargando datos de empréstito...
+          Cargando datos de emprÃ©stito...
         </div>
       </motion.div>
     )
@@ -503,7 +503,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className={`bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-red-200 dark:border-red-700 ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-red-200 dark:border-red-700 ${className}`}
       >
         <div className="text-center text-red-500 dark:text-red-400">
           <p className="font-semibold mb-2">Error al cargar datos</p>
@@ -584,7 +584,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-4 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center gap-3 mb-4">
           <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -592,10 +592,10 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Serie de Tiempo - Empréstito
+              Serie de Tiempo - EmprÃ©stito
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Flujo de caja mensual por banco (barras) y acumulado total (línea)
+              Flujo de caja mensual por banco (barras) y acumulado total (lÃ­nea)
             </p>
           </div>
         </div>
@@ -695,14 +695,14 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         </div>
       </motion.div>
 
-      {/* Gráficas en Cuadrícula 2x2 */}
+      {/* GrÃ¡ficas en CuadrÃ­cula 2x2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Total Asignado por Banco */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-4 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-2 mb-3">
             <div className={`p-1.5 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -755,7 +755,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-4 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-2 mb-3">
             <div className={`p-1.5 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -832,7 +832,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-4 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-2 mb-3">
             <div className={`p-1.5 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -883,19 +883,19 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
           </div>
         </motion.div>
 
-        {/* Cuarta gráfica: Distribución por Banco (Pie Chart) */}
+        {/* Cuarta grÃ¡fica: DistribuciÃ³n por Banco (Pie Chart) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-md p-4 shadow-none border border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-2 mb-3">
             <div className={`p-1.5 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
               <Building2 className="w-4 h-4 text-white" />
             </div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-              Distribución por Banco
+              DistribuciÃ³n por Banco
             </h3>
           </div>
 
@@ -962,7 +962,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         </motion.div>
       </div>
 
-      {/* Separador para Análisis Detallado */}
+      {/* Separador para AnÃ¡lisis Detallado */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -974,17 +974,17 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         </div>
         <div className="relative flex justify-center">
           <span className="bg-gray-50 dark:bg-gray-900 px-6 py-2 text-lg font-semibold text-gray-900 dark:text-white rounded-full border-2 border-gray-300 dark:border-gray-600 shadow-sm">
-            Análisis Detallado de Desembolsos
+            AnÃ¡lisis Detallado de Desembolsos
           </span>
         </div>
       </motion.div>
 
-      {/* Selector de Meses Múltiple */}
+      {/* Selector de Meses MÃºltiple */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-4 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -1034,12 +1034,12 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         </div>
       </motion.div>
 
-      {/* Gráfico de Barras por Organismo */}
+      {/* GrÃ¡fico de Barras por Organismo */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.05 }}
-        className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center gap-3 mb-4">
           <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -1050,7 +1050,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
               Desembolsos por Organismo
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Comparación de organismos en los meses seleccionados
+              ComparaciÃ³n de organismos en los meses seleccionados
             </p>
           </div>
         </div>
@@ -1118,12 +1118,12 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
         </div>
       </motion.div>
 
-      {/* Tabla Principal: Organismo → Proyectos → Desembolso */}
+      {/* Tabla Principal: Organismo â†’ Proyectos â†’ Desembolso */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.1 }}
-        className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center gap-3 mb-4">
           <div className={`p-2 rounded-lg bg-gradient-to-br ${CATEGORIES.emprestito.gradient}`}>
@@ -1134,7 +1134,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
               Detalle de Desembolsos por Organismo
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Organismo → Proyectos → Desembolso
+              Organismo â†’ Proyectos â†’ Desembolso
             </p>
           </div>
         </div>
@@ -1153,7 +1153,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
                   BP Proyecto
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Descripción
+                  DescripciÃ³n
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Desembolso
@@ -1227,7 +1227,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
                     rows.push(
                       <tr key={`${globalIndex++}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 pl-8">
-                          ↳
+                          â†³
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                           {record.mes}
@@ -1236,7 +1236,7 @@ const EmprestitoTimeSeries: React.FC<EmprestitoTimeSeriesProps> = ({ className =
                           {record.bp_proyecto || 'N/A'}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate">
-                          {record.descripcion_bp || 'Sin descripción'}
+                          {record.descripcion_bp || 'Sin descripciÃ³n'}
                         </td>
                         <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                           {formatNumber(record.desembolso || 0, 'currency')}

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
@@ -46,7 +46,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
   data, 
   className = '' 
 }) => {
-  // Cálculos de métricas financieras
+  // CÃ¡lculos de mÃ©tricas financieras
   const metrics = useMemo(() => {
     if (!data || data.length === 0) return null
 
@@ -55,7 +55,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
     const diferencia = totalReal - totalPlaneado
     const cumplimiento = totalPlaneado > 0 ? (totalReal / totalPlaneado) * 100 : 0
 
-    // Análisis por mes
+    // AnÃ¡lisis por mes
     const monthlyData = data.reduce((acc, row) => {
       const month = row.mes
       if (!acc[month]) {
@@ -78,21 +78,21 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
     const avgPlaneado = totalPlaneado / monthlyArray.length
     const avgReal = totalReal / monthlyArray.length
 
-    // Tendencia (comparación últimos 3 meses vs primeros 3 meses)
+    // Tendencia (comparaciÃ³n Ãºltimos 3 meses vs primeros 3 meses)
     const firstThreeMonths = monthlyArray.slice(0, 3).reduce((sum: number, m: any) => sum + m.real, 0)
     const lastThreeMonths = monthlyArray.slice(-3).reduce((sum: number, m: any) => sum + m.real, 0)
     const trend = lastThreeMonths > firstThreeMonths 
       ? ((lastThreeMonths - firstThreeMonths) / firstThreeMonths) * 100 
       : 0
 
-    // Proyectos únicos con desembolsos reales
+    // Proyectos Ãºnicos con desembolsos reales
     const proyectosConDesembolso = new Set(
       data.filter(row => (row.desembolso_real || 0) > 0).map(row => row.bp_proyecto)
     ).size
 
     const proyectosTotales = new Set(data.map(row => row.bp_proyecto)).size
 
-    // Tasa de ejecución promedio
+    // Tasa de ejecuciÃ³n promedio
     const tasaEjecucion = cumplimiento
 
     return {
@@ -113,7 +113,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
   if (!metrics) {
     return (
       <div className={`text-center text-gray-500 dark:text-gray-400 p-6 ${className}`}>
-        No hay datos disponibles para calcular métricas
+        No hay datos disponibles para calcular mÃ©tricas
       </div>
     )
   }
@@ -142,14 +142,14 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
       }
     },
     {
-      title: 'Proyectos en Ejecución',
+      title: 'Proyectos en EjecuciÃ³n',
       value: `${metrics.proyectosConDesembolso}/${metrics.proyectosTotales}`,
       subtitle: `${((metrics.proyectosConDesembolso / metrics.proyectosTotales) * 100).toFixed(0)}% activos`,
       icon: CheckCircle2,
       gradient: 'from-purple-500 to-purple-600'
     },
     {
-      title: 'Variación vs Planeado',
+      title: 'VariaciÃ³n vs Planeado',
       value: formatNumber(Math.abs(metrics.diferencia), 'currency'),
       subtitle: metrics.diferencia >= 0 ? 'Sobre lo planeado' : 'Bajo lo planeado',
       icon: metrics.diferencia >= 0 ? TrendingUp : TrendingDown,
@@ -160,7 +160,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
       }
     },
     {
-      title: 'Tasa de Ejecución',
+      title: 'Tasa de EjecuciÃ³n',
       value: `${metrics.tasaEjecucion.toFixed(1)}%`,
       subtitle: `En ${metrics.mesesProcesados} meses`,
       icon: Percent,
@@ -173,7 +173,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
     {
       title: 'Tendencia Trimestral',
       value: `${metrics.trend > 0 ? '+' : ''}${metrics.trend.toFixed(1)}%`,
-      subtitle: 'Últimos 3 meses vs primeros 3',
+      subtitle: 'Ãšltimos 3 meses vs primeros 3',
       icon: Clock,
       gradient: 'from-indigo-500 to-indigo-600',
       trend: {
@@ -194,7 +194,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow"
           >
             <div className="flex items-start justify-between mb-4">
               <div className={`p-3 rounded-lg bg-gradient-to-br ${metric.gradient}`}>

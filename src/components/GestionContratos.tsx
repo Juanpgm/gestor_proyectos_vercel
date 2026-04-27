@@ -1,7 +1,7 @@
-'use client'
+﻿"use client";
 
-import React, { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Filter,
@@ -23,585 +23,644 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  Download
-} from 'lucide-react'
-import AgregarConvenioTransferenciaModal from '@/components/AgregarConvenioTransferenciaModal'
-import CargarRPCModal from '@/components/CargarRPCModal'
-import EditarRPCModal from '@/components/EditarRPCModal'
-import ManagementFeatureTour from './ManagementFeatureTour'
+  Download,
+} from "lucide-react";
+import AgregarConvenioTransferenciaModal from "@/components/AgregarConvenioTransferenciaModal";
+import CargarRPCModal from "@/components/CargarRPCModal";
+import EditarRPCModal from "@/components/EditarRPCModal";
+import ManagementFeatureTour from "./ManagementFeatureTour";
 
 // Interfaz para RPC
 interface DocumentoConEnlace {
-  filename: string
-  s3_key: string
-  s3_url: string
-  content_type: string
-  size: number
-  upload_date?: string
-  url_descarga?: string
-  url_visualizar?: string
-  url_presigned?: string
-  url_expiration_seconds?: number
+  filename: string;
+  s3_key: string;
+  s3_url: string;
+  content_type: string;
+  size: number;
+  upload_date?: string;
+  url_descarga?: string;
+  url_visualizar?: string;
+  url_presigned?: string;
+  url_expiration_seconds?: number;
 }
 
 interface RPC {
-  id: string
-  numero_rpc: string
-  referencia_contrato: string
-  numero_contrato?: string
-  beneficiario_id?: string
-  beneficiario_nombre?: string
-  descripcion_rpc?: string
-  fecha_contabilizacion?: string
-  fecha_impresion?: string
-  estado_liberacion?: string
-  bp?: string
-  valor_rpc?: number
-  cdp_asociados?: string[]
-  programacion_pac?: {[key: string]: string}
-  nombre_centro_gestor?: string
+  id: string;
+  numero_rpc: string;
+  referencia_contrato: string;
+  numero_contrato?: string;
+  beneficiario_id?: string;
+  beneficiario_nombre?: string;
+  descripcion_rpc?: string;
+  fecha_contabilizacion?: string;
+  fecha_impresion?: string;
+  estado_liberacion?: string;
+  bp?: string;
+  valor_rpc?: number;
+  cdp_asociados?: string[];
+  programacion_pac?: { [key: string]: string };
+  nombre_centro_gestor?: string;
   documentos_s3?: Array<{
-    s3_url: string
-    filename: string
-    content_type: string
-    size: number
-  }>
-  documentos_con_enlaces?: DocumentoConEnlace[]
-  total_documentos?: number
-  fecha_creacion?: string
-  fecha_actualizacion?: string
-  estado?: string
-  tipo?: string
+    s3_url: string;
+    filename: string;
+    content_type: string;
+    size: number;
+  }>;
+  documentos_con_enlaces?: DocumentoConEnlace[];
+  total_documentos?: number;
+  fecha_creacion?: string;
+  fecha_actualizacion?: string;
+  estado?: string;
+  tipo?: string;
 }
 
-// Interfaz para contrato de empréstito
+// Interfaz para contrato de emprÃ©stito
 interface ContratoEmprestito {
-  id?: string
-  referencia_contrato?: string
-  numero_contrato?: string
-  objeto_contrato?: string
-  valor_contrato?: number
-  fecha_inicio?: string
-  fecha_fin?: string
-  nombre_centro_gestor?: string
-  estado?: string
-  tipo_contrato?: string
-  tipo?: string
-  tipo_registro?: string
-  modalidad_contrato?: string
-  banco?: string
-  contratista?: string
-  nit_contratista?: string
-  supervisor?: string
+  id?: string;
+  referencia_contrato?: string;
+  numero_contrato?: string;
+  objeto_contrato?: string;
+  valor_contrato?: number;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  nombre_centro_gestor?: string;
+  estado?: string;
+  tipo_contrato?: string;
+  tipo?: string;
+  tipo_registro?: string;
+  modalidad_contrato?: string;
+  banco?: string;
+  contratista?: string;
+  nit_contratista?: string;
+  supervisor?: string;
   // Campos adicionales desde API
-  modalidad_contratacion?: string
-  entidad_contratante?: string
-  nombre_resumido_proceso?: string
-  referencia_proceso?: string
-  estado_contrato?: string
-  valor_pagado?: string | number
-  fecha_firma_contrato?: string
-  fecha_firma?: string
-  [key: string]: any
+  modalidad_contratacion?: string;
+  entidad_contratante?: string;
+  nombre_resumido_proceso?: string;
+  referencia_proceso?: string;
+  estado_contrato?: string;
+  valor_pagado?: string | number;
+  fecha_firma_contrato?: string;
+  fecha_firma?: string;
+  [key: string]: any;
 }
 
 // Interfaz para filtros de columna
 interface ColumnFilter {
-  [key: string]: string[]
+  [key: string]: string[];
 }
 
 // Interfaz para ordenamiento
 interface SortConfig {
-  key: string
-  direction: 'asc' | 'desc'
+  key: string;
+  direction: "asc" | "desc";
 }
 
 interface GestionContratosProps {
-  onNavigateHome: () => void
+  onNavigateHome: () => void;
 }
 
-const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) => {
+const GestionContratos: React.FC<GestionContratosProps> = ({
+  onNavigateHome,
+}) => {
   // Estados para datos
-  const [contratos, setContratos] = useState<ContratoEmprestito[]>([])
-  const [rpcs, setRpcs] = useState<RPC[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [contratos, setContratos] = useState<ContratoEmprestito[]>([]);
+  const [rpcs, setRpcs] = useState<RPC[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Estados para UI
-  const [searchTerm, setSearchTerm] = useState('')
-  const [columnFilters, setColumnFilters] = useState<ColumnFilter>({})
-  const [showFilters, setShowFilters] = useState<{[key: string]: boolean}>({})
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' })
-  const [showAgregarModal, setShowAgregarModal] = useState(false)
-  const [showCargarRPCModal, setShowCargarRPCModal] = useState(false)
-  const [selectedContratoForRPC, setSelectedContratoForRPC] = useState<ContratoEmprestito | null>(null)
-  const [showEditarRPCModal, setShowEditarRPCModal] = useState(false)
-  const [selectedRPCForEdit, setSelectedRPCForEdit] = useState<RPC | null>(null)
-  const [showDocumentosRPCModal, setShowDocumentosRPCModal] = useState(false)
-  const [selectedContratoForDocs, setSelectedContratoForDocs] = useState<ContratoEmprestito | null>(null)
-  const [selectedDocUrl, setSelectedDocUrl] = useState<string | null>(null)
-  const [selectedDocBlobUrl, setSelectedDocBlobUrl] = useState<string | null>(null)
-  const [loadingDoc, setLoadingDoc] = useState(false)
-  const [showColumnSelector, setShowColumnSelector] = useState(false)
-  const [columnSearchTerm, setColumnSearchTerm] = useState('')
-  const [columnOrder, setColumnOrder] = useState<string[]>([])
-  const [draggedColumn, setDraggedColumn] = useState<string | null>(null)
-  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
-    'numero_contrato',
-    'objeto_contrato',
-    'nombre_centro_gestor',
-    'banco',
-    'estado_contrato',
-    'modalidad_contratacion',
-    'entidad_contratante',
-    'valor_contrato',
-    'fecha_firma_contrato',
-    'contratista',
-    'nombre_resumido_proceso'
-  ]))
-  
-  // Estados para paginación
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(20)
-  
-  // Estados para redimensionamiento de columnas
-  const [columnWidths, setColumnWidths] = useState<{[key: string]: number}>({})
-  const [isResizing, setIsResizing] = useState(false)
-  const [resizingColumn, setResizingColumn] = useState<string | null>(null)
-  
-  // Refs para manejar clics fuera del dropdown
-  const filtersRef = React.useRef<{[key: string]: HTMLDivElement | null}>({})
+  const [searchTerm, setSearchTerm] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFilter>({});
+  const [showFilters, setShowFilters] = useState<{ [key: string]: boolean }>(
+    {},
+  );
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: "",
+    direction: "asc",
+  });
+  const [showAgregarModal, setShowAgregarModal] = useState(false);
+  const [showCargarRPCModal, setShowCargarRPCModal] = useState(false);
+  const [selectedContratoForRPC, setSelectedContratoForRPC] =
+    useState<ContratoEmprestito | null>(null);
+  const [showEditarRPCModal, setShowEditarRPCModal] = useState(false);
+  const [selectedRPCForEdit, setSelectedRPCForEdit] = useState<RPC | null>(
+    null,
+  );
+  const [showDocumentosRPCModal, setShowDocumentosRPCModal] = useState(false);
+  const [selectedContratoForDocs, setSelectedContratoForDocs] =
+    useState<ContratoEmprestito | null>(null);
+  const [selectedDocUrl, setSelectedDocUrl] = useState<string | null>(null);
+  const [selectedDocBlobUrl, setSelectedDocBlobUrl] = useState<string | null>(
+    null,
+  );
+  const [loadingDoc, setLoadingDoc] = useState(false);
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const [columnSearchTerm, setColumnSearchTerm] = useState("");
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    new Set([
+      "numero_contrato",
+      "objeto_contrato",
+      "nombre_centro_gestor",
+      "banco",
+      "estado_contrato",
+      "modalidad_contratacion",
+      "entidad_contratante",
+      "valor_contrato",
+      "fecha_firma_contrato",
+      "contratista",
+      "nombre_resumido_proceso",
+    ]),
+  );
 
-  const columns = useMemo(() => [
-    { 
-      key: 'numero_contrato', 
-      label: 'Número Contrato', 
-      isSortable: true,
-      accessor: (contrato: ContratoEmprestito) => contrato.referencia_contrato || contrato.numero_contrato
-    },
-    { 
-      key: 'tipo_origen', 
-      label: 'Tipo', 
-      isSortable: true,
-      accessor: (contrato: ContratoEmprestito) => getTipoContrato(contrato)
-    },
-    { key: 'objeto_contrato', label: 'Objeto del Contrato', isSortable: true },
-    { key: 'nombre_resumido_proceso', label: 'Nombre Proceso', isSortable: true },
-    { key: 'nombre_centro_gestor', label: 'Centro Gestor', isSortable: true },
-    { key: 'banco', label: 'Banco', isSortable: true },
-    { key: 'estado_contrato', label: 'Estado Contrato', isSortable: true },
-    { key: 'estado', label: 'Estado', isSortable: true },
-    { key: 'valor_contrato', label: 'Valor Contrato', isSortable: true },
-    { key: 'valor_pagado', label: 'Valor Pagado', isSortable: true },
-    { key: 'fecha_inicio', label: 'Fecha Inicio', isSortable: true },
-    { key: 'fecha_fin', label: 'Fecha Fin', isSortable: true },
-    { key: 'fecha_firma_contrato', label: 'Fecha Firma', isSortable: true },
-    { key: 'modalidad_contratacion', label: 'Modalidad Contratación', isSortable: true },
-    { key: 'entidad_contratante', label: 'Entidad Contratante', isSortable: true },
-    { key: 'tipo_contrato', label: 'Tipo de Contrato', isSortable: true },
-    { key: 'contratista', label: 'Contratista', isSortable: true },
-    { key: 'nit_contratista', label: 'NIT Contratista', isSortable: true },
-    { key: 'supervisor', label: 'Supervisor', isSortable: true },
-    { key: 'referencia_proceso', label: 'Ref. Proceso', isSortable: true },
-  ], []);
+  // Estados para paginaciÃ³n
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+
+  // Estados para redimensionamiento de columnas
+  const [columnWidths, setColumnWidths] = useState<{ [key: string]: number }>(
+    {},
+  );
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+
+  // Refs para manejar clics fuera del dropdown
+  const filtersRef = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  const columns = useMemo(
+    () => [
+      {
+        key: "numero_contrato",
+        label: "NÃºmero Contrato",
+        isSortable: true,
+        accessor: (contrato: ContratoEmprestito) =>
+          contrato.referencia_contrato || contrato.numero_contrato,
+      },
+      {
+        key: "tipo_origen",
+        label: "Tipo",
+        isSortable: true,
+        accessor: (contrato: ContratoEmprestito) => getTipoContrato(contrato),
+      },
+      {
+        key: "objeto_contrato",
+        label: "Objeto del Contrato",
+        isSortable: true,
+      },
+      {
+        key: "nombre_resumido_proceso",
+        label: "Nombre Proceso",
+        isSortable: true,
+      },
+      { key: "nombre_centro_gestor", label: "Centro Gestor", isSortable: true },
+      { key: "banco", label: "Banco", isSortable: true },
+      { key: "estado_contrato", label: "Estado Contrato", isSortable: true },
+      { key: "estado", label: "Estado", isSortable: true },
+      { key: "valor_contrato", label: "Valor Contrato", isSortable: true },
+      { key: "valor_pagado", label: "Valor Pagado", isSortable: true },
+      { key: "fecha_inicio", label: "Fecha Inicio", isSortable: true },
+      { key: "fecha_fin", label: "Fecha Fin", isSortable: true },
+      { key: "fecha_firma_contrato", label: "Fecha Firma", isSortable: true },
+      {
+        key: "modalidad_contratacion",
+        label: "Modalidad ContrataciÃ³n",
+        isSortable: true,
+      },
+      {
+        key: "entidad_contratante",
+        label: "Entidad Contratante",
+        isSortable: true,
+      },
+      { key: "tipo_contrato", label: "Tipo de Contrato", isSortable: true },
+      { key: "contratista", label: "Contratista", isSortable: true },
+      { key: "nit_contratista", label: "NIT Contratista", isSortable: true },
+      { key: "supervisor", label: "Supervisor", isSortable: true },
+      { key: "referencia_proceso", label: "Ref. Proceso", isSortable: true },
+    ],
+    [],
+  );
 
   useEffect(() => {
     if (columnOrder.length === 0 && columns.length > 0) {
-      setColumnOrder(columns.map(col => col.key));
+      setColumnOrder(columns.map((col) => col.key));
     }
   }, [columns, columnOrder]);
 
   // Effect para manejar clics fuera de los filtros
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      Object.keys(showFilters).forEach(key => {
+      Object.keys(showFilters).forEach((key) => {
         if (showFilters[key] && filtersRef.current[key]) {
-          const filterElement = filtersRef.current[key]
+          const filterElement = filtersRef.current[key];
           if (filterElement && !filterElement.contains(event.target as Node)) {
-            setShowFilters(prev => ({ ...prev, [key]: false }))
+            setShowFilters((prev) => ({ ...prev, [key]: false }));
           }
         }
-      })
-      
+      });
+
       if (showColumnSelector) {
-        const columnSelector = document.querySelector('[data-column-selector]')
+        const columnSelector = document.querySelector("[data-column-selector]");
         if (columnSelector && !columnSelector.contains(event.target as Node)) {
-          setShowColumnSelector(false)
+          setShowColumnSelector(false);
         }
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showFilters, showColumnSelector])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showFilters, showColumnSelector]);
 
-  // Función para cargar datos del endpoint
+  // FunciÃ³n para cargar datos del endpoint
   /**
    * Carga todos los contratos desde el endpoint /contratos_emprestito_all
    * Este endpoint retorna 60 registros en total:
    * - 44 contratos de SECOP (solo lectura)
-   * - 12 órdenes de compra TVEC (editables - tipo: "orden_compra_manual")
+   * - 12 Ã³rdenes de compra TVEC (editables - tipo: "orden_compra_manual")
    * - 4 convenios/transferencias (editables - tipo: "convenio_transferencia_manual")
    */
   const fetchContratos = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      setLoading(true);
+      setError(null);
+
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
       if (!apiUrl) {
-        throw new Error('URL de API no configurada')
+        throw new Error("URL de API no configurada");
       }
 
-      const response = await fetch('/api/proxy/contratos_emprestito_all')
-      
+      const response = await fetch("/api/proxy/contratos_emprestito_all");
+
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
-      const data = await response.json()
-      console.log('API Response (Contratos):', data)
-      
+
+      const data = await response.json();
+      console.log("API Response (Contratos):", data);
+
       if (Array.isArray(data)) {
-        setContratos(data)
+        setContratos(data);
       } else if (data && Array.isArray(data.data)) {
-        setContratos(data.data)
+        setContratos(data.data);
       } else if (data && Array.isArray(data.contratos)) {
-        setContratos(data.contratos)
+        setContratos(data.contratos);
       } else {
-        console.warn('Formato de respuesta inesperado:', data)
-        setContratos([])
+        console.warn("Formato de respuesta inesperado:", data);
+        setContratos([]);
       }
     } catch (error) {
-      console.error('Error fetching contratos:', error)
-      setError(error instanceof Error ? error.message : 'Error desconocido')
+      console.error("Error fetching contratos:", error);
+      setError(error instanceof Error ? error.message : "Error desconocido");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchRPCs = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
       if (!apiUrl) {
-        throw new Error('URL de API no configurada')
+        throw new Error("URL de API no configurada");
       }
 
-      const response = await fetch('/api/proxy/rpc_all')
-      
+      const response = await fetch("/api/proxy/rpc_all");
+
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
-      const data = await response.json()
-      console.log('API Response (RPCs):', data)
-      
+
+      const data = await response.json();
+      console.log("API Response (RPCs):", data);
+
       if (data.success && Array.isArray(data.data)) {
-        setRpcs(data.data)
+        setRpcs(data.data);
       } else {
-        console.warn('Formato de respuesta inesperado para RPCs:', data)
-        setRpcs([])
+        console.warn("Formato de respuesta inesperado para RPCs:", data);
+        setRpcs([]);
       }
     } catch (error) {
-      console.error('Error fetching RPCs:', error)
-      setRpcs([])
+      console.error("Error fetching RPCs:", error);
+      setRpcs([]);
     }
-  }
+  };
 
-  // Función para obtener TODOS los RPCs de un contrato
+  // FunciÃ³n para obtener TODOS los RPCs de un contrato
   const obtenerRPCsDeContrato = (contrato: ContratoEmprestito): RPC[] => {
-    const referenciaContrato = contrato.referencia_contrato || contrato.numero_contrato
-    return rpcs.filter(rpc => rpc.referencia_contrato === referenciaContrato)
-  }
+    const referenciaContrato =
+      contrato.referencia_contrato || contrato.numero_contrato;
+    return rpcs.filter((rpc) => rpc.referencia_contrato === referenciaContrato);
+  };
 
-  // Función para verificar si algún RPC del contrato tiene documentos
+  // FunciÃ³n para verificar si algÃºn RPC del contrato tiene documentos
   const tieneDocumentosRPC = (contrato: ContratoEmprestito): boolean => {
-    const contratosRpcs = obtenerRPCsDeContrato(contrato)
-    return contratosRpcs.some(rpc =>
-      (rpc.documentos_con_enlaces && rpc.documentos_con_enlaces.length > 0) ||
-      (rpc.documentos_s3 && rpc.documentos_s3.length > 0)
-    )
-  }
+    const contratosRpcs = obtenerRPCsDeContrato(contrato);
+    return contratosRpcs.some(
+      (rpc) =>
+        (rpc.documentos_con_enlaces && rpc.documentos_con_enlaces.length > 0) ||
+        (rpc.documentos_s3 && rpc.documentos_s3.length > 0),
+    );
+  };
 
-  // URL remota del documento (usada como key de selección)
+  // URL remota del documento (usada como key de selecciÃ³n)
   const getDocRemoteUrl = (doc: DocumentoConEnlace): string => {
-    return doc.url_visualizar || doc.url_presigned || doc.s3_url
-  }
+    return doc.url_visualizar || doc.url_presigned || doc.s3_url;
+  };
 
   // URL para descargar el documento (usa el proxy con Content-Disposition: attachment)
   const getDocDownloadUrl = (doc: DocumentoConEnlace): string => {
-    const remoteUrl = doc.url_descarga || doc.url_visualizar || doc.url_presigned || doc.s3_url
-    const encoded = btoa(unescape(encodeURIComponent(remoteUrl)))
-    return `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}`
-  }
+    const remoteUrl =
+      doc.url_descarga || doc.url_visualizar || doc.url_presigned || doc.s3_url;
+    const encoded = btoa(unescape(encodeURIComponent(remoteUrl)));
+    return `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}`;
+  };
 
   // Seleccionar documento: fetch como blob para visualizar inline
-  // (S3 envía Content-Disposition: attachment, así que el iframe descarga en lugar de mostrar.
-  //  La solución es fetch → blob → URL.createObjectURL que no tiene headers de descarga.)
+  // (S3 envÃ­a Content-Disposition: attachment, asÃ­ que el iframe descarga en lugar de mostrar.
+  //  La soluciÃ³n es fetch â†’ blob â†’ URL.createObjectURL que no tiene headers de descarga.)
   const handleSelectDoc = async (doc: DocumentoConEnlace) => {
-    const remoteUrl = getDocRemoteUrl(doc)
-    console.log('[DocViewer] handleSelectDoc llamado, filename:', doc.filename)
+    const remoteUrl = getDocRemoteUrl(doc);
+    console.log("[DocViewer] handleSelectDoc llamado, filename:", doc.filename);
     if (selectedDocUrl === remoteUrl) {
-      console.log('[DocViewer] Ya seleccionado, ignorando')
-      return
+      console.log("[DocViewer] Ya seleccionado, ignorando");
+      return;
     }
 
     // Liberar blob anterior
     if (selectedDocBlobUrl) {
-      URL.revokeObjectURL(selectedDocBlobUrl)
-      setSelectedDocBlobUrl(null)
+      URL.revokeObjectURL(selectedDocBlobUrl);
+      setSelectedDocBlobUrl(null);
     }
 
-    setSelectedDocUrl(remoteUrl)
-    setLoadingDoc(true)
+    setSelectedDocUrl(remoteUrl);
+    setLoadingDoc(true);
 
     try {
-      const encoded = btoa(unescape(encodeURIComponent(remoteUrl)))
-      const proxyUrl = `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}&inline=1`
-      console.log('[DocViewer] Fetching proxy URL:', proxyUrl.substring(0, 100))
-      const response = await fetch(proxyUrl)
-      console.log('[DocViewer] Response status:', response.status, 'Content-Type:', response.headers.get('Content-Type'))
-      if (!response.ok) throw new Error(`Error ${response.status}`)
-      const blob = await response.blob()
-      console.log('[DocViewer] Blob size:', blob.size, 'type:', blob.type)
-      const pdfBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' })
-      const blobUrl = URL.createObjectURL(pdfBlob)
-      console.log('[DocViewer] Blob URL creada:', blobUrl)
-      setSelectedDocBlobUrl(blobUrl)
+      const encoded = btoa(unescape(encodeURIComponent(remoteUrl)));
+      const proxyUrl = `/api/proxy/fetch-file?url=${encodeURIComponent(encoded)}&name=${encodeURIComponent(doc.filename)}&inline=1`;
+      console.log(
+        "[DocViewer] Fetching proxy URL:",
+        proxyUrl.substring(0, 100),
+      );
+      const response = await fetch(proxyUrl);
+      console.log(
+        "[DocViewer] Response status:",
+        response.status,
+        "Content-Type:",
+        response.headers.get("Content-Type"),
+      );
+      if (!response.ok) throw new Error(`Error ${response.status}`);
+      const blob = await response.blob();
+      console.log("[DocViewer] Blob size:", blob.size, "type:", blob.type);
+      const pdfBlob =
+        blob.type === "application/pdf"
+          ? blob
+          : new Blob([blob], { type: "application/pdf" });
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      console.log("[DocViewer] Blob URL creada:", blobUrl);
+      setSelectedDocBlobUrl(blobUrl);
     } catch (err) {
-      console.error('[DocViewer] Error cargando documento:', err)
-      setSelectedDocBlobUrl(null)
+      console.error("[DocViewer] Error cargando documento:", err);
+      setSelectedDocBlobUrl(null);
     } finally {
-      setLoadingDoc(false)
+      setLoadingDoc(false);
     }
-  }
+  };
 
   // Limpiar blob URL al cerrar modal
   const handleCloseDocumentosModal = () => {
-    if (selectedDocBlobUrl) URL.revokeObjectURL(selectedDocBlobUrl)
-    setShowDocumentosRPCModal(false)
-    setSelectedContratoForDocs(null)
-    setSelectedDocUrl(null)
-    setSelectedDocBlobUrl(null)
-    setLoadingDoc(false)
-  }
+    if (selectedDocBlobUrl) URL.revokeObjectURL(selectedDocBlobUrl);
+    setShowDocumentosRPCModal(false);
+    setSelectedContratoForDocs(null);
+    setSelectedDocUrl(null);
+    setSelectedDocBlobUrl(null);
+    setLoadingDoc(false);
+  };
 
   // Abrir el modal de documentos RPC del contrato
-  // Si solo hay un documento, lo carga automáticamente en el visor
+  // Si solo hay un documento, lo carga automÃ¡ticamente en el visor
   const handleOpenDocumentosRPC = (contrato: ContratoEmprestito) => {
-    setSelectedContratoForDocs(contrato)
-    setSelectedDocUrl(null)
-    setSelectedDocBlobUrl(null)
-    setShowDocumentosRPCModal(true)
+    setSelectedContratoForDocs(contrato);
+    setSelectedDocUrl(null);
+    setSelectedDocBlobUrl(null);
+    setShowDocumentosRPCModal(true);
 
     // Auto-cargar si solo hay un documento
-    const rpcsDelContrato = rpcs.filter(r => {
-      const numContrato = (r.numero_contrato ?? r.referencia_contrato)?.toString() || ''
-      const contratoNum = contrato.numero_contrato?.toString() || ''
-      return numContrato === contratoNum
-    })
-    const allDocs: DocumentoConEnlace[] = []
-    rpcsDelContrato.forEach(rpc => {
-      allDocs.push(...getDocumentosDeRPC(rpc))
-    })
+    const rpcsDelContrato = rpcs.filter((r) => {
+      const numContrato =
+        (r.numero_contrato ?? r.referencia_contrato)?.toString() || "";
+      const contratoNum = contrato.numero_contrato?.toString() || "";
+      return numContrato === contratoNum;
+    });
+    const allDocs: DocumentoConEnlace[] = [];
+    rpcsDelContrato.forEach((rpc) => {
+      allDocs.push(...getDocumentosDeRPC(rpc));
+    });
     if (allDocs.length === 1) {
       // Usar setTimeout para que el modal se renderice primero
-      setTimeout(() => handleSelectDoc(allDocs[0]), 100)
+      setTimeout(() => handleSelectDoc(allDocs[0]), 100);
     }
-  }
+  };
 
   // Obtener documentos unificados de un RPC (prefiere documentos_con_enlaces)
   const getDocumentosDeRPC = (rpc: RPC): DocumentoConEnlace[] => {
     if (rpc.documentos_con_enlaces && rpc.documentos_con_enlaces.length > 0) {
-      return rpc.documentos_con_enlaces
+      return rpc.documentos_con_enlaces;
     }
     if (rpc.documentos_s3 && rpc.documentos_s3.length > 0) {
-      return rpc.documentos_s3.map(d => ({
+      return rpc.documentos_s3.map((d) => ({
         filename: d.filename,
-        s3_key: '',
+        s3_key: "",
         s3_url: d.s3_url,
         content_type: d.content_type,
         size: d.size,
-      }))
+      }));
     }
-    return []
-  }
+    return [];
+  };
 
-  // Formatear tamaño de archivo
+  // Formatear tamaÃ±o de archivo
   const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  }
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   useEffect(() => {
-    fetchContratos()
-    fetchRPCs()
-  }, [])
+    fetchContratos();
+    fetchRPCs();
+  }, []);
 
   const handleAgregarContratoSuccess = () => {
-    fetchContratos()
-  }
-  
+    fetchContratos();
+  };
+
   /**
    * Obtiene el tipo de contrato para mostrar en la tabla
    */
   const getTipoContrato = (contrato: ContratoEmprestito): string => {
-    if (contrato.tipo_contrato === 'Orden de Compra - TVEC') {
-      return 'Orden TVEC'
+    if (contrato.tipo_contrato === "Orden de Compra - TVEC") {
+      return "Orden TVEC";
     }
-    if (contrato.tipo === 'convenio_transferencia_manual') {
-      return 'Convenio/Transferencia'
+    if (contrato.tipo === "convenio_transferencia_manual") {
+      return "Convenio/Transferencia";
     }
-    return 'SECOP'
-  }
+    return "SECOP";
+  };
 
   const getUniqueValues = (key: string): string[] => {
     if (!Array.isArray(contratos) || contratos.length === 0) {
-      return []
+      return [];
     }
 
     const values = contratos
-      .map(contrato => contrato[key])
-      .filter(value => value !== null && value !== undefined && value !== '')
-      .map(value => String(value))
-    
-    return Array.from(new Set(values)).sort()
-  }
+      .map((contrato) => contrato[key])
+      .filter((value) => value !== null && value !== undefined && value !== "")
+      .map((value) => String(value));
+
+    return Array.from(new Set(values)).sort();
+  };
 
   const clearColumnFilter = (columnKey: string) => {
-    setColumnFilters(prev => ({
+    setColumnFilters((prev) => ({
       ...prev,
-      [columnKey]: []
-    }))
-  }
+      [columnKey]: [],
+    }));
+  };
 
   const allContratos = useMemo(() => {
     if (!Array.isArray(contratos) || contratos.length === 0) {
-      return []
+      return [];
     }
 
-    let filtered = contratos.filter(contrato => {
+    let filtered = contratos.filter((contrato) => {
       if (searchTerm) {
-        const searchableText = Object.values(contrato)
-          .join(' ')
-          .toLowerCase()
+        const searchableText = Object.values(contrato).join(" ").toLowerCase();
         if (!searchableText.includes(searchTerm.toLowerCase())) {
-          return false
+          return false;
         }
       }
 
       for (const [key, values] of Object.entries(columnFilters)) {
         if (values && values.length > 0) {
-          const contratoValue = String(contrato[key] || '')
+          const contratoValue = String(contrato[key] || "");
           if (!values.includes(contratoValue)) {
-            return false
+            return false;
           }
         }
       }
 
-      return true
-    })
+      return true;
+    });
 
-    // Aplicar ordenamiento si está configurado
+    // Aplicar ordenamiento si estÃ¡ configurado
     if (sortConfig.key) {
-      const sortColumn = columns.find(col => col.key === sortConfig.key);
-      
+      const sortColumn = columns.find((col) => col.key === sortConfig.key);
+
       filtered.sort((a, b) => {
-        const aValue = sortColumn?.accessor ? sortColumn.accessor(a) : a[sortConfig.key]
-        const bValue = sortColumn?.accessor ? sortColumn.accessor(b) : b[sortConfig.key]
-        
-        if (aValue === null || aValue === undefined) return 1
-        if (bValue === null || bValue === undefined) return -1
-        
-        if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue
+        const aValue = sortColumn?.accessor
+          ? sortColumn.accessor(a)
+          : a[sortConfig.key];
+        const bValue = sortColumn?.accessor
+          ? sortColumn.accessor(b)
+          : b[sortConfig.key];
+
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return sortConfig.direction === "asc"
+            ? aValue - bValue
+            : bValue - aValue;
         }
-        
-        const aStr = String(aValue).toLowerCase()
-        const bStr = String(bValue).toLowerCase()
-        
-        return sortConfig.direction === 'asc' 
+
+        const aStr = String(aValue).toLowerCase();
+        const bStr = String(bValue).toLowerCase();
+
+        return sortConfig.direction === "asc"
           ? aStr.localeCompare(bStr)
-          : bStr.localeCompare(aStr)
-      })
+          : bStr.localeCompare(aStr);
+      });
     }
 
-    return filtered
-  }, [contratos, searchTerm, columnFilters, sortConfig, columns])
+    return filtered;
+  }, [contratos, searchTerm, columnFilters, sortConfig, columns]);
 
   // Datos paginados
   const paginatedContratos = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return allContratos.slice(startIndex, startIndex + itemsPerPage)
-  }, [allContratos, currentPage, itemsPerPage])
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return allContratos.slice(startIndex, startIndex + itemsPerPage);
+  }, [allContratos, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(allContratos.length / itemsPerPage)
+  const totalPages = Math.ceil(allContratos.length / itemsPerPage);
 
-  // Resetear a página 1 cuando cambien los filtros
+  // Resetear a pÃ¡gina 1 cuando cambien los filtros
   useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm, columnFilters])
+    setCurrentPage(1);
+  }, [searchTerm, columnFilters]);
 
   const stats = useMemo(() => {
     const parseNumeric = (value: any) => {
-      if (typeof value === 'number') return value
-      const numeric = Number(value)
-      return Number.isFinite(numeric) ? numeric : 0
-    }
+      if (typeof value === "number") return value;
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? numeric : 0;
+    };
 
-    const totalContratos = contratos.length
-    const filteredCount = allContratos.length
+    const totalContratos = contratos.length;
+    const filteredCount = allContratos.length;
 
     const totalValorContrato = allContratos.reduce((sum, contrato) => {
-      return sum + parseNumeric(contrato.valor_contrato)
-    }, 0)
+      return sum + parseNumeric(contrato.valor_contrato);
+    }, 0);
 
     const totalValorPagado = allContratos.reduce((sum, contrato) => {
-      return sum + parseNumeric(contrato.valor_pagado)
-    }, 0)
+      return sum + parseNumeric(contrato.valor_pagado);
+    }, 0);
 
     const centrosGestores = new Set(
       allContratos
-        .map(contrato => contrato.nombre_centro_gestor)
-        .filter(Boolean)
-    ).size
+        .map((contrato) => contrato.nombre_centro_gestor)
+        .filter(Boolean),
+    ).size;
 
     const bancos = new Set(
-      allContratos
-        .map(contrato => contrato.banco)
-        .filter(Boolean)
-    ).size
+      allContratos.map((contrato) => contrato.banco).filter(Boolean),
+    ).size;
 
     const estados = new Set(
       allContratos
-        .map(contrato => contrato.estado_contrato || contrato.estado)
-        .filter(Boolean)
-    ).size
+        .map((contrato) => contrato.estado_contrato || contrato.estado)
+        .filter(Boolean),
+    ).size;
 
     const modalidades = new Set(
       allContratos
-        .map(contrato => contrato.modalidad_contratacion)
-        .filter(Boolean)
-    ).size
+        .map((contrato) => contrato.modalidad_contratacion)
+        .filter(Boolean),
+    ).size;
 
-    const porcentajePagado = totalValorContrato > 0 
-      ? (totalValorPagado / totalValorContrato) * 100 
-      : 0
+    const porcentajePagado =
+      totalValorContrato > 0
+        ? (totalValorPagado / totalValorContrato) * 100
+        : 0;
 
     // Conteo por tipo
-    const contratosSECOP = allContratos.filter(c => 
-      c.tipo_contrato !== 'Orden de Compra - TVEC' && c.tipo !== 'convenio_transferencia_manual'
-    ).length
-    
-    const ordenesTV = allContratos.filter(c => 
-      c.tipo_contrato === 'Orden de Compra - TVEC'
-    ).length
-    
-    const convenios = allContratos.filter(c => 
-      c.tipo === 'convenio_transferencia_manual'
-    ).length
+    const contratosSECOP = allContratos.filter(
+      (c) =>
+        c.tipo_contrato !== "Orden de Compra - TVEC" &&
+        c.tipo !== "convenio_transferencia_manual",
+    ).length;
+
+    const ordenesTV = allContratos.filter(
+      (c) => c.tipo_contrato === "Orden de Compra - TVEC",
+    ).length;
+
+    const convenios = allContratos.filter(
+      (c) => c.tipo === "convenio_transferencia_manual",
+    ).length;
 
     return {
       totalContratos,
@@ -615,182 +674,196 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       modalidades,
       contratosSECOP,
       ordenesTV,
-      convenios
-    }
-  }, [contratos, allContratos])
+      convenios,
+    };
+  }, [contratos, allContratos]);
 
   const toggleColumnVisibility = (columnKey: string) => {
-    if (columnKey === 'numero_contrato') return
-    
-    setVisibleColumns(prev => {
-      const newSet = new Set(prev)
+    if (columnKey === "numero_contrato") return;
+
+    setVisibleColumns((prev) => {
+      const newSet = new Set(prev);
       if (newSet.has(columnKey)) {
-        newSet.delete(columnKey)
+        newSet.delete(columnKey);
       } else {
-        newSet.add(columnKey)
+        newSet.add(columnKey);
       }
-      return newSet
-    })
-  }
+      return newSet;
+    });
+  };
 
-  const handleDragStart = (e: React.DragEvent<HTMLTableCellElement>, key: string) => {
-    setDraggedColumn(key)
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', key)
-  }
+  const handleDragStart = (
+    e: React.DragEvent<HTMLTableCellElement>,
+    key: string,
+  ) => {
+    setDraggedColumn(key);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", key);
+  };
 
-  const handleDragOver = (e: React.DragEvent<HTMLTableCellElement>, key: string) => {
-    e.preventDefault()
-    if (draggedColumn === key || key === 'numero_contrato') return
-    setDragOverColumn(key)
+  const handleDragOver = (
+    e: React.DragEvent<HTMLTableCellElement>,
+    key: string,
+  ) => {
+    e.preventDefault();
+    if (draggedColumn === key || key === "numero_contrato") return;
+    setDragOverColumn(key);
 
-    const draggedIndex = columnOrder.indexOf(draggedColumn!)
-    const targetIndex = columnOrder.indexOf(key)
+    const draggedIndex = columnOrder.indexOf(draggedColumn!);
+    const targetIndex = columnOrder.indexOf(key);
 
-    if (draggedIndex === -1 || targetIndex === -1) return
+    if (draggedIndex === -1 || targetIndex === -1) return;
 
-    const newColumnOrder = [...columnOrder]
-    const [removed] = newColumnOrder.splice(draggedIndex, 1)
-    newColumnOrder.splice(targetIndex, 0, removed)
+    const newColumnOrder = [...columnOrder];
+    const [removed] = newColumnOrder.splice(draggedIndex, 1);
+    newColumnOrder.splice(targetIndex, 0, removed);
 
-    setColumnOrder(newColumnOrder)
-  }
+    setColumnOrder(newColumnOrder);
+  };
 
   const handleDrop = (e: React.DragEvent<HTMLTableCellElement>) => {
-    e.preventDefault()
-    setDraggedColumn(null)
-    setDragOverColumn(null)
-  }
+    e.preventDefault();
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
 
   const handleDragLeave = () => {
-    setDragOverColumn(null)
-  }
+    setDragOverColumn(null);
+  };
 
-  const displayedColumns = columns.filter(col => 
-    col.key === 'numero_contrato' || visibleColumns.has(col.key)
-  )
+  const displayedColumns = columns.filter(
+    (col) => col.key === "numero_contrato" || visibleColumns.has(col.key),
+  );
 
   const formatValue = (value: any, key: string): string => {
-    if (value === null || value === undefined || value === '') {
-      return '-'
+    if (value === null || value === undefined || value === "") {
+      return "-";
     }
 
     // Formatear valores monetarios
-    if ((key === 'valor_contrato' || key === 'valor_pagado') && (typeof value === 'number' || !isNaN(Number(value)))) {
-      const numValue = typeof value === 'number' ? value : Number(value)
-      return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
+    if (
+      (key === "valor_contrato" || key === "valor_pagado") &&
+      (typeof value === "number" || !isNaN(Number(value)))
+    ) {
+      const numValue = typeof value === "number" ? value : Number(value);
+      return new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
         minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(numValue)
+        maximumFractionDigits: 0,
+      }).format(numValue);
     }
 
     // Formatear fechas
-    if (key.includes('fecha') && value) {
+    if (key.includes("fecha") && value) {
       try {
-        const date = new Date(value)
+        const date = new Date(value);
         if (!isNaN(date.getTime())) {
-          return date.toLocaleDateString('es-CO', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-          })
+          return date.toLocaleDateString("es-CO", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          });
         }
-        return String(value)
+        return String(value);
       } catch {
-        return String(value)
+        return String(value);
       }
     }
 
     // Truncar textos largos
-    if (typeof value === 'string' && value.length > 50) {
-      return value.substring(0, 47) + '...'
+    if (typeof value === "string" && value.length > 50) {
+      return value.substring(0, 47) + "...";
     }
 
-    return String(value)
-  }
+    return String(value);
+  };
 
   const formatCompactCurrency = (value: number) => {
-    const absValue = Math.abs(value || 0)
-    let compactValue: number
-    let suffix: string
-    
+    const absValue = Math.abs(value || 0);
+    let compactValue: number;
+    let suffix: string;
+
     if (absValue >= 1_000_000_000_000) {
-      compactValue = value / 1_000_000_000_000
-      suffix = 'B'
+      compactValue = value / 1_000_000_000_000;
+      suffix = "B";
     } else if (absValue >= 1_000_000_000) {
-      compactValue = value / 1_000_000_000
-      suffix = 'MM'
+      compactValue = value / 1_000_000_000;
+      suffix = "MM";
     } else if (absValue >= 1_000_000) {
-      compactValue = value / 1_000_000
-      suffix = 'M'
+      compactValue = value / 1_000_000;
+      suffix = "M";
     } else if (absValue >= 1_000) {
-      compactValue = value / 1_000
-      suffix = 'K'
+      compactValue = value / 1_000;
+      suffix = "K";
     } else {
-      return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
+      return new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
         minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(value || 0)
+        maximumFractionDigits: 0,
+      }).format(value || 0);
     }
-    
-    const formatted = new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+
+    const formatted = new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 1,
-      maximumFractionDigits: 1
-    }).format(Math.abs(compactValue))
-    
-    return (value < 0 ? '-' : '') + formatted + suffix
-  }
+      maximumFractionDigits: 1,
+    }).format(Math.abs(compactValue));
+
+    return (value < 0 ? "-" : "") + formatted + suffix;
+  };
 
   const handleSort = (key: string) => {
-    setSortConfig(prevConfig => ({
+    setSortConfig((prevConfig) => ({
       key,
-      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
-    }))
-  }
+      direction:
+        prevConfig.key === key && prevConfig.direction === "asc"
+          ? "desc"
+          : "asc",
+    }));
+  };
 
   const getSortIcon = (key: string) => {
     if (sortConfig.key !== key) {
-      return <ArrowUpDown className="w-4 h-4 text-gray-400" />
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
     }
-    return sortConfig.direction === 'asc' 
-      ? <ArrowUp className="w-4 h-4 text-blue-500" />
-      : <ArrowDown className="w-4 h-4 text-blue-500" />
-  }
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="w-4 h-4 text-blue-500" />
+    ) : (
+      <ArrowDown className="w-4 h-4 text-blue-500" />
+    );
+  };
 
   const handleMouseDown = (e: React.MouseEvent, columnKey: string) => {
-    e.preventDefault()
-    setIsResizing(true)
-    setResizingColumn(columnKey)
-    
-    const startX = e.clientX
-    const startWidth = columnWidths[columnKey] || 150
-    
+    e.preventDefault();
+    setIsResizing(true);
+    setResizingColumn(columnKey);
+
+    const startX = e.clientX;
+    const startWidth = columnWidths[columnKey] || 150;
+
     const handleMouseMove = (e: MouseEvent) => {
-      const diff = e.clientX - startX
-      const newWidth = Math.max(80, startWidth + diff)
-      setColumnWidths(prev => ({ ...prev, [columnKey]: newWidth }))
-    }
-    
+      const diff = e.clientX - startX;
+      const newWidth = Math.max(80, startWidth + diff);
+      setColumnWidths((prev) => ({ ...prev, [columnKey]: newWidth }));
+    };
+
     const handleMouseUp = () => {
-      setIsResizing(false)
-      setResizingColumn(null)
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-    
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }
+      setIsResizing(false);
+      setResizingColumn(null);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
 
   const getColumnWidth = (columnKey: string) => {
-    return columnWidths[columnKey] || 150
-  }
+    return columnWidths[columnKey] || 150;
+  };
 
   if (loading) {
     return (
@@ -798,11 +871,13 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Cargando contratos...</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              Cargando contratos...
+            </p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -811,8 +886,10 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 dark:text-red-400 mb-4">Error cargando datos: {error}</p>
-            <button 
+            <p className="text-red-600 dark:text-red-400 mb-4">
+              Error cargando datos: {error}
+            </p>
+            <button
               onClick={fetchContratos}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
@@ -821,7 +898,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -831,17 +908,19 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-6 text-white shadow-lg"
+        className="bg-white dark:bg-gray-800 rounded-md p-6 border border-gray-200 dark:border-gray-700 shadow-none"
         data-tour-id="mgmt-contratos-header"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-4">
-            <div className="bg-white/20 p-3 rounded-lg">
-              <FileText className="w-8 h-8" />
+            <div className="bg-violet-50 dark:bg-violet-900/20 p-2 rounded-md border border-violet-200 dark:border-violet-900/30">
+              <FileText className="w-5 h-5 text-violet-700 dark:text-violet-300" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Gestionar Contratos</h1>
-              <p className="text-purple-100">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Gestionar Contratos
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Administración de convenios y transferencias del empréstito
               </p>
             </div>
@@ -850,7 +929,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
             <ManagementFeatureTour moduleKey="contratos" />
             <button
               onClick={onNavigateHome}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Volver al Dashboard</span>
@@ -860,7 +939,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       </motion.div>
 
       {/* Active Filters */}
-      {(searchTerm || Object.values(columnFilters).some(f => f?.length > 0)) && (
+      {(searchTerm ||
+        Object.values(columnFilters).some((f) => f?.length > 0)) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -868,9 +948,9 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         >
           {searchTerm && (
             <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm">
-              <span>Búsqueda: &quot;{searchTerm}&quot;</span>
+              <span>BÃºsqueda: &quot;{searchTerm}&quot;</span>
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={() => setSearchTerm("")}
                 className="ml-2 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
               >
                 <X className="w-3 h-3" />
@@ -878,22 +958,26 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
             </div>
           )}
 
-          {Object.entries(columnFilters).map(([column, values]) => (
-            values.length > 0 && (
-              <div
-                key={column}
-                className="flex items-center bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm"
-              >
-                <span>{columns.find(c => c.key === column)?.label}: {values.length} filtro(s)</span>
-                <button
-                  onClick={() => clearColumnFilter(column)}
-                  className="ml-2 hover:bg-green-200 dark:hover:bg-green-800 rounded-full p-0.5"
+          {Object.entries(columnFilters).map(
+            ([column, values]) =>
+              values.length > 0 && (
+                <div
+                  key={column}
+                  className="flex items-center bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm"
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )
-          ))}
+                  <span>
+                    {columns.find((c) => c.key === column)?.label}:{" "}
+                    {values.length} filtro(s)
+                  </span>
+                  <button
+                    onClick={() => clearColumnFilter(column)}
+                    className="ml-2 hover:bg-green-200 dark:hover:bg-green-800 rounded-full p-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ),
+          )}
         </motion.div>
       )}
 
@@ -906,14 +990,18 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"
           data-tour-id="mgmt-contratos-stats"
         >
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Total Contratos</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Total Contratos
+                </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {stats.filteredCount}
                   {stats.filteredCount !== stats.totalContratos && (
-                    <span className="text-sm text-gray-500 ml-1">/ {stats.totalContratos}</span>
+                    <span className="text-sm text-gray-500 ml-1">
+                      / {stats.totalContratos}
+                    </span>
                   )}
                 </p>
               </div>
@@ -921,10 +1009,12 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Contratado</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Valor Contratado
+                </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-white">
                   {formatCompactCurrency(stats.totalValorContrato)}
                 </p>
@@ -933,10 +1023,12 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Valor Pagado</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Valor Pagado
+                </p>
                 <p className="text-lg font-bold text-gray-900 dark:text-white">
                   {formatCompactCurrency(stats.totalValorPagado)}
                 </p>
@@ -948,22 +1040,32 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Centros Gestores</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.centrosGestores}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Centros Gestores
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.centrosGestores}
+                </p>
               </div>
               <Building className="w-8 h-8 text-blue-500 ml-4" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-md p-6 shadow-none border border-gray-200 dark:border-gray-700">
             <div className="flex items-center h-full w-full">
               <div className="flex flex-col justify-center h-full text-left flex-1">
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Modalidades</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.modalidades}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stats.bancos} bancos</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Modalidades
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.modalidades}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {stats.bancos} bancos
+                </p>
               </div>
               <Landmark className="w-8 h-8 text-teal-500 ml-4" />
             </div>
@@ -971,7 +1073,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         </motion.div>
       )}
 
-      {/* Métricas por Tipo de Contrato */}
+      {/* MÃ©tricas por Tipo de Contrato */}
       {contratos.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -982,11 +1084,15 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-4 shadow border border-purple-200 dark:border-purple-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-600 dark:text-purple-400 text-xs font-medium">Contratos SECOP</p>
+                <p className="text-purple-600 dark:text-purple-400 text-xs font-medium">
+                  Contratos SECOP
+                </p>
                 <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
                   {stats.contratosSECOP}
                 </p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">Solo lectura</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">
+                  Solo lectura
+                </p>
               </div>
               <div className="bg-purple-500 p-2 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-white" />
@@ -997,11 +1103,15 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-4 shadow border border-green-200 dark:border-green-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-600 dark:text-green-400 text-xs font-medium">Órdenes TVEC</p>
+                <p className="text-green-600 dark:text-green-400 text-xs font-medium">
+                  Ã“rdenes TVEC
+                </p>
                 <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">
                   {stats.ordenesTV}
                 </p>
-                <p className="text-xs text-green-600 dark:text-green-400">Solo lectura</p>
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  Solo lectura
+                </p>
               </div>
               <div className="bg-green-500 p-2 rounded-lg">
                 <FileText className="w-5 h-5 text-white" />
@@ -1012,11 +1122,15 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg p-4 shadow border border-orange-200 dark:border-orange-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-600 dark:text-orange-400 text-xs font-medium">Convenios/Transfer.</p>
+                <p className="text-orange-600 dark:text-orange-400 text-xs font-medium">
+                  Convenios/Transfer.
+                </p>
                 <p className="text-2xl font-bold text-orange-900 dark:text-orange-100 mt-1">
                   {stats.convenios}
                 </p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">Solo lectura</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">
+                  Solo lectura
+                </p>
               </div>
               <div className="bg-orange-500 p-2 rounded-lg">
                 <CheckCircle className="w-5 h-5 text-white" />
@@ -1030,7 +1144,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6"
+        className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 p-4 mb-6"
         data-tour-id="mgmt-contratos-filters"
       >
         <div className="flex flex-col md:flex-row gap-4">
@@ -1056,7 +1170,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                 <Eye className="w-4 h-4" />
                 <span>Columnas</span>
               </button>
-              
+
               {showColumnSelector && (
                 <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 min-w-64 max-w-80">
                   <div className="p-3">
@@ -1066,20 +1180,26 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                       </span>
                       <div className="flex space-x-1">
                         <button
-                          onClick={() => setVisibleColumns(new Set(columns.map(c => c.key)))}
+                          onClick={() =>
+                            setVisibleColumns(
+                              new Set(columns.map((c) => c.key)),
+                            )
+                          }
                           className="text-xs px-2 py-1 text-purple-500 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
                         >
                           Todas
                         </button>
                         <button
-                          onClick={() => setVisibleColumns(new Set(['numero_contrato']))}
+                          onClick={() =>
+                            setVisibleColumns(new Set(["numero_contrato"]))
+                          }
                           className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                         >
                           Ninguna
                         </button>
                       </div>
                     </div>
-                    
+
                     <div className="mb-3">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1092,46 +1212,56 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {columns.filter(col => 
-                        col.key !== 'numero_contrato' && 
-                        col.label.toLowerCase().includes(columnSearchTerm.toLowerCase())
-                      ).map((column) => {
-                        const isVisible = visibleColumns.has(column.key)
-                        return (
-                          <label
-                            key={column.key}
-                            className="flex items-center space-x-3 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isVisible}
-                              onChange={() => toggleColumnVisibility(column.key)}
-                              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700"
-                            />
-                            <span className="text-sm text-gray-900 dark:text-gray-100 flex-1">
-                              {column.label}
-                            </span>
-                            {isVisible ? (
-                              <Eye className="w-4 h-4 text-purple-500" />
-                            ) : (
-                              <EyeOff className="w-4 h-4 text-gray-400" />
-                            )}
-                          </label>
+                      {columns
+                        .filter(
+                          (col) =>
+                            col.key !== "numero_contrato" &&
+                            col.label
+                              .toLowerCase()
+                              .includes(columnSearchTerm.toLowerCase()),
                         )
-                      })}
+                        .map((column) => {
+                          const isVisible = visibleColumns.has(column.key);
+                          return (
+                            <label
+                              key={column.key}
+                              className="flex items-center space-x-3 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isVisible}
+                                onChange={() =>
+                                  toggleColumnVisibility(column.key)
+                                }
+                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700"
+                              />
+                              <span className="text-sm text-gray-900 dark:text-gray-100 flex-1">
+                                {column.label}
+                              </span>
+                              {isVisible ? (
+                                <Eye className="w-4 h-4 text-purple-500" />
+                              ) : (
+                                <EyeOff className="w-4 h-4 text-gray-400" />
+                              )}
+                            </label>
+                          );
+                        })}
                     </div>
                   </div>
                 </div>
               )}
             </div>
-            
-            {(Object.values(columnFilters).some(filters => filters.length > 0) || searchTerm) && (
+
+            {(Object.values(columnFilters).some(
+              (filters) => filters.length > 0,
+            ) ||
+              searchTerm) && (
               <button
                 onClick={() => {
-                  setColumnFilters({})
-                  setSearchTerm('')
+                  setColumnFilters({});
+                  setSearchTerm("");
                 }}
                 className="inline-flex items-center px-3 py-2 text-xs font-medium text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
               >
@@ -1139,14 +1269,16 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                 Limpiar Filtros
               </button>
             )}
-            
+
             <button
               onClick={fetchContratos}
               disabled={loading}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>{loading ? 'Actualizando...' : 'Actualizar'}</span>
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+              <span>{loading ? "Actualizando..." : "Actualizar"}</span>
             </button>
 
             <button
@@ -1154,7 +1286,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
               className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span>Añadir Convenio o Transferencia</span>
+              <span>AÃ±adir Convenio o Transferencia</span>
             </button>
           </div>
         </div>
@@ -1164,7 +1296,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700"
         data-tour-id="mgmt-contratos-table"
       >
         <div className="overflow-x-auto max-h-[70vh] min-h-[300px] overflow-y-auto">
@@ -1172,19 +1304,22 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
             <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
               <tr>
                 {columnOrder.map((columnKey) => {
-                  const column = columns.find(col => col.key === columnKey);
+                  const column = columns.find((col) => col.key === columnKey);
                   if (!column || !visibleColumns.has(column.key)) return null;
 
-                  const isReferenceColumn = column.key === 'numero_contrato';
+                  const isReferenceColumn = column.key === "numero_contrato";
 
                   return (
-                    <th 
-                      key={column.key} 
+                    <th
+                      key={column.key}
                       className={`px-3 py-2 text-left relative border-r border-gray-200 dark:border-gray-600 last:border-r-0 group bg-gray-50 dark:bg-gray-700 
-                        ${draggedColumn === column.key ? 'opacity-50' : ''}
-                        ${dragOverColumn === column.key ? 'bg-purple-100 dark:bg-purple-900' : ''}
+                        ${draggedColumn === column.key ? "opacity-50" : ""}
+                        ${dragOverColumn === column.key ? "bg-purple-100 dark:bg-purple-900" : ""}
                       `}
-                      style={{ width: `${getColumnWidth(column.key)}px`, minWidth: '80px' }}
+                      style={{
+                        width: `${getColumnWidth(column.key)}px`,
+                        minWidth: "80px",
+                      }}
                       draggable={!isReferenceColumn}
                       onDragStart={(e) => handleDragStart(e, column.key)}
                       onDragOver={(e) => handleDragOver(e, column.key)}
@@ -1199,18 +1334,24 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                           <span className="truncate">{column.label}</span>
                           {getSortIcon(column.key)}
                         </button>
-                        
-                        <div 
+
+                        <div
                           className="relative"
-                          ref={el => { filtersRef.current[column.key] = el }}
+                          ref={(el) => {
+                            filtersRef.current[column.key] = el;
+                          }}
                         >
                           <button
-                            onClick={() => setShowFilters(prev => ({
-                              ...prev,
-                              [column.key]: !prev[column.key]
-                            }))}
+                            onClick={() =>
+                              setShowFilters((prev) => ({
+                                ...prev,
+                                [column.key]: !prev[column.key],
+                              }))
+                            }
                             className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors relative ${
-                              columnFilters[column.key]?.length > 0 ? 'text-purple-500' : 'text-gray-400'
+                              columnFilters[column.key]?.length > 0
+                                ? "text-purple-500"
+                                : "text-gray-400"
                             }`}
                           >
                             <Filter className="w-3 h-3" />
@@ -1220,27 +1361,31 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                               </span>
                             )}
                           </button>
-                          
+
                           {showFilters[column.key] && (
                             <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 min-w-48 max-w-64">
                               <div className="p-2">
                                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
                                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                    Filtro múltiple
+                                    Filtro mÃºltiple
                                   </span>
                                   <div className="flex space-x-1">
                                     <button
-                                      onClick={() => clearColumnFilter(column.key)}
+                                      onClick={() =>
+                                        clearColumnFilter(column.key)
+                                      }
                                       className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                                     >
                                       Limpiar
                                     </button>
                                     <button
                                       onClick={() => {
-                                        setColumnFilters(prev => ({
+                                        setColumnFilters((prev) => ({
                                           ...prev,
-                                          [column.key]: getUniqueValues(column.key)
-                                        }))
+                                          [column.key]: getUniqueValues(
+                                            column.key,
+                                          ),
+                                        }));
                                       }}
                                       className="text-xs px-2 py-1 text-purple-500 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
                                     >
@@ -1248,10 +1393,13 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                                     </button>
                                   </div>
                                 </div>
-                                
+
                                 <div className="max-h-48 overflow-y-auto space-y-1">
                                   {getUniqueValues(column.key).map((value) => {
-                                    const isSelected = columnFilters[column.key]?.includes(value) || false
+                                    const isSelected =
+                                      columnFilters[column.key]?.includes(
+                                        value,
+                                      ) || false;
                                     return (
                                       <label
                                         key={value}
@@ -1261,33 +1409,45 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                                           type="checkbox"
                                           checked={isSelected}
                                           onChange={(e) => {
-                                            const currentFilters = columnFilters[column.key] || []
+                                            const currentFilters =
+                                              columnFilters[column.key] || [];
                                             if (e.target.checked) {
-                                              setColumnFilters(prev => ({
+                                              setColumnFilters((prev) => ({
                                                 ...prev,
-                                                [column.key]: [...currentFilters, value]
-                                              }))
+                                                [column.key]: [
+                                                  ...currentFilters,
+                                                  value,
+                                                ],
+                                              }));
                                             } else {
-                                              setColumnFilters(prev => ({
+                                              setColumnFilters((prev) => ({
                                                 ...prev,
-                                                [column.key]: currentFilters.filter(v => v !== value)
-                                              }))
+                                                [column.key]:
+                                                  currentFilters.filter(
+                                                    (v) => v !== value,
+                                                  ),
+                                              }));
                                             }
                                           }}
                                           className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700"
                                         />
-                                        <span className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate" title={String(value)}>
+                                        <span
+                                          className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate"
+                                          title={String(value)}
+                                        >
                                           {formatValue(value, column.key)}
                                         </span>
                                       </label>
-                                    )
+                                    );
                                   })}
                                 </div>
-                                
+
                                 {columnFilters[column.key]?.length > 0 && (
                                   <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      {columnFilters[column.key].length} de {getUniqueValues(column.key).length} seleccionados
+                                      {columnFilters[column.key].length} de{" "}
+                                      {getUniqueValues(column.key).length}{" "}
+                                      seleccionados
                                     </span>
                                   </div>
                                 )}
@@ -1296,21 +1456,21 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                           )}
                         </div>
                       </div>
-                      
+
                       <div
                         className="absolute top-0 right-0 w-2 h-full cursor-col-resize hover:bg-purple-300 dark:hover:bg-purple-600 transition-colors opacity-0 hover:opacity-100 group-hover:opacity-100"
                         onMouseDown={(e) => handleMouseDown(e, column.key)}
                       />
                     </th>
-                  )
+                  );
                 })}
-                
+
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 sticky right-0 top-0 bg-gray-50 dark:bg-gray-700 w-24 z-20 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)]">
                   Acciones
                 </th>
               </tr>
             </thead>
-            
+
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedContratos.map((contrato, index) => (
                 <motion.tr
@@ -1321,27 +1481,35 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   {columnOrder.map((columnKey) => {
-                    const column = columns.find(col => col.key === columnKey);
+                    const column = columns.find((col) => col.key === columnKey);
                     if (!column || !visibleColumns.has(column.key)) return null;
 
-                    const cellValue = column.accessor ? column.accessor(contrato) : contrato[column.key];
+                    const cellValue = column.accessor
+                      ? column.accessor(contrato)
+                      : contrato[column.key];
 
                     // Renderizado especial para columna de tipo
-                    if (column.key === 'tipo_origen') {
+                    if (column.key === "tipo_origen") {
                       const tipo = getTipoContrato(contrato);
-                      const colorClass = tipo === 'Orden TVEC' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : tipo === 'Convenio/Transferencia'
-                        ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                        : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+                      const colorClass =
+                        tipo === "Orden TVEC"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          : tipo === "Convenio/Transferencia"
+                            ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                            : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
 
                       return (
-                        <td 
-                          key={column.key} 
+                        <td
+                          key={column.key}
                           className="px-3 py-2 text-xs border-r border-gray-100 dark:border-gray-700"
-                          style={{ width: `${getColumnWidth(column.key)}px`, maxWidth: `${getColumnWidth(column.key)}px` }}
+                          style={{
+                            width: `${getColumnWidth(column.key)}px`,
+                            maxWidth: `${getColumnWidth(column.key)}px`,
+                          }}
                         >
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}
+                          >
                             {tipo}
                           </span>
                         </td>
@@ -1349,43 +1517,49 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                     }
 
                     return (
-                      <td 
-                        key={column.key} 
+                      <td
+                        key={column.key}
                         className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700"
-                        style={{ width: `${getColumnWidth(column.key)}px`, maxWidth: `${getColumnWidth(column.key)}px` }}
+                        style={{
+                          width: `${getColumnWidth(column.key)}px`,
+                          maxWidth: `${getColumnWidth(column.key)}px`,
+                        }}
                       >
                         <div className="max-w-full overflow-hidden">
-                          <span className="block truncate" title={String(cellValue || '')}>
+                          <span
+                            className="block truncate"
+                            title={String(cellValue || "")}
+                          >
                             {formatValue(cellValue, column.key)}
                           </span>
                         </div>
                       </td>
                     );
                   })}
-                  
+
                   <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100 border-r border-gray-100 dark:border-gray-700 sticky right-0 bg-white dark:bg-gray-800 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] dark:shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.3)]">
                     <div className="flex items-center space-x-2">
-                      {/* Botón para cargar RPC - siempre visible */}
+                      {/* BotÃ³n para cargar RPC - siempre visible */}
                       <button
                         onClick={() => {
-                          setSelectedContratoForRPC(contrato)
-                          setShowCargarRPCModal(true)
+                          setSelectedContratoForRPC(contrato);
+                          setShowCargarRPCModal(true);
                         }}
                         className="p-1.5 rounded transition-colors text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 relative"
                         title="Cargar RPC"
                       >
                         <Upload className="w-4 h-4" />
                         {(() => {
-                          const count = obtenerRPCsDeContrato(contrato).length
+                          const count = obtenerRPCsDeContrato(contrato).length;
                           return count > 0 ? (
                             <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                               {count}
                             </span>
-                          ) : null
+                          ) : null;
                         })()}
                       </button>
 
-                      {/* Botón para ver documentos RPC (solo si tiene documentos) */}
+                      {/* BotÃ³n para ver documentos RPC (solo si tiene documentos) */}
                       {tieneDocumentosRPC(contrato) && (
                         <button
                           onClick={() => handleOpenDocumentosRPC(contrato)}
@@ -1403,16 +1577,18 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
           </table>
         </div>
 
-        {/* Paginación */}
+        {/* PaginaciÃ³n */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, allContratos.length)} de {allContratos.length} contratos
+              Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
+              {Math.min(currentPage * itemsPerPage, allContratos.length)} de{" "}
+              {allContratos.length} contratos
             </div>
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white transition-colors"
               >
@@ -1421,11 +1597,13 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
               </button>
 
               <span className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
-                Página {currentPage} de {totalPages}
+                PÃ¡gina {currentPage} de {totalPages}
               </span>
 
               <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
                 disabled={currentPage === totalPages}
                 className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white transition-colors"
               >
@@ -1441,28 +1619,32 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       <AgregarConvenioTransferenciaModal
         isOpen={showAgregarModal}
         onClose={() => {
-          setShowAgregarModal(false)
+          setShowAgregarModal(false);
         }}
         onSuccess={handleAgregarContratoSuccess}
       />
-      
+
       {/* Modal de Cargar RPC */}
       <CargarRPCModal
         isOpen={showCargarRPCModal}
         onClose={() => {
-          setShowCargarRPCModal(false)
-          setSelectedContratoForRPC(null)
+          setShowCargarRPCModal(false);
+          setSelectedContratoForRPC(null);
         }}
         onSuccess={() => {
-          fetchContratos()
-          fetchRPCs()
+          fetchContratos();
+          fetchRPCs();
         }}
         contratoData={selectedContratoForRPC}
-        rpcsExistentes={selectedContratoForRPC ? obtenerRPCsDeContrato(selectedContratoForRPC) : []}
+        rpcsExistentes={
+          selectedContratoForRPC
+            ? obtenerRPCsDeContrato(selectedContratoForRPC)
+            : []
+        }
         onEditRPC={(rpc) => {
-          setShowCargarRPCModal(false)
-          setSelectedRPCForEdit(rpc)
-          setShowEditarRPCModal(true)
+          setShowCargarRPCModal(false);
+          setSelectedRPCForEdit(rpc);
+          setShowEditarRPCModal(true);
         }}
       />
 
@@ -1470,12 +1652,12 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
       <EditarRPCModal
         isOpen={showEditarRPCModal}
         onClose={() => {
-          setShowEditarRPCModal(false)
-          setSelectedRPCForEdit(null)
+          setShowEditarRPCModal(false);
+          setSelectedRPCForEdit(null);
         }}
         onSuccess={() => {
-          fetchContratos()
-          fetchRPCs()
+          fetchContratos();
+          fetchRPCs();
         }}
         rpcData={selectedRPCForEdit}
         contratoData={selectedContratoForRPC}
@@ -1489,16 +1671,19 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col"
+              className="bg-white dark:bg-gray-800 rounded-md shadow-none border border-gray-200 dark:border-gray-700 w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col"
             >
               {/* Header */}
               <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <FileText className="w-6 h-6 text-white" />
                   <div>
-                    <h2 className="text-xl font-bold text-white">Documentos RPC</h2>
+                    <h2 className="text-xl font-bold text-white">
+                      Documentos RPC
+                    </h2>
                     <p className="text-sm text-white/80">
-                      {selectedContratoForDocs.referencia_contrato || selectedContratoForDocs.numero_contrato}
+                      {selectedContratoForDocs.referencia_contrato ||
+                        selectedContratoForDocs.numero_contrato}
                     </p>
                   </div>
                 </div>
@@ -1515,83 +1700,100 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                 {/* Sidebar: lista de RPCs y documentos */}
                 <div className="w-80 border-r border-gray-200 dark:border-gray-700 overflow-y-auto bg-gray-50 dark:bg-gray-900 flex-shrink-0">
                   {(() => {
-                    const rpcsDelContrato = obtenerRPCsDeContrato(selectedContratoForDocs)
+                    const rpcsDelContrato = obtenerRPCsDeContrato(
+                      selectedContratoForDocs,
+                    );
                     if (rpcsDelContrato.length === 0) {
                       return (
                         <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                           <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                           <p className="text-sm">No hay RPCs registrados</p>
                         </div>
-                      )
+                      );
                     }
                     return rpcsDelContrato.map((rpc) => {
-                      const docs = getDocumentosDeRPC(rpc)
+                      const docs = getDocumentosDeRPC(rpc);
                       return (
-                        <div key={rpc.id} className="border-b border-gray-200 dark:border-gray-700">
+                        <div
+                          key={rpc.id}
+                          className="border-b border-gray-200 dark:border-gray-700"
+                        >
                           {/* RPC header */}
                           <div className="px-4 py-3 bg-white dark:bg-gray-800">
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-semibold text-gray-900 dark:text-white">
                                 RPC {rpc.numero_rpc}
                               </span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                rpc.estado === 'activo'
-                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                  : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                              }`}>
-                                {rpc.estado_liberacion || rpc.estado || 'N/A'}
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  rpc.estado === "activo"
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                    : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                                }`}
+                              >
+                                {rpc.estado_liberacion || rpc.estado || "N/A"}
                               </span>
                             </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-                              {rpc.beneficiario_nombre || 'Sin beneficiario'}
+                              {rpc.beneficiario_nombre || "Sin beneficiario"}
                             </p>
                             {rpc.valor_rpc && (
                               <p className="text-xs text-gray-500 dark:text-gray-400">
-                                ${rpc.valor_rpc.toLocaleString('es-CO')}
+                                ${rpc.valor_rpc.toLocaleString("es-CO")}
                               </p>
                             )}
                           </div>
                           {/* Documentos del RPC */}
                           {docs.length > 0 ? (
                             docs.map((doc, idx) => {
-                              const remoteUrl = getDocRemoteUrl(doc)
-                              const isSelected = selectedDocUrl === remoteUrl
+                              const remoteUrl = getDocRemoteUrl(doc);
+                              const isSelected = selectedDocUrl === remoteUrl;
                               return (
                                 <div
                                   key={idx}
                                   className={`px-4 py-2 flex items-center gap-2 cursor-pointer transition-colors ${
                                     isSelected
-                                      ? 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500'
-                                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 border-l-4 border-transparent'
+                                      ? "bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500"
+                                      : "hover:bg-gray-100 dark:hover:bg-gray-700/50 border-l-4 border-transparent"
                                   }`}
                                   onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleSelectDoc(doc)
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleSelectDoc(doc);
                                   }}
                                 >
-                                  <FileText className={`w-4 h-4 flex-shrink-0 ${
-                                    isSelected ? 'text-orange-600' : 'text-gray-400'
-                                  }`} />
-                                  <div className="flex-1 min-w-0">
-                                    <p className={`text-xs truncate ${
+                                  <FileText
+                                    className={`w-4 h-4 flex-shrink-0 ${
                                       isSelected
-                                        ? 'font-semibold text-orange-700 dark:text-orange-400'
-                                        : 'text-gray-700 dark:text-gray-300'
-                                    }`}>
+                                        ? "text-orange-600"
+                                        : "text-gray-400"
+                                    }`}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p
+                                      className={`text-xs truncate ${
+                                        isSelected
+                                          ? "font-semibold text-orange-700 dark:text-orange-400"
+                                          : "text-gray-700 dark:text-gray-300"
+                                      }`}
+                                    >
                                       {doc.filename}
                                     </p>
                                     <p className="text-[10px] text-gray-400">
-                                      {formatFileSize(doc.size)} · {doc.content_type.split('/')[1]?.toUpperCase() || 'DOC'}
+                                      {formatFileSize(doc.size)} Â·{" "}
+                                      {doc.content_type
+                                        .split("/")[1]
+                                        ?.toUpperCase() || "DOC"}
                                     </p>
                                   </div>
                                   <button
                                     type="button"
                                     onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      const downloadUrl = getDocDownloadUrl(doc)
-                                      window.open(downloadUrl, '_blank')
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      const downloadUrl =
+                                        getDocDownloadUrl(doc);
+                                      window.open(downloadUrl, "_blank");
                                     }}
                                     className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex-shrink-0"
                                     title="Descargar documento"
@@ -1599,7 +1801,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                                     <Download className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
-                              )
+                              );
                             })
                           ) : (
                             <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 italic">
@@ -1607,8 +1809,8 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                             </div>
                           )}
                         </div>
-                      )
-                    })
+                      );
+                    });
                   })()}
                 </div>
 
@@ -1631,14 +1833,18 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center text-red-400 dark:text-red-500">
                         <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                        <p className="text-sm">No se pudo cargar la vista previa</p>
+                        <p className="text-sm">
+                          No se pudo cargar la vista previa
+                        </p>
                       </div>
                     </div>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center text-gray-400 dark:text-gray-500">
                         <Eye className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                        <p className="text-sm">Selecciona un documento para previsualizarlo</p>
+                        <p className="text-sm">
+                          Selecciona un documento para previsualizarlo
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1655,7 +1861,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2 text-sm"
                   >
                     <Eye className="w-4 h-4" />
-                    <span>Abrir en Nueva Pestaña</span>
+                    <span>Abrir en Nueva PestaÃ±a</span>
                   </a>
                 )}
                 <button
@@ -1670,7 +1876,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({ onNavigateHome }) =
         )}
       </AnimatePresence>
     </div>
-  )
-}
+  );
+};
 
-export default GestionContratos
+export default GestionContratos;
