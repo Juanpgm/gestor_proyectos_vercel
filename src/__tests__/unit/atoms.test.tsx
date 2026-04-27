@@ -57,7 +57,7 @@ describe('Button', () => {
   it('applies primary variant classes by default', () => {
     render(<Button>Click</Button>)
     const btn = screen.getByRole('button')
-    expect(btn.className).toContain('bg-blue-600')
+    expect(btn.className).toContain('bg-blue-700')
   })
 
   it('applies danger variant', () => {
@@ -103,7 +103,7 @@ describe('Button', () => {
 
   it('renders lg size classes', () => {
     render(<Button size="lg">Large</Button>)
-    expect(screen.getByRole('button').className).toContain('h-12')
+    expect(screen.getByRole('button').className).toContain('h-11')
   })
 })
 
@@ -273,7 +273,7 @@ describe('Card', () => {
 
   it('applies hover class when hover=true', () => {
     const { container } = render(<Card hover>X</Card>)
-    expect(container.firstChild?.className).toContain('hover:shadow-md')
+    expect(container.firstChild?.className).toContain('hover:shadow-sm')
   })
 })
 

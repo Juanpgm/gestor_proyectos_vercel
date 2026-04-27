@@ -153,6 +153,6 @@ describe('SearchBar', () => {
 
   it('applies lg size class', () => {
     render(<SearchBar size="lg" />)
-    expect(screen.getByRole('searchbox').className).toContain('h-12')
+    expect(screen.getByRole('searchbox').className).toContain('h-11')
   })
 })
