@@ -363,7 +363,8 @@ function DashboardContent() {
               {activeTab === "procesos" && "Cargando procesos…"}
               {activeTab === "contracts" && "Cargando contratos…"}
               {activeTab === "projects" && "Cargando proyectos…"}
-              {activeTab === "project_units" && "Cargando unidades de proyecto…"}
+              {activeTab === "project_units" &&
+                "Cargando unidades de proyecto…"}
             </p>
           </div>
         </div>

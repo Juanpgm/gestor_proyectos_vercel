@@ -4,18 +4,20 @@
  * Layout govtech shell para teléfonos.
  * El middleware redirige automáticamente a esta ruta si detecta un teléfono.
  */
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { LayoutDashboard, FolderKanban, Activity, FileText, ExternalLink, type LucideIcon } from 'lucide-react'
+import { DataProvider } from '@/context/DataContext'
 
 export const metadata: Metadata = {
   title: 'CaliTrack · Gestión',
   description: 'Plataforma analítica de gestión de proyectos — Alcaldía de Cali',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 const NAV_ITEMS = [
@@ -55,7 +57,9 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
 
       {/* ── Contenido principal ──────────────────── */}
       <main className="flex-1 overflow-y-auto pb-20 px-3.5 pt-5">
-        {children}
+        <DataProvider>
+          {children}
+        </DataProvider>
       </main>
 
       {/* ── Navegación inferior ──────────────────── */}

@@ -53,7 +53,10 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <div className="hidden sm:block min-w-0">
               <h1
                 className="text-gray-900 dark:text-white text-[18px] sm:text-[20px] font-bold truncate leading-tight tracking-tight m-0"
-                style={{ fontFamily: 'var(--font-display, Outfit, system-ui, sans-serif)' }}
+                style={{
+                  fontFamily:
+                    "var(--font-display, Outfit, system-ui, sans-serif)",
+                }}
               >
                 Sistema de Gestión de Proyectos
               </h1>
@@ -63,7 +66,10 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             </div>
             <div
               className="sm:hidden text-gray-900 dark:text-white font-bold text-lg leading-none tracking-tight"
-              style={{ fontFamily: 'var(--font-display, Outfit, system-ui, sans-serif)' }}
+              style={{
+                fontFamily:
+                  "var(--font-display, Outfit, system-ui, sans-serif)",
+              }}
             >
               CaliTrack
             </div>

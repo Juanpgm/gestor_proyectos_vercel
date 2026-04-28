@@ -128,7 +128,7 @@ export function UserProfile() {
           src={state.user.photoURL}
           alt={displayName}
           className="w-7 h-7 rounded-full object-cover ring-2 ring-offset-1 ring-offset-white dark:ring-offset-[#0d1f36] shrink-0"
-          style={{ '--tw-ring-color': profileColor } as React.CSSProperties}
+          style={{ "--tw-ring-color": profileColor } as React.CSSProperties}
         />
       ) : (
         <div
