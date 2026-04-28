@@ -120,10 +120,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         )
       case 'gestionar-emprestito':
         return (
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-            <div className="px-2 sm:px-4 lg:px-6 py-4">
-              <GestionEmprestito onNavigateHome={handleNavigateHome} />
-            </div>
+          <div className="h-[calc(100vh-3.5rem)] overflow-hidden">
+            <GestionEmprestito onNavigateHome={handleNavigateHome} />
           </div>
         )
       case 'dashboard':

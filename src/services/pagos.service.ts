@@ -1,26 +1,26 @@
 // Servicio para gestión de pagos de empréstito
 
 export interface PagoEmprestito {
-  id: string
-  numero_rpc: string
-  valor_pago: number
-  fecha_transaccion: string
-  referencia_contrato: string
-  nombre_centro_gestor: string
-  fecha_registro: string
-  fecha_creacion: string
-  fecha_actualizacion: string
-  estado: string
-  tipo: string
+  id: string;
+  numero_rpc: string;
+  valor_pago: number;
+  fecha_transaccion: string;
+  referencia_contrato: string;
+  nombre_centro_gestor: string;
+  fecha_registro: string;
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+  estado: string;
+  tipo: string;
 }
 
 export interface PagosResponse {
-  success: boolean
-  data: PagoEmprestito[]
-  count: number
-  collection: string
-  timestamp: string
-  message: string
+  success: boolean;
+  data: PagoEmprestito[];
+  count: number;
+  collection: string;
+  timestamp: string;
+  message: string;
 }
 
 /**
@@ -28,80 +28,86 @@ export interface PagosResponse {
  */
 export const fetchPagosEmprestito = async (): Promise<PagosResponse> => {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-    
-    if (!apiUrl) {
-      throw new Error('URL de API no configurada')
+    const authHeaders: Record<string, string> = {};
+    if (typeof window !== "undefined") {
+      try {
+        const { getCurrentIdToken } = await import("@/lib/firebase");
+        const token = await getCurrentIdToken();
+        if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+      } catch {}
     }
 
-    const response = await fetch('/api/proxy/contratos_pagos_all', {
-      method: 'GET',
+    const response = await fetch("/api/proxy/contratos_pagos_all", {
+      method: "GET",
       headers: {
-        'Accept': 'application/json',
+        Accept: "application/json",
+        ...authHeaders,
       },
-    })
+    });
 
     if (!response.ok) {
-      throw new Error(`Error al obtener pagos: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `Error al obtener pagos: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data: PagosResponse = await response.json()
+    const data: PagosResponse = await response.json();
 
     if (!data.success) {
-      throw new Error(data.message || 'Error al obtener los pagos')
+      throw new Error(data.message || "Error al obtener los pagos");
     }
 
-    return data
+    return data;
   } catch (error) {
-    console.error('Error en fetchPagosEmprestito:', error)
-    throw error
+    console.error("Error en fetchPagosEmprestito:", error);
+    throw error;
   }
-}
+};
 
 /**
  * Formatea un valor monetario en formato colombiano
  */
 export const formatCurrency = (value: number | undefined): string => {
-  if (value === undefined || value === null) return 'N/A'
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0
-  }).format(value)
-}
+  if (value === undefined || value === null) return "N/A";
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 0,
+  }).format(value);
+};
 
 /**
  * Formatea una fecha en formato colombiano
  */
 export const formatDate = (dateString: string | undefined): string => {
-  if (!dateString) return 'N/A'
+  if (!dateString) return "N/A";
   try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    })
+    const date = new Date(dateString);
+    return date.toLocaleDateString("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
   } catch {
-    return dateString
+    return dateString;
   }
-}
+};
 
 /**
  * Formatea una fecha y hora en formato colombiano
  */
 export const formatDateTime = (dateString: string | undefined): string => {
-  if (!dateString) return 'N/A'
+  if (!dateString) return "N/A";
   try {
-    const date = new Date(dateString)
-    return date.toLocaleString('es-CO', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    const date = new Date(dateString);
+    return date.toLocaleString("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } catch {
-    return dateString
+    return dateString;
   }
-}
+};

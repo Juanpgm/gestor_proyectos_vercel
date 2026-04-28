@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import "@/styles/ipad-10-optimizations.css";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -9,11 +8,6 @@ import AuthWrapper from "@/components/AuthWrapper";
 import NotificationInitializer from "@/components/NotificationInitializer";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProductionConsoleGuard from "@/components/ProductionConsoleGuard";
-
-const inter = Inter({
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "CaliTrack",
@@ -38,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={inter.className}>
-      <body className="min-h-screen bg-gray-50 antialiased overflow-x-hidden">
+    <html lang="es" suppressHydrationWarning>
+      <body className="min-h-screen antialiased overflow-x-hidden">
         <AuthProvider>
           <ThemeProvider>
             <DashboardProvider>

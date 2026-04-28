@@ -140,13 +140,13 @@ const ConveniosTable: React.FC = () => {
     }
   }
 
-  // FunciÃ³n para manejar la ediciÃ³n completa
+  // Función para manejar la edición completa
   const handleEditConvenio = (convenio: ConvenioTransferencia) => {
     setEditingConvenio(convenio)
     setShowAgregarModal(true)
   }
 
-  // FunciÃ³n para actualizar convenio completo vÃ­a API
+  // Función para actualizar convenio completo vía API
   const handleUpdateConvenio = async (docId: string, formData: any) => {
     try {
       const payload = new URLSearchParams()
@@ -193,7 +193,7 @@ const ConveniosTable: React.FC = () => {
         throw new Error(result.error || result.detail || 'Error al actualizar el convenio')
       }
 
-      // ActualizaciÃ³n optimista
+      // Actualización optimista
       setConvenios(prev => prev.map(c => {
          // Compara usando el ID que tengamos disponible
          const cId = (c as any).id || (c as any).doc_id;
@@ -203,7 +203,7 @@ const ConveniosTable: React.FC = () => {
          return c;
       }))
 
-      // Recargar datos silenciosamente sin mostrar spinner (que desmontarÃ­a el modal)
+      // Recargar datos silenciosamente sin mostrar spinner (que desmontaría el modal)
       await fetchConvenios(false)
       
     } catch (error) {
@@ -218,7 +218,7 @@ const ConveniosTable: React.FC = () => {
       const referenciaContrato = String(convenio.referencia_contrato || '').trim()
 
       if (!referenciaContrato) {
-        throw new Error('No se encontrÃ³ referencia_contrato para eliminar este convenio')
+        throw new Error('No se encontró referencia_contrato para eliminar este convenio')
       }
 
       const response = await fetch(`/api/proxy/emprestito/eliminar-convenio-transferencia/${encodeURIComponent(referenciaContrato)}`, {
@@ -366,7 +366,7 @@ const ConveniosTable: React.FC = () => {
                 <button
                   onClick={() => setSuccessToast(null)}
                   className="text-white/80 hover:text-white text-lg leading-none"
-                  aria-label="Cerrar notificaciÃ³n"
+                  aria-label="Cerrar notificación"
                 >
                   Ã—
                 </button>
@@ -381,7 +381,7 @@ const ConveniosTable: React.FC = () => {
                 <button
                   onClick={() => setErrorToast(null)}
                   className="text-white/80 hover:text-white text-lg leading-none"
-                  aria-label="Cerrar notificaciÃ³n de error"
+                  aria-label="Cerrar notificación de error"
                 >
                   Ã—
                 </button>
@@ -397,7 +397,7 @@ const ConveniosTable: React.FC = () => {
       totalValorConvenios: allConvenios.reduce((sum, c) => sum + parseNumeric(c.valor_convenio), 0),
       centrosGestores: new Set(allConvenios.map(c => c.nombre_centro_gestor).filter(Boolean)).size,
       bancos: new Set(allConvenios.map(c => c.banco).filter(Boolean)).size,
-      activos: allConvenios.filter(c => c.estado_contrato === 'En ejecuciÃ³n').length
+      activos: allConvenios.filter(c => c.estado_contrato === 'En ejecución').length
     }
   }, [convenios, allConvenios])
 
@@ -653,7 +653,7 @@ const ConveniosTable: React.FC = () => {
         >
           {searchTerm && (
             <div className="flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm">
-              <span>BÃºsqueda: &quot;{searchTerm}&quot;</span>
+              <span>Búsqueda: &quot;{searchTerm}&quot;</span>
               <button
                 onClick={() => setSearchTerm('')}
                 className="ml-2 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
@@ -724,7 +724,7 @@ const ConveniosTable: React.FC = () => {
                             <div className="p-2">
                               <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-600">
                                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                  Filtro mÃºltiple
+                                  Filtro múltiple
                                 </span>
                                 <div className="flex space-x-1">
                                   <button
@@ -861,9 +861,9 @@ const ConveniosTable: React.FC = () => {
       {convenioToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Confirmar eliminaciÃ³n</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Confirmar eliminación</h3>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-              Â¿EstÃ¡ seguro que desea eliminar el convenio <span className="font-semibold">{convenioToDelete.referencia_contrato || '-'}</span>? Esta acciÃ³n no se puede deshacer.
+              Â¿Está seguro que desea eliminar el convenio <span className="font-semibold">{convenioToDelete.referencia_contrato || '-'}</span>? Esta acción no se puede deshacer.
             </p>
 
             <div className="flex items-center justify-end gap-3">
@@ -922,9 +922,9 @@ const ConveniosTable: React.FC = () => {
           setShowModificarModal(false)
           setConvenioToEdit(null)
           
-          // ActualizaciÃ³n optimista si recibimos datos actualizados
+          // Actualización optimista si recibimos datos actualizados
           if (updatedData && updatedData.referencia_contrato) {
-            console.log('ðŸ”„ ActualizaciÃ³n optimista de convenio:', updatedData)
+            console.log('ðŸ”„ Actualización optimista de convenio:', updatedData)
             setConvenios(prevConvenios =>
               prevConvenios.map(convenio =>
                 convenio.referencia_contrato === updatedData.referencia_contrato
@@ -933,7 +933,7 @@ const ConveniosTable: React.FC = () => {
               )
             )
             
-            // Sincronizar con Firebase despuÃ©s de 5 segundos
+            // Sincronizar con Firebase después de 5 segundos
             setTimeout(async () => {
               console.log('ðŸ”„ Sincronizando con Firebase...')
               await fetchConvenios()

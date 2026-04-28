@@ -90,7 +90,7 @@ const useTimeSeriesData = (
   contratos: ContratoEmprestito[],
 ) => {
   return useMemo(() => {
-    // Crear un mapa de contratos para obtener informaciÃ³n adicional
+    // Crear un mapa de contratos para obtener información adicional
     const contratoMap = new Map<string, ContratoEmprestito>();
     contratos.forEach((contrato) => {
       if (contrato.referencia_contrato) {
@@ -164,12 +164,12 @@ const TimeSeriesChart: React.FC<{
   const [selectedFilter, setSelectedFilter] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Mostrar indicador de carga si no hay datos aÃºn
+  // Mostrar indicador de carga si no hay datos aún
   const isLoading = reportes.length === 0 && contratos.length === 0;
 
   const timeSeriesData = useTimeSeriesData(reportes, contratos);
 
-  // Obtener opciones Ãºnicas para filtros basÃ¡ndose en los reportes y contratos
+  // Obtener opciones únicas para filtros basándose en los reportes y contratos
   const filterOptions = useMemo(() => {
     const options = new Set<string>();
 
@@ -199,7 +199,7 @@ const TimeSeriesChart: React.FC<{
     return Array.from(options).sort();
   }, [contratos, reportes, viewType]);
 
-  // Filtrar opciones por bÃºsqueda
+  // Filtrar opciones por búsqueda
   const filteredOptions = useMemo(() => {
     if (!searchTerm) return filterOptions;
     return filterOptions.filter((option) =>
@@ -207,11 +207,11 @@ const TimeSeriesChart: React.FC<{
     );
   }, [filterOptions, searchTerm]);
 
-  // Datos filtrados por selecciÃ³n
+  // Datos filtrados por selección
   const filteredTimeSeriesData = useMemo(() => {
     if (!selectedFilter) return timeSeriesData;
 
-    // Filtrar reportes segÃºn el tipo de vista
+    // Filtrar reportes según el tipo de vista
     const reportesFiltrados = reportes.filter((reporte) => {
       switch (viewType) {
         case "banco":
@@ -229,7 +229,7 @@ const TimeSeriesChart: React.FC<{
       }
     });
 
-    // Crear un mapa de contratos para obtener informaciÃ³n adicional
+    // Crear un mapa de contratos para obtener información adicional
     const contratoMap = new Map<string, ContratoEmprestito>();
     contratos.forEach((contrato) => {
       if (contrato.referencia_contrato) {
@@ -290,10 +290,10 @@ const TimeSeriesChart: React.FC<{
     );
   }, [reportes, contratos, viewType, selectedFilter, timeSeriesData]);
 
-  // Calcular valores mÃ¡ximos para escalas basado en los totales
+  // Calcular valores máximos para escalas basado en los totales
   const maxValue = useMemo(() => {
     return Math.max(
-      100, // MÃ­nimo 100 para que se vea bien
+      100, // Mínimo 100 para que se vea bien
       ...filteredTimeSeriesData.map((d) =>
         Math.max(d.total_avance_fisico, d.total_avance_financiero),
       ),
@@ -340,11 +340,11 @@ const TimeSeriesChart: React.FC<{
           >
             <option value="banco">Banco</option>
             <option value="centro_gestor">Centro Gestor</option>
-            <option value="contrato">Contrato EspecÃ­fico</option>
+            <option value="contrato">Contrato Específico</option>
           </select>
         </div>
 
-        {/* Barra de bÃºsqueda */}
+        {/* Barra de búsqueda */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Buscar{" "}
@@ -367,7 +367,7 @@ const TimeSeriesChart: React.FC<{
           </div>
         </div>
 
-        {/* Selector especÃ­fico */}
+        {/* Selector específico */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Seleccionar:
@@ -387,7 +387,7 @@ const TimeSeriesChart: React.FC<{
         </div>
       </div>
 
-      {/* GrÃ¡fico de lÃ­neas */}
+      {/* Gráfico de líneas */}
       <div className="h-80 relative">
         {filteredTimeSeriesData.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -406,7 +406,7 @@ const TimeSeriesChart: React.FC<{
         ) : (
           <div className="absolute inset-0 overflow-hidden">
             <svg className="w-full h-full">
-              {/* LÃ­neas de referencia */}
+              {/* Líneas de referencia */}
               {[0, 0.25, 0.5, 0.75, 1].map((fraction) => (
                 <g key={fraction}>
                   <line
@@ -430,10 +430,10 @@ const TimeSeriesChart: React.FC<{
                 </g>
               ))}
 
-              {/* LÃ­neas de datos */}
+              {/* Líneas de datos */}
               {filteredTimeSeriesData.length > 1 && (
                 <>
-                  {/* LÃ­nea de avance financiero total */}
+                  {/* Línea de avance financiero total */}
                   <path
                     d={filteredTimeSeriesData
                       .map((point, index) => {
@@ -452,7 +452,7 @@ const TimeSeriesChart: React.FC<{
                     strokeWidth="2"
                   />
 
-                  {/* LÃ­nea de avance fÃ­sico total */}
+                  {/* Línea de avance físico total */}
                   <path
                     d={filteredTimeSeriesData
                       .map((point, index) => {
@@ -499,7 +499,7 @@ const TimeSeriesChart: React.FC<{
                           fill="#10b981"
                           className="hover:r-6 cursor-pointer"
                         >
-                          <title>{`Total Avance FÃ­sico: ${point.total_avance_fisico.toFixed(1)}%`}</title>
+                          <title>{`Total Avance Físico: ${point.total_avance_fisico.toFixed(1)}%`}</title>
                         </circle>
                       </g>
                     );
@@ -539,7 +539,7 @@ const TimeSeriesChart: React.FC<{
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-green-500" />
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            Avance FÃ­sico
+            Avance Físico
           </span>
         </div>
       </div>
@@ -567,7 +567,7 @@ const TimeSeriesChart: React.FC<{
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Total Avance FÃ­sico
+            Total Avance Físico
           </p>
           <p className="text-lg font-semibold text-green-600">
             {filteredTimeSeriesData
@@ -590,7 +590,7 @@ const TimeSeriesChart: React.FC<{
   );
 };
 
-// Helper para obtener el nÃºmero de semana ISO
+// Helper para obtener el número de semana ISO
 const getISOWeek = (date: Date) => {
   const d = new Date(
     Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
@@ -601,7 +601,7 @@ const getISOWeek = (date: Date) => {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 };
 
-// Helper para obtener la fecha de un dÃ­a especÃ­fico de una semana ISO
+// Helper para obtener la fecha de un día específico de una semana ISO
 const getDateFromWeek = (year: number, week: number, day: number = 7) => {
   const simple = new Date(year, 0, 1 + (week - 1) * 7);
   const dow = simple.getDay();
@@ -612,7 +612,7 @@ const getDateFromWeek = (year: number, week: number, day: number = 7) => {
   return ISOweekStart;
 };
 
-// Componente para mostrar variaciÃ³n entre semanas
+// Componente para mostrar variación entre semanas
 const WeeklyVariationPanel: React.FC<{
   reportes: ReporteEmprestito[];
   contratos: ContratoEmprestito[];
@@ -662,10 +662,10 @@ const WeeklyVariationPanel: React.FC<{
         {};
       let reportesCount = 0;
 
-      // Contar todos los registros (contratos, Ã³rdenes, convenios) que ya estaban guardados hasta esta semana
+      // Contar todos los registros (contratos, órdenes, convenios) que ya estaban guardados hasta esta semana
       let contratosActivosCount = 0;
       contratos.forEach((contrato) => {
-        // Buscar fecha en mÃºltiples campos: fecha_guardado (SECOP), fecha_creacion (TVEC/Convenios), fecha_inicio_contrato
+        // Buscar fecha en múltiples campos: fecha_guardado (SECOP), fecha_creacion (TVEC/Convenios), fecha_inicio_contrato
         const fechaGuardado =
           (contrato as any).fecha_guardado ||
           (contrato as any).fecha_creacion ||
@@ -726,7 +726,7 @@ const WeeklyVariationPanel: React.FC<{
 
       return {
         periodo: weekKey,
-        "Avance FÃ­sico": avanceFisicoPromedio,
+        "Avance Físico": avanceFisicoPromedio,
         reportesCount,
         contratosCount: contratosActivosCount, // Contratos activos acumulados hasta esta semana
       };
@@ -736,8 +736,8 @@ const WeeklyVariationPanel: React.FC<{
     return timeSeriesData
       .slice(1)
       .map((item, index) => {
-        const anterior = timeSeriesData[index]["Avance FÃ­sico"];
-        const actual = item["Avance FÃ­sico"];
+        const anterior = timeSeriesData[index]["Avance Físico"];
+        const actual = item["Avance Físico"];
         const variacion = actual - anterior;
 
         // Calcular rendimiento: [(Valor final - Valor inicial) / Valor inicial] x 100%
@@ -1167,7 +1167,7 @@ const OrganismosWithPieChart: React.FC<{ data: AnalysisByCentroGestor[] }> = ({
 
       {/* Layout horizontal: torta a la izquierda, tabla a la derecha */}
       <div className="flex items-start gap-6">
-        {/* GrÃ¡fica de torta - con porcentajes internos */}
+        {/* Gráfica de torta - con porcentajes internos */}
         <div style={{ height: "400px", width: "400px", flexShrink: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <RechartsPieChart>
@@ -1538,18 +1538,18 @@ const ResumenEjecutivo: React.FC<{
         </div>
       </motion.div>
 
-      {/* DistribuciÃ³n por Bancos y Centros Gestores */}
+      {/* Distribución por Bancos y Centros Gestores */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
-        {/* DistribuciÃ³n por Bancos */}
+        {/* Distribución por Bancos */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Briefcase className="w-5 h-5 text-indigo-600" />
-            DistribuciÃ³n por Banco
+            Distribución por Banco
           </h4>
           <div className="space-y-3">
             {analysisByBank.slice(0, 5).map((bank, index) => (
@@ -1586,11 +1586,11 @@ const ResumenEjecutivo: React.FC<{
           </div>
         </div>
 
-        {/* DistribuciÃ³n por Centro Gestor */}
+        {/* Distribución por Centro Gestor */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-cyan-600" />
-            DistribuciÃ³n por Centro Gestor
+            Distribución por Centro Gestor
           </h4>
           <div className="space-y-3">
             {analysisByCentroGestor.slice(0, 5).map((centro, index) => (
@@ -1853,7 +1853,7 @@ const useEmprestitoRealData = () => {
     fechaFin: "",
   });
 
-  // FunciÃ³n para calcular el resumen anual
+  // Función para calcular el resumen anual
   const calculateYearlySummary = useCallback(
     (
       allContratos: ContratoEmprestito[],
@@ -1866,7 +1866,7 @@ const useEmprestitoRealData = () => {
       allContratos.forEach((contrato) => {
         const year = contrato.fecha_inicio_contrato
           ? new Date(contrato.fecha_inicio_contrato).getFullYear().toString()
-          : "Sin AÃ±o";
+          : "Sin Año";
 
         if (!yearlyData[year]) {
           yearlyData[year] = {
@@ -1888,7 +1888,7 @@ const useEmprestitoRealData = () => {
         yearSummary.totalContratos += 1;
         yearSummary.valorTotalAsignado += valorContrato;
 
-        // Buscar el reporte mÃ¡s reciente para este contrato
+        // Buscar el reporte más reciente para este contrato
         const reporteContrato = allReportes
           .filter((r) => r.referencia_contrato === contrato.referencia_contrato)
           .sort(
@@ -1907,10 +1907,10 @@ const useEmprestitoRealData = () => {
         }
       });
 
-      // Calcular valorTotalAsignadoBanco y valorTotalPagosProyectados por aÃ±o desde asignaciones
+      // Calcular valorTotalAsignadoBanco y valorTotalPagosProyectados por año desde asignaciones
       if (allAsignaciones && Array.isArray(allAsignaciones)) {
         allAsignaciones.forEach((asignacion) => {
-          const year = asignacion.anio?.toString() || "Sin AÃ±o";
+          const year = asignacion.anio?.toString() || "Sin Año";
 
           if (!yearlyData[year]) {
             yearlyData[year] = {
@@ -1934,7 +1934,7 @@ const useEmprestitoRealData = () => {
         });
       }
 
-      // Recalcular promedios ponderados por aÃ±o
+      // Recalcular promedios ponderados por año
       Object.keys(yearlyData).forEach((year) => {
         const yearSummary = yearlyData[year];
         let totalPonderadoFisico = 0;
@@ -1946,7 +1946,7 @@ const useEmprestitoRealData = () => {
             (c) =>
               (c.fecha_inicio_contrato
                 ? new Date(c.fecha_inicio_contrato).getFullYear().toString()
-                : "Sin AÃ±o") === year,
+                : "Sin Año") === year,
           )
           .forEach((contrato) => {
             const valorContrato = Number(contrato.valor_contrato) || 0;
@@ -1989,7 +1989,7 @@ const useEmprestitoRealData = () => {
         setLoading(true);
         setError(null);
 
-        console.log("ðŸ”„ Iniciando carga PARALELA de datos de EmprÃ©stito...");
+        console.log("ðŸ”„ Iniciando carga PARALELA de datos de Empréstito...");
         const startTime = performance.now();
 
         // OPTIMIZACIÃ“N: Cargar todos los datos EN PARALELO con Promise.allSettled
@@ -2129,14 +2129,14 @@ const useEmprestitoRealData = () => {
           asignacionesData = { success: false, data: [], error: err?.message };
         }
 
-        // Extraer arrays de datos con validaciÃ³n
+        // Extraer arrays de datos con validación
         const contratosArray = (contratosData.data ||
           []) as ContratoEmprestito[];
         const reportesArray = (reportesData.data || []) as ReporteEmprestito[];
         const bancosArray = (bancosData.data || []) as BancoEmprestito[];
         const pagosArray = (pagosData.data || []) as PagoEmprestito[];
 
-        // Validar y extraer asignaciones con mÃºltiples checks
+        // Validar y extraer asignaciones con múltiples checks
         let asignacionesArray: any[] = [];
         if (asignacionesData) {
           console.log("ðŸ” Validando estructura de asignacionesData...");
@@ -2144,7 +2144,7 @@ const useEmprestitoRealData = () => {
 
           if (Array.isArray(asignacionesData.data)) {
             asignacionesArray = asignacionesData.data;
-            console.log("âœ… asignacionesData.data es un array vÃ¡lido");
+            console.log("âœ… asignacionesData.data es un array válido");
           } else if (Array.isArray(asignacionesData)) {
             // Por si el endpoint devuelve directamente el array
             asignacionesArray = asignacionesData;
@@ -2255,7 +2255,7 @@ const useEmprestitoRealData = () => {
               return centroProyeccion === userCentro;
             });
 
-        console.log("ðŸ“‹ Arrays extraÃ­dos - Resumen:", {
+        console.log("ðŸ“‹ Arrays extraídos - Resumen:", {
           contratos: contratosArray.length,
           reportes: reportesArray.length,
           bancos: bancosArray.length,
@@ -2264,7 +2264,7 @@ const useEmprestitoRealData = () => {
           proyecciones: proyeccionesArray.length,
         });
 
-        console.log("ðŸ“‹ Asignaciones extraÃ­das:", {
+        console.log("ðŸ“‹ Asignaciones extraídas:", {
           esArray: Array.isArray(asignacionesArray),
           longitud: asignacionesArray.length,
           primerosElementos: asignacionesArray.slice(0, 2),
@@ -2319,7 +2319,7 @@ const useEmprestitoRealData = () => {
           asignacionesArray.slice(0, 3),
         );
         console.log(
-          "ðŸ’° Muestra de asignaciones (campos especÃ­ficos):",
+          "ðŸ’° Muestra de asignaciones (campos específicos):",
           asignacionesArray.slice(0, 3).map((a: any) => ({
             id: a.id,
             banco: a.banco,
@@ -2357,7 +2357,7 @@ const useEmprestitoRealData = () => {
           );
         });
         console.log(
-          "ðŸ’µ Totales adjudicaciÃ³n por banco desde asignaciones:",
+          "ðŸ’µ Totales adjudicación por banco desde asignaciones:",
           Array.from(totalesPorBancoAdj.entries()).map(([banco, total]) => ({
             banco,
             total: total.toLocaleString("es-CO"),
@@ -2381,7 +2381,7 @@ const useEmprestitoRealData = () => {
           })),
         );
         console.log(
-          "ðŸ’µ TOTAL GENERAL adjudicaciÃ³n desde asignaciones:",
+          "ðŸ’µ TOTAL GENERAL adjudicación desde asignaciones:",
           asignacionesArray
             .reduce(
               (sum: number, a: any) =>
@@ -2425,7 +2425,7 @@ const useEmprestitoRealData = () => {
           bancosArray.slice(0, 3),
         );
         console.log(
-          "ðŸ’° Bancos Ãºnicos desde asignaciones:",
+          "ðŸ’° Bancos únicos desde asignaciones:",
           Array.from(
             new Set(bancosArray.map((asig: any) => asig.banco).filter(Boolean)),
           ),
@@ -2442,7 +2442,7 @@ const useEmprestitoRealData = () => {
         );
       } catch (err: any) {
         const errorMessage =
-          err?.message || err?.type || "Error al cargar datos de EmprÃ©stito";
+          err?.message || err?.type || "Error al cargar datos de Empréstito";
         setError(errorMessage);
         console.error("âŒ Error cargando datos:", err);
         console.error("âŒ Detalles del error:", {
@@ -2513,7 +2513,7 @@ const useEmprestitoRealData = () => {
     setFilteredData(filtered);
   }, [filters, contratos]);
 
-  // Filtrar asignaciones segÃºn los filtros aplicados
+  // Filtrar asignaciones según los filtros aplicados
   const filteredAsignaciones = useMemo(() => {
     console.log("ðŸ”„ Calculando filteredAsignaciones...", {
       asignacionesDisponibles: !!asignaciones,
@@ -2523,12 +2523,12 @@ const useEmprestitoRealData = () => {
     });
 
     if (!asignaciones || !Array.isArray(asignaciones)) {
-      console.warn("âš ï¸ Asignaciones no es un array vÃ¡lido:", asignaciones);
+      console.warn("âš ï¸ Asignaciones no es un array válido:", asignaciones);
       return [];
     }
 
     if (asignaciones.length === 0) {
-      console.warn("âš ï¸ Asignaciones estÃ¡ vacÃ­o");
+      console.warn("âš ï¸ Asignaciones está vacío");
       return [];
     }
 
@@ -2566,11 +2566,11 @@ const useEmprestitoRealData = () => {
       );
     }
 
-    // Filtrar por aÃ±o
+    // Filtrar por año
     if (filters.ano) {
       filtered = filtered.filter((a) => a.anio?.toString() === filters.ano);
       console.log(
-        `ðŸ” Filtro aÃ±o "${filters.ano}" aplicado: ${filtered.length} resultados`,
+        `ðŸ” Filtro año "${filters.ano}" aplicado: ${filtered.length} resultados`,
       );
     }
 
@@ -2591,9 +2591,9 @@ const useEmprestitoRealData = () => {
     return filtered;
   }, [asignaciones, filters]);
 
-  // FunciÃ³n para abrir el modal con los datos del contrato
+  // Función para abrir el modal con los datos del contrato
   const handleOpenModal = (contrato: ContratoEmprestito) => {
-    // Buscar todos los reportes para este contrato (para la grÃ¡fica de evoluciÃ³n)
+    // Buscar todos los reportes para este contrato (para la gráfica de evolución)
     const reportesContrato = reportes
       .filter((r) => r.referencia_contrato === contrato.referencia_contrato)
       .sort(
@@ -2602,19 +2602,19 @@ const useEmprestitoRealData = () => {
           new Date(a.fecha_reporte).getTime(),
       );
 
-    // Tomar el reporte mÃ¡s reciente para los datos principales
+    // Tomar el reporte más reciente para los datos principales
     const reporteContrato = reportesContrato[0];
 
     // Combinar datos del contrato con datos del reporte
     const contratoCompleto = {
       ...contrato,
       ...reporteContrato,
-      // Incluir todos los reportes para la grÃ¡fica de evoluciÃ³n
+      // Incluir todos los reportes para la gráfica de evolución
       reportes: reportesContrato,
-      // Asegurar que el tÃ­tulo sea nombre_resumido_proceso
+      // Asegurar que el título sea nombre_resumido_proceso
       descripcion_proceso:
         contrato.nombre_resumido_proceso || contrato.descripcion_proceso,
-      // Asegurar que los campos de ejecuciÃ³n estÃ©n disponibles desde reportes-contratos
+      // Asegurar que los campos de ejecución estén disponibles desde reportes-contratos
       ejecucion_fisica: reporteContrato?.avance_fisico || null,
       ejecucion_financiera: reporteContrato?.avance_financiero || null,
       avance_fisico: reporteContrato?.avance_fisico || null,
@@ -2632,14 +2632,14 @@ const useEmprestitoRealData = () => {
     setModalOpen(true);
   };
 
-  // AnÃ¡lisis por banco
+  // Análisis por banco
   const analysisByBank = useMemo((): AnalysisByBank[] => {
     console.log("ðŸ“Š Calculando analysisByBank...");
 
     // Validar que asignaciones filtradas existan
     if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
       console.warn(
-        "âš ï¸ Asignaciones filtradas no disponibles aÃºn para analysisByBank",
+        "âš ï¸ Asignaciones filtradas no disponibles aún para analysisByBank",
       );
       return [];
     }
@@ -2649,7 +2649,7 @@ const useEmprestitoRealData = () => {
       muestra: filteredAsignaciones.slice(0, 2),
     });
 
-    // Mapeo de nombres de bancos en asignaciones a nombres estÃ¡ndar
+    // Mapeo de nombres de bancos en asignaciones a nombres estándar
     const mapeoBancosAsignaciones: Record<string, string> = {
       "Banco Occidente": "Banco de Occidente",
       // Agregar otros mapeos si es necesario
@@ -2718,7 +2718,7 @@ const useEmprestitoRealData = () => {
       const banco = contrato.banco || "Sin definir";
       const valorContrato = Number(contrato.valor_contrato) || 0;
 
-      // Buscar el reporte mÃ¡s reciente para este contrato
+      // Buscar el reporte más reciente para este contrato
       const reporteContrato = reportes
         .filter((r) => r.referencia_contrato === contrato.referencia_contrato)
         .sort(
@@ -2735,7 +2735,7 @@ const useEmprestitoRealData = () => {
         .filter((p) => p.referencia_contrato === contrato.referencia_contrato)
         .reduce((sum, pago) => sum + (Number(pago.valor_pago) || 0), 0);
 
-      // Inicializar el banco si no existe (por si hay contratos de bancos que no estÃ¡n en asignaciones)
+      // Inicializar el banco si no existe (por si hay contratos de bancos que no están en asignaciones)
       if (!bankMap.has(banco)) {
         bankMap.set(banco, {
           banco,
@@ -2781,7 +2781,7 @@ const useEmprestitoRealData = () => {
       (a, b) => b.valorAdjudicado - a.valorAdjudicado,
     );
     console.log(
-      "ðŸ¦ AnÃ¡lisis por Banco COMPLETO:",
+      "ðŸ¦ Análisis por Banco COMPLETO:",
       result.map((r) => ({
         banco: r.banco,
         valorAsignadoBanco: r.valorAsignadoBanco,
@@ -2795,12 +2795,12 @@ const useEmprestitoRealData = () => {
     return result;
   }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones]);
 
-  // AnÃ¡lisis por centro gestor
+  // Análisis por centro gestor
   const analysisByCentroGestor = useMemo((): AnalysisByCentroGestor[] => {
     // Validar que asignaciones filtradas existan
     if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
       console.warn(
-        "âš ï¸ Asignaciones filtradas no disponibles aÃºn en centro gestor",
+        "âš ï¸ Asignaciones filtradas no disponibles aún en centro gestor",
       );
       return [];
     }
@@ -2838,7 +2838,7 @@ const useEmprestitoRealData = () => {
         valorAsignadoBanco: valorAsignado, // Desde asignaciones (monto_programado_banco)
         valorPagosProyectados:
           valoresPagosProyectadosPorCentro.get(nombreCentro) || 0, // Desde asignaciones (monto_programado_pago)
-        valorAsignadoProyecciones: 0, // Se calcularÃ¡ desde proyecciones mÃ¡s adelante
+        valorAsignadoProyecciones: 0, // Se calculará desde proyecciones más adelante
         valorAdjudicado: 0, // Del endpoint contratos_emprestito_all
         valorEjecutado: 0, // Calculado desde reportes
         valorPagado: 0, // Calculado desde pagos
@@ -2854,7 +2854,7 @@ const useEmprestitoRealData = () => {
       const banco = contrato.banco || "Sin definir";
       const valorContrato = Number(contrato.valor_contrato) || 0;
 
-      // Buscar el reporte mÃ¡s reciente para este contrato
+      // Buscar el reporte más reciente para este contrato
       const reporteContrato = reportes
         .filter((r) => r.referencia_contrato === contrato.referencia_contrato)
         .sort(
@@ -2871,7 +2871,7 @@ const useEmprestitoRealData = () => {
         .filter((p) => p.referencia_contrato === contrato.referencia_contrato)
         .reduce((sum, pago) => sum + (Number(pago.valor_pago) || 0), 0);
 
-      // Inicializar el centro si no existe (por si hay contratos de centros que no estÃ¡n en asignaciones)
+      // Inicializar el centro si no existe (por si hay contratos de centros que no están en asignaciones)
       if (!centroMap.has(centro)) {
         centroMap.set(centro, {
           centroGestor: centro,
@@ -2879,7 +2879,7 @@ const useEmprestitoRealData = () => {
           valorAsignadoBanco: valoresAsignadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado_adjudicacion)
           valorPagosProyectados:
             valoresPagosProyectadosPorCentro.get(centro) || 0, // Desde asignaciones (monto_programado_pago)
-          valorAsignadoProyecciones: 0, // Se calcularÃ¡ desde proyecciones
+          valorAsignadoProyecciones: 0, // Se calculará desde proyecciones
           valorAdjudicado: 0, // Del endpoint contratos_emprestito_all
           valorEjecutado: 0, // Calculado desde reportes
           valorPagado: 0, // Calculado desde pagos
@@ -2906,7 +2906,7 @@ const useEmprestitoRealData = () => {
         (analysis.estadosContratos[estado] || 0) + 1;
     });
 
-    // DespuÃ©s de procesar todos los contratos, agregar informaciÃ³n detallada de bancos
+    // Después de procesar todos los contratos, agregar información detallada de bancos
     centroMap.forEach((analysis) => {
       const bancosMap = new Map<
         string,
@@ -2920,7 +2920,7 @@ const useEmprestitoRealData = () => {
         }
       >();
 
-      // Obtener todos los bancos Ãºnicos para este centro gestor desde los contratos
+      // Obtener todos los bancos únicos para este centro gestor desde los contratos
       filteredData
         .filter(
           (contrato) =>
@@ -2931,7 +2931,7 @@ const useEmprestitoRealData = () => {
           const banco = contrato.banco || "Sin definir";
           const valorContrato = Number(contrato.valor_contrato) || 0;
 
-          // Buscar el reporte mÃ¡s reciente para este contrato
+          // Buscar el reporte más reciente para este contrato
           const reporteContrato = reportes
             .filter(
               (r) => r.referencia_contrato === contrato.referencia_contrato,
@@ -2955,7 +2955,7 @@ const useEmprestitoRealData = () => {
           if (!bancosMap.has(banco)) {
             bancosMap.set(banco, {
               nombre: banco,
-              valorAsignado: 0, // Se calcularÃ¡ como suma de valorAdjudicado
+              valorAsignado: 0, // Se calculará como suma de valorAdjudicado
               valorAdjudicado: 0,
               valorEjecutado: 0,
               valorPagado: 0,
@@ -2983,27 +2983,27 @@ const useEmprestitoRealData = () => {
     // Mapeo de nombres abreviados en proyecciones a nombres oficiales de centros gestores
     const mapeoNombresOrganismos: Record<string, string> = {
       Bienes:
-        "Unidad Administrativa Especial de GestiÃ³n de Bienes y Servicios",
-      "Bienestar Social": "SecretarÃ­a de Bienestar Social",
+        "Unidad Administrativa Especial de Gestión de Bienes y Servicios",
+      "Bienestar Social": "Secretaría de Bienestar Social",
       DATIC:
-        "Departamento Administrativo de TecnologÃ­as de la InformaciÃ³n y las Comunicaciones",
-      Deportes: "SecretarÃ­a del Deporte y la RecreaciÃ³n",
-      "Desarrollo EconÃ³mico": "SecretarÃ­a de Desarrollo EconÃ³mico",
-      "EducaciÃ³n": "SecretarÃ­a de EducaciÃ³n",
-      Infraestructura: "SecretarÃ­a de Infraestructura",
-      MOVILIDAD: "SecretarÃ­a de Movilidad",
-      Movilidad: "SecretarÃ­a de Movilidad",
-      PLANEACION: "Departamento Administrativo de PlaneaciÃ³n Municipal",
-      Planeacion: "Departamento Administrativo de PlaneaciÃ³n Municipal",
-      "PlaneaciÃ³n": "Departamento Administrativo de PlaneaciÃ³n Municipal",
-      "ParticipaciÃ³n":
-        "SecretarÃ­a de Desarrollo Territorial y ParticipaciÃ³n Ciudadana",
-      Riesgos: "SecretarÃ­a de GestiÃ³n del Riesgo de Emergencias y Desastres",
-      Salud: "SecretarÃ­a de Salud PÃºblica",
-      Seguridad: "SecretarÃ­a de Seguridad y Justicia",
-      Vivienda: "SecretarÃ­a de Vivienda Social y HÃ¡bitat",
-      cultura: "SecretarÃ­a de Cultura",
-      Cultura: "SecretarÃ­a de Cultura",
+        "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones",
+      Deportes: "Secretaría del Deporte y la Recreación",
+      "Desarrollo Económico": "Secretaría de Desarrollo Económico",
+      "Educación": "Secretaría de Educación",
+      Infraestructura: "Secretaría de Infraestructura",
+      MOVILIDAD: "Secretaría de Movilidad",
+      Movilidad: "Secretaría de Movilidad",
+      PLANEACION: "Departamento Administrativo de Planeación Municipal",
+      Planeacion: "Departamento Administrativo de Planeación Municipal",
+      "Planeación": "Departamento Administrativo de Planeación Municipal",
+      "Participación":
+        "Secretaría de Desarrollo Territorial y Participación Ciudadana",
+      Riesgos: "Secretaría de Gestión del Riesgo de Emergencias y Desastres",
+      Salud: "Secretaría de Salud Pública",
+      Seguridad: "Secretaría de Seguridad y Justicia",
+      Vivienda: "Secretaría de Vivienda Social y Hábitat",
+      cultura: "Secretaría de Cultura",
+      Cultura: "Secretaría de Cultura",
     };
 
     const proyeccionesPorCentro = new Map<string, number>();
@@ -3018,7 +3018,7 @@ const useEmprestitoRealData = () => {
     );
 
     proyecciones.forEach((proyeccion: any) => {
-      // El centro gestor estÃ¡ en nombre_organismo_reducido
+      // El centro gestor está en nombre_organismo_reducido
       let centroProyeccion =
         proyeccion.nombre_organismo_reducido || "Sin definir";
       const valorProyectado = Number(proyeccion.valor_proyectado) || 0;
@@ -3041,7 +3041,7 @@ const useEmprestitoRealData = () => {
     });
 
     console.log(
-      "ðŸ” DEBUG: Proyecciones agrupadas por organismo (despuÃ©s del mapeo):",
+      "ðŸ” DEBUG: Proyecciones agrupadas por organismo (después del mapeo):",
       Array.from(proyeccionesPorCentro.entries()).slice(0, 5),
     );
     console.log(
@@ -3085,17 +3085,17 @@ const useEmprestitoRealData = () => {
       .sort((a, b) => b.valorAdjudicado - a.valorAdjudicado);
   }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones]);
 
-  // AnÃ¡lisis por banco para el grÃ¡fico (solo bancos con contratos asignados)
+  // Análisis por banco para el gráfico (solo bancos con contratos asignados)
   const analysisByBankForChart = useMemo((): AnalysisByBank[] => {
     // Validar que asignaciones filtradas existan
     if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones)) {
       console.warn(
-        "âš ï¸ Asignaciones filtradas no disponibles aÃºn para grÃ¡fico",
+        "âš ï¸ Asignaciones filtradas no disponibles aún para gráfico",
       );
       return [];
     }
 
-    // Mapeo de nombres de bancos en asignaciones a nombres estÃ¡ndar
+    // Mapeo de nombres de bancos en asignaciones a nombres estándar
     const mapeoBancosAsignaciones: Record<string, string> = {
       "Banco Occidente": "Banco de Occidente",
       // Agregar otros mapeos si es necesario
@@ -3121,11 +3121,11 @@ const useEmprestitoRealData = () => {
     });
 
     console.log(
-      "ðŸ“Š DEBUG: Valores asignados por banco (grÃ¡fico - monto_programado_banco):",
+      "ðŸ“Š DEBUG: Valores asignados por banco (gráfico - monto_programado_banco):",
       Array.from(valoresAsignadosPorBanco.entries()),
     );
     console.log(
-      "ðŸ“Š DEBUG: Valores pagos proyectados por banco (grÃ¡fico - monto_programado_pago):",
+      "ðŸ“Š DEBUG: Valores pagos proyectados por banco (gráfico - monto_programado_pago):",
       Array.from(valoresPagosProyectadosPorBanco.entries()),
     );
 
@@ -3140,8 +3140,8 @@ const useEmprestitoRealData = () => {
         valorPagosProyectados:
           valoresPagosProyectadosPorBanco.get(nombreBanco) || 0, // Desde asignaciones (monto_programado_pago)
         valorAsignadoProyecciones: 0, // No usado
-        valorAdjudicado: 0, // Se calcularÃ¡ desde contratos
-        valorEjecutado: 0, // Se calcularÃ¡ desde reportes
+        valorAdjudicado: 0, // Se calculará desde contratos
+        valorEjecutado: 0, // Se calculará desde reportes
         valorPagado: 0, // Inicialmente 0
         porcentajeEjecucion: 0,
         promedioAvance: 0,
@@ -3163,7 +3163,7 @@ const useEmprestitoRealData = () => {
       const banco = contrato.banco || "Sin definir";
       const valorContrato = Number(contrato.valor_contrato) || 0;
 
-      // Buscar el reporte mÃ¡s reciente para este contrato
+      // Buscar el reporte más reciente para este contrato
       const reporteContrato = reportes
         .filter((r) => r.referencia_contrato === contrato.referencia_contrato)
         .sort(
@@ -3216,7 +3216,7 @@ const useEmprestitoRealData = () => {
       .sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco);
 
     console.log(
-      "ðŸ“Š analysisByBankForChart - Resultado final para grÃ¡fico:",
+      "ðŸ“Š analysisByBankForChart - Resultado final para gráfico:",
       {
         totalBancos: result.length,
         bancos: result.map((b) => ({
@@ -3232,7 +3232,7 @@ const useEmprestitoRealData = () => {
     return result;
   }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones]);
 
-  // AnÃ¡lisis por Centro Gestor V2 (Datos de asignaciones)
+  // Análisis por Centro Gestor V2 (Datos de asignaciones)
   const analysisByCentroGestorV2 = useMemo((): AnalysisByCentroGestorV2[] => {
     if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones))
       return [];
@@ -3275,7 +3275,7 @@ const useEmprestitoRealData = () => {
     );
   }, [filteredAsignaciones]);
 
-  // AnÃ¡lisis por AÃ±o (Datos de asignaciones)
+  // Análisis por Año (Datos de asignaciones)
   const analysisByYear = useMemo((): AnalysisByYear[] => {
     if (!filteredAsignaciones || !Array.isArray(filteredAsignaciones))
       return [];
@@ -3343,7 +3343,7 @@ const useEmprestitoRealData = () => {
       bancoEntry.totalAsignado += total;
     });
 
-    // PASO 2: Agregar pagos reales agrupados por aÃ±o de pago
+    // PASO 2: Agregar pagos reales agrupados por año de pago
     pagos.forEach((pago) => {
       // Intentar parsear la fecha usando fecha_transaccion
       const fechaStr = pago.fecha_transaccion;
@@ -3352,7 +3352,7 @@ const useEmprestitoRealData = () => {
       if (fechaStr) {
         // Intentar formato ISO
         fechaPago = new Date(fechaStr);
-        // Si es invÃ¡lida, intentar otros formatos si es necesario (ej: DD/MM/YYYY)
+        // Si es inválida, intentar otros formatos si es necesario (ej: DD/MM/YYYY)
         if (isNaN(fechaPago.getTime())) {
           // Intento simple para DD/MM/YYYY
           const parts = fechaStr.split("/");
@@ -3362,7 +3362,7 @@ const useEmprestitoRealData = () => {
         }
       }
 
-      // Si la fecha sigue siendo invÃ¡lida, usar log para depurar (opcional)
+      // Si la fecha sigue siendo inválida, usar log para depurar (opcional)
       if (!fechaPago || isNaN(fechaPago.getTime())) return;
 
       const anioPago = fechaPago.getFullYear();
@@ -3372,16 +3372,16 @@ const useEmprestitoRealData = () => {
       const contrato = filteredData.find(
         (c) => c.referencia_contrato === pago.referencia_contrato,
       );
-      // Permitir pagos incluso si el contrato no estÃ¡ en filteredData?
-      // Si filteredData tiene todos los contratos, deberÃ­a estar.
-      // Si filteredData estÃ¡ filtrado por filtro global, entonces es correcto excluirlo.
+      // Permitir pagos incluso si el contrato no está en filteredData?
+      // Si filteredData tiene todos los contratos, debería estar.
+      // Si filteredData está filtrado por filtro global, entonces es correcto excluirlo.
       if (!contrato) return;
 
       const centro = contrato.nombre_centro_gestor || "Sin definir";
       const banco = contrato.banco || "Sin definir";
       const valorPago = Number(pago.valor_pago) || 0;
 
-      // Crear aÃ±o si no existe
+      // Crear año si no existe
       if (!map.has(anioPago)) {
         map.set(anioPago, {
           year: anioPago,
@@ -3426,7 +3426,7 @@ const useEmprestitoRealData = () => {
       bancoEntry.valorPagado += valorPago;
     });
 
-    // Ordenar centros gestores y bancos por monto total en cada aÃ±o
+    // Ordenar centros gestores y bancos por monto total en cada año
     map.forEach((entry) => {
       entry.centrosGestores.sort((a, b) => b.totalAsignado - a.totalAsignado);
       entry.bancos.sort((a, b) => b.totalAsignado - a.totalAsignado);
@@ -3435,13 +3435,13 @@ const useEmprestitoRealData = () => {
     return Array.from(map.values()).sort((a, b) => a.year - b.year);
   }, [filteredAsignaciones, filteredData, pagos]);
 
-  // CÃ¡lculo correcto del avance fÃ­sico total basado en los contratos
-  // Usa el Ãºltimo reporte de cada contrato (mismo que la grÃ¡fica semanal usa para la Ãºltima semana)
+  // Cálculo correcto del avance físico total basado en los contratos
+  // Usa el último reporte de cada contrato (mismo que la gráfica semanal usa para la última semana)
   const valorTotalFisico = useMemo(() => {
     let totalAvanceFisico = 0;
 
     filteredData.forEach((contrato) => {
-      // Buscar el Ãºltimo reporte de este contrato (mÃ¡s reciente por fecha)
+      // Buscar el último reporte de este contrato (más reciente por fecha)
       const reporteContrato = reportes
         .filter((r) => r.referencia_contrato === contrato.referencia_contrato)
         .sort(
@@ -3453,7 +3453,7 @@ const useEmprestitoRealData = () => {
       if (reporteContrato) {
         const valorContrato = Number(contrato.valor_contrato) || 0;
         const avanceFisico = reporteContrato.avance_fisico || 0;
-        // Calcular el valor fÃ­sico ejecutado (avance_fisico ya viene como porcentaje 0-100)
+        // Calcular el valor físico ejecutado (avance_fisico ya viene como porcentaje 0-100)
         totalAvanceFisico += (valorContrato * avanceFisico) / 100;
       }
     });
@@ -3461,12 +3461,12 @@ const useEmprestitoRealData = () => {
     return totalAvanceFisico;
   }, [filteredData, reportes]);
 
-  // CÃ¡lculo correcto del valor ejecutado total basado en los contratos (igual lÃ³gica que fÃ­sico)
+  // Cálculo correcto del valor ejecutado total basado en los contratos (igual lógica que físico)
   const valorTotalEjecutado = useMemo(() => {
     let totalEjecutado = 0;
 
     filteredData.forEach((contrato) => {
-      // Buscar el reporte mÃ¡s reciente para este contrato
+      // Buscar el reporte más reciente para este contrato
       const reporteContrato = reportes
         .filter((r) => r.referencia_contrato === contrato.referencia_contrato)
         .sort(
@@ -3487,7 +3487,7 @@ const useEmprestitoRealData = () => {
     return totalEjecutado;
   }, [filteredData, reportes]);
 
-  // CÃ¡lculo correcto del valor pagado total basado en los pagos reales de la API
+  // Cálculo correcto del valor pagado total basado en los pagos reales de la API
   const valorTotalPagado = useMemo(() => {
     let totalPagado = 0;
 
@@ -3497,7 +3497,7 @@ const useEmprestitoRealData = () => {
     );
 
     pagos.forEach((pago) => {
-      // Solo contar pagos de contratos que estÃ¡n en los datos filtrados
+      // Solo contar pagos de contratos que están en los datos filtrados
       if (contratosFiltradosSet.has(pago.referencia_contrato)) {
         totalPagado += Number(pago.valor_pago) || 0;
       }
@@ -3506,7 +3506,7 @@ const useEmprestitoRealData = () => {
     return totalPagado;
   }, [filteredData, pagos]);
 
-  // CÃ¡lculo del porcentaje fÃ­sico promedio ponderado por valor_contrato
+  // Cálculo del porcentaje físico promedio ponderado por valor_contrato
   // Incluye TODOS los contratos en el denominador (sin reporte = 0% avance)
   // para que el porcentaje sea consistente con valorTotalFisico / valorTotalAsignado
   const porcentajeFisicoPromedio = useMemo(() => {
@@ -3534,7 +3534,7 @@ const useEmprestitoRealData = () => {
     return totalPeso > 0 ? totalPonderado / totalPeso : 0;
   }, [filteredData, reportes]);
 
-  // CÃ¡lculo del porcentaje financiero promedio ponderado por valor_contrato
+  // Cálculo del porcentaje financiero promedio ponderado por valor_contrato
   // Incluye TODOS los contratos en el denominador (sin reporte = 0% avance)
   // para que el porcentaje sea consistente con valorTotalEjecutado / valorTotalAsignado
   const porcentajeFinancieroPromedio = useMemo(() => {
@@ -3563,7 +3563,7 @@ const useEmprestitoRealData = () => {
     return totalPeso > 0 ? totalPonderado / totalPeso : 0;
   }, [filteredData, reportes]);
 
-  // CÃ¡lculo del porcentaje de pagos promedio basado en pagos reales
+  // Cálculo del porcentaje de pagos promedio basado en pagos reales
   const porcentajePagosPromedio = useMemo(() => {
     let totalPonderado = 0;
     let totalPeso = 0;
@@ -3587,7 +3587,7 @@ const useEmprestitoRealData = () => {
     return totalPeso > 0 ? totalPonderado / totalPeso : 0;
   }, [filteredData, pagos]);
 
-  // CÃ¡lculo del valorTotalAsignadoBanco con log de depuraciÃ³n (desde monto_programado_banco)
+  // Cálculo del valorTotalAsignadoBanco con log de depuración (desde monto_programado_banco)
   const valorTotalAsignadoBanco = useMemo(() => {
     console.log(
       "ðŸ’° Calculando valorTotalAsignadoBanco (desde monto_programado_banco):",
@@ -3634,9 +3634,9 @@ const useEmprestitoRealData = () => {
       (sum, c) => sum + (Number(c.valor_contrato) || 0),
       0,
     ),
-    valorTotalAsignadoBanco, // Ahora usa el cÃ¡lculo con logs
-    valorTotalEjecutado, // Ahora usa el cÃ¡lculo correcto basado en contratos filtrados
-    valorTotalPagado, // Ahora usa el cÃ¡lculo correcto basado en pagos reales
+    valorTotalAsignadoBanco, // Ahora usa el cálculo con logs
+    valorTotalEjecutado, // Ahora usa el cálculo correcto basado en contratos filtrados
+    valorTotalPagado, // Ahora usa el cálculo correcto basado en pagos reales
     valorTotalFisico,
     porcentajeFisicoPromedio,
     porcentajeFinancieroPromedio,
@@ -3650,7 +3650,7 @@ const BankBarChart: React.FC<{
   data: AnalysisByBank[];
   title?: string;
   maxItems?: number;
-}> = ({ data, title = "AnÃ¡lisis por Banco", maxItems = 8 }) => {
+}> = ({ data, title = "Análisis por Banco", maxItems = 8 }) => {
   const chartData = data.slice(0, maxItems);
 
   // DEBUG: Verificar que los datos tengan valorAsignadoBanco
@@ -3668,7 +3668,7 @@ const BankBarChart: React.FC<{
   const metrics = [
     { key: "valorAsignadoBanco", label: "Asignado Banco", color: "#F59E0B" },
     { key: "valorAdjudicado", label: "Valor Adjudicado", color: "#3B82F6" },
-    { key: "valorEjecutado", label: "EjecuciÃ³n Financiera", color: "#10B981" },
+    { key: "valorEjecutado", label: "Ejecución Financiera", color: "#10B981" },
     { key: "valorPagado", label: "Pagos", color: "#8B5CF6" },
   ];
 
@@ -3700,7 +3700,7 @@ const BankBarChart: React.FC<{
         ))}
       </div>
 
-      {/* GrÃ¡fico con scroll horizontal */}
+      {/* Gráfico con scroll horizontal */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden w-full">
         <div
           style={{
@@ -3727,7 +3727,7 @@ const BankBarChart: React.FC<{
                   const lines: string[] = [];
                   let currentLine = "";
 
-                  // Dividir en lÃ­neas de mÃ¡ximo 15 caracteres
+                  // Dividir en líneas de máximo 15 caracteres
                   words.forEach((word) => {
                     if ((currentLine + " " + word).length <= 15) {
                       currentLine += (currentLine ? " " : "") + word;
@@ -3738,7 +3738,7 @@ const BankBarChart: React.FC<{
                   });
                   if (currentLine) lines.push(currentLine);
 
-                  // Limitar a 2 lÃ­neas
+                  // Limitar a 2 líneas
                   const displayLines = lines.slice(0, 2);
                   if (lines.length > 2) {
                     displayLines[1] = displayLines[1].substring(0, 13) + "...";
@@ -3775,7 +3775,7 @@ const BankBarChart: React.FC<{
                   if (value >= 2000000)
                     return `$${(value / 1000000).toFixed(1)} Mill`;
                   if (value >= 1000000)
-                    return `$${(value / 1000000).toFixed(1)} MillÃ³n`;
+                    return `$${(value / 1000000).toFixed(1)} Millón`;
                   if (value >= 1000) return `$${(value / 1000).toFixed(0)} Mil`;
                   return `$${value}`;
                 }}
@@ -3828,8 +3828,8 @@ const BankBarChart: React.FC<{
                         // Millones (plural)
                         formattedValue = `$${(value / 1000000).toFixed(1)} Mill`;
                       } else if (value >= 1000000) {
-                        // MillÃ³n (singular)
-                        formattedValue = `$${(value / 1000000).toFixed(1)} MillÃ³n`;
+                        // Millón (singular)
+                        formattedValue = `$${(value / 1000000).toFixed(1)} Millón`;
                       } else if (value >= 1000) {
                         // Miles
                         formattedValue = `$${(value / 1000).toFixed(0)} Mil`;
@@ -3871,7 +3871,7 @@ const BankBarChart: React.FC<{
 
       {data.length > maxItems && (
         <div className="text-center mt-3 p-2 text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded">
-          Mostrando {maxItems} de {data.length} bancos â€¢ Desliza para ver mÃ¡s
+          Mostrando {maxItems} de {data.length} bancos â€¢ Desliza para ver más
         </div>
       )}
     </motion.div>
@@ -3883,7 +3883,7 @@ const CentroGestorBarChart: React.FC<{
   data: AnalysisByCentroGestor[];
   title?: string;
   maxItems?: number;
-}> = ({ data, title = "AnÃ¡lisis por Centro Gestor", maxItems = 100 }) => {
+}> = ({ data, title = "Análisis por Centro Gestor", maxItems = 100 }) => {
   // Mostrar todos los centros gestores, ordenados por valor asignado descendente
   const chartData = useMemo(() => {
     return [...data].sort(
@@ -3907,7 +3907,7 @@ const CentroGestorBarChart: React.FC<{
   const metrics = [
     { key: "valorAsignadoBanco", label: "Asignado Banco", color: "#F59E0B" },
     { key: "valorAdjudicado", label: "Valor Adjudicado", color: "#3B82F6" },
-    { key: "valorEjecutado", label: "EjecuciÃ³n Financiera", color: "#10B981" },
+    { key: "valorEjecutado", label: "Ejecución Financiera", color: "#10B981" },
     { key: "valorPagado", label: "Pagos", color: "#8B5CF6" },
   ];
 
@@ -3939,7 +3939,7 @@ const CentroGestorBarChart: React.FC<{
         ))}
       </div>
 
-      {/* GrÃ¡fico con scroll horizontal */}
+      {/* Gráfico con scroll horizontal */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden w-full">
         <div
           style={{
@@ -3966,7 +3966,7 @@ const CentroGestorBarChart: React.FC<{
                   const lines: string[] = [];
                   let currentLine = "";
 
-                  // Aumentar caracteres por lÃ­nea para nombres horizontales
+                  // Aumentar caracteres por línea para nombres horizontales
                   words.forEach((word) => {
                     if ((currentLine + " " + word).length <= 20) {
                       currentLine += (currentLine ? " " : "") + word;
@@ -4008,7 +4008,7 @@ const CentroGestorBarChart: React.FC<{
                   if (value >= 2000000)
                     return `$${(value / 1000000).toFixed(1)} Mill`;
                   if (value >= 1000000)
-                    return `$${(value / 1000000).toFixed(1)} MillÃ³n`;
+                    return `$${(value / 1000000).toFixed(1)} Millón`;
                   if (value >= 1000) return `$${(value / 1000).toFixed(0)} Mil`;
                   return `$${value}`;
                 }}
@@ -4066,7 +4066,7 @@ const CentroGestorBarChart: React.FC<{
                         formattedValue = `$${value}`;
                       }
 
-                      // Determinar posiciÃ³n: dentro si hay espacio, fuera si no
+                      // Determinar posición: dentro si hay espacio, fuera si no
                       const hasSpace = height >= 50;
 
                       if (hasSpace) {
@@ -4091,7 +4091,7 @@ const CentroGestorBarChart: React.FC<{
                         );
                       } else {
                         // Etiqueta ENCIMA de la barra (vertical)
-                        // Offset muy pequeÃ±o, solo para separar del borde de la barra
+                        // Offset muy pequeño, solo para separar del borde de la barra
                         const labelY = y - 8;
 
                         return (
@@ -4124,7 +4124,7 @@ const CentroGestorBarChart: React.FC<{
       {chartData.length > 6 && (
         <div className="text-center mt-3 p-2 text-sm text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/20 rounded">
           Mostrando {chartData.length} centros gestores â€¢ Desliza para ver
-          mÃ¡s
+          más
         </div>
       )}
     </motion.div>
@@ -4192,7 +4192,7 @@ const AvanceFisicoChart: React.FC<{
         <div className="flex items-center gap-2 mb-3">
           <Building2 className="w-5 h-5 text-blue-600" />
           <h4 className="text-base font-semibold text-gray-900 dark:text-white">
-            Avance FÃ­sico por Organismo
+            Avance Físico por Organismo
           </h4>
         </div>
 
@@ -4272,7 +4272,7 @@ const AvanceFisicoChart: React.FC<{
                   }}
                   formatter={(value: number) => [
                     `${value.toFixed(1)}%`,
-                    "Avance FÃ­sico",
+                    "Avance Físico",
                   ]}
                   labelStyle={{ color: "#1F2937", fontWeight: "bold" }}
                 />
@@ -4300,7 +4300,7 @@ const AvanceFisicoChart: React.FC<{
 
         {chartData.length > 6 && (
           <div className="text-center mt-3 p-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded">
-            Mostrando {chartData.length} organismos â€¢ Desliza para ver mÃ¡s
+            Mostrando {chartData.length} organismos â€¢ Desliza para ver más
           </div>
         )}
       </motion.div>
@@ -4308,7 +4308,7 @@ const AvanceFisicoChart: React.FC<{
   );
 };
 
-// Componente unificado para anÃ¡lisis financiero con toggle
+// Componente unificado para análisis financiero con toggle
 const FinancialAnalysisToggle: React.FC<{
   bankData: AnalysisByBank[];
   centroGestorData: AnalysisByCentroGestor[];
@@ -4324,7 +4324,7 @@ const FinancialAnalysisToggle: React.FC<{
   const [showCentrosBreakdown, setShowCentrosBreakdown] = useState(false);
   const [showBancosBreakdown, setShowBancosBreakdown] = useState(false);
 
-  // Obtener lista de centros gestores Ãºnicos desde yearData
+  // Obtener lista de centros gestores únicos desde yearData
   const centrosGestoresOptions = useMemo(() => {
     const centros = new Set<string>();
     yearData.forEach((year) => {
@@ -4333,7 +4333,7 @@ const FinancialAnalysisToggle: React.FC<{
     return ["Todos", ...Array.from(centros).sort()];
   }, [yearData]);
 
-  // Obtener lista de bancos Ãºnicos desde yearData
+  // Obtener lista de bancos únicos desde yearData
   const bancosOptions = useMemo(() => {
     const bancos = new Set<string>();
     yearData.forEach((year) => {
@@ -4363,10 +4363,10 @@ const FinancialAnalysisToggle: React.FC<{
             valorAdj += centro.valorProgramadoAdjudicacion;
             valorReal += centro.valorPagado;
           } else {
-            // Buscar en bancos del aÃ±o que coincidan
+            // Buscar en bancos del año que coincidan
             year.bancos.forEach((banco) => {
               if (banco.nombre === selectedBanco) {
-                // ProporciÃ³n del banco en el centro gestor (simplificaciÃ³n)
+                // Proporción del banco en el centro gestor (simplificación)
                 const proporcion =
                   year.totalAsignado > 0
                     ? banco.totalAsignado / year.totalAsignado
@@ -4393,7 +4393,7 @@ const FinancialAnalysisToggle: React.FC<{
   }, [yearData, selectedCentroGestor, selectedBanco]);
 
   const renderYearChart = () => {
-    // Preparar datos para grÃ¡fico de breakdown si estÃ¡ activado
+    // Preparar datos para gráfico de breakdown si está activado
     const chartData = showCentrosBreakdown
       ? filteredYearData.flatMap((year) =>
           year.centrosGestores
@@ -4435,9 +4435,9 @@ const FinancialAnalysisToggle: React.FC<{
             valorPagado: year.valorPagado,
           }));
 
-    // DEBUG: Log de los datos del grÃ¡fico
+    // DEBUG: Log de los datos del gráfico
     console.log(
-      "ðŸ“ˆ Datos para grÃ¡fico temporal (renderYearChart):",
+      "ðŸ“ˆ Datos para gráfico temporal (renderYearChart):",
       chartData.slice(0, 5),
     );
 
@@ -4538,7 +4538,7 @@ const FinancialAnalysisToggle: React.FC<{
         <div className="flex items-center gap-3">
           <BarChart3 className="w-6 h-6 text-teal-600" />
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-            AnÃ¡lisis Financiero
+            Análisis Financiero
           </h3>
         </div>
 
@@ -4580,7 +4580,7 @@ const FinancialAnalysisToggle: React.FC<{
         </div>
       </div>
 
-      {/* Contenido segÃºn la vista seleccionada */}
+      {/* Contenido según la vista seleccionada */}
       <AnimatePresence mode="wait">
         {viewMode === "banco" && (
           <motion.div
@@ -4616,7 +4616,7 @@ const FinancialAnalysisToggle: React.FC<{
             className="w-full overflow-hidden"
           >
             <h4 className="text-lg font-bold text-center mb-4 text-gray-700 dark:text-gray-200">
-              Flujo de Asignaciones por AÃ±o
+              Flujo de Asignaciones por Año
             </h4>
 
             {/* Filtros y controles */}
@@ -4751,7 +4751,7 @@ const AdvancedFilters: React.FC<{
       <div className="flex items-center gap-2 sm:gap-3 mb-4">
         <Filter className="w-5 h-5 text-teal-600" />
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-          Filtros de AnÃ¡lisis
+          Filtros de Análisis
         </h3>
       </div>
 
@@ -4893,7 +4893,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string>("Consolidado");
 
-  // Estados de paginaciÃ³n
+  // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
 
@@ -5009,7 +5009,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     porcentajeFinancieroPromedio,
   ]);
 
-  // Extraer valores Ãºnicos para filtros
+  // Extraer valores únicos para filtros
   const bancos = useMemo(() => {
     const uniqueBancos = Array.from(
       new Set(contratos.map((c) => c.banco).filter(Boolean)),
@@ -5031,7 +5031,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     return uniqueBPs.sort();
   }, [contratos]);
 
-  // FunciÃ³n para manejar ordenamiento
+  // Función para manejar ordenamiento
   const handleSort = (key: string) => {
     setSortConfig((prev) => ({
       key,
@@ -5049,7 +5049,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
 
       // Casos especiales para campos calculados
       if (sortConfig.key === "avance_financiero") {
-        // Buscar el reporte mÃ¡s reciente para cada contrato
+        // Buscar el reporte más reciente para cada contrato
         const reporteA = reportes
           .filter((r) => r.referencia_contrato === a.referencia_contrato)
           .sort(
@@ -5123,14 +5123,14 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       if (aValue === null || aValue === undefined) return 1;
       if (bValue === null || bValue === undefined) return -1;
 
-      // ComparaciÃ³n numÃ©rica
+      // Comparación numérica
       if (typeof aValue === "number" && typeof bValue === "number") {
         return sortConfig.direction === "asc"
           ? aValue - bValue
           : bValue - aValue;
       }
 
-      // ComparaciÃ³n de strings
+      // Comparación de strings
       const aStr = String(aValue).toLowerCase();
       const bStr = String(bValue).toLowerCase();
 
@@ -5140,27 +5140,27 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     });
   }, [contratos, sortConfig, reportes]);
 
-  // CÃ¡lculos de paginaciÃ³n
+  // Cálculos de paginación
   const totalItems = sortedContratos.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentItems = sortedContratos.slice(startIndex, endIndex);
 
-  // FunciÃ³n para cambiar pÃ¡gina
+  // Función para cambiar página
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  // FunciÃ³n para cambiar items por pÃ¡gina
+  // Función para cambiar items por página
   const handleItemsPerPageChange = (items: number) => {
     setItemsPerPage(items);
-    setCurrentPage(1); // Reset a primera pÃ¡gina
+    setCurrentPage(1); // Reset a primera página
   };
 
-  // FunciÃ³n para abrir el modal con los datos del contrato
+  // Función para abrir el modal con los datos del contrato
   const handleOpenModal = (contrato: ContratoEmprestito) => {
-    // Buscar TODOS los reportes histÃ³ricos para este contrato (para la grÃ¡fica de evoluciÃ³n)
+    // Buscar TODOS los reportes históricos para este contrato (para la gráfica de evolución)
     const reportesContrato = reportes
       .filter((r) => r.referencia_contrato === contrato.referencia_contrato)
       .sort(
@@ -5169,7 +5169,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
           new Date(a.fecha_reporte).getTime(),
       );
 
-    // Tomar el reporte mÃ¡s reciente para los datos principales
+    // Tomar el reporte más reciente para los datos principales
     const reporteContrato = reportesContrato[0];
 
     // Combinar datos del contrato con datos del reporte para el modal
@@ -5191,7 +5191,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
       fecha_de_fin_del_contrato: contrato.fecha_fin_contrato,
       fecha_inicio_ejecucion: contrato.fecha_inicio_contrato,
       nombre_supervisor: contrato.supervisor,
-      // Datos del reporte si estÃ¡n disponibles
+      // Datos del reporte si están disponibles
       ...(reporteContrato && {
         ejecucion_fisica: reporteContrato.avance_fisico,
         ejecucion_financiera: reporteContrato.avance_financiero,
@@ -5199,7 +5199,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         fecha_ultimo_reporte: reporteContrato.fecha_reporte,
         alertas_reporte: reporteContrato.alertas,
       }),
-      // Incluir TODOS los reportes histÃ³ricos para la grÃ¡fica de evoluciÃ³n
+      // Incluir TODOS los reportes históricos para la gráfica de evolución
       reportes: reportesContrato,
       // Campos calculados
       pagos: parseInt(contrato.valor_pagado) || 0,
@@ -5251,7 +5251,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
-              Error de conexiÃ³n con API
+              Error de conexión con API
             </h3>
             <p className="text-red-600 dark:text-red-300 text-sm">{error}</p>
           </div>
@@ -5267,7 +5267,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         className="flex-1 space-y-3 sm:space-y-4 p-4 sm:p-6 transition-all duration-300 min-w-0"
         style={{ marginRight: showFilters ? "320px" : "0" }}
       >
-        {/* TÃ­tulo del Dashboard */}
+        {/* Título del Dashboard */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -5337,19 +5337,19 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Indicadores de EjecuciÃ³n con GrÃ¡ficos de Anillos y LÃ­nea Temporal */}
+          {/* Indicadores de Ejecución con Gráficos de Anillos y Línea Temporal */}
           <div>
             <h4 className="text-base font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-indigo-600" />
-              Indicadores de EjecuciÃ³n
+              Indicadores de Ejecución
             </h4>
 
             {/* Anillos en una sola fila */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
-              {/* EjecuciÃ³n FÃ­sica */}
+              {/* Ejecución Física */}
               <div className="min-w-0">
                 <GaugeChart
-                  title="EjecuciÃ³n FÃ­sica"
+                  title="Ejecución Física"
                   description="Aprox. (reportado por el organismo)"
                   percentage={porcentajeFisicoPromedio}
                   value={valorTotalFisico}
@@ -5360,10 +5360,10 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* EjecuciÃ³n Financiera */}
+              {/* Ejecución Financiera */}
               <div className="min-w-0">
                 <GaugeChart
-                  title="EjecuciÃ³n Financiera"
+                  title="Ejecución Financiera"
                   description="Aprox. (reportado por el organismo)"
                   percentage={porcentajeFinancieroPromedio}
                   value={valorTotalEjecutado}
@@ -5378,7 +5378,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="min-w-0">
                 <GaugeChart
                   title="Pagos Realizados"
-                  description="GestiÃ³n de RPC"
+                  description="Gestión de RPC"
                   percentage={porcentajePagosPromedio}
                   value={valorTotalPagado}
                   total={valorTotalAsignado}
@@ -5389,16 +5389,16 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* GrÃ¡fica de Avance FÃ­sico por Organismo */}
+            {/* Gráfica de Avance Físico por Organismo */}
             <AvanceFisicoChart
               analysisByCentroGestor={analysisByCentroGestor}
               contratos={contratos}
               reportes={reportes}
             />
 
-            {/* GrÃ¡fica de lÃ­nea temporal + VariaciÃ³n */}
+            {/* Gráfica de línea temporal + Variación */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-              {/* GrÃ¡fica de evoluciÃ³n temporal */}
+              {/* Gráfica de evolución temporal */}
               <div className="lg:col-span-3 min-w-0">
                 <WeeklyProgressChart
                   data={reportes}
@@ -5407,13 +5407,13 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* VariaciÃ³n entre semanas */}
+              {/* Variación entre semanas */}
               <WeeklyVariationPanel reportes={reportes} contratos={contratos} />
             </div>
           </div>
         </motion.div>
 
-        {/* AnÃ¡lisis Financiero Unificado */}
+        {/* Análisis Financiero Unificado */}
         <FinancialAnalysisToggle
           bankData={analysisByBankForChart}
           centroGestorData={analysisByCentroGestor}
@@ -5436,7 +5436,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 </h3>
                 {lastUpdate && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Ãšltima actualizaciÃ³n:{" "}
+                    Ãšltima actualización:{" "}
                     {new Date(lastUpdate).toLocaleString("es-CO")}
                   </p>
                 )}
@@ -5472,23 +5472,23 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         { key: "banco", label: "Banco" },
                         { key: "estado", label: "Estado" },
                         { key: "valor", label: "Valor Contrato" },
-                        { key: "avance", label: "Avance EjecuciÃ³n" },
+                        { key: "avance", label: "Avance Ejecución" },
                         {
                           key: "observaciones",
                           label: "Observaciones / Alertas",
                         },
                         { key: "tipo", label: "Tipo Contrato" },
-                        { key: "modalidad", label: "Modalidad ContrataciÃ³n" },
+                        { key: "modalidad", label: "Modalidad Contratación" },
                         { key: "sector", label: "Sector" },
-                        { key: "categoria", label: "CÃ³digo CategorÃ­a" },
+                        { key: "categoria", label: "Código Categoría" },
                         { key: "supervisor", label: "Supervisor" },
                         { key: "fechaInicio", label: "Fecha Inicio" },
                         { key: "fechaFin", label: "Fecha Fin" },
                         {
                           key: "diasTranscurridos",
-                          label: "DÃ­as Transcurridos",
+                          label: "Días Transcurridos",
                         },
-                        { key: "diasRestantes", label: "DÃ­as Restantes" },
+                        { key: "diasRestantes", label: "Días Restantes" },
                         { key: "detalle", label: "Detalle" },
                         ...(canManageRecordActions
                           ? [{ key: "acciones", label: "Acciones Avance" }]
@@ -5642,9 +5642,9 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     >
                       <div className="flex items-center justify-center gap-2">
                         <div>
-                          <div>Avance EjecuciÃ³n</div>
+                          <div>Avance Ejecución</div>
                           <div className="text-xs font-normal text-gray-500 dark:text-gray-400">
-                            Financiero / FÃ­sico
+                            Financiero / Físico
                           </div>
                         </div>
                         <button
@@ -5750,7 +5750,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       style={{ minWidth: "100px", width: "8%" }}
                     >
                       <div className="flex items-center gap-2">
-                        <span>CategorÃ­a</span>
+                        <span>Categoría</span>
                         <button
                           onClick={() => handleSort("codigo_categoria")}
                           className="hover:bg-gray-200 dark:hover:bg-gray-600 p-1 rounded"
@@ -5847,7 +5847,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     >
                       <div className="flex items-center justify-center gap-2">
                         <div>
-                          <div>DÃ­as</div>
+                          <div>Días</div>
                           <div className="text-xs font-normal text-gray-500 dark:text-gray-400">
                             Transcurridos
                           </div>
@@ -5876,7 +5876,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     >
                       <div className="flex items-center justify-center gap-2">
                         <div>
-                          <div>DÃ­as</div>
+                          <div>Días</div>
                           <div className="text-xs font-normal text-gray-500 dark:text-gray-400">
                             Restantes
                           </div>
@@ -5918,7 +5918,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               </thead>
               <tbody>
                 {currentItems.map((contrato, index) => {
-                  // Buscar datos de reporte mÃ¡s reciente para este contrato
+                  // Buscar datos de reporte más reciente para este contrato
                   const reporteContrato = reportes
                     .filter(
                       (r) =>
@@ -5969,7 +5969,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                         <td className="py-3 px-2 text-center">
                           <span
                             className={`px-2 py-1 text-xs rounded-full inline-block max-w-full truncate ${
-                              contrato.estado_contrato === "En ejecuciÃ³n"
+                              contrato.estado_contrato === "En ejecución"
                                 ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                                 : contrato.estado_contrato === "Aprobado"
                                   ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
@@ -6009,7 +6009,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                       {columnSettings.avance && (
                         <td className="py-3 px-2 text-center">
                           <div className="space-y-2">
-                            {/* Progress bar para Avance Financiero - mÃ¡s compacto */}
+                            {/* Progress bar para Avance Financiero - más compacto */}
                             <div>
                               <div className="flex justify-between text-xs mb-1">
                                 <span className="text-gray-600 dark:text-gray-400 text-xs">
@@ -6031,11 +6031,11 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                                 />
                               </div>
                             </div>
-                            {/* Progress bar para Avance FÃ­sico - mÃ¡s compacto */}
+                            {/* Progress bar para Avance Físico - más compacto */}
                             <div>
                               <div className="flex justify-between text-xs mb-1">
                                 <span className="text-gray-600 dark:text-gray-400 text-xs">
-                                  FÃ­s.
+                                  Fís.
                                 </span>
                                 <span className="font-medium text-xs">
                                   {reporteContrato?.avance_fisico?.toFixed(1) ||
@@ -6090,7 +6090,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                                 observaciones.push("âš ï¸ Contrato vencido");
                               }
 
-                              // Revisar avance financiero vs fÃ­sico si hay reportes
+                              // Revisar avance financiero vs físico si hay reportes
                               if (reporteContrato) {
                                 const avanceFinanciero =
                                   reporteContrato.avance_financiero || 0;
@@ -6111,18 +6111,18 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                                 }
                               }
 
-                              // Revisar si estÃ¡ prÃ³ximo a vencer
+                              // Revisar si está próximo a vencer
                               if (fechaFin) {
                                 const diasRestantes = Math.ceil(
                                   (fechaFin.getTime() - new Date().getTime()) /
                                     (1000 * 60 * 60 * 24),
                                 );
                                 if (diasRestantes <= 30 && diasRestantes > 0) {
-                                  observaciones.push("ðŸ”” PrÃ³ximo a vencer");
+                                  observaciones.push("ðŸ”” Próximo a vencer");
                                 }
                               }
 
-                              // Revisar contratos sin supervisiÃ³n
+                              // Revisar contratos sin supervisión
                               if (
                                 !contrato.supervisor ||
                                 contrato.supervisor === "No definido"
@@ -6275,7 +6275,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                               >
                                 {diasTranscurridos < 0
                                   ? "No iniciado"
-                                  : `${diasTranscurridos} dÃ­as`}
+                                  : `${diasTranscurridos} días`}
                               </span>
                             );
                           })()}
@@ -6310,8 +6310,8 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                                 }`}
                               >
                                 {diasRestantes < 0
-                                  ? `Vencido (${Math.abs(diasRestantes)} dÃ­as)`
-                                  : `${diasRestantes} dÃ­as`}
+                                  ? `Vencido (${Math.abs(diasRestantes)} días)`
+                                  : `${diasRestantes} días`}
                               </span>
                             );
                           })()}
@@ -6359,17 +6359,17 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
             </table>
           </div>
 
-          {/* Controles de PaginaciÃ³n */}
+          {/* Controles de Paginación */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-              {/* InformaciÃ³n de paginaciÃ³n */}
+              {/* Información de paginación */}
               <div className="flex items-center gap-4">
                 <div className="text-sm text-gray-700 dark:text-gray-300">
                   Mostrando {startIndex + 1} - {Math.min(endIndex, totalItems)}{" "}
                   de {formatNumber(totalItems)} contratos
                 </div>
 
-                {/* Selector de items por pÃ¡gina */}
+                {/* Selector de items por página */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
                     Mostrar:
@@ -6390,7 +6390,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Controles de navegaciÃ³n */}
+              {/* Controles de navegación */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
@@ -6400,7 +6400,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   Anterior
                 </button>
 
-                {/* NÃºmeros de pÃ¡gina */}
+                {/* Números de página */}
                 <div className="flex items-center gap-1">
                   {(() => {
                     const pages = [];
@@ -6495,7 +6495,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* BotÃ³n flotante fijo para filtros - siempre visible */}
+      {/* Botón flotante fijo para filtros - siempre visible */}
       <motion.button
         onClick={() => setShowFilters(!showFilters)}
         className="fixed top-36 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-full hover:bg-teal-700 transition-all duration-200 shadow-2xl transform hover:scale-110 active:scale-95"
@@ -6525,7 +6525,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <Filter className="w-5 h-5 text-teal-600" />
-                  Filtros de AnÃ¡lisis
+                  Filtros de Análisis
                 </h3>
                 <button
                   onClick={() => setShowFilters(false)}
@@ -6536,11 +6536,11 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                {/* Filtro por AÃ±o */}
+                {/* Filtro por Año */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <Calendar className="w-4 h-4 inline mr-2" />
-                    AÃ±o
+                    Año
                   </label>
                   <select
                     value={filters.ano || ""}
@@ -6549,7 +6549,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
-                    <option value="">Todos los aÃ±os</option>
+                    <option value="">Todos los años</option>
                     {Object.keys(yearlySummary || {})
                       .sort((a, b) => parseInt(b) - parseInt(a))
                       .map((year) => (
@@ -6674,7 +6674,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* BotÃ³n limpiar filtros */}
+                {/* Botón limpiar filtros */}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
                   <button
                     onClick={() =>

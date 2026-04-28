@@ -26,14 +26,14 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   };
 
   return (
-    <header className="h-14 bg-[#1e3a5f] dark:bg-[#0d1f36] border-b border-[#163355] dark:border-[#0a1829] flex items-center px-3 sm:px-4 shrink-0 z-[100]">
+    <header className="h-14 bg-white dark:bg-[#0d1f36] border-b border-gray-200 dark:border-[#0a1829] flex items-center px-3 sm:px-4 shrink-0 z-[100]">
       <div className="flex items-center justify-between w-full gap-2">
         {/* ── Izquierda: toggle + brand ── */}
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="p-1.5 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors duration-[120ms] shrink-0"
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-white/60 dark:hover:text-white dark:hover:bg-white/10 transition-colors duration-[120ms] shrink-0"
               title="Abrir menú de navegación"
               data-tour-id="header-menu"
             >
@@ -43,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Monograma institucional */}
-            <div className="w-7 h-7 rounded-md bg-[#1d4ed8] flex items-center justify-center shrink-0 select-none">
+            <div className="w-7 h-7 rounded-md bg-[#1d4ed8] flex items-center justify-center shrink-0 select-none ring-1 ring-[#3b82f6]/50">
               <span className="text-white text-[11px] font-bold tracking-tight">
                 CT
               </span>
@@ -51,21 +51,21 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
             {/* Título institucional */}
             <div className="hidden sm:block min-w-0">
-              <div className="text-white text-[13px] font-semibold truncate leading-tight">
+              <div className="text-gray-900 dark:text-white text-[13px] font-semibold truncate leading-tight">
                 Sistema de Gestión de Proyectos
               </div>
-              <div className="text-white/40 text-[9px] uppercase tracking-widest leading-none mt-0.5">
+              <div className="text-blue-700 dark:text-[#64a0d4] text-[9px] uppercase tracking-widest leading-none mt-0.5">
                 Alcaldía · Santiago de Cali
               </div>
             </div>
-            <div className="sm:hidden text-white font-semibold text-sm leading-none">
+            <div className="sm:hidden text-gray-900 dark:text-white font-semibold text-sm leading-none">
               CaliTrack
             </div>
           </div>
         </div>
 
         {/* ── Derecha: acciones ── */}
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0 border-l border-gray-200 dark:border-white/10 pl-2 ml-1">
           <RoleFeatureTour
             highestRole={highestRole}
             userId={state.user?.uid || state.user?.email}
@@ -74,7 +74,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           {/* Tema */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors duration-[120ms]"
+            className="p-2 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-white/60 dark:hover:text-white dark:hover:bg-white/10 transition-colors duration-[120ms]"
             title={
               theme === "dark"
                 ? "Cambiar a modo claro"
@@ -92,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           {/* Notificaciones */}
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors duration-[120ms]"
+            className="relative p-2 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-white/60 dark:hover:text-white dark:hover:bg-white/10 transition-colors duration-[120ms]"
             title="Notificaciones"
             data-tour-id="header-notifications"
           >

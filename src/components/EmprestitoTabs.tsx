@@ -17,8 +17,6 @@ import EmprestitoReportesCentroGestor from "@/components/EmprestitoReportesCentr
 
 // Tipos para las props
 interface EmprestitoTabsProps {
-  flujoCajaData?: any[];
-  flujoCajaLoading?: boolean;
   onFilteredBpinsChange?: (bpins: number[] | undefined) => void;
   className?: string;
   onNavigateHome?: () => void;
@@ -77,13 +75,7 @@ const TabContent: React.FC<{ activeTab: string; props: EmprestitoTabsProps }> =
 
 // Componente principal optimizado con programacion funcional
 const EmprestitoTabs: React.FC<EmprestitoTabsProps> = React.memo(
-  ({
-    flujoCajaData,
-    flujoCajaLoading,
-    onFilteredBpinsChange,
-    className = "",
-    onNavigateHome,
-  }) => {
+  ({ onFilteredBpinsChange, className = "", onNavigateHome }) => {
     const [activeTab, setActiveTab] = useState("dashboard");
 
     return (
@@ -133,8 +125,6 @@ const EmprestitoTabs: React.FC<EmprestitoTabsProps> = React.memo(
             <TabContent
               activeTab={activeTab}
               props={{
-                flujoCajaData,
-                flujoCajaLoading,
                 onFilteredBpinsChange,
                 className,
               }}

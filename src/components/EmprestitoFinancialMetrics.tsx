@@ -46,7 +46,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
   data, 
   className = '' 
 }) => {
-  // CÃ¡lculos de mÃ©tricas financieras
+  // Cálculos de métricas financieras
   const metrics = useMemo(() => {
     if (!data || data.length === 0) return null
 
@@ -55,7 +55,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
     const diferencia = totalReal - totalPlaneado
     const cumplimiento = totalPlaneado > 0 ? (totalReal / totalPlaneado) * 100 : 0
 
-    // AnÃ¡lisis por mes
+    // Análisis por mes
     const monthlyData = data.reduce((acc, row) => {
       const month = row.mes
       if (!acc[month]) {
@@ -78,21 +78,21 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
     const avgPlaneado = totalPlaneado / monthlyArray.length
     const avgReal = totalReal / monthlyArray.length
 
-    // Tendencia (comparaciÃ³n Ãºltimos 3 meses vs primeros 3 meses)
+    // Tendencia (comparación últimos 3 meses vs primeros 3 meses)
     const firstThreeMonths = monthlyArray.slice(0, 3).reduce((sum: number, m: any) => sum + m.real, 0)
     const lastThreeMonths = monthlyArray.slice(-3).reduce((sum: number, m: any) => sum + m.real, 0)
     const trend = lastThreeMonths > firstThreeMonths 
       ? ((lastThreeMonths - firstThreeMonths) / firstThreeMonths) * 100 
       : 0
 
-    // Proyectos Ãºnicos con desembolsos reales
+    // Proyectos únicos con desembolsos reales
     const proyectosConDesembolso = new Set(
       data.filter(row => (row.desembolso_real || 0) > 0).map(row => row.bp_proyecto)
     ).size
 
     const proyectosTotales = new Set(data.map(row => row.bp_proyecto)).size
 
-    // Tasa de ejecuciÃ³n promedio
+    // Tasa de ejecución promedio
     const tasaEjecucion = cumplimiento
 
     return {
@@ -113,7 +113,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
   if (!metrics) {
     return (
       <div className={`text-center text-gray-500 dark:text-gray-400 p-6 ${className}`}>
-        No hay datos disponibles para calcular mÃ©tricas
+        No hay datos disponibles para calcular métricas
       </div>
     )
   }
@@ -142,14 +142,14 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
       }
     },
     {
-      title: 'Proyectos en EjecuciÃ³n',
+      title: 'Proyectos en Ejecución',
       value: `${metrics.proyectosConDesembolso}/${metrics.proyectosTotales}`,
       subtitle: `${((metrics.proyectosConDesembolso / metrics.proyectosTotales) * 100).toFixed(0)}% activos`,
       icon: CheckCircle2,
       gradient: 'from-purple-500 to-purple-600'
     },
     {
-      title: 'VariaciÃ³n vs Planeado',
+      title: 'Variación vs Planeado',
       value: formatNumber(Math.abs(metrics.diferencia), 'currency'),
       subtitle: metrics.diferencia >= 0 ? 'Sobre lo planeado' : 'Bajo lo planeado',
       icon: metrics.diferencia >= 0 ? TrendingUp : TrendingDown,
@@ -160,7 +160,7 @@ const EmprestitoFinancialMetrics: React.FC<EmprestitoFinancialMetricsProps> = ({
       }
     },
     {
-      title: 'Tasa de EjecuciÃ³n',
+      title: 'Tasa de Ejecución',
       value: `${metrics.tasaEjecucion.toFixed(1)}%`,
       subtitle: `En ${metrics.mesesProcesados} meses`,
       icon: Percent,
