@@ -345,6 +345,8 @@ function DashboardContent() {
   const renderContent = () => {
     // Mostrar estado de carga unificado
     const isLoading =
+      (activeTab === "projects" && proyectosLoading) ||
+      (activeTab === "project_units" && proyectosLoading) ||
       (activeTab === "activities" && actividadesState.loading) ||
       (activeTab === "products" && productosState.loading) ||
       (activeTab === "emprestito" && emprestitoState.loading) ||
@@ -363,6 +365,7 @@ function DashboardContent() {
               {activeTab === "procesos" && "Cargando procesos…"}
               {activeTab === "contracts" && "Cargando contratos…"}
               {activeTab === "projects" && "Cargando proyectos…"}
+              {activeTab === "project_units" && "Cargando unidades de proyecto…"}
             </p>
           </div>
         </div>
