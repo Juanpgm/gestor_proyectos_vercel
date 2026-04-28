@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Info, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
-type ManagementModule = 'procesos' | 'contratos' | 'proyecciones' | 'pagos' | 'unidades' | 'usuarios'
+type ManagementModule = 'procesos' | 'contratos' | 'pagos' | 'unidades' | 'usuarios'
 
 type TourStep = {
   selector: string
@@ -21,7 +21,6 @@ interface ManagementFeatureTourProps {
 const MODULE_LABELS: Record<ManagementModule, string> = {
   procesos: 'Gestión de Procesos',
   contratos: 'Gestión de Contratos',
-  proyecciones: 'Proyecciones de Empréstito',
   pagos: 'Gestión de Pagos',
   unidades: 'Gestión de Unidades de Proyecto',
   usuarios: 'Gestión de Usuarios'
@@ -75,28 +74,6 @@ const MODULE_STEPS: Record<ManagementModule, TourStep[]> = {
       selector: '[data-tour-id="mgmt-contratos-table"]',
       title: 'Detalle contractual',
       description: 'Consulta registro por registro con trazabilidad y herramientas de control sobre los contratos.'
-    }
-  ],
-  proyecciones: [
-    {
-      selector: '[data-tour-id="mgmt-proyecciones-header"]',
-      title: 'Contexto del módulo',
-      description: 'Este encabezado identifica la vista de proyecciones y su propósito de seguimiento.'
-    },
-    {
-      selector: '[data-tour-id="mgmt-proyecciones-stats"]',
-      title: 'Resumen de proyecciones',
-      description: 'Diferencia proyecciones con y sin proceso para identificar brechas de estructuración.'
-    },
-    {
-      selector: '[data-tour-id="mgmt-proyecciones-filters"]',
-      title: 'Controles de análisis',
-      description: 'Aplica filtros, búsqueda y selección de columnas para focalizar el análisis.'
-    },
-    {
-      selector: '[data-tour-id="mgmt-proyecciones-table"]',
-      title: 'Listado detallado',
-      description: 'Explora cada proyección y su estado para priorizar acciones de cierre o seguimiento.'
     }
   ],
   pagos: [

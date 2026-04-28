@@ -57,12 +57,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       description: 'Administración de convenios y transferencias'
     },
     {
-      id: 'proyecciones-emprestito',
-      label: 'Proyecciones de Empréstito',
-      icon: TrendingUp,
-      description: 'Gestión y seguimiento de proyecciones'
-    },
-    {
       id: 'gestion-pagos',
       label: 'Gestión de Pagos',
       icon: DollarSign,

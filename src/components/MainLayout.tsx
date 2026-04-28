@@ -6,7 +6,6 @@ import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import GestionProcesos from '@/components/GestionProcesos'
 import GestionContratos from '@/components/GestionContratos'
-import ProyeccionesEmprestito from '@/components/ProyeccionesEmprestito'
 import GestionPagos from '@/components/GestionPagos'
 import GestionUnidadesProyecto from '@/components/GestionUnidadesProyecto'
 import GestionEmprestito from '@/components/GestionEmprestito'
@@ -34,7 +33,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       return [
         'gestionar-procesos',
         'gestionar-contratos',
-        'proyecciones-emprestito',
         'gestion-pagos',
         'gestionar-unidades-proyecto',
         'gestionar-emprestito'
@@ -91,14 +89,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
             <div className="px-2 sm:px-4 lg:px-6 py-4">
               <GestionContratos onNavigateHome={handleNavigateHome} />
-            </div>
-          </div>
-        )
-      case 'proyecciones-emprestito':
-        return (
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-            <div className="px-2 sm:px-4 lg:px-6 py-4">
-              <ProyeccionesEmprestito onNavigateHome={handleNavigateHome} />
             </div>
           </div>
         )

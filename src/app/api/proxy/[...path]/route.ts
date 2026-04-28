@@ -44,8 +44,6 @@ const isCacheableEmprestitoPath = (apiPath: string): boolean => {
     path === 'emprestito/quality-control/stats' ||
     path === 'emprestito/quality-control/records' ||
     path === 'emprestito/flujo-caja/all' ||
-    path === 'emprestito/leer-tabla-proyecciones' ||
-    path === 'emprestito/proyecciones-sin-proceso' ||
     path === 'bancos_emprestito_all' ||
     path === 'solicitudes_cambios_emprestito'
   ) {
@@ -105,7 +103,6 @@ const getProxyTimeout = (apiPath: string): number => {
     path === 'reportes_contratos' ||
     path === 'reportes_contratos/' ||
     path === 'emprestito/flujo-caja/all' ||
-    path === 'emprestito/leer-tabla-proyecciones' ||
     path === 'solicitudes_cambios_emprestito'
   ) {
     return Math.max(DEFAULT_TIMEOUT, 90000)

@@ -43,22 +43,28 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Monograma institucional */}
-            <div className="w-7 h-7 rounded-md bg-[#1d4ed8] flex items-center justify-center shrink-0 select-none ring-1 ring-[#3b82f6]/50">
-              <span className="text-white text-[11px] font-bold tracking-tight">
+            <div className="w-9 h-9 rounded-md bg-[#1d4ed8] flex items-center justify-center shrink-0 select-none ring-1 ring-[#3b82f6]/50">
+              <span className="text-white text-[13px] font-bold tracking-tight">
                 CT
               </span>
             </div>
 
             {/* Título institucional */}
             <div className="hidden sm:block min-w-0">
-              <div className="text-gray-900 dark:text-white text-[13px] font-semibold truncate leading-tight">
+              <h1
+                className="text-gray-900 dark:text-white text-[18px] sm:text-[20px] font-bold truncate leading-tight tracking-tight m-0"
+                style={{ fontFamily: 'var(--font-display, Outfit, system-ui, sans-serif)' }}
+              >
                 Sistema de Gestión de Proyectos
-              </div>
-              <div className="text-blue-700 dark:text-[#64a0d4] text-[9px] uppercase tracking-widest leading-none mt-0.5">
+              </h1>
+              <div className="text-blue-700 dark:text-[#64a0d4] text-[10px] uppercase tracking-widest leading-none mt-1">
                 Alcaldía · Santiago de Cali
               </div>
             </div>
-            <div className="sm:hidden text-gray-900 dark:text-white font-semibold text-sm leading-none">
+            <div
+              className="sm:hidden text-gray-900 dark:text-white font-bold text-lg leading-none tracking-tight"
+              style={{ fontFamily: 'var(--font-display, Outfit, system-ui, sans-serif)' }}
+            >
               CaliTrack
             </div>
           </div>
