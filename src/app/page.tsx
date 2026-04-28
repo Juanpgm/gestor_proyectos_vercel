@@ -25,7 +25,6 @@ import {
 import { useEmprestito, useEmprestitoMetrics } from "@/hooks/useEmprestito";
 import { useEmprestitoAutoNotifications } from "@/hooks/useEmprestitoNotifications";
 import { useAllAutoNotifications } from "@/hooks/useAutoNotifications";
-import { useFlujoCaja } from "@/hooks/useFlujoCaja";
 import {
   useProcesos,
   useProcesosMetrics,
@@ -81,7 +80,6 @@ function DashboardContent() {
   // OPTIMIZACIÓN: Solo cargar Empréstito cuando esté activo
   const emprestitoState = useEmprestito(activeTab === "emprestito");
   const emprestitoMetrics = useEmprestitoMetrics(emprestitoState.data);
-  const flujoCajaState = useFlujoCaja();
   const procesosState = useProcesos();
   const procesosMetrics = useProcesosMetrics(procesosState.data.procesos);
 
@@ -574,8 +572,6 @@ function DashboardContent() {
               }
             >
               <EmprestitoTabs
-                flujoCajaData={flujoCajaState.data}
-                flujoCajaLoading={flujoCajaState.loading}
                 onFilteredBpinsChange={handleFilteredBpinsChange}
               />
             </Suspense>
