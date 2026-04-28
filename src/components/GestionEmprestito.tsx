@@ -29,6 +29,7 @@ import { useAuth } from '@/context/AuthContext'
 import { getCentroGestorAccessFromSession, itemMatchesCentroGestor } from '@/utils/centroGestorAccess'
 import type { EmprestitoTabId } from '@/types/gestion-emprestito'
 import { EMPRESTITO_TAB_LABELS } from '@/types/gestion-emprestito'
+import { cn } from '@/lib/cn'
 
 // Dynamic imports for heavy tabs
 const GestionRegistrosEmprestitoTab = dynamic(() => import('./GestionRegistrosEmprestitoTab'), { ssr: false })
