@@ -24,7 +24,13 @@ import {
   EyeOff,
   CheckCircle,
   Download,
+  Pencil,
+  Loader2,
 } from "lucide-react";
+import {
+  patchContratoEmprestito,
+  editarNombreResumidoProceso,
+} from "@/services/emprestito-gestion.service";
 import AgregarConvenioTransferenciaModal from "@/components/AgregarConvenioTransferenciaModal";
 import CargarRPCModal from "@/components/CargarRPCModal";
 import EditarRPCModal from "@/components/EditarRPCModal";
@@ -158,6 +164,10 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [columnSearchTerm, setColumnSearchTerm] = useState("");
   const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  const [modalEditContrato, setModalEditContrato] = useState<{
+    open: boolean;
+    contrato: ContratoEmprestito | null;
+  }>({ open: false, contrato: null });
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
@@ -281,7 +291,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
    * - 12 Ã³rdenes de compra TVEC (editables - tipo: "orden_compra_manual")
    * - 4 convenios/transferencias (editables - tipo: "convenio_transferencia_manual")
    */
-  const fetchContratos = async () => {
+  const fetchContratos = async (bypassCache = false) => {
     try {
       setLoading(true);
       setError(null);
@@ -292,7 +302,10 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
         throw new Error("URL de API no configurada");
       }
 
-      const response = await fetch("/api/proxy/contratos_emprestito_all");
+      const url = bypassCache
+        ? "/api/proxy/contratos_emprestito_all?bypass_cache=1"
+        : "/api/proxy/contratos_emprestito_all";
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -890,7 +903,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
               Error cargando datos: {error}
             </p>
             <button
-              onClick={fetchContratos}
+              onClick={() => fetchContratos()}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
               Reintentar
@@ -1271,7 +1284,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
             )}
 
             <button
-              onClick={fetchContratos}
+              onClick={() => fetchContratos()}
               disabled={loading}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -1569,6 +1582,17 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
                           <Eye className="w-4 h-4" />
                         </button>
                       )}
+
+                      {/* BotÃ³n editar datos del contrato */}
+                      <button
+                        onClick={() =>
+                          setModalEditContrato({ open: true, contrato })
+                        }
+                        className="p-1.5 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded transition-colors"
+                        title="Editar datos del contrato"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </motion.tr>
@@ -1662,6 +1686,22 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
         rpcData={selectedRPCForEdit}
         contratoData={selectedContratoForRPC}
       />
+
+      {/* Modal editar datos del contrato */}
+      <AnimatePresence>
+        {modalEditContrato.open && modalEditContrato.contrato && (
+          <EditContratoModal
+            contrato={modalEditContrato.contrato}
+            onClose={() =>
+              setModalEditContrato({ open: false, contrato: null })
+            }
+            onSuccess={() => {
+              setModalEditContrato({ open: false, contrato: null });
+              fetchContratos(true);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Modal de Documentos RPC */}
       <AnimatePresence>
@@ -1880,3 +1920,238 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
 };
 
 export default GestionContratos;
+
+// ── Modal Editar Datos del Contrato ───────────────────────────────────────────
+
+// Field DEBE estar fuera de EditContratoModal para evitar que React lo desmonte
+// y remonte en cada keystroke (perder foco al escribir).
+const ContratoFormField: React.FC<{
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+}> = ({ label, value, onChange, required }) => (
+  <div>
+    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+    />
+  </div>
+);
+
+const EditContratoModal: React.FC<{
+  contrato: ContratoEmprestito;
+  onClose: () => void;
+  onSuccess: () => void;
+}> = ({ contrato, onClose, onSuccess }) => {
+  const refContrato =
+    contrato.referencia_contrato || contrato.numero_contrato || "";
+
+  const [form, setForm] = useState({
+    nombre_resumido_proceso: contrato.nombre_resumido_proceso || "",
+    objeto_contrato: contrato.objeto_contrato || "",
+    estado_contrato: contrato.estado_contrato || (contrato as any).estado || "",
+    supervisor: contrato.supervisor || "",
+    nombre_centro_gestor: contrato.nombre_centro_gestor || "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Valor original que se usó para inicializar el form
+  const originalValues: Record<string, string> = {
+    nombre_resumido_proceso: contrato.nombre_resumido_proceso || "",
+    objeto_contrato: contrato.objeto_contrato || "",
+    estado_contrato: contrato.estado_contrato || (contrato as any).estado || "",
+    supervisor: contrato.supervisor || "",
+    nombre_centro_gestor: contrato.nombre_centro_gestor || "",
+  };
+
+  const changed = Object.entries(form).reduce<Record<string, string>>(
+    (acc, [k, v]) => {
+      const original = originalValues[k] ?? "";
+      if (v.trim() !== original.trim()) acc[k] = v.trim();
+      return acc;
+    },
+    {},
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!refContrato) {
+      setError("No se encontró la referencia del contrato");
+      return;
+    }
+    if (Object.keys(changed).length === 0) {
+      setError("No hay cambios para guardar");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      // nombre_resumido_proceso vive en procesos_emprestito → usar modificar-proceso
+      const { nombre_resumido_proceso, ...contratoChanges } = changed as any;
+
+      if (nombre_resumido_proceso !== undefined) {
+        const refProceso = contrato.referencia_proceso;
+        if (!refProceso) {
+          throw new Error(
+            "Este contrato no tiene referencia_proceso; no se puede actualizar el nombre del proceso.",
+          );
+        }
+        await editarNombreResumidoProceso(refProceso, nombre_resumido_proceso);
+      }
+
+      // Campos de contratos_emprestito
+      if (Object.keys(contratoChanges).length > 0) {
+        await patchContratoEmprestito(refContrato, contratoChanges);
+      }
+
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || "Error al actualizar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const modal = e.currentTarget;
+    const focusable = Array.from(
+      modal.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  };
+
+  const set = (field: keyof typeof form) => (v: string) =>
+    setForm((f) => ({ ...f, [field]: v }));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-lg w-full border border-gray-200 dark:border-gray-700 overflow-hidden"
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Pencil className="w-5 h-5 text-white" />
+            <div>
+              <h2 className="text-base font-semibold text-white">
+                Editar Contrato
+              </h2>
+              <p className="text-xs text-white/80 font-mono">{refContrato}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-700 dark:text-red-300 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <ContratoFormField
+            label="Nombre resumido proceso"
+            value={form.nombre_resumido_proceso}
+            onChange={set("nombre_resumido_proceso")}
+            required
+          />
+          <ContratoFormField
+            label="Objeto del contrato"
+            value={form.objeto_contrato}
+            onChange={set("objeto_contrato")}
+          />
+          <ContratoFormField
+            label="Estado contrato"
+            value={form.estado_contrato}
+            onChange={set("estado_contrato")}
+          />
+          <ContratoFormField
+            label="Supervisor"
+            value={form.supervisor}
+            onChange={set("supervisor")}
+          />
+          <ContratoFormField
+            label="Centro gestor"
+            value={form.nombre_centro_gestor}
+            onChange={set("nombre_centro_gestor")}
+          />
+
+          {Object.keys(changed).length > 0 && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              Campos a guardar:{" "}
+              <span className="font-mono">
+                {Object.keys(changed).join(", ")}
+              </span>
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || Object.keys(changed).length === 0}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+};

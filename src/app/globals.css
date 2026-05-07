@@ -1,3 +1,5 @@
+@charset "UTF-8";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -186,40 +188,40 @@
 
   /* Escalado de tipografía más preciso para diferentes dispositivos */
   h1 {
-    @apply text-xl tablet:text-2xl md:text-3xl lg:text-4xl;
+    @apply text-xl lg:text-4xl;
     @apply tablet:text-tablet-xl;
   }
   h2 {
-    @apply text-lg tablet:text-xl md:text-2xl lg:text-3xl;
+    @apply text-lg lg:text-3xl;
     @apply tablet:text-tablet-lg;
   }
   h3 {
-    @apply text-base tablet:text-lg md:text-xl lg:text-2xl;
+    @apply text-base lg:text-2xl;
     @apply tablet:text-tablet-base;
   }
   h4 {
-    @apply text-sm tablet:text-base md:text-lg lg:text-xl;
+    @apply text-sm lg:text-xl;
     @apply tablet:text-tablet-sm;
   }
   h5 {
-    @apply text-xs tablet:text-sm md:text-base lg:text-lg;
+    @apply text-xs lg:text-lg;
     @apply tablet:text-tablet-xs;
   }
   h6 {
-    @apply text-xs tablet:text-xs md:text-sm lg:text-base;
+    @apply text-xs md:text-sm lg:text-base;
   }
 
   /* Texto responsive mejorado */
   .text-responsive-lg {
-    @apply text-sm tablet:text-base md:text-lg lg:text-xl;
+    @apply text-sm lg:text-xl;
     @apply tablet:text-tablet-base;
   }
   .text-responsive {
-    @apply text-xs tablet:text-sm md:text-base;
+    @apply text-xs;
     @apply tablet:text-tablet-sm;
   }
   .text-responsive-sm {
-    @apply text-xs tablet:text-xs md:text-sm;
+    @apply text-xs;
     @apply tablet:text-tablet-xs;
   }
 

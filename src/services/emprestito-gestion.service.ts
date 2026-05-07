@@ -100,6 +100,24 @@ async function proxyPut<T = MutationResponse>(
   return json as T;
 }
 
+async function proxyPutParams<T = MutationResponse>(
+  path: string,
+  params: Record<string, string>,
+): Promise<T> {
+  const qs = new URLSearchParams(params).toString();
+  const authHeaders = await getAuthHeaders();
+  const res = await fetch(`${PROXY_BASE}/${path}?${qs}`, {
+    method: "PUT",
+    headers: { ...authHeaders },
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  }
+  const json = await res.json();
+  return json as T;
+}
+
 async function proxyDelete<T = MutationResponse>(
   path: string,
   params: Record<string, string>,
@@ -306,6 +324,16 @@ export const modificarProcesoEmprestito = (
     ...data,
   });
 
+/** PUT /emprestito/modificar-proceso — edición directa de nombre_resumido_proceso via query params */
+export const editarNombreResumidoProceso = (
+  referencia_proceso: string,
+  nombre_resumido_proceso: string,
+): Promise<MutationResponse> =>
+  proxyPutParams("emprestito/modificar-proceso", {
+    referencia_proceso,
+    nombre_resumido_proceso,
+  });
+
 /** PUT /emprestito/modificar-contrato (query param: referencia_contrato) */
 export const modificarContratoEmprestito = (
   refContrato: string,
@@ -315,6 +343,67 @@ export const modificarContratoEmprestito = (
     referencia_contrato: refContrato,
     ...data,
   });
+
+/**
+ * PUT /emprestito/modificar-contrato — patch de campos arbitrarios.
+ * Los campos que son query params explícitos en el backend se envían directamente;
+ * los demás (e.g. nombre_resumido_proceso) van dentro de datos_json.
+ */
+export const patchContratoEmprestito = (
+  referencia_contrato: string,
+  data: Record<string, any>,
+): Promise<MutationResponse> => {
+  // Campos que el backend acepta como query params explícitos
+  const EXPLICIT = new Set([
+    "banco",
+    "bp",
+    "bpin",
+    "descripcion_proceso",
+    "entidad_contratante",
+    "estado_contrato",
+    "fecha_actualizacion",
+    "fecha_fin_contrato",
+    "fecha_firma_contrato",
+    "fecha_guardado",
+    "fecha_inicio_contrato",
+    "fuente_datos",
+    "id_contrato",
+    "modalidad_contratacion",
+    "nit_contratista",
+    "nit_entidad",
+    "nombre_centro_gestor",
+    "nombre_contratista",
+    "nombre_procedimiento",
+    "objeto_contrato",
+    "observaciones_test",
+    "ordenador_gasto",
+    "proceso_contractual",
+    "referencia_proceso",
+    "representante_legal",
+    "sector",
+    "supervisor",
+    "tipo_contrato",
+    "urlproceso",
+    "version_esquema",
+  ]);
+
+  const params: Record<string, string> = { referencia_contrato };
+  const extra: Record<string, any> = {};
+
+  for (const [k, v] of Object.entries(data)) {
+    if (EXPLICIT.has(k)) {
+      params[k] = String(v);
+    } else {
+      extra[k] = v;
+    }
+  }
+
+  if (Object.keys(extra).length > 0) {
+    params.datos_json = JSON.stringify(extra);
+  }
+
+  return proxyPutParams("emprestito/modificar-contrato", params);
+};
 
 /** PUT /emprestito/modificar-orden-compra (query param: numero_orden) */
 export const modificarOrdenCompraEmprestito = (

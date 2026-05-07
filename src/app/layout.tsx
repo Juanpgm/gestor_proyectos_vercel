@@ -33,6 +33,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <meta charSet="utf-8" />
+      </head>
       <body className="min-h-screen antialiased overflow-x-hidden">
         <AuthProvider>
           <ThemeProvider>

@@ -189,7 +189,7 @@ async function handleRequest(request: NextRequest, method: string) {
         status: cached.status,
         headers: {
           ...corsHeaders,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json; charset=utf-8",
           "X-Proxy-Cache": "HIT",
         },
       });
@@ -210,7 +210,7 @@ async function handleRequest(request: NextRequest, method: string) {
         status: cached.status,
         headers: {
           ...corsHeaders,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json; charset=utf-8",
           "X-Proxy-Cache": "HIT",
         },
       });
@@ -507,7 +507,7 @@ async function handleRequest(request: NextRequest, method: string) {
       status: response.status,
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
         ...(isCacheableGet || isAdminCacheableGet
           ? { "X-Proxy-Cache": "MISS" }
           : {}),

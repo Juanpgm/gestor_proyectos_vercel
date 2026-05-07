@@ -55,7 +55,14 @@ import {
   useReportesContrato,
   useResumenReportes,
 } from "@/hooks/useReportesContrato";
-import { ClipboardEdit, History } from "lucide-react";
+import {
+  ClipboardEdit,
+  History,
+  Pencil,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { editarNombreResumidoProceso } from "@/services/emprestito-gestion.service";
 import { useAuth } from "@/context/AuthContext";
 
 const RegistrarReporteContratoModal = dynamic(
@@ -2982,21 +2989,20 @@ const useEmprestitoRealData = () => {
 
     // Mapeo de nombres abreviados en proyecciones a nombres oficiales de centros gestores
     const mapeoNombresOrganismos: Record<string, string> = {
-      Bienes:
-        "Unidad Administrativa Especial de Gestión de Bienes y Servicios",
+      Bienes: "Unidad Administrativa Especial de Gestión de Bienes y Servicios",
       "Bienestar Social": "Secretaría de Bienestar Social",
       DATIC:
         "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones",
       Deportes: "Secretaría del Deporte y la Recreación",
       "Desarrollo Económico": "Secretaría de Desarrollo Económico",
-      "Educación": "Secretaría de Educación",
+      Educación: "Secretaría de Educación",
       Infraestructura: "Secretaría de Infraestructura",
       MOVILIDAD: "Secretaría de Movilidad",
       Movilidad: "Secretaría de Movilidad",
       PLANEACION: "Departamento Administrativo de Planeación Municipal",
       Planeacion: "Departamento Administrativo de Planeación Municipal",
-      "Planeación": "Departamento Administrativo de Planeación Municipal",
-      "Participación":
+      Planeación: "Departamento Administrativo de Planeación Municipal",
+      Participación:
         "Secretaría de Desarrollo Territorial y Participación Ciudadana",
       Riesgos: "Secretaría de Gestión del Riesgo de Emergencias y Desastres",
       Salud: "Secretaría de Salud Pública",
@@ -3215,19 +3221,16 @@ const useEmprestitoRealData = () => {
       ) // âœ… Mostrar si tiene asignado O contratos
       .sort((a, b) => b.valorAsignadoBanco - a.valorAsignadoBanco);
 
-    console.log(
-      "ðŸ“Š analysisByBankForChart - Resultado final para gráfico:",
-      {
-        totalBancos: result.length,
-        bancos: result.map((b) => ({
-          banco: b.banco,
-          valorAsignadoBanco: b.valorAsignadoBanco,
-          valorAdjudicado: b.valorAdjudicado,
-          valorEjecutado: b.valorEjecutado,
-          valorPagado: b.valorPagado,
-        })),
-      },
-    );
+    console.log("ðŸ“Š analysisByBankForChart - Resultado final para gráfico:", {
+      totalBancos: result.length,
+      bancos: result.map((b) => ({
+        banco: b.banco,
+        valorAsignadoBanco: b.valorAsignadoBanco,
+        valorAdjudicado: b.valorAdjudicado,
+        valorEjecutado: b.valorEjecutado,
+        valorPagado: b.valorPagado,
+      })),
+    });
 
     return result;
   }, [filteredData, reportes, pagos, proyecciones, filteredAsignaciones]);
@@ -4123,8 +4126,7 @@ const CentroGestorBarChart: React.FC<{
 
       {chartData.length > 6 && (
         <div className="text-center mt-3 p-2 text-sm text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/20 rounded">
-          Mostrando {chartData.length} centros gestores â€¢ Desliza para ver
-          más
+          Mostrando {chartData.length} centros gestores â€¢ Desliza para ver más
         </div>
       )}
     </motion.div>
@@ -4905,6 +4907,10 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
   const [modalReporte, setModalReporte] = useState<{
     open: boolean;
     contrato: any | null;
+  }>({ open: false, contrato: null });
+  const [modalEditNombre, setModalEditNombre] = useState<{
+    open: boolean;
+    contrato: ContratoEmprestito | null;
   }>({ open: false, contrato: null });
   const [modalHistorial, setModalHistorial] = useState<{
     open: boolean;
@@ -6349,6 +6355,15 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
                             >
                               <History className="h-4 w-4" />
                             </button>
+                            <button
+                              onClick={() =>
+                                setModalEditNombre({ open: true, contrato })
+                              }
+                              className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 transition-colors hover:bg-amber-50 dark:hover:bg-amber-900/20 p-2 rounded-lg w-8 h-8 flex items-center justify-center"
+                              title="Editar nombre resumido proceso"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       )}
@@ -6746,7 +6761,123 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
         loading={loadingReportes}
         onRefresh={refetchReportes}
       />
+
+      {/* Modal editar nombre resumido proceso */}
+      <AnimatePresence>
+        {modalEditNombre.open && modalEditNombre.contrato && (
+          <EditNombreResumidoModal
+            contrato={modalEditNombre.contrato}
+            onClose={() => setModalEditNombre({ open: false, contrato: null })}
+            onSuccess={() =>
+              setModalEditNombre({ open: false, contrato: null })
+            }
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+};
+
+// ── Modal Editar Nombre Resumido Proceso ─────────────────────────────────────
+const EditNombreResumidoModal: React.FC<{
+  contrato: ContratoEmprestito;
+  onClose: () => void;
+  onSuccess: () => void;
+}> = ({ contrato, onClose, onSuccess }) => {
+  const refProceso =
+    (contrato as any).referencia_proceso || contrato.referencia_contrato || "";
+  const [value, setValue] = useState(contrato.nombre_resumido_proceso || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!value.trim()) {
+      setError("El nombre resumido no puede estar vacío");
+      return;
+    }
+    if (!refProceso) {
+      setError("No se encontró referencia de proceso en este contrato");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await editarNombreResumidoProceso(refProceso, value.trim());
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || "Error al actualizar el nombre resumido");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700"
+      >
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+          Editar Nombre Resumido Proceso
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-700 dark:text-red-300 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Referencia:{" "}
+              <span className="font-mono font-medium text-gray-700 dark:text-gray-200">
+                {refProceso || "—"}
+              </span>
+            </p>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nombre resumido proceso <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="Nombre resumido del proceso..."
+              autoFocus
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Guardar
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
   );
 };
 
