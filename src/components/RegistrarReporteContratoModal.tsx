@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import React, { useState, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Upload,
@@ -13,158 +13,180 @@ import {
   Plus,
   TrendingUp,
   DollarSign,
-  Info
-} from 'lucide-react'
-import type { ReporteContratoFormData } from '@/types/avances-emprestito'
-import { TIPOS_ALERTA, ARCHIVOS_PERMITIDOS, MAX_FILE_SIZE_MB } from '@/types/avances-emprestito'
+  Info,
+} from "lucide-react";
+import type { ReporteContratoFormData } from "@/types/avances-emprestito";
+import {
+  TIPOS_ALERTA,
+  ARCHIVOS_PERMITIDOS,
+  MAX_FILE_SIZE_MB,
+} from "@/types/avances-emprestito";
 
 interface RegistrarReporteContratoModalProps {
-  isOpen: boolean
-  onClose: () => void
-  referenciaContrato: string
-  nombreContrato?: string
-  onSubmit: (data: ReporteContratoFormData) => Promise<boolean>
-  submitting?: boolean
+  isOpen: boolean;
+  onClose: () => void;
+  referenciaContrato: string;
+  nombreContrato?: string;
+  onSubmit: (data: ReporteContratoFormData) => Promise<boolean>;
+  submitting?: boolean;
 }
 
-const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps> = ({
+const RegistrarReporteContratoModal: React.FC<
+  RegistrarReporteContratoModalProps
+> = ({
   isOpen,
   onClose,
   referenciaContrato,
   nombreContrato,
   onSubmit,
-  submitting = false
+  submitting = false,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<ReporteContratoFormData>({
     referencia_contrato: referenciaContrato,
-    observaciones: '',
+    observaciones: "",
     avance_fisico: 0,
     avance_financiero: 0,
-    alertas_descripcion: 'Sin alertas',
+    alertas_descripcion: "Sin alertas",
     alertas_es_alerta: false,
-    alertas_tipo_alerta: '',
-    archivos_evidencia: []
-  })
+    alertas_tipo_alerta: "",
+    archivos_evidencia: [],
+  });
 
-  const [tiposAlertaSeleccionados, setTiposAlertaSeleccionados] = useState<string[]>([])
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [tiposAlertaSeleccionados, setTiposAlertaSeleccionados] = useState<
+    string[]
+  >([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   const validate = (): boolean => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
 
     if (!formData.observaciones.trim()) {
-      newErrors.observaciones = 'Las observaciones son obligatorias'
+      newErrors.observaciones = "Las observaciones son obligatorias";
     }
     if (formData.avance_fisico < 0 || formData.avance_fisico > 100) {
-      newErrors.avance_fisico = 'Debe estar entre 0 y 100'
+      newErrors.avance_fisico = "Debe estar entre 0 y 100";
     }
     if (formData.avance_financiero < 0 || formData.avance_financiero > 100) {
-      newErrors.avance_financiero = 'Debe estar entre 0 y 100'
+      newErrors.avance_financiero = "Debe estar entre 0 y 100";
     }
     if (formData.alertas_es_alerta && !formData.alertas_descripcion.trim()) {
-      newErrors.alertas_descripcion = 'Debe describir la alerta'
+      newErrors.alertas_descripcion = "Debe describir la alerta";
     }
     if (formData.archivos_evidencia.length === 0) {
-      newErrors.archivos = 'Debe adjuntar al menos un archivo de evidencia'
+      newErrors.archivos = "Debe adjuntar al menos un archivo de evidencia";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    const validFiles: File[] = []
-    const fileErrors: string[] = []
+    const files = Array.from(e.target.files || []);
+    const validFiles: File[] = [];
+    const fileErrors: string[] = [];
 
-    files.forEach(file => {
-      const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+    files.forEach((file) => {
+      const ext = "." + file.name.split(".").pop()?.toLowerCase();
       if (!ARCHIVOS_PERMITIDOS.includes(ext)) {
-        fileErrors.push(`${file.name}: tipo no permitido`)
-        return
+        fileErrors.push(`${file.name}: tipo no permitido`);
+        return;
       }
       if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-        fileErrors.push(`${file.name}: excede ${MAX_FILE_SIZE_MB}MB`)
-        return
+        fileErrors.push(`${file.name}: excede ${MAX_FILE_SIZE_MB}MB`);
+        return;
       }
-      validFiles.push(file)
-    })
+      validFiles.push(file);
+    });
 
     if (fileErrors.length > 0) {
-      setErrors(prev => ({ ...prev, archivos: fileErrors.join(', ') }))
+      setErrors((prev) => ({ ...prev, archivos: fileErrors.join(", ") }));
     } else {
-      setErrors(prev => {
-        const { archivos, ...rest } = prev
-        return rest
-      })
+      setErrors((prev) => {
+        const { archivos, ...rest } = prev;
+        return rest;
+      });
     }
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      archivos_evidencia: [...prev.archivos_evidencia, ...validFiles]
-    }))
+      archivos_evidencia: [...prev.archivos_evidencia, ...validFiles],
+    }));
 
     // Reset input
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = "";
     }
-  }
+  };
 
   const removeFile = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      archivos_evidencia: prev.archivos_evidencia.filter((_, i) => i !== index)
-    }))
-  }
+      archivos_evidencia: prev.archivos_evidencia.filter((_, i) => i !== index),
+    }));
+  };
 
   const toggleTipoAlerta = (tipo: string) => {
-    setTiposAlertaSeleccionados(prev => {
-      const updated = prev.includes(tipo) 
-        ? prev.filter(t => t !== tipo) 
-        : [...prev, tipo]
-      setFormData(f => ({ ...f, alertas_tipo_alerta: updated.join(',') }))
-      return updated
-    })
-  }
+    setTiposAlertaSeleccionados((prev) => {
+      const updated = prev.includes(tipo)
+        ? prev.filter((t) => t !== tipo)
+        : [...prev, tipo];
+      setFormData((f) => ({ ...f, alertas_tipo_alerta: updated.join(",") }));
+      return updated;
+    });
+  };
 
   const handleSubmit = async () => {
-    if (!validate()) return
-    setSubmitError(null)
+    if (!validate()) return;
+    setSubmitError(null);
 
     try {
       const success = await onSubmit({
         ...formData,
         referencia_contrato: referenciaContrato,
-        alertas_tipo_alerta: tiposAlertaSeleccionados.join(',')
-      })
+        alertas_tipo_alerta: tiposAlertaSeleccionados.join(","),
+      });
 
       if (success) {
         // Reset form
         setFormData({
           referencia_contrato: referenciaContrato,
-          observaciones: '',
+          observaciones: "",
           avance_fisico: 0,
           avance_financiero: 0,
-          alertas_descripcion: 'Sin alertas',
+          alertas_descripcion: "Sin alertas",
           alertas_es_alerta: false,
-          alertas_tipo_alerta: '',
-          archivos_evidencia: []
-        })
-        setTiposAlertaSeleccionados([])
-        setSubmitError(null)
-        onClose()
+          alertas_tipo_alerta: "",
+          archivos_evidencia: [],
+        });
+        setTiposAlertaSeleccionados([]);
+        setSubmitError(null);
+        onClose();
       } else {
-        setSubmitError('No se pudo registrar el avance. Verifique su conexión y permisos e intente de nuevo.')
+        setSubmitError(
+          "No se pudo registrar el avance. Verifique su conexión y permisos e intente de nuevo.",
+        );
       }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Error inesperado al registrar avance')
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado al registrar avance",
+      );
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -173,6 +195,7 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        role="presentation"
         onClick={onClose}
       >
         <motion.div
@@ -180,12 +203,18 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="registrar-reporte-contrato-title"
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-teal-600 to-cyan-600 p-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2
+                id="registrar-reporte-contrato-title"
+                className="text-lg font-bold text-white flex items-center gap-2"
+              >
                 <TrendingUp className="w-5 h-5" />
                 Reportar Avance de Contrato
               </h2>
@@ -195,6 +224,7 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
             </div>
             <button
               onClick={onClose}
+              aria-label="Cerrar modal"
               className="p-2 hover:bg-white/20 rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-white" />
@@ -207,10 +237,13 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
               <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-sm">
                 <Info className="w-4 h-4" />
-                <span>Referencia: <strong>{referenciaContrato}</strong></span>
+                <span>
+                  Referencia: <strong>{referenciaContrato}</strong>
+                </span>
               </div>
               <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">
-                Los archivos se subirán a Google Drive y el reporte se guardará en Firebase.
+                Los archivos se subirán a Google Drive y el reporte se guardará
+                en Firebase.
               </p>
             </div>
 
@@ -228,16 +261,29 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
                   max={100}
                   step={0.1}
                   value={formData.avance_fisico}
-                  onChange={e => setFormData(prev => ({ ...prev, avance_fisico: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      avance_fisico: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                   className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 dark:bg-gray-700 dark:text-white ${
-                    errors.avance_fisico ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    errors.avance_fisico
+                      ? "border-red-300"
+                      : "border-gray-300 dark:border-gray-600"
                   }`}
                 />
-                {errors.avance_fisico && <p className="text-red-500 text-xs mt-1">{errors.avance_fisico}</p>}
+                {errors.avance_fisico && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.avance_fisico}
+                  </p>
+                )}
                 <div className="mt-1 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                   <div
                     className="bg-teal-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, Math.max(0, formData.avance_fisico))}%` }}
+                    style={{
+                      width: `${Math.min(100, Math.max(0, formData.avance_fisico))}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -254,16 +300,29 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
                   max={100}
                   step={0.1}
                   value={formData.avance_financiero}
-                  onChange={e => setFormData(prev => ({ ...prev, avance_financiero: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      avance_financiero: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                   className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 dark:bg-gray-700 dark:text-white ${
-                    errors.avance_financiero ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    errors.avance_financiero
+                      ? "border-red-300"
+                      : "border-gray-300 dark:border-gray-600"
                   }`}
                 />
-                {errors.avance_financiero && <p className="text-red-500 text-xs mt-1">{errors.avance_financiero}</p>}
+                {errors.avance_financiero && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.avance_financiero}
+                  </p>
+                )}
                 <div className="mt-1 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                   <div
                     className="bg-cyan-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, Math.max(0, formData.avance_financiero))}%` }}
+                    style={{
+                      width: `${Math.min(100, Math.max(0, formData.avance_financiero))}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -277,13 +336,24 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
               <textarea
                 rows={3}
                 value={formData.observaciones}
-                onChange={e => setFormData(prev => ({ ...prev, observaciones: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    observaciones: e.target.value,
+                  }))
+                }
                 placeholder="Describa detalladamente el avance del contrato..."
                 className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 dark:bg-gray-700 dark:text-white ${
-                  errors.observaciones ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                  errors.observaciones
+                    ? "border-red-300"
+                    : "border-gray-300 dark:border-gray-600"
                 }`}
               />
-              {errors.observaciones && <p className="text-red-500 text-xs mt-1">{errors.observaciones}</p>}
+              {errors.observaciones && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.observaciones}
+                </p>
+              )}
             </div>
 
             {/* Alertas */}
@@ -297,44 +367,65 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
                   <input
                     type="checkbox"
                     checked={formData.alertas_es_alerta}
-                    onChange={e => setFormData(prev => ({
-                      ...prev,
-                      alertas_es_alerta: e.target.checked,
-                      alertas_descripcion: e.target.checked ? prev.alertas_descripcion : 'Sin alertas'
-                    }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        alertas_es_alerta: e.target.checked,
+                        alertas_descripcion: e.target.checked
+                          ? prev.alertas_descripcion
+                          : "Sin alertas",
+                      }))
+                    }
                     className="w-4 h-4 text-orange-600 rounded"
                   />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Tiene alerta activa</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Tiene alerta activa
+                  </span>
                 </label>
               </div>
 
               {formData.alertas_es_alerta && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
+                  animate={{ opacity: 1, height: "auto" }}
                   className="space-y-3"
                 >
                   <textarea
                     rows={2}
-                    value={formData.alertas_descripcion === 'Sin alertas' ? '' : formData.alertas_descripcion}
-                    onChange={e => setFormData(prev => ({ ...prev, alertas_descripcion: e.target.value }))}
+                    value={
+                      formData.alertas_descripcion === "Sin alertas"
+                        ? ""
+                        : formData.alertas_descripcion
+                    }
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        alertas_descripcion: e.target.value,
+                      }))
+                    }
                     placeholder="Describa la alerta..."
                     className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white ${
-                      errors.alertas_descripcion ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                      errors.alertas_descripcion
+                        ? "border-red-300"
+                        : "border-gray-300 dark:border-gray-600"
                     }`}
                   />
-                  {errors.alertas_descripcion && <p className="text-red-500 text-xs mt-1">{errors.alertas_descripcion}</p>}
+                  {errors.alertas_descripcion && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.alertas_descripcion}
+                    </p>
+                  )}
 
                   <div className="flex flex-wrap gap-2">
-                    {TIPOS_ALERTA.map(tipo => (
+                    {TIPOS_ALERTA.map((tipo) => (
                       <button
                         key={tipo}
                         type="button"
                         onClick={() => toggleTipoAlerta(tipo)}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                           tiposAlertaSeleccionados.includes(tipo)
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            ? "bg-orange-500 text-white"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
                         }`}
                       >
                         {tipo}
@@ -354,7 +445,9 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
 
               <div
                 className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-teal-400 transition-colors ${
-                  errors.archivos ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                  errors.archivos
+                    ? "border-red-300"
+                    : "border-gray-300 dark:border-gray-600"
                 }`}
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -371,12 +464,14 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={ARCHIVOS_PERMITIDOS.join(',')}
+                accept={ARCHIVOS_PERMITIDOS.join(",")}
                 onChange={handleFileAdd}
                 className="hidden"
               />
 
-              {errors.archivos && <p className="text-red-500 text-xs mt-1">{errors.archivos}</p>}
+              {errors.archivos && (
+                <p className="text-red-500 text-xs mt-1">{errors.archivos}</p>
+              )}
 
               {/* Lista de archivos adjuntos */}
               {formData.archivos_evidencia.length > 0 && (
@@ -448,7 +543,7 @@ const RegistrarReporteContratoModal: React.FC<RegistrarReporteContratoModalProps
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  )
-}
+  );
+};
 
-export default RegistrarReporteContratoModal
+export default RegistrarReporteContratoModal;

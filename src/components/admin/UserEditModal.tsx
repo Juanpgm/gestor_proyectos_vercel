@@ -1,134 +1,162 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Save, Building, Power, Key, Loader, User, Phone, Mail } from 'lucide-react'
-import { AdminUser } from '@/types/admin'
-import adminService from '@/services/admin.service'
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  X,
+  Save,
+  Building,
+  Power,
+  Key,
+  Loader,
+  User,
+  Phone,
+  Mail,
+} from "lucide-react";
+import { AdminUser } from "@/types/admin";
+import adminService from "@/services/admin.service";
 
 interface UserEditModalProps {
-  user: AdminUser
-  onClose: () => void
-  onSuccess: () => void
-  centrosGestores: string[]
+  user: AdminUser;
+  onClose: () => void;
+  onSuccess: () => void;
+  centrosGestores: string[];
 }
 
 export default function UserEditModal({
   user,
   onClose,
   onSuccess,
-  centrosGestores
+  centrosGestores,
 }: UserEditModalProps) {
   // Estados para todos los campos editables
-  const [fullName, setFullName] = useState(user.full_name || '')
-  const [phoneNumber, setPhoneNumber] = useState(user.phone_number || '')
-  const [centroGestor, setCentroGestor] = useState(user.centro_gestor_assigned || '')
-  const [isActive, setIsActive] = useState(user.is_active)
-  const [emailVerified, setEmailVerified] = useState(user.email_verified)
-  const [newPassword, setNewPassword] = useState('')
-  
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [fullName, setFullName] = useState(user.full_name || "");
+  const [phoneNumber, setPhoneNumber] = useState(user.phone_number || "");
+  const [centroGestor, setCentroGestor] = useState(
+    user.centro_gestor_assigned || "",
+  );
+  const [isActive, setIsActive] = useState(user.is_active);
+  const [emailVerified, setEmailVerified] = useState(user.email_verified);
+  const [newPassword, setNewPassword] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   const getReadableError = (err: any, fallback: string): string => {
-    const backendDetail = err?.originalError?.data?.detail || err?.data?.detail
-    const backendMessage = err?.originalError?.data?.message || err?.data?.message
+    const backendDetail = err?.originalError?.data?.detail || err?.data?.detail;
+    const backendMessage =
+      err?.originalError?.data?.message || err?.data?.message;
 
-    if (typeof backendDetail === 'string' && backendDetail.trim()) return backendDetail
+    if (typeof backendDetail === "string" && backendDetail.trim())
+      return backendDetail;
     if (Array.isArray(backendDetail) && backendDetail.length > 0) {
-      const first = backendDetail[0]
-      if (typeof first?.msg === 'string') return first.msg
-      return 'Error de validación en la solicitud'
+      const first = backendDetail[0];
+      if (typeof first?.msg === "string") return first.msg;
+      return "Error de validación en la solicitud";
     }
-    if (typeof backendMessage === 'string' && backendMessage.trim()) return backendMessage
-    return err?.message || fallback
-  }
+    if (typeof backendMessage === "string" && backendMessage.trim())
+      return backendMessage;
+    return err?.message || fallback;
+  };
 
   // Handler unificado para actualizar información general del usuario
   const handleUpdateUser = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      
-      const profileUpdates: any = {}
-      
-      if (fullName !== (user.full_name || '')) {
-        profileUpdates.full_name = fullName.trim()
-      }
-      
-      if (phoneNumber !== (user.phone_number || '')) {
-        profileUpdates.phone_number = phoneNumber.trim()
-      }
-      
-      if (emailVerified !== user.email_verified) {
-        profileUpdates.email_verified = emailVerified
+      setLoading(true);
+      setError(null);
+
+      const profileUpdates: any = {};
+
+      if (fullName !== (user.full_name || "")) {
+        profileUpdates.full_name = fullName.trim();
       }
 
-      const centroGestorChanged = centroGestor !== (user.centro_gestor_assigned || '')
-      const isActiveChanged = isActive !== user.is_active
-      
-      // Si no hay cambios, mostrar mensaje
-      if (Object.keys(profileUpdates).length === 0 && !centroGestorChanged && !isActiveChanged) {
-        setError('No hay cambios para guardar')
-        setLoading(false)
-        return
+      if (phoneNumber !== (user.phone_number || "")) {
+        profileUpdates.phone_number = phoneNumber.trim();
       }
-      
+
+      if (emailVerified !== user.email_verified) {
+        profileUpdates.email_verified = emailVerified;
+      }
+
+      const centroGestorChanged =
+        centroGestor !== (user.centro_gestor_assigned || "");
+      const isActiveChanged = isActive !== user.is_active;
+
+      // Si no hay cambios, mostrar mensaje
+      if (
+        Object.keys(profileUpdates).length === 0 &&
+        !centroGestorChanged &&
+        !isActiveChanged
+      ) {
+        setError("No hay cambios para guardar");
+        setLoading(false);
+        return;
+      }
+
       if (Object.keys(profileUpdates).length > 0) {
-        await adminService.updateUser(user.uid, profileUpdates)
+        await adminService.updateUser(user.uid, profileUpdates);
       }
 
       if (centroGestorChanged) {
         await adminService.updateCentroGestor(user.uid, {
           centro_gestor_assigned: centroGestor,
-          reason: 'Actualización desde modal de edición de usuario'
-        })
+          reason: "Actualización desde modal de edición de usuario",
+        });
       }
 
       if (isActiveChanged) {
         await adminService.toggleUserStatus(user.uid, {
           is_active: isActive,
-          reason: 'Cambio de estado desde modal de edición de usuario'
-        })
+          reason: "Cambio de estado desde modal de edición de usuario",
+        });
       }
-      
-      setSuccessMessage('Usuario actualizado exitosamente')
+
+      setSuccessMessage("Usuario actualizado exitosamente");
       setTimeout(() => {
-        onSuccess()
-      }, 1500)
+        onSuccess();
+      }, 1500);
     } catch (err: any) {
-      setError(getReadableError(err, 'Error al actualizar usuario'))
+      setError(getReadableError(err, "Error al actualizar usuario"));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Handler separado para cambio de contraseña (usa endpoint diferente)
   const handleChangePassword = async () => {
     if (!newPassword || newPassword.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres')
-      return
+      setError("La contraseña debe tener al menos 8 caracteres");
+      return;
     }
 
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       await adminService.changePassword({
         uid: user.uid,
-        new_password: newPassword
-      })
-      setSuccessMessage('Contraseña actualizada exitosamente')
-      setNewPassword('')
+        new_password: newPassword,
+      });
+      setSuccessMessage("Contraseña actualizada exitosamente");
+      setNewPassword("");
       setTimeout(() => {
-        onSuccess()
-      }, 1500)
+        onSuccess();
+      }, 1500);
     } catch (err: any) {
-      setError(getReadableError(err, 'Error al cambiar contraseña'))
+      setError(getReadableError(err, "Error al cambiar contraseña"));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <AnimatePresence>
@@ -136,6 +164,7 @@ export default function UserEditModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        role="presentation"
         className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
@@ -144,12 +173,18 @@ export default function UserEditModal({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="user-edit-title"
           className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2
+                id="user-edit-title"
+                className="text-2xl font-bold text-gray-900 dark:text-white"
+              >
                 Editar Usuario
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -158,6 +193,7 @@ export default function UserEditModal({
             </div>
             <button
               onClick={onClose}
+              aria-label="Cerrar modal"
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-gray-500" />
@@ -169,14 +205,18 @@ export default function UserEditModal({
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <p className="text-sm text-red-900 dark:text-red-100">{error}</p>
+                <p className="text-sm text-red-900 dark:text-red-100">
+                  {error}
+                </p>
               </div>
             )}
 
             {/* Success Message */}
             {successMessage && (
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <p className="text-sm text-green-900 dark:text-green-100">{successMessage}</p>
+                <p className="text-sm text-green-900 dark:text-green-100">
+                  {successMessage}
+                </p>
               </div>
             )}
 
@@ -188,7 +228,7 @@ export default function UserEditModal({
                   Información Personal
                 </h3>
               </div>
-              
+
               {/* Nombre Completo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -256,8 +296,10 @@ export default function UserEditModal({
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Seleccionar centro gestor</option>
-                {centrosGestores.map(centro => (
-                  <option key={centro} value={centro}>{centro}</option>
+                {centrosGestores.map((centro) => (
+                  <option key={centro} value={centro}>
+                    {centro}
+                  </option>
                 ))}
               </select>
             </div>
@@ -280,18 +322,20 @@ export default function UserEditModal({
                     Estado de la Cuenta
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {isActive ? 'Usuario activo en el sistema' : 'Usuario desactivado'}
+                    {isActive
+                      ? "Usuario activo en el sistema"
+                      : "Usuario desactivado"}
                   </p>
                 </div>
                 <button
                   onClick={() => setIsActive(!isActive)}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     isActive
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-red-600 hover:bg-red-700 text-white"
                   }`}
                 >
-                  {isActive ? 'Activo' : 'Inactivo'}
+                  {isActive ? "Activo" : "Inactivo"}
                 </button>
               </div>
 
@@ -302,18 +346,20 @@ export default function UserEditModal({
                     Email Verificado
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {emailVerified ? 'Email confirmado por el usuario' : 'Email pendiente de verificación'}
+                    {emailVerified
+                      ? "Email confirmado por el usuario"
+                      : "Email pendiente de verificación"}
                   </p>
                 </div>
                 <button
                   onClick={() => setEmailVerified(!emailVerified)}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     emailVerified
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-yellow-600 hover:bg-yellow-700 text-white"
                   }`}
                 >
-                  {emailVerified ? 'Verificado' : 'No Verificado'}
+                  {emailVerified ? "Verificado" : "No Verificado"}
                 </button>
               </div>
             </div>
@@ -350,7 +396,8 @@ export default function UserEditModal({
                 </h3>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Esta acción se ejecuta de forma independiente y requiere confirmación separada.
+                Esta acción se ejecuta de forma independiente y requiere
+                confirmación separada.
               </p>
               <input
                 type="password"
@@ -391,5 +438,5 @@ export default function UserEditModal({
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  )
+  );
 }

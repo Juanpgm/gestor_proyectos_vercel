@@ -1,80 +1,102 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { KeyIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
-import { sendPasswordResetEmail } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  KeyIcon,
+  EnvelopeIcon,
+  CheckCircleIcon,
+} from "@heroicons/react/24/outline";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 interface ForgotPasswordModalProps {
-  isOpen: boolean
-  onClose: () => void
-  userEmail?: string
+  isOpen: boolean;
+  onClose: () => void;
+  userEmail?: string;
 }
 
-export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }: ForgotPasswordModalProps) {
-  const [email, setEmail] = useState(userEmail)
-  const [isLoading, setIsLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+export default function ForgotPasswordModal({
+  isOpen,
+  onClose,
+  userEmail = "",
+}: ForgotPasswordModalProps) {
+  const [email, setEmail] = useState(userEmail);
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (userEmail) setEmail(userEmail)
-  }, [userEmail])
+    if (userEmail) setEmail(userEmail);
+  }, [userEmail]);
 
   const handleClose = () => {
-    setEmail(userEmail)
-    setEmailSent(false)
-    setMessage(null)
-    onClose()
-  }
+    setEmail(userEmail);
+    setEmailSent(false);
+    setMessage(null);
+    onClose();
+  };
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [handleClose]);
 
   const getFirebaseErrorMessage = (code: string): string => {
     switch (code) {
-      case 'auth/user-not-found':
-        return 'No existe una cuenta registrada con este correo electrónico.'
-      case 'auth/invalid-email':
-        return 'El correo electrónico ingresado no es válido.'
-      case 'auth/too-many-requests':
-        return 'Demasiados intentos. Por favor espera unos minutos antes de intentar nuevamente.'
-      case 'auth/network-request-failed':
-        return 'Error de conexión. Verifica tu conexión a internet e intenta nuevamente.'
+      case "auth/user-not-found":
+        return "No existe una cuenta registrada con este correo electrónico.";
+      case "auth/invalid-email":
+        return "El correo electrónico ingresado no es válido.";
+      case "auth/too-many-requests":
+        return "Demasiados intentos. Por favor espera unos minutos antes de intentar nuevamente.";
+      case "auth/network-request-failed":
+        return "Error de conexión. Verifica tu conexión a internet e intenta nuevamente.";
       default:
-        return 'Ocurrió un error al enviar el correo de recuperación. Intenta nuevamente.'
+        return "Ocurrió un error al enviar el correo de recuperación. Intenta nuevamente.";
     }
-  }
+  };
 
   const handleRequestReset = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) return
+    e.preventDefault();
+    if (!email) return;
 
-    setIsLoading(true)
-    setMessage(null)
+    setIsLoading(true);
+    setMessage(null);
 
     try {
       if (!auth) {
-        setMessage({ type: 'error', text: 'Firebase no está configurado. Contacta al administrador del sistema.' })
-        setIsLoading(false)
-        return
+        setMessage({
+          type: "error",
+          text: "Firebase no está configurado. Contacta al administrador del sistema.",
+        });
+        setIsLoading(false);
+        return;
       }
-      await sendPasswordResetEmail(auth, email)
-      setEmailSent(true)
+      await sendPasswordResetEmail(auth, email);
+      setEmailSent(true);
       setMessage({
-        type: 'success',
-        text: 'Se ha enviado un enlace de recuperación a tu correo electrónico. Revisa tu bandeja de entrada y la carpeta de spam.'
-      })
+        type: "success",
+        text: "Se ha enviado un enlace de recuperación a tu correo electrónico. Revisa tu bandeja de entrada y la carpeta de spam.",
+      });
     } catch (error: any) {
-      const errorCode = error?.code || ''
+      const errorCode = error?.code || "";
       setMessage({
-        type: 'error',
-        text: getFirebaseErrorMessage(errorCode)
-      })
+        type: "error",
+        text: getFirebaseErrorMessage(errorCode),
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -82,6 +104,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        role="presentation"
         className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
         onClick={handleClose}
       >
@@ -90,13 +113,18 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="forgot-password-title"
           className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-6">
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
-              <div className={`p-2 rounded-xl ${emailSent ? 'bg-green-100 dark:bg-green-900' : 'bg-blue-100 dark:bg-blue-900'}`}>
+              <div
+                className={`p-2 rounded-xl ${emailSent ? "bg-green-100 dark:bg-green-900" : "bg-blue-100 dark:bg-blue-900"}`}
+              >
                 {emailSent ? (
                   <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
                 ) : (
@@ -104,14 +132,16 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
                 )}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {emailSent ? 'Correo Enviado' : 'Recuperar Contraseña'}
+                <h2
+                  id="forgot-password-title"
+                  className="text-xl font-bold text-gray-900 dark:text-white"
+                >
+                  {emailSent ? "Correo Enviado" : "Recuperar Contraseña"}
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   {emailSent
-                    ? 'Revisa tu bandeja de entrada'
-                    : 'Ingresa tu correo para recibir instrucciones'
-                  }
+                    ? "Revisa tu bandeja de entrada"
+                    : "Ingresa tu correo para recibir instrucciones"}
                 </p>
               </div>
             </div>
@@ -138,7 +168,8 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
                 </div>
 
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Te enviaremos un enlace para que puedas crear una nueva contraseña. El enlace expira en 1 hora.
+                  Te enviaremos un enlace para que puedas crear una nueva
+                  contraseña. El enlace expira en 1 hora.
                 </p>
 
                 <motion.button
@@ -154,7 +185,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
                       <span>Enviando...</span>
                     </div>
                   ) : (
-                    'Enviar Enlace de Recuperación'
+                    "Enviar Enlace de Recuperación"
                   )}
                 </motion.button>
               </form>
@@ -162,11 +193,14 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
               <div className="space-y-4">
                 <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
                   <p className="text-sm text-green-700 dark:text-green-300">
-                    Hemos enviado un correo a <strong>{email}</strong> con un enlace para restablecer tu contraseña.
+                    Hemos enviado un correo a <strong>{email}</strong> con un
+                    enlace para restablecer tu contraseña.
                   </p>
                 </div>
                 <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                  <p>1. Abre el correo y haz clic en el enlace de recuperación</p>
+                  <p>
+                    1. Abre el correo y haz clic en el enlace de recuperación
+                  </p>
                   <p>2. Crea tu nueva contraseña en la página que se abre</p>
                   <p>3. Regresa aquí e inicia sesión con tu nueva contraseña</p>
                 </div>
@@ -174,7 +208,10 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
                   ¿No recibiste el correo? Revisa tu carpeta de spam o
                   <button
                     type="button"
-                    onClick={() => { setEmailSent(false); setMessage(null) }}
+                    onClick={() => {
+                      setEmailSent(false);
+                      setMessage(null);
+                    }}
                     className="ml-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium underline"
                   >
                     intenta nuevamente
@@ -191,16 +228,18 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
                   className={`mt-4 p-3 rounded-lg ${
-                    message.type === 'success' 
-                      ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
-                      : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                    message.type === "success"
+                      ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                      : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
                   }`}
                 >
-                  <p className={`text-sm ${
-                    message.type === 'success' 
-                      ? 'text-green-600 dark:text-green-400' 
-                      : 'text-red-600 dark:text-red-400'
-                  }`}>
+                  <p
+                    className={`text-sm ${
+                      message.type === "success"
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
                     {message.text}
                   </p>
                 </motion.div>
@@ -213,12 +252,12 @@ export default function ForgotPasswordModal({ isOpen, onClose, userEmail = '' }:
                 onClick={handleClose}
                 className="w-full py-2 px-4 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
               >
-                {emailSent ? 'Cerrar' : 'Cancelar'}
+                {emailSent ? "Cerrar" : "Cancelar"}
               </button>
             </div>
           </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  )
+  );
 }

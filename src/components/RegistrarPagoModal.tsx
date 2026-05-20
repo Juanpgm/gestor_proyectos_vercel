@@ -1,186 +1,231 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, DollarSign, Calendar, FileText, Building, Save, AlertCircle } from 'lucide-react'
-import FileUploadZone from './FileUploadZone'
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  X,
+  DollarSign,
+  Calendar,
+  FileText,
+  Building,
+  Save,
+  AlertCircle,
+} from "lucide-react";
+import FileUploadZone from "./FileUploadZone";
 
 interface RegistrarPagoModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
   rpcData: {
-    numero_rpc: string
-    referencia_contrato?: string
-    nombre_centro_gestor?: string
-  }
-  onSuccess: () => void
+    numero_rpc: string;
+    referencia_contrato?: string;
+    nombre_centro_gestor?: string;
+  };
+  onSuccess: () => void;
 }
 
 const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
   isOpen,
   onClose,
   rpcData,
-  onSuccess
+  onSuccess,
 }) => {
   const [formData, setFormData] = useState({
     numero_rpc: rpcData.numero_rpc,
-    valor_pago: '',
-    fecha_transaccion: '',
-    referencia_contrato: rpcData.referencia_contrato || '',
-    nombre_centro_gestor: rpcData.nombre_centro_gestor || ''
-  })
+    valor_pago: "",
+    fecha_transaccion: "",
+    referencia_contrato: rpcData.referencia_contrato || "",
+    nombre_centro_gestor: rpcData.nombre_centro_gestor || "",
+  });
 
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose, loading]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }))
-    setError(null)
-  }
+      [name]: value,
+    }));
+    setError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     // Si no hay documentos, mostrar diálogo de confirmación
     if (uploadedFiles.length === 0 && !showConfirmDialog) {
-      setShowConfirmDialog(true)
-      return
+      setShowConfirmDialog(true);
+      return;
     }
 
     // Continuar con el registro
-    await procesarRegistroPago()
-  }
+    await procesarRegistroPago();
+  };
 
   const procesarRegistroPago = async () => {
-    setLoading(true)
-    setError(null)
-    setShowConfirmDialog(false)
+    setLoading(true);
+    setError(null);
+    setShowConfirmDialog(false);
 
     try {
       // Validaciones
       if (!formData.numero_rpc.trim()) {
-        throw new Error('El número de RPC es obligatorio')
+        throw new Error("El número de RPC es obligatorio");
       }
       if (!formData.valor_pago || Number(formData.valor_pago) <= 0) {
-        throw new Error('El valor del pago debe ser mayor a 0')
+        throw new Error("El valor del pago debe ser mayor a 0");
       }
       if (!formData.fecha_transaccion) {
-        throw new Error('La fecha de transacción es obligatoria')
+        throw new Error("La fecha de transacción es obligatoria");
       }
-      if (!formData.referencia_contrato || !formData.referencia_contrato.trim()) {
-        throw new Error('La referencia del contrato es obligatoria')
+      if (
+        !formData.referencia_contrato ||
+        !formData.referencia_contrato.trim()
+      ) {
+        throw new Error("La referencia del contrato es obligatoria");
       }
-      if (!formData.nombre_centro_gestor || !formData.nombre_centro_gestor.trim()) {
-        throw new Error('El nombre del centro gestor es obligatorio')
+      if (
+        !formData.nombre_centro_gestor ||
+        !formData.nombre_centro_gestor.trim()
+      ) {
+        throw new Error("El nombre del centro gestor es obligatorio");
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL
-      if (!apiUrl) throw new Error('URL de API no configurada')
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
+      if (!apiUrl) throw new Error("URL de API no configurada");
 
       // Preparar datos para el POST como multipart/form-data (para incluir archivos)
-      const formDataToSend = new FormData()
-      formDataToSend.append('numero_rpc', formData.numero_rpc.trim())
-      formDataToSend.append('valor_pago', formData.valor_pago.toString())
-      formDataToSend.append('fecha_transaccion', formData.fecha_transaccion)
-      formDataToSend.append('referencia_contrato', formData.referencia_contrato.trim())
-      formDataToSend.append('nombre_centro_gestor', formData.nombre_centro_gestor.trim())
+      const formDataToSend = new FormData();
+      formDataToSend.append("numero_rpc", formData.numero_rpc.trim());
+      formDataToSend.append("valor_pago", formData.valor_pago.toString());
+      formDataToSend.append("fecha_transaccion", formData.fecha_transaccion);
+      formDataToSend.append(
+        "referencia_contrato",
+        formData.referencia_contrato.trim(),
+      );
+      formDataToSend.append(
+        "nombre_centro_gestor",
+        formData.nombre_centro_gestor.trim(),
+      );
 
       // Agregar archivos de documentos si hay (nombre del campo según API: 'documentos')
       if (uploadedFiles.length > 0) {
         uploadedFiles.forEach((file, index) => {
-          formDataToSend.append('documentos', file)
-          console.log(`Documento ${index + 1}:`, file.name, file.size, file.type)
-        })
+          formDataToSend.append("documentos", file);
+          console.log(
+            `Documento ${index + 1}:`,
+            file.name,
+            file.size,
+            file.type,
+          );
+        });
       }
 
-      console.log('Enviando datos:', {
+      console.log("Enviando datos:", {
         numero_rpc: formData.numero_rpc.trim(),
         valor_pago: formData.valor_pago,
         fecha_transaccion: formData.fecha_transaccion,
         referencia_contrato: formData.referencia_contrato.trim(),
         nombre_centro_gestor: formData.nombre_centro_gestor.trim(),
-        archivos_count: uploadedFiles.length
-      })
+        archivos_count: uploadedFiles.length,
+      });
 
-      console.log('Enviando request a:', '/api/proxy/emprestito/cargar-pago')
+      console.log("Enviando request a:", "/api/proxy/emprestito/cargar-pago");
 
-      const response = await fetch('/api/proxy/emprestito/cargar-pago', {
-        method: 'POST',
+      const response = await fetch("/api/proxy/emprestito/cargar-pago", {
+        method: "POST",
         // NO incluir Content-Type header - el navegador lo establecerá automáticamente con el boundary correcto
-        body: formDataToSend
-      })
+        body: formDataToSend,
+      });
 
-      console.log('Response status:', response.status)
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+      console.log("Response status:", response.status);
+      console.log(
+        "Response headers:",
+        Object.fromEntries(response.headers.entries()),
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
         // Manejo especial para error 422 (validación)
         if (response.status === 422 && data.detail) {
-          const errors = Array.isArray(data.detail) 
-            ? data.detail.map((err: any) => `${err.loc?.join(' -> ')}: ${err.msg}`).join(', ')
-            : JSON.stringify(data.detail)
-          throw new Error(`Error de validación: ${errors}`)
+          const errors = Array.isArray(data.detail)
+            ? data.detail
+                .map((err: any) => `${err.loc?.join(" -> ")}: ${err.msg}`)
+                .join(", ")
+            : JSON.stringify(data.detail);
+          throw new Error(`Error de validación: ${errors}`);
         }
-        throw new Error(data.error || data.message || `Error ${response.status}`)
+        throw new Error(
+          data.error || data.message || `Error ${response.status}`,
+        );
       }
 
-      setSuccess(true)
+      setSuccess(true);
       setTimeout(() => {
-        onSuccess()
-        onClose()
-        resetForm()
-      }, 1500)
-
+        onSuccess();
+        onClose();
+        resetForm();
+      }, 1500);
     } catch (error) {
-      console.error('Error al registrar pago:', error)
-      setError(error instanceof Error ? error.message : 'Error desconocido')
+      console.error("Error al registrar pago:", error);
+      setError(error instanceof Error ? error.message : "Error desconocido");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const resetForm = () => {
     setFormData({
       numero_rpc: rpcData.numero_rpc,
-      valor_pago: '',
-      fecha_transaccion: '',
-      referencia_contrato: rpcData.referencia_contrato || '',
-      nombre_centro_gestor: rpcData.nombre_centro_gestor || ''
-    })
-    setUploadedFiles([])
-    setError(null)
-    setSuccess(false)
-    setShowConfirmDialog(false)
-  }
+      valor_pago: "",
+      fecha_transaccion: "",
+      referencia_contrato: rpcData.referencia_contrato || "",
+      nombre_centro_gestor: rpcData.nombre_centro_gestor || "",
+    });
+    setUploadedFiles([]);
+    setError(null);
+    setSuccess(false);
+    setShowConfirmDialog(false);
+  };
 
   const handleClose = () => {
     if (!loading) {
-      resetForm()
-      onClose()
+      resetForm();
+      onClose();
     }
-  }
+  };
 
   const handleCancelConfirmation = () => {
-    setShowConfirmDialog(false)
-  }
+    setShowConfirmDialog(false);
+  };
 
   const handleConfirmWithoutDocument = () => {
-    procesarRegistroPago()
-  }
+    procesarRegistroPago();
+  };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="presentation"
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -195,6 +240,9 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="registrar-pago-title"
             className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
           >
             {/* Header */}
@@ -205,13 +253,18 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                     <DollarSign className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">Registrar Pago</h2>
-                    <p className="text-green-100 text-sm">RPC: {rpcData.numero_rpc}</p>
+                    <h2 id="registrar-pago-title" className="text-xl font-bold">
+                      Registrar Pago
+                    </h2>
+                    <p className="text-green-100 text-sm">
+                      RPC: {rpcData.numero_rpc}
+                    </p>
                   </div>
                 </div>
                 <button
                   onClick={handleClose}
                   disabled={loading}
+                  aria-label="Cerrar modal"
                   className="p-2 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
                 >
                   <X className="w-5 h-5" />
@@ -366,13 +419,35 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                     <div className="flex items-start space-x-3">
                       <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 text-sm text-blue-800 dark:text-blue-300">
-                        <p className="font-medium mb-1">Información importante:</p>
+                        <p className="font-medium mb-1">
+                          Información importante:
+                        </p>
                         <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400">
-                          <li>Los campos <strong>Número RPC, Referencia Contrato y Centro Gestor</strong> están prellenados y bloqueados</li>
-                          <li>El campo <strong>fecha_registro</strong> se genera automáticamente en el servidor</li>
-                          <li>El <strong>valor_pago</strong> debe ser un número positivo mayor a 0</li>
-                          <li>Los <strong>documentos de soporte son opcionales</strong>, pero se recomienda cargarlos</li>
-                          <li>Todos los campos marcados con * son obligatorios</li>
+                          <li>
+                            Los campos{" "}
+                            <strong>
+                              Número RPC, Referencia Contrato y Centro Gestor
+                            </strong>{" "}
+                            están prellenados y bloqueados
+                          </li>
+                          <li>
+                            El campo <strong>fecha_registro</strong> se genera
+                            automáticamente en el servidor
+                          </li>
+                          <li>
+                            El <strong>valor_pago</strong> debe ser un número
+                            positivo mayor a 0
+                          </li>
+                          <li>
+                            Los{" "}
+                            <strong>
+                              documentos de soporte son opcionales
+                            </strong>
+                            , pero se recomienda cargarlos
+                          </li>
+                          <li>
+                            Todos los campos marcados con * son obligatorios
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -421,11 +496,11 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                 className="absolute inset-0 z-10 flex items-center justify-center p-4"
               >
                 {/* Backdrop for dialog */}
-                <div 
+                <div
                   className="absolute inset-0 bg-black/30"
                   onClick={handleCancelConfirmation}
                 />
-                
+
                 {/* Dialog */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -444,7 +519,9 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
                         ¿Registrar Pago sin Documento Soporte?
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        No has cargado ningún documento de soporte. Se recomienda cargar al menos un documento para respaldar este pago. ¿Deseas continuar sin documento?
+                        No has cargado ningún documento de soporte. Se
+                        recomienda cargar al menos un documento para respaldar
+                        este pago. ¿Deseas continuar sin documento?
                       </p>
                       <div className="flex items-center justify-end space-x-3">
                         <button
@@ -469,7 +546,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
         </div>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};
 
-export default RegistrarPagoModal
+export default RegistrarPagoModal;

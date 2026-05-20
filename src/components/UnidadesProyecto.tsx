@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  RefreshCw, 
+import React, { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  RefreshCw,
   Calendar,
   Download,
   AlertCircle,
@@ -20,52 +20,68 @@ import {
   FileText,
   ExternalLink,
   Layers,
-  Award
-} from 'lucide-react';
-import { CSS_UTILS } from '@/lib/design-system';
-import dynamic from 'next/dynamic';
-import { useAuth } from '@/context/AuthContext';
+  Award,
+} from "lucide-react";
+import { CSS_UTILS } from "@/lib/design-system";
+import dynamic from "next/dynamic";
+import { useAuth } from "@/context/AuthContext";
+import { getCentroGestorAccessFromSession } from "@/utils/centroGestorAccess";
 
-const CHUNK_ERROR_PATTERN = /ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module/i;
+const CHUNK_ERROR_PATTERN =
+  /ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module/i;
 
 const dynamicImportWithRetry = <TProps extends object>(
   moduleName: string,
-  importer: () => Promise<{ default: React.ComponentType<TProps> }>
+  importer: () => Promise<{ default: React.ComponentType<TProps> }>,
 ) =>
-  dynamic(async () => {
-    try {
-      return await importer();
-    } catch (error) {
-      // In dev/hot-reload sessions a stale chunk can 404; retry once via full reload.
-      if (typeof window !== 'undefined') {
-        const retryKey = `chunk-retry:${moduleName}`;
-        const alreadyRetried = window.sessionStorage.getItem(retryKey) === '1';
-        const message = error instanceof Error ? error.message : String(error ?? '');
+  dynamic(
+    async () => {
+      try {
+        return await importer();
+      } catch (error) {
+        // In dev/hot-reload sessions a stale chunk can 404; retry once via full reload.
+        if (typeof window !== "undefined") {
+          const retryKey = `chunk-retry:${moduleName}`;
+          const alreadyRetried =
+            window.sessionStorage.getItem(retryKey) === "1";
+          const message =
+            error instanceof Error ? error.message : String(error ?? "");
 
-        if (!alreadyRetried && CHUNK_ERROR_PATTERN.test(message)) {
-          window.sessionStorage.setItem(retryKey, '1');
-          window.location.reload();
-        } else {
-          window.sessionStorage.removeItem(retryKey);
+          if (!alreadyRetried && CHUNK_ERROR_PATTERN.test(message)) {
+            window.sessionStorage.setItem(retryKey, "1");
+            window.location.reload();
+          } else {
+            window.sessionStorage.removeItem(retryKey);
+          }
         }
-      }
 
-      throw error;
-    }
-  }, { ssr: false });
+        throw error;
+      }
+    },
+    { ssr: false },
+  );
 
 // Componentes dinámicos para evitar problemas de SSR
-const UnidadesProyectoMapSimple = dynamicImportWithRetry('UnidadesProyectoMapSimple', () => import('./UnidadesProyectoMapSimple'));
-const UnidadesProyectoFilters = dynamicImportWithRetry('UnidadesProyectoFilters', () => import('./UnidadesProyectoFilters'));
-const UnidadesProyectoTabularView = dynamicImportWithRetry('UnidadesProyectoTabularView', () => import('./UnidadesProyectoTabularView'));
+const UnidadesProyectoMapSimple = dynamicImportWithRetry(
+  "UnidadesProyectoMapSimple",
+  () => import("./UnidadesProyectoMapSimple"),
+);
+const UnidadesProyectoFilters = dynamicImportWithRetry(
+  "UnidadesProyectoFilters",
+  () => import("./UnidadesProyectoFilters"),
+);
+const UnidadesProyectoTabularView = dynamicImportWithRetry(
+  "UnidadesProyectoTabularView",
+  () => import("./UnidadesProyectoTabularView"),
+);
 
 // Hooks mejorados
-import { useUnidadesProyecto } from '@/hooks/useUnidadesProyectoEnhanced';
+import { useUnidadesProyecto } from "@/hooks/useUnidadesProyectoEnhanced";
 
 // Tipos
-import { type FilterParams } from '@/services/unidades-proyecto.service';
-import { type AttributeData } from '@/hooks/useUnidadesProyecto';
-import { formatDate, formatDateRange } from '@/types/unidades-proyecto';
+import { type FilterParams } from "@/services/unidades-proyecto.service";
+import { type AttributeData } from "@/hooks/useUnidadesProyecto";
+import { formatDate, formatDateRange } from "@/types/unidades-proyecto";
 
 type GlobalFilterOptions = {
   centros_gestores: string[];
@@ -105,8 +121,9 @@ declare global {
 
 const normalizeOptions = (values: unknown): string[] => {
   if (!Array.isArray(values)) return [];
-  return Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)))
-    .sort((a, b) => a.localeCompare(b, 'es'));
+  return Array.from(
+    new Set(values.map((value) => String(value || "").trim()).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b, "es"));
 };
 
 const pickFirstNonEmpty = (...sources: unknown[]): string[] => {
@@ -119,12 +136,13 @@ const pickFirstNonEmpty = (...sources: unknown[]): string[] => {
   return [];
 };
 
-
 // Estados de vista
-type ViewMode = 'map' | 'split';
+type ViewMode = "map" | "split";
 
 // Componente de Loading
-const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
+const LoadingSpinner: React.FC<{ message?: string }> = ({
+  message = "Cargando...",
+}) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -136,7 +154,10 @@ const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...
 );
 
 // Componente de Error
-const ErrorDisplay: React.FC<{ error: string; onRetry?: () => void }> = ({ error, onRetry }) => (
+const ErrorDisplay: React.FC<{ error: string; onRetry?: () => void }> = ({
+  error,
+  onRetry,
+}) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -168,20 +189,23 @@ const ProjectDetailsModal: React.FC<{
   if (!item) return null;
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
-  const calculateProjectDuration = (fechaInicio: string | null | undefined, fechaFin: string | null | undefined) => {
+  const calculateProjectDuration = (
+    fechaInicio: string | null | undefined,
+    fechaFin: string | null | undefined,
+  ) => {
     if (!fechaInicio || !fechaFin) {
       return {
-        duration: 'N/A',
-        status: 'sin-fecha',
-        dateRange: 'Fechas no disponibles'
+        duration: "N/A",
+        status: "sin-fecha",
+        dateRange: "Fechas no disponibles",
       };
     }
 
@@ -194,47 +218,50 @@ const ProjectDetailsModal: React.FC<{
       const daysTotal = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       const monthsTotal = Math.ceil(daysTotal / 30);
 
-      let status = 'planificado';
+      let status = "planificado";
       if (today >= startDate && today <= endDate) {
-        status = 'en-curso';
+        status = "en-curso";
       } else if (today > endDate) {
-        status = 'finalizado';
+        status = "finalizado";
       }
 
       const formatDate = (date: Date) => {
-        return date.toLocaleDateString('es-CO', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric'
+        return date.toLocaleDateString("es-CO", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
         });
       };
 
-      let duration = '';
+      let duration = "";
       if (monthsTotal > 12) {
         const years = Math.floor(monthsTotal / 12);
         const remainingMonths = monthsTotal % 12;
-        duration = `${years} año${years > 1 ? 's' : ''}${remainingMonths > 0 ? ` ${remainingMonths} mes${remainingMonths > 1 ? 'es' : ''}` : ''}`;
+        duration = `${years} año${years > 1 ? "s" : ""}${remainingMonths > 0 ? ` ${remainingMonths} mes${remainingMonths > 1 ? "es" : ""}` : ""}`;
       } else if (monthsTotal >= 1) {
-        duration = `${monthsTotal} mes${monthsTotal > 1 ? 'es' : ''}`;
+        duration = `${monthsTotal} mes${monthsTotal > 1 ? "es" : ""}`;
       } else {
-        duration = `${daysTotal} día${daysTotal > 1 ? 's' : ''}`;
+        duration = `${daysTotal} día${daysTotal > 1 ? "s" : ""}`;
       }
 
       return {
         duration,
         status,
-        dateRange: `${formatDate(startDate)} - ${formatDate(endDate)}`
+        dateRange: `${formatDate(startDate)} - ${formatDate(endDate)}`,
       };
     } catch (error) {
       return {
-        duration: 'Error',
-        status: 'error',
-        dateRange: 'Error al calcular fechas'
+        duration: "Error",
+        status: "error",
+        dateRange: "Error al calcular fechas",
       };
     }
   };
 
-  const projectDuration = calculateProjectDuration(item.fecha_inicio, item.fecha_fin);
+  const projectDuration = calculateProjectDuration(
+    item.fecha_inicio,
+    item.fecha_fin,
+  );
   const progress = Math.round(item.avance_obra || 0);
 
   return (
@@ -248,7 +275,7 @@ const ProjectDetailsModal: React.FC<{
         >
           <X className="w-5 h-5 text-white" />
         </button>
-        
+
         <div className="pr-12">
           <h2 className="text-xl font-bold text-white mb-3 leading-tight line-clamp-2 drop-shadow-md">
             {item.nombre_up}
@@ -257,13 +284,16 @@ const ProjectDetailsModal: React.FC<{
             <span className="px-3 py-1.5 bg-white/90 dark:bg-white/20 backdrop-blur-sm rounded-lg text-gray-800 dark:text-white font-mono text-sm font-semibold shadow-sm">
               {item.upid}
             </span>
-            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold backdrop-blur-sm shadow-sm ${
-              item.estado.toLowerCase().includes('ejecución') || item.estado.toLowerCase().includes('activ')
-                ? 'bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200'
-                : item.estado.toLowerCase().includes('finaliz')
-                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200'
-                : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200'
-            }`}>
+            <span
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold backdrop-blur-sm shadow-sm ${
+                item.estado.toLowerCase().includes("ejecución") ||
+                item.estado.toLowerCase().includes("activ")
+                  ? "bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200"
+                  : item.estado.toLowerCase().includes("finaliz")
+                    ? "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200"
+                    : "bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200"
+              }`}
+            >
               {item.estado}
             </span>
             {item.tipo_equipamiento && (
@@ -283,21 +313,29 @@ const ProjectDetailsModal: React.FC<{
             {/* Barra de progreso destacada */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Avance de Obra</span>
-                <span className={`text-2xl font-bold ${
-                  progress >= 70 ? 'text-green-600 dark:text-green-400' : 
-                  progress >= 40 ? 'text-amber-600 dark:text-amber-400' : 
-                  'text-red-600 dark:text-red-400'
-                }`}>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Avance de Obra
+                </span>
+                <span
+                  className={`text-2xl font-bold ${
+                    progress >= 70
+                      ? "text-green-600 dark:text-green-400"
+                      : progress >= 40
+                        ? "text-amber-600 dark:text-amber-400"
+                        : "text-red-600 dark:text-red-400"
+                  }`}
+                >
                   {progress}%
                 </span>
               </div>
               <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden shadow-inner">
-                <div 
+                <div
                   className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 shadow-md ${
-                    progress >= 70 ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
-                    progress >= 40 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 
-                    'bg-gradient-to-r from-red-500 to-rose-500'
+                    progress >= 70
+                      ? "bg-gradient-to-r from-green-500 to-emerald-500"
+                      : progress >= 40
+                        ? "bg-gradient-to-r from-amber-500 to-orange-500"
+                        : "bg-gradient-to-r from-red-500 to-rose-500"
                   }`}
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 >
@@ -315,9 +353,11 @@ const ProjectDetailsModal: React.FC<{
                     <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Centro Gestor</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Centro Gestor
+                    </p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
-                      {item.nombre_centro_gestor || 'No especificado'}
+                      {item.nombre_centro_gestor || "No especificado"}
                     </p>
                   </div>
                 </div>
@@ -330,7 +370,9 @@ const ProjectDetailsModal: React.FC<{
                     <Settings className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tipo Intervención</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Tipo Intervención
+                    </p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
                       {item.tipo_intervencion}
                     </p>
@@ -346,7 +388,9 @@ const ProjectDetailsModal: React.FC<{
                       <Layers className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Clase de UP</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        Clase de UP
+                      </p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
                         {item.clase_up}
                       </p>
@@ -362,7 +406,9 @@ const ProjectDetailsModal: React.FC<{
                     <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Año</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Año
+                    </p>
                     <p className="text-sm font-bold text-gray-900 dark:text-white">
                       {item.ano}
                     </p>
@@ -375,46 +421,72 @@ const ProjectDetailsModal: React.FC<{
             <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl p-5 shadow-lg border border-orange-200 dark:border-orange-800">
               <div className="flex items-center gap-2 mb-4">
                 <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                <h3 className="text-lg font-bold text-orange-900 dark:text-orange-100">Ubicación</h3>
+                <h3 className="text-lg font-bold text-orange-900 dark:text-orange-100">
+                  Ubicación
+                </h3>
               </div>
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Barrio/Vereda</p>
-                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">{item.barrio_vereda || 'N/A'}</p>
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">
+                    Barrio/Vereda
+                  </p>
+                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">
+                    {item.barrio_vereda || "N/A"}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Comuna/Corregimiento</p>
-                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">{item.comuna_corregimiento || 'N/A'}</p>
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">
+                    Comuna/Corregimiento
+                  </p>
+                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">
+                    {item.comuna_corregimiento || "N/A"}
+                  </p>
                 </div>
                 {item.direccion && (
                   <div>
-                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">Dirección</p>
-                    <p className="text-sm font-semibold text-orange-900 dark:text-orange-100">{item.direccion}</p>
+                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">
+                      Dirección
+                    </p>
+                    <p className="text-sm font-semibold text-orange-900 dark:text-orange-100">
+                      {item.direccion}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Información contractual */}
-            {(item.referencia_contrato || item.referencia_proceso || item.url_proceso) && (
+            {(item.referencia_contrato ||
+              item.referencia_proceso ||
+              item.url_proceso) && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700 space-y-3">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Información Contractual</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Información Contractual
+                </p>
                 {item.referencia_contrato && (
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Ref. Contrato</span>
-                    <span className="text-sm font-mono text-gray-900 dark:text-white">{item.referencia_contrato}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      Ref. Contrato
+                    </span>
+                    <span className="text-sm font-mono text-gray-900 dark:text-white">
+                      {item.referencia_contrato}
+                    </span>
                   </div>
                 )}
                 {item.referencia_proceso && (
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">Ref. Proceso</span>
-                    <span className="text-sm font-mono text-gray-900 dark:text-white">{item.referencia_proceso}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      Ref. Proceso
+                    </span>
+                    <span className="text-sm font-mono text-gray-900 dark:text-white">
+                      {item.referencia_proceso}
+                    </span>
                   </div>
                 )}
                 {item.url_proceso && (
-                  <a 
-                    href={item.url_proceso} 
-                    target="_blank" 
+                  <a
+                    href={item.url_proceso}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:to-indigo-600 text-white rounded-lg font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
                   >
@@ -436,7 +508,9 @@ const ProjectDetailsModal: React.FC<{
                     <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Presupuesto</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Presupuesto
+                    </p>
                     <p className="text-sm font-bold text-green-700 dark:text-green-400 leading-tight">
                       {formatCurrency(item.presupuesto_base)}
                     </p>
@@ -449,38 +523,59 @@ const ProjectDetailsModal: React.FC<{
             <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Duración del Proyecto</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Duración del Proyecto
+                </h3>
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Duración estimada</span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">{projectDuration.duration}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Duración estimada
+                  </span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    {projectDuration.duration}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Estado temporal</span>
-                  <span className={`px-3 py-1 text-xs rounded-full font-semibold ${
-                    projectDuration.status === 'en-curso' 
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                      : projectDuration.status === 'finalizado'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
-                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
-                  }`}>
-                    {projectDuration.status === 'en-curso' ? '🟢 En Curso' : 
-                     projectDuration.status === 'finalizado' ? '🔵 Finalizado' : '🟡 Planificado'}
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Estado temporal
+                  </span>
+                  <span
+                    className={`px-3 py-1 text-xs rounded-full font-semibold ${
+                      projectDuration.status === "en-curso"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                        : projectDuration.status === "finalizado"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
+                    }`}
+                  >
+                    {projectDuration.status === "en-curso"
+                      ? "🟢 En Curso"
+                      : projectDuration.status === "finalizado"
+                        ? "🔵 Finalizado"
+                        : "🟡 Planificado"}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Período</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{projectDuration.dateRange}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    Período
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {projectDuration.dateRange}
+                  </p>
                 </div>
                 {/* Fecha de Inauguración - NUEVO CAMPO */}
                 {item.fecha_inauguracion && (
                   <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2 mb-1">
                       <Award className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400">Fecha de Inauguración</p>
+                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                        Fecha de Inauguración
+                      </p>
                     </div>
-                    <p className="text-sm font-bold text-purple-900 dark:text-purple-100">{formatDate(item.fecha_inauguracion)}</p>
+                    <p className="text-sm font-bold text-purple-900 dark:text-purple-100">
+                      {formatDate(item.fecha_inauguracion)}
+                    </p>
                   </div>
                 )}
               </div>
@@ -489,23 +584,35 @@ const ProjectDetailsModal: React.FC<{
             {/* Fuente de financiación */}
             {item.fuente_financiacion && (
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 shadow-md border border-blue-200 dark:border-blue-800">
-                <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">Fuente de Financiación</p>
-                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{item.fuente_financiacion}</p>
+                <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">
+                  Fuente de Financiación
+                </p>
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                  {item.fuente_financiacion}
+                </p>
               </div>
             )}
 
             {/* Información adicional */}
             {item.nombre_up_detalle && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Detalle de UP</p>
-                <p className="text-sm text-gray-900 dark:text-white leading-relaxed">{item.nombre_up_detalle}</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Detalle de UP
+                </p>
+                <p className="text-sm text-gray-900 dark:text-white leading-relaxed">
+                  {item.nombre_up_detalle}
+                </p>
               </div>
             )}
-            
+
             {item.identificador && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-700">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Identificador</p>
-                <p className="text-sm text-gray-900 dark:text-white font-mono bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-lg">{item.identificador}</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Identificador
+                </p>
+                <p className="text-sm text-gray-900 dark:text-white font-mono bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-lg">
+                  {item.identificador}
+                </p>
               </div>
             )}
 
@@ -514,7 +621,9 @@ const ProjectDetailsModal: React.FC<{
               <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800 rounded-xl p-5 shadow-md border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Descripción de la Intervención</h3>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Descripción de la Intervención
+                  </h3>
                 </div>
                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                   {item.descripcion_intervencion}
@@ -543,40 +652,64 @@ const CompactMetrics: React.FC<{
   const formatCurrency = (amount: number, compact: boolean = false): string => {
     // Solo usar formato compacto si se especifica explícitamente
     if (compact) {
-      if (amount >= 1000000000000) return `$${(amount / 1000000000000).toFixed(1).replace('.', ',')} B`; // Billones
-      if (amount >= 1000000000) return `$${(amount / 1000000000).toFixed(1).replace('.', ',')} MM`; // Miles de millones
-      if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1).replace('.', ',')} M`; // Millones
-      if (amount >= 1000) return `$${(amount / 1000).toFixed(1).replace('.', ',')} K`; // Miles
+      if (amount >= 1000000000000)
+        return `$${(amount / 1000000000000).toFixed(1).replace(".", ",")} B`; // Billones
+      if (amount >= 1000000000)
+        return `$${(amount / 1000000000).toFixed(1).replace(".", ",")} MM`; // Miles de millones
+      if (amount >= 1000000)
+        return `$${(amount / 1000000).toFixed(1).replace(".", ",")} M`; // Millones
+      if (amount >= 1000)
+        return `$${(amount / 1000).toFixed(1).replace(".", ",")} K`; // Miles
     }
-    
+
     // Formato completo con notación colombiana (por defecto)
-    return `$${amount.toLocaleString('es-CO', { 
+    return `$${amount.toLocaleString("es-CO", {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0 
+      maximumFractionDigits: 0,
     })}`;
   };
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
       <div className="text-center">
-        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400">{metrics.total}</div>
-        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Total Intervenciones</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400">
+          {metrics.total}
+        </div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">
+          Total Intervenciones
+        </div>
       </div>
       <div className="text-center">
-        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-600 dark:text-indigo-400">{metrics.totalUnidadesProyecto}</div>
-        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Total Unidades de Proyecto</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+          {metrics.totalUnidadesProyecto}
+        </div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">
+          Total Unidades de Proyecto
+        </div>
       </div>
       <div className="text-center">
-        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-amber-600 dark:text-amber-400">{metrics.activeFronts || 0}</div>
-        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Frentes de Obra Activos</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-amber-600 dark:text-amber-400">
+          {metrics.activeFronts || 0}
+        </div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">
+          Frentes de Obra Activos
+        </div>
       </div>
       <div className="text-center">
-        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">{metrics.avgProgress.toFixed(1)}%</div>
-        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Avance Promedio</div>
+        <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">
+          {metrics.avgProgress.toFixed(1)}%
+        </div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">
+          Avance Promedio
+        </div>
       </div>
       <div className="text-center">
-        <div className="text-base sm:text-lg lg:text-xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(metrics.totalBudget)}</div>
-        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">Presupuesto Total</div>
+        <div className="text-base sm:text-lg lg:text-xl font-bold text-orange-600 dark:text-orange-400">
+          {formatCurrency(metrics.totalBudget)}
+        </div>
+        <div className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400">
+          Presupuesto Total
+        </div>
       </div>
     </div>
   );
@@ -586,13 +719,14 @@ const CompactMetrics: React.FC<{
 const UnidadesProyecto: React.FC = () => {
   const { hasRole, state: authState } = useAuth();
 
-  // Determinar si el usuario puede ver todos los centros gestores (por nombre_centro_gestor)
-  const userCentroGestor = authState.user?.nombre_centro_gestor || null;
-  const canViewAll = useMemo(() => {
-    if (!userCentroGestor) return true;
-    const normalized = userCentroGestor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-    return normalized === 'calitrack' || normalized === 'secretaria de gobierno' || normalized === 'otro';
-  }, [userCentroGestor]);
+  // Acceso centralizado por centro gestor — alineado con getCentroGestorAccessFromSession
+  // (12 centros abiertos + roles privilegiados super_admin/admin_general).
+  const centroGestorAccess = useMemo(
+    () => getCentroGestorAccessFromSession(),
+    [authState.user],
+  );
+  const userCentroGestor = centroGestorAccess.userCentroGestor;
+  const canViewAll = centroGestorAccess.canViewAll;
 
   // Filtro inicial basado en el centro gestor del usuario logueado
   const centroGestorInitialFilters = useMemo(() => {
@@ -601,96 +735,113 @@ const UnidadesProyecto: React.FC = () => {
   }, [canViewAll, userCentroGestor]);
 
   // Estados locales
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
+  const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [showFilters, setShowFilters] = useState(true);
   const [focusedItem, setFocusedItem] = useState<string | null>(null);
   const [showOnlyFocused, setShowOnlyFocused] = useState(false);
-  const [selectedItemForModal, setSelectedItemForModal] = useState<string | null>(null);
+  const [selectedItemForModal, setSelectedItemForModal] = useState<
+    string | null
+  >(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const canExportFilteredData =
-    hasRole('admin_centro_gestor') ||
-    hasRole('analista') ||
-    hasRole('admin_general') ||
-    hasRole('super_admin');
+    hasRole("admin_centro_gestor") ||
+    hasRole("analista") ||
+    hasRole("admin_general") ||
+    hasRole("super_admin");
 
   // Hook principal con configuración mejorada
-  const {
-    state,
-    filteredData,
-    filteredGeometry,
-    metrics,
-    actions,
-    filters
-  } = useUnidadesProyecto({
-    enableLocalFiltering: true, // Filtrado local - carga una vez y filtra en cliente
-    autoRefresh: false,
-    initialFilters: centroGestorInitialFilters
-  });
+  const { state, filteredData, filteredGeometry, metrics, actions, filters } =
+    useUnidadesProyecto({
+      enableLocalFiltering: true, // Filtrado local - carga una vez y filtra en cliente
+      autoRefresh: false,
+      initialFilters: centroGestorInitialFilters,
+    });
 
   // Hook específico para dashboard - TEMPORALMENTE DESHABILITADO
   const dashboardData = null;
   const dashboardLoading = false;
   const dashboardError = null;
-  const refetchDashboard = () => console.log('Dashboard refetch disabled');
-  
+  const refetchDashboard = () => console.log("Dashboard refetch disabled");
+
   // const {
   //   data: dashboardData,
   //   loading: dashboardLoading,
   //   error: dashboardError,
   //   refetch: refetchDashboard
 
-
   // 🔍 DIAGNÓSTICO: Monitorear el presupuesto total mostrado
   useEffect(() => {
     if (metrics.totalBudget > 0) {
-      console.log('');
-      console.log('🔍 ================================');
-      console.log('💰 PRESUPUESTO TOTAL MOSTRADO EN UI');
-      console.log('🔍 ================================');
-      console.log(`Valor mostrado: $${metrics.totalBudget.toLocaleString('es-CO')}`);
+      console.log("");
+      console.log("🔍 ================================");
+      console.log("💰 PRESUPUESTO TOTAL MOSTRADO EN UI");
+      console.log("🔍 ================================");
+      console.log(
+        `Valor mostrado: $${metrics.totalBudget.toLocaleString("es-CO")}`,
+      );
       console.log(`Total de registros: ${filteredData.length}`);
       console.log(`Total de registros cargados: ${state.attributeData.length}`);
-      console.log(`¿Hay filtros activos?: ${filteredData.length !== state.attributeData.length ? 'SÍ' : 'NO'}`);
-      
+      console.log(
+        `¿Hay filtros activos?: ${filteredData.length !== state.attributeData.length ? "SÍ" : "NO"}`,
+      );
+
       if (filteredData.length !== state.attributeData.length) {
-        const totalSinFiltros = state.attributeData.reduce((sum, item) => sum + (item.presupuesto_base || 0), 0);
-        console.log(`💰 Presupuesto SIN filtros: $${totalSinFiltros.toLocaleString('es-CO')}`);
-        console.log(`📉 Diferencia: $${(totalSinFiltros - metrics.totalBudget).toLocaleString('es-CO')}`);
+        const totalSinFiltros = state.attributeData.reduce(
+          (sum, item) => sum + (item.presupuesto_base || 0),
+          0,
+        );
+        console.log(
+          `💰 Presupuesto SIN filtros: $${totalSinFiltros.toLocaleString("es-CO")}`,
+        );
+        console.log(
+          `📉 Diferencia: $${(totalSinFiltros - metrics.totalBudget).toLocaleString("es-CO")}`,
+        );
       }
-      
+
       // Mostrar muestra de presupuestos
-      console.log('📋 Muestra de presupuestos (primeros 5):');
+      console.log("📋 Muestra de presupuestos (primeros 5):");
       filteredData.slice(0, 5).forEach((item, i) => {
-        console.log(`  ${i + 1}. ${item.nombre_up}: $${(item.presupuesto_base || 0).toLocaleString('es-CO')}`);
+        console.log(
+          `  ${i + 1}. ${item.nombre_up}: $${(item.presupuesto_base || 0).toLocaleString("es-CO")}`,
+        );
       });
-      console.log('================================\n');
+      console.log("================================\n");
     }
   }, [metrics.totalBudget, filteredData.length, state.attributeData.length]);
 
   // Verificar centro_gestor cuando cambian los datos
   useEffect(() => {
     if (state.attributeData.length > 0) {
-      const withCentro = state.attributeData.filter(item => 
-        item.nombre_centro_gestor && item.nombre_centro_gestor.trim() !== ''
+      const withCentro = state.attributeData.filter(
+        (item) =>
+          item.nombre_centro_gestor && item.nombre_centro_gestor.trim() !== "",
       );
-      const withoutCentro = state.attributeData.filter(item => 
-        !item.nombre_centro_gestor || item.nombre_centro_gestor.trim() === ''
+      const withoutCentro = state.attributeData.filter(
+        (item) =>
+          !item.nombre_centro_gestor || item.nombre_centro_gestor.trim() === "",
       );
-      
+
       const centrosUnicos = new Set(
-        withCentro.map(item => item.nombre_centro_gestor).filter(Boolean)
+        withCentro.map((item) => item.nombre_centro_gestor).filter(Boolean),
       );
-      
-      console.log('📊 Centro Gestor Verification:');
+
+      console.log("📊 Centro Gestor Verification:");
       console.log(`  Total UPs: ${state.attributeData.length}`);
-      console.log(`  ✅ Con Centro Gestor: ${withCentro.length} (${(withCentro.length/state.attributeData.length*100).toFixed(1)}%)`);
-      console.log(`  ❌ Sin Centro Gestor: ${withoutCentro.length} (${(withoutCentro.length/state.attributeData.length*100).toFixed(1)}%)`);
+      console.log(
+        `  ✅ Con Centro Gestor: ${withCentro.length} (${((withCentro.length / state.attributeData.length) * 100).toFixed(1)}%)`,
+      );
+      console.log(
+        `  ❌ Sin Centro Gestor: ${withoutCentro.length} (${((withoutCentro.length / state.attributeData.length) * 100).toFixed(1)}%)`,
+      );
       console.log(`  📋 Centros Únicos: ${centrosUnicos.size}`);
-      
+
       if (withoutCentro.length > 0) {
-        console.warn('⚠️ UPs sin Centro Gestor (muestra):', 
-          withoutCentro.slice(0, 3).map(i => ({ upid: i.upid, nombre: i.nombre_up }))
+        console.warn(
+          "⚠️ UPs sin Centro Gestor (muestra):",
+          withoutCentro
+            .slice(0, 3)
+            .map((i) => ({ upid: i.upid, nombre: i.nombre_up })),
         );
       }
     }
@@ -698,21 +849,48 @@ const UnidadesProyecto: React.FC = () => {
 
   // Publicar catálogos globales de filtros para la sección "Gestionar Unidades de Proyecto"
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const currentGlobal = window.UNIDADES_PROYECTO_FILTERS_GLOBAL || {};
     const nextGlobal: GlobalFilterOptions = {
-      centros_gestores: pickFirstNonEmpty(state.filterData?.centros_gestores, currentGlobal.centros_gestores),
-      estados: pickFirstNonEmpty(state.filterData?.estados, currentGlobal.estados),
-      tipos_intervencion: pickFirstNonEmpty(state.filterData?.tipos_intervencion, currentGlobal.tipos_intervencion),
-      tipos_equipamiento: pickFirstNonEmpty(state.filterData?.tipos_equipamiento, currentGlobal.tipos_equipamiento),
+      centros_gestores: pickFirstNonEmpty(
+        state.filterData?.centros_gestores,
+        currentGlobal.centros_gestores,
+      ),
+      estados: pickFirstNonEmpty(
+        state.filterData?.estados,
+        currentGlobal.estados,
+      ),
+      tipos_intervencion: pickFirstNonEmpty(
+        state.filterData?.tipos_intervencion,
+        currentGlobal.tipos_intervencion,
+      ),
+      tipos_equipamiento: pickFirstNonEmpty(
+        state.filterData?.tipos_equipamiento,
+        currentGlobal.tipos_equipamiento,
+      ),
       clases_up: pickFirstNonEmpty(currentGlobal.clases_up),
-      frentes_activos: pickFirstNonEmpty(state.filterData?.frentes_activos, currentGlobal.frentes_activos),
-      comunas_corregimientos: pickFirstNonEmpty(state.filterData?.comunas, currentGlobal.comunas_corregimientos),
-      barrios_veredas: pickFirstNonEmpty(state.filterData?.barrios_veredas, currentGlobal.barrios_veredas),
-      fuentes_financiacion: pickFirstNonEmpty(state.filterData?.fuentes_financiacion, currentGlobal.fuentes_financiacion),
+      frentes_activos: pickFirstNonEmpty(
+        state.filterData?.frentes_activos,
+        currentGlobal.frentes_activos,
+      ),
+      comunas_corregimientos: pickFirstNonEmpty(
+        state.filterData?.comunas,
+        currentGlobal.comunas_corregimientos,
+      ),
+      barrios_veredas: pickFirstNonEmpty(
+        state.filterData?.barrios_veredas,
+        currentGlobal.barrios_veredas,
+      ),
+      fuentes_financiacion: pickFirstNonEmpty(
+        state.filterData?.fuentes_financiacion,
+        currentGlobal.fuentes_financiacion,
+      ),
       anos: pickFirstNonEmpty(state.filterData?.anos, currentGlobal.anos),
-      proyectos_estrategicos: pickFirstNonEmpty(state.filterData?.proyectos_estrategicos, currentGlobal.proyectos_estrategicos),
+      proyectos_estrategicos: pickFirstNonEmpty(
+        state.filterData?.proyectos_estrategicos,
+        currentGlobal.proyectos_estrategicos,
+      ),
       identificadores: pickFirstNonEmpty(currentGlobal.identificadores),
     };
 
@@ -731,7 +909,7 @@ const UnidadesProyecto: React.FC = () => {
     window.PROYECTOS_ESTRATEGICOS = nextGlobal.proyectos_estrategicos;
 
     const publishDetail = {
-      source: 'UnidadesProyecto',
+      source: "UnidadesProyecto",
       timestamp: new Date().toISOString(),
       hasFilterData: Boolean(state.filterData),
       counts: {
@@ -745,10 +923,12 @@ const UnidadesProyecto: React.FC = () => {
         fuentes_financiacion: nextGlobal.fuentes_financiacion.length,
         anos: nextGlobal.anos.length,
         proyectos_estrategicos: nextGlobal.proyectos_estrategicos.length,
-      }
+      },
     };
 
-    const timeline = Array.isArray(window.__UP_FILTER_TIMELINE__) ? window.__UP_FILTER_TIMELINE__ : [];
+    const timeline = Array.isArray(window.__UP_FILTER_TIMELINE__)
+      ? window.__UP_FILTER_TIMELINE__
+      : [];
     timeline.push(publishDetail);
     window.__UP_FILTER_TIMELINE__ = timeline.slice(-50);
     window.__UP_FILTER_DEBUG__ = {
@@ -756,7 +936,9 @@ const UnidadesProyecto: React.FC = () => {
       lastPublish: publishDetail,
     };
 
-    window.dispatchEvent(new CustomEvent('up-filters-updated', { detail: publishDetail }));
+    window.dispatchEvent(
+      new CustomEvent("up-filters-updated", { detail: publishDetail }),
+    );
   }, [state.filterData]);
 
   // Handlers de eventos
@@ -773,11 +955,11 @@ const UnidadesProyecto: React.FC = () => {
   };
 
   const handleClearFilters = () => {
-    console.log('🧹 Limpiando filtros desde componente principal...');
+    console.log("🧹 Limpiando filtros desde componente principal...");
     if (!canViewAll && userCentroGestor) {
       // Restaurar solo el filtro obligatorio de centro gestor
       actions.setFilters({ centro_gestor: userCentroGestor });
-      actions.setSearchTerm('');
+      actions.setSearchTerm("");
     } else {
       actions.clearFilters();
     }
@@ -801,7 +983,9 @@ const UnidadesProyecto: React.FC = () => {
       const geometryMap: Record<string, object> = {};
       if (filteredGeometry?.features) {
         filteredGeometry.features.forEach((feature) => {
-          const upid = String(feature.properties?.upid || '').trim().toLowerCase();
+          const upid = String(feature.properties?.upid || "")
+            .trim()
+            .toLowerCase();
           if (upid && feature.geometry) {
             geometryMap[upid] = feature.geometry;
           }
@@ -810,100 +994,121 @@ const UnidadesProyecto: React.FC = () => {
 
       // Generate XLSX on the frontend using exceljs (includes geometry).
       // exceljs is a CJS module; with ESM dynamic import the exports live under `.default`.
-      const ExcelJSModule = await import('exceljs');
-      const ExcelJS = (ExcelJSModule.default ?? ExcelJSModule) as typeof import('exceljs');
+      const ExcelJSModule = await import("exceljs");
+      const ExcelJS = (ExcelJSModule.default ??
+        ExcelJSModule) as typeof import("exceljs");
       const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'Gestor de Proyectos';
+      workbook.creator = "Gestor de Proyectos";
       workbook.created = new Date();
 
-      const sheet = workbook.addWorksheet('Unidades de Proyecto');
+      const sheet = workbook.addWorksheet("Unidades de Proyecto");
 
       sheet.columns = [
-        { header: 'UPID', key: 'upid', width: 20 },
-        { header: 'Nombre UP', key: 'nombre_up', width: 40 },
-        { header: 'Nombre UP Detalle', key: 'nombre_up_detalle', width: 45 },
-        { header: 'Identificador', key: 'identificador', width: 25 },
-        { header: 'Unidad', key: 'unidad', width: 20 },
-        { header: 'Cantidad', key: 'cantidad', width: 15 },
-        { header: 'Estado', key: 'estado', width: 20 },
-        { header: 'Tipo Intervención', key: 'tipo_intervencion', width: 25 },
-        { header: 'Tipo Equipamiento', key: 'tipo_equipamiento', width: 25 },
-        { header: 'Clase UP', key: 'clase_up', width: 20 },
-        { header: 'Frente Activo', key: 'frente_activo', width: 20 },
-        { header: 'Centro Gestor', key: 'nombre_centro_gestor', width: 35 },
-        { header: 'Comuna / Corregimiento', key: 'comuna_corregimiento', width: 25 },
-        { header: 'Barrio / Vereda', key: 'barrio_vereda', width: 25 },
-        { header: 'Dirección', key: 'direccion', width: 35 },
-        { header: 'Presupuesto Base', key: 'presupuesto_base', width: 20 },
-        { header: 'Avance Obra (%)', key: 'avance_obra', width: 18 },
-        { header: 'Fecha Inicio', key: 'fecha_inicio', width: 18 },
-        { header: 'Fecha Fin', key: 'fecha_fin', width: 18 },
-        { header: 'Fecha Inauguración', key: 'fecha_inauguracion', width: 20 },
-        { header: 'Duración Proyecto', key: 'duracion_proyecto', width: 20 },
-        { header: 'Descripción', key: 'descripcion_intervencion', width: 50 },
-        { header: 'Fuente Financiación', key: 'fuente_financiacion', width: 28 },
-        { header: 'Referencia Contrato', key: 'referencia_contrato', width: 25 },
-        { header: 'Referencia Proceso', key: 'referencia_proceso', width: 25 },
-        { header: 'URL Proceso', key: 'url_proceso', width: 40 },
-        { header: 'Año', key: 'ano', width: 10 },
-        { header: 'Proyectos Estratégicos', key: 'proyectos_estrategicos', width: 30 },
-        { header: 'Geometría (GeoJSON)', key: 'geometry', width: 60 },
+        { header: "UPID", key: "upid", width: 20 },
+        { header: "Nombre UP", key: "nombre_up", width: 40 },
+        { header: "Nombre UP Detalle", key: "nombre_up_detalle", width: 45 },
+        { header: "Identificador", key: "identificador", width: 25 },
+        { header: "Unidad", key: "unidad", width: 20 },
+        { header: "Cantidad", key: "cantidad", width: 15 },
+        { header: "Estado", key: "estado", width: 20 },
+        { header: "Tipo Intervención", key: "tipo_intervencion", width: 25 },
+        { header: "Tipo Equipamiento", key: "tipo_equipamiento", width: 25 },
+        { header: "Clase UP", key: "clase_up", width: 20 },
+        { header: "Frente Activo", key: "frente_activo", width: 20 },
+        { header: "Centro Gestor", key: "nombre_centro_gestor", width: 35 },
+        {
+          header: "Comuna / Corregimiento",
+          key: "comuna_corregimiento",
+          width: 25,
+        },
+        { header: "Barrio / Vereda", key: "barrio_vereda", width: 25 },
+        { header: "Dirección", key: "direccion", width: 35 },
+        { header: "Presupuesto Base", key: "presupuesto_base", width: 20 },
+        { header: "Avance Obra (%)", key: "avance_obra", width: 18 },
+        { header: "Fecha Inicio", key: "fecha_inicio", width: 18 },
+        { header: "Fecha Fin", key: "fecha_fin", width: 18 },
+        { header: "Fecha Inauguración", key: "fecha_inauguracion", width: 20 },
+        { header: "Duración Proyecto", key: "duracion_proyecto", width: 20 },
+        { header: "Descripción", key: "descripcion_intervencion", width: 50 },
+        {
+          header: "Fuente Financiación",
+          key: "fuente_financiacion",
+          width: 28,
+        },
+        {
+          header: "Referencia Contrato",
+          key: "referencia_contrato",
+          width: 25,
+        },
+        { header: "Referencia Proceso", key: "referencia_proceso", width: 25 },
+        { header: "URL Proceso", key: "url_proceso", width: 40 },
+        { header: "Año", key: "ano", width: 10 },
+        {
+          header: "Proyectos Estratégicos",
+          key: "proyectos_estrategicos",
+          width: 30,
+        },
+        { header: "Geometría (GeoJSON)", key: "geometry", width: 60 },
       ];
 
       // Style the header row
       const headerRow = sheet.getRow(1);
-      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
       headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF1E40AF' },
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1E40AF" },
       };
-      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      headerRow.alignment = { vertical: "middle", horizontal: "center" };
 
       // Add data rows
-      filteredData.forEach(item => {
-        const upidKey = String(item.upid || '').trim().toLowerCase();
+      filteredData.forEach((item) => {
+        const upidKey = String(item.upid || "")
+          .trim()
+          .toLowerCase();
         const geometry = geometryMap[upidKey];
         sheet.addRow({
           upid: item.upid,
           nombre_up: item.nombre_up,
-          nombre_up_detalle: item.nombre_up_detalle ?? '',
-          identificador: item.identificador ?? '',
-          unidad: item.unidad ?? '',
-          cantidad: item.cantidad ?? '',
+          nombre_up_detalle: item.nombre_up_detalle ?? "",
+          identificador: item.identificador ?? "",
+          unidad: item.unidad ?? "",
+          cantidad: item.cantidad ?? "",
           estado: item.estado,
           tipo_intervencion: item.tipo_intervencion,
-          tipo_equipamiento: item.tipo_equipamiento ?? '',
-          clase_up: item.clase_up ?? '',
-          frente_activo: item.frente_activo ?? '',
-          nombre_centro_gestor: item.nombre_centro_gestor ?? '',
+          tipo_equipamiento: item.tipo_equipamiento ?? "",
+          clase_up: item.clase_up ?? "",
+          frente_activo: item.frente_activo ?? "",
+          nombre_centro_gestor: item.nombre_centro_gestor ?? "",
           comuna_corregimiento: item.comuna_corregimiento,
           barrio_vereda: item.barrio_vereda,
-          direccion: item.direccion ?? '',
+          direccion: item.direccion ?? "",
           presupuesto_base: item.presupuesto_base,
           avance_obra: item.avance_obra,
           fecha_inicio: item.fecha_inicio,
           fecha_fin: item.fecha_fin,
-          fecha_inauguracion: item.fecha_inauguracion ?? '',
-          duracion_proyecto: item.duracion_proyecto ?? '',
+          fecha_inauguracion: item.fecha_inauguracion ?? "",
+          duracion_proyecto: item.duracion_proyecto ?? "",
           descripcion_intervencion: item.descripcion_intervencion,
           fuente_financiacion: item.fuente_financiacion,
-          referencia_contrato: item.referencia_contrato ?? '',
-          referencia_proceso: item.referencia_proceso ?? '',
-          url_proceso: item.url_proceso ?? '',
+          referencia_contrato: item.referencia_contrato ?? "",
+          referencia_proceso: item.referencia_proceso ?? "",
+          url_proceso: item.url_proceso ?? "",
           ano: item.ano,
-          proyectos_estrategicos: Array.isArray(item.proyectos_estrategicos) ? item.proyectos_estrategicos.join(', ') : (item.proyectos_estrategicos ?? ''),
-          geometry: geometry ? JSON.stringify(geometry) : '',
+          proyectos_estrategicos: Array.isArray(item.proyectos_estrategicos)
+            ? item.proyectos_estrategicos.join(", ")
+            : (item.proyectos_estrategicos ?? ""),
+          geometry: geometry ? JSON.stringify(geometry) : "",
         });
       });
 
       // Generate buffer and trigger download
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       const dateTag = new Date().toISOString().slice(0, 10);
       link.href = url;
       link.download = `unidades_proyecto_${dateTag}.xlsx`;
@@ -912,8 +1117,10 @@ const UnidadesProyecto: React.FC = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('❌ Error al descargar XLSX filtrado:', error);
-      window.alert('No se pudo descargar el archivo XLSX. Inténtalo nuevamente.');
+      console.error("❌ Error al descargar XLSX filtrado:", error);
+      window.alert(
+        "No se pudo descargar el archivo XLSX. Inténtalo nuevamente.",
+      );
     } finally {
       setIsExporting(false);
     }
@@ -921,7 +1128,7 @@ const UnidadesProyecto: React.FC = () => {
 
   // Handlers para enfoque
   const handleItemFocus = (upid: string) => {
-    if (upid === '') {
+    if (upid === "") {
       // Limpiar enfoque
       setFocusedItem(null);
       setShowOnlyFocused(false);
@@ -946,13 +1153,13 @@ const UnidadesProyecto: React.FC = () => {
 
   // Memorizar componentes pesados
   const memoizedMap = useMemo(() => {
-    console.log('🎯 Creating memoized map with:', {
+    console.log("🎯 Creating memoized map with:", {
       filteredGeometryFeatures: filteredGeometry?.features?.length || 0,
       filteredDataCount: filteredData.length,
       hasFocusedItem: !!focusedItem,
-      showOnlyFocused
+      showOnlyFocused,
     });
-    
+
     return (
       <UnidadesProyectoMapSimple
         geometryData={filteredGeometry}
@@ -1018,19 +1225,25 @@ const UnidadesProyecto: React.FC = () => {
                   title="Descargar datos filtrados"
                 >
                   <Download className="w-3 h-3 md:w-4 md:h-4" />
-                  <span className="hidden sm:inline">{isExporting ? 'Descargando...' : 'Descargar datos filtrados'}</span>
-                  <span className="inline sm:hidden">{isExporting ? '...' : 'XLSX'}</span>
+                  <span className="hidden sm:inline">
+                    {isExporting
+                      ? "Descargando..."
+                      : "Descargar datos filtrados"}
+                  </span>
+                  <span className="inline sm:hidden">
+                    {isExporting ? "..." : "XLSX"}
+                  </span>
                 </button>
               )}
 
               {/* Selector de vista */}
               <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                 <button
-                  onClick={() => setViewMode('split')}
+                  onClick={() => setViewMode("split")}
                   className={`flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors ${
-                    viewMode === 'split' 
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    viewMode === "split"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   <div className="w-3 h-3 md:w-4 md:h-4 grid grid-cols-2 gap-0.5">
@@ -1042,11 +1255,11 @@ const UnidadesProyecto: React.FC = () => {
                   <span className="hidden sm:inline">Mixto</span>
                 </button>
                 <button
-                  onClick={() => setViewMode('map')}
+                  onClick={() => setViewMode("map")}
                   className={`flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors ${
-                    viewMode === 'map' 
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    viewMode === "map"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   <Map className="w-3 h-3 md:w-4 md:h-4" />
@@ -1055,15 +1268,26 @@ const UnidadesProyecto: React.FC = () => {
               </div>
 
               {/* Botón limpiar filtros - más visible */}
-              {(Object.values(filters).some(value => value && value !== '') || filters.searchTerm) && (
+              {(Object.values(filters).some((value) => value && value !== "") ||
+                filters.searchTerm) && (
                 <button
                   onClick={handleClearFilters}
                   className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors whitespace-nowrap"
                 >
                   <X className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">Limpiar</span>
-                  <span className="inline sm:hidden">({Object.values(filters).filter(v => v && v !== '').length + (filters.searchTerm ? 1 : 0)})</span>
-                  <span className="hidden sm:inline">({Object.values(filters).filter(v => v && v !== '').length + (filters.searchTerm ? 1 : 0)})</span>
+                  <span className="inline sm:hidden">
+                    (
+                    {Object.values(filters).filter((v) => v && v !== "")
+                      .length + (filters.searchTerm ? 1 : 0)}
+                    )
+                  </span>
+                  <span className="hidden sm:inline">
+                    (
+                    {Object.values(filters).filter((v) => v && v !== "")
+                      .length + (filters.searchTerm ? 1 : 0)}
+                    )
+                  </span>
                 </button>
               )}
             </div>
@@ -1072,7 +1296,9 @@ const UnidadesProyecto: React.FC = () => {
             {state.lastUpdate && (
               <div className="hidden md:flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                 <Calendar className="w-3 h-3" />
-                <span className="whitespace-nowrap">Actualizado: {state.lastUpdate.toLocaleString('es-CO')}</span>
+                <span className="whitespace-nowrap">
+                  Actualizado: {state.lastUpdate.toLocaleString("es-CO")}
+                </span>
               </div>
             )}
           </div>
@@ -1086,16 +1312,18 @@ const UnidadesProyecto: React.FC = () => {
 
       {/* Filtros solamente para vista de mapa (excluimos dashboard) */}
       <AnimatePresence>
-        {showFilters && viewMode === 'map' && (
+        {showFilters && viewMode === "map" && (
           <motion.section
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
           >
             <UnidadesProyectoFilters
               filterData={state.filterData}
-              records={state.attributeData as unknown as Array<Record<string, unknown>>}
+              records={
+                state.attributeData as unknown as Array<Record<string, unknown>>
+              }
               filters={filters}
               onFiltersChange={handleFiltersChange}
               onSearchChange={handleSearchChange}
@@ -1109,7 +1337,7 @@ const UnidadesProyecto: React.FC = () => {
 
       {/* Contenido principal basado en vista */}
       <section className="space-y-6 overflow-x-auto">
-        {viewMode === 'map' && (
+        {viewMode === "map" && (
           <motion.div
             key="map"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -1123,7 +1351,7 @@ const UnidadesProyecto: React.FC = () => {
           </motion.div>
         )}
 
-        {viewMode === 'split' && (
+        {viewMode === "split" && (
           <div className="space-y-6">
             {/* Layout horizontal: Mapa + Filtros - Responsive con scroll */}
             <motion.div
@@ -1154,14 +1382,20 @@ const UnidadesProyecto: React.FC = () => {
                       >
                         <UnidadesProyectoFilters
                           filterData={state.filterData}
-                          records={state.attributeData as unknown as Array<Record<string, unknown>>}
+                          records={
+                            state.attributeData as unknown as Array<
+                              Record<string, unknown>
+                            >
+                          }
                           filters={filters}
                           onFiltersChange={handleFiltersChange}
                           onSearchChange={handleSearchChange}
                           onClearFilters={handleClearFilters}
                           isLoading={state.loading}
                           compact={true}
-                          lockedCentroGestor={!canViewAll ? userCentroGestor : null}
+                          lockedCentroGestor={
+                            !canViewAll ? userCentroGestor : null
+                          }
                         />
                       </motion.div>
                     )}
@@ -1207,7 +1441,9 @@ const UnidadesProyecto: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <ProjectDetailsModal
-                item={filteredData.find(item => item.upid === selectedItemForModal)}
+                item={filteredData.find(
+                  (item) => item.upid === selectedItemForModal,
+                )}
                 onClose={handleCloseModal}
               />
             </motion.div>

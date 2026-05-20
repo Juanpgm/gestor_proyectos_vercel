@@ -1,27 +1,34 @@
-'use client'
+"use client";
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Save, Shield, Loader, AlertCircle } from 'lucide-react'
-import { AdminUser, Role, RoleId, ROLES_CONFIG, getHighestRole, getRoleInfo } from '@/types/admin'
-import adminService from '@/services/admin.service'
+import React, { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Save, Shield, Loader, AlertCircle } from "lucide-react";
+import {
+  AdminUser,
+  Role,
+  RoleId,
+  ROLES_CONFIG,
+  getHighestRole,
+  getRoleInfo,
+} from "@/types/admin";
+import adminService from "@/services/admin.service";
 
 const ASSIGNABLE_ROLE_IDS: RoleId[] = [
-  'admin_centro_gestor',
-  'admin_general',
-  'analista',
-  'editor_datos',
-  'publico',
-  'super_admin',
-  'visualizador'
-]
+  "admin_centro_gestor",
+  "admin_general",
+  "analista",
+  "editor_datos",
+  "publico",
+  "super_admin",
+  "visualizador",
+];
 
 interface RoleAssignmentModalProps {
-  user: AdminUser
-  rolesCatalog?: Role[]
-  currentUserRole?: RoleId
-  onClose: () => void
-  onSuccess: () => void
+  user: AdminUser;
+  rolesCatalog?: Role[];
+  currentUserRole?: RoleId;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
 export default function RoleAssignmentModal({
@@ -29,89 +36,106 @@ export default function RoleAssignmentModal({
   rolesCatalog = [],
   currentUserRole,
   onClose,
-  onSuccess
+  onSuccess,
 }: RoleAssignmentModalProps) {
   const normalizeRoles = (value: any): RoleId[] => {
     if (Array.isArray(value)) {
-      return value.filter(Boolean).map((role) => String(role).trim()).filter(Boolean) as RoleId[]
-    }
-
-    if (typeof value === 'string' && value.trim()) {
       return value
-        .split(',')
-        .map((role) => role.trim())
-        .filter(Boolean) as RoleId[]
+        .filter(Boolean)
+        .map((role) => String(role).trim())
+        .filter(Boolean) as RoleId[];
     }
 
-    return []
-  }
+    if (typeof value === "string" && value.trim()) {
+      return value
+        .split(",")
+        .map((role) => role.trim())
+        .filter(Boolean) as RoleId[];
+    }
 
-  const detectedRoles = normalizeRoles((user as any)?.roles)
-  const detectedCurrentRole = getHighestRole(detectedRoles) || detectedRoles[0] || null
-  const [selectedRole, setSelectedRole] = useState<RoleId | null>(detectedCurrentRole)
-  const [availableRoles, setAvailableRoles] = useState<Role[]>(rolesCatalog)
-  const [reason, setReason] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    return [];
+  };
+
+  const detectedRoles = normalizeRoles((user as any)?.roles);
+  const detectedCurrentRole =
+    getHighestRole(detectedRoles) || detectedRoles[0] || null;
+  const [selectedRole, setSelectedRole] = useState<RoleId | null>(
+    detectedCurrentRole,
+  );
+  const [availableRoles, setAvailableRoles] = useState<Role[]>(rolesCatalog);
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setSelectedRole(detectedCurrentRole)
-  }, [user.uid, user.roles])
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   useEffect(() => {
-    setAvailableRoles(rolesCatalog)
-  }, [rolesCatalog])
+    setSelectedRole(detectedCurrentRole);
+  }, [user.uid, user.roles]);
+
+  useEffect(() => {
+    setAvailableRoles(rolesCatalog);
+  }, [rolesCatalog]);
 
   useEffect(() => {
     const loadRoles = async () => {
-      if (rolesCatalog.length > 0) return
+      if (rolesCatalog.length > 0) return;
 
       try {
-        const roles = await adminService.getRolesCatalog()
-        setAvailableRoles(roles)
+        const roles = await adminService.getRolesCatalog();
+        setAvailableRoles(roles);
       } catch {
-        setAvailableRoles([])
+        setAvailableRoles([]);
       }
-    }
+    };
 
-    loadRoles()
-  }, [rolesCatalog.length])
+    loadRoles();
+  }, [rolesCatalog.length]);
 
   const rolesToRender = useMemo(() => {
-    const backendById = new Map<string, Role>()
-    availableRoles.forEach((role) => backendById.set(role.id, role))
+    const backendById = new Map<string, Role>();
+    availableRoles.forEach((role) => backendById.set(role.id, role));
 
-    const currentUserLevel = currentUserRole ? ROLES_CONFIG[currentUserRole].level : Infinity
+    const currentUserLevel = currentUserRole
+      ? ROLES_CONFIG[currentUserRole].level
+      : Infinity;
 
-    return ASSIGNABLE_ROLE_IDS
-      .filter((roleId) => ROLES_CONFIG[roleId].level >= currentUserLevel)
-      .map((roleId) => {
-        const backendRole = backendById.get(roleId)
-        if (backendRole) return backendRole
-        return getRoleInfo(roleId)
-      })
-  }, [availableRoles, currentUserRole])
+    return ASSIGNABLE_ROLE_IDS.filter(
+      (roleId) => ROLES_CONFIG[roleId].level >= currentUserLevel,
+    ).map((roleId) => {
+      const backendRole = backendById.get(roleId);
+      if (backendRole) return backendRole;
+      return getRoleInfo(roleId);
+    });
+  }, [availableRoles, currentUserRole]);
 
   const handleSave = async () => {
     if (!selectedRole) {
-      setError('Debes seleccionar un rol')
-      return
+      setError("Debes seleccionar un rol");
+      return;
     }
 
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       await adminService.assignRoles(user.uid, {
         roles: [selectedRole],
-        reason: reason || 'Asignación de rol único desde panel de administración'
-      })
-      onSuccess()
+        reason:
+          reason || "Asignación de rol único desde panel de administración",
+      });
+      onSuccess();
     } catch (err: any) {
-      setError(err.message || 'Error al asignar roles')
+      setError(err.message || "Error al asignar roles");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <AnimatePresence>
@@ -119,6 +143,7 @@ export default function RoleAssignmentModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        role="presentation"
         className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
@@ -127,6 +152,9 @@ export default function RoleAssignmentModal({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="role-assignment-title"
           className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
         >
           {/* Header */}
@@ -134,7 +162,10 @@ export default function RoleAssignmentModal({
             <div className="flex items-center gap-3">
               <Shield className="w-8 h-8 text-purple-600" />
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2
+                  id="role-assignment-title"
+                  className="text-2xl font-bold text-gray-900 dark:text-white"
+                >
                   Asignar Roles
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -144,6 +175,7 @@ export default function RoleAssignmentModal({
             </div>
             <button
               onClick={onClose}
+              aria-label="Cerrar modal"
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-gray-500" />
@@ -156,7 +188,9 @@ export default function RoleAssignmentModal({
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-900 dark:text-red-100">{error}</p>
+                <p className="text-sm text-red-900 dark:text-red-100">
+                  {error}
+                </p>
               </div>
             )}
 
@@ -169,8 +203,9 @@ export default function RoleAssignmentModal({
                     Información sobre Roles
                   </h4>
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    Cada usuario debe tener un único rol activo. El rol detectado actualmente
-                    para este usuario se preselecciona automáticamente.
+                    Cada usuario debe tener un único rol activo. El rol
+                    detectado actualmente para este usuario se preselecciona
+                    automáticamente.
                   </p>
                 </div>
               </div>
@@ -178,30 +213,36 @@ export default function RoleAssignmentModal({
 
             <div className="bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Rol actual detectado:{' '}
+                Rol actual detectado:{" "}
                 <span className="font-semibold">
-                  {detectedCurrentRole ? getRoleInfo(detectedCurrentRole).name : 'Sin rol asignado'}
+                  {detectedCurrentRole
+                    ? getRoleInfo(detectedCurrentRole).name
+                    : "Sin rol asignado"}
                 </span>
               </p>
 
               <div className="mt-2 flex flex-wrap gap-1">
-                {detectedRoles.length > 0 ? detectedRoles.map((roleId) => {
-                  const roleInfo = getRoleInfo(roleId)
+                {detectedRoles.length > 0 ? (
+                  detectedRoles.map((roleId) => {
+                    const roleInfo = getRoleInfo(roleId);
 
-                  return (
-                    <span
-                      key={roleId}
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs"
-                      style={{
-                        backgroundColor: `${roleInfo.color}20`,
-                        color: roleInfo.color
-                      }}
-                    >
-                      {roleInfo.name}
-                    </span>
-                  )
-                }) : (
-                  <span className="text-xs text-gray-500">No se detectaron roles en el usuario seleccionado</span>
+                    return (
+                      <span
+                        key={roleId}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs"
+                        style={{
+                          backgroundColor: `${roleInfo.color}20`,
+                          color: roleInfo.color,
+                        }}
+                      >
+                        {roleInfo.name}
+                      </span>
+                    );
+                  })
+                ) : (
+                  <span className="text-xs text-gray-500">
+                    No se detectaron roles en el usuario seleccionado
+                  </span>
                 )}
               </div>
             </div>
@@ -214,8 +255,8 @@ export default function RoleAssignmentModal({
 
               <div className="grid gap-3">
                 {rolesToRender.map((roleInfo) => {
-                  const roleId = roleInfo.id
-                  const isSelected = selectedRole === roleId
+                  const roleId = roleInfo.id;
+                  const isSelected = selectedRole === roleId;
 
                   return (
                     <motion.button
@@ -225,8 +266,8 @@ export default function RoleAssignmentModal({
                       onClick={() => setSelectedRole(roleId)}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${
                         isSelected
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                       } cursor-pointer`}
                     >
                       <div className="flex items-start justify-between">
@@ -249,7 +290,7 @@ export default function RoleAssignmentModal({
                                 className="text-xs font-medium px-2 py-0.5 rounded-full"
                                 style={{
                                   backgroundColor: `${roleInfo.color}20`,
-                                  color: roleInfo.color
+                                  color: roleInfo.color,
                                 }}
                               >
                                 Nivel {roleInfo.level}
@@ -289,7 +330,7 @@ export default function RoleAssignmentModal({
                         )}
                       </div>
                     </motion.button>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -314,7 +355,7 @@ export default function RoleAssignmentModal({
             <div className="text-sm text-gray-600 dark:text-gray-400">
               {selectedRole
                 ? `Rol seleccionado: ${rolesToRender.find((role) => role.id === selectedRole)?.name || getRoleInfo(selectedRole).name}`
-                : 'Sin rol seleccionado'}
+                : "Sin rol seleccionado"}
             </div>
             <div className="flex gap-3">
               <button
@@ -345,5 +386,5 @@ export default function RoleAssignmentModal({
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  )
+  );
 }

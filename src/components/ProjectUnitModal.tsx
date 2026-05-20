@@ -1,18 +1,33 @@
-'use client'
+"use client";
 
-import React, { useState, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Download, DollarSign, Clock, Building, FolderOpen, Printer, MapPin, BarChart3, PieChart as PieChartIcon, Activity, AreaChart as AreaChartIcon, Info, Settings } from 'lucide-react'
+import React, { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  X,
+  Download,
+  DollarSign,
+  Clock,
+  Building,
+  FolderOpen,
+  Printer,
+  MapPin,
+  BarChart3,
+  PieChart as PieChartIcon,
+  Activity,
+  AreaChart as AreaChartIcon,
+  Info,
+  Settings,
+} from "lucide-react";
 // Removed import of UnidadProyecto as Unidades de Proyecto section was deleted
 // import { UnidadProyecto } from '../hooks/useUnidadesProyecto'
-import { useDataContext } from '../context/DataContext'
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import { useDataContext } from "../context/DataContext";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -21,214 +36,280 @@ import {
   Line,
   Area,
   AreaChart,
-  Legend
-} from 'recharts'
+  Legend,
+} from "recharts";
 
 interface ProjectUnitModalProps {
-  isOpen: boolean
-  onClose: () => void
-  projectUnit: any | null // Replaced UnidadProyecto with any since the type was removed
-  feature?: any // Datos adicionales del feature GeoJSON
+  isOpen: boolean;
+  onClose: () => void;
+  projectUnit: any | null; // Replaced UnidadProyecto with any since the type was removed
+  feature?: any; // Datos adicionales del feature GeoJSON
 }
 
-type ChartType = 'bar' | 'pie' | 'line' | 'area'
+type ChartType = "bar" | "pie" | "line" | "area";
 
-const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, projectUnit, feature }) => {
-  const [chartType, setChartType] = useState<ChartType>('line')
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  const dataContext = useDataContext()
+const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({
+  isOpen,
+  onClose,
+  projectUnit,
+  feature,
+}) => {
+  const [chartType, setChartType] = useState<ChartType>("line");
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const dataContext = useDataContext();
 
-  if (!projectUnit) return null
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  if (!projectUnit) return null;
 
   const handleExportPDF = () => {
-    alert('Función de exportación de unidad de proyecto a PDF en desarrollo')
-  }
+    alert("Función de exportación de unidad de proyecto a PDF en desarrollo");
+  };
 
   const handlePrintModal = () => {
-    const printContent = document.getElementById('project-unit-modal-content')
+    const printContent = document.getElementById("project-unit-modal-content");
     if (printContent) {
-      const printWindow = window.open('', '', 'height=600,width=800')
-      printWindow?.document.write('<html><head><title>Ficha de Unidad de Proyecto</title>')
-      printWindow?.document.write('<style>body{font-family:Arial,sans-serif;margin:20px;}</style>')
-      printWindow?.document.write('</head><body>')
-      printWindow?.document.write(printContent.innerHTML)
-      printWindow?.document.write('</body></html>')
-      printWindow?.document.close()
-      printWindow?.print()
+      const printWindow = window.open("", "", "height=600,width=800");
+      printWindow?.document.write(
+        "<html><head><title>Ficha de Unidad de Proyecto</title>",
+      );
+      printWindow?.document.write(
+        "<style>body{font-family:Arial,sans-serif;margin:20px;}</style>",
+      );
+      printWindow?.document.write("</head><body>");
+      printWindow?.document.write(printContent.innerHTML);
+      printWindow?.document.write("</body></html>");
+      printWindow?.document.close();
+      printWindow?.print();
     }
-  }
+  };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount).replace('COP', '').trim() + ' COP'
-  }
+    return (
+      new Intl.NumberFormat("de-DE", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      })
+        .format(amount)
+        .replace("COP", "")
+        .trim() + " COP"
+    );
+  };
 
   const formatPercentage = (value: number) => {
     if (value % 1 === 0) {
-      return value.toFixed(0) + '%'
+      return value.toFixed(0) + "%";
     }
-    return value.toFixed(2).replace(/\.?0+$/, '') + '%'
-  }
+    return value.toFixed(2).replace(/\.?0+$/, "") + "%";
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'En Ejecución':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700'
-      case 'Planificación':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700'
-      case 'Completado':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
-      case 'Suspendido':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-700'
-      case 'En Evaluación':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700'
+      case "En Ejecución":
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700";
+      case "Planificación":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700";
+      case "Completado":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700";
+      case "Suspendido":
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-700";
+      case "En Evaluación":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300 border border-gray-200 dark:border-gray-700";
     }
-  }
+  };
 
   // Función para obtener colores de progreso basados en la tabla
-  const getProgressBarColor = (type: 'physical' | 'financial', progress: number) => {
-    if (type === 'physical') {
-      if (progress < 30) return 'from-red-500 to-red-600'
-      if (progress < 60) return 'from-amber-500 to-amber-600'
-      if (progress < 90) return 'from-blue-500 to-blue-600'
-      return 'from-emerald-500 to-emerald-600'
+  const getProgressBarColor = (
+    type: "physical" | "financial",
+    progress: number,
+  ) => {
+    if (type === "physical") {
+      if (progress < 30) return "from-red-500 to-red-600";
+      if (progress < 60) return "from-amber-500 to-amber-600";
+      if (progress < 90) return "from-blue-500 to-blue-600";
+      return "from-emerald-500 to-emerald-600";
     } else {
-      if (progress < 30) return 'from-red-600 to-red-700'
-      if (progress < 60) return 'from-orange-500 to-orange-600'
-      if (progress < 90) return 'from-emerald-600 to-emerald-700'
-      return 'from-green-600 to-green-700'
+      if (progress < 30) return "from-red-600 to-red-700";
+      if (progress < 60) return "from-orange-500 to-orange-600";
+      if (progress < 90) return "from-emerald-600 to-emerald-700";
+      return "from-green-600 to-green-700";
     }
-  }
+  };
 
   // Función para obtener color del texto basado en el progreso
-  const getProgressTextColor = (type: 'physical' | 'financial', progress: number) => {
-    if (type === 'physical') {
-      if (progress < 30) return 'text-red-600 dark:text-red-400'
-      if (progress < 60) return 'text-amber-600 dark:text-amber-400'
-      if (progress < 90) return 'text-blue-600 dark:text-blue-400'
-      return 'text-emerald-600 dark:text-emerald-400'
+  const getProgressTextColor = (
+    type: "physical" | "financial",
+    progress: number,
+  ) => {
+    if (type === "physical") {
+      if (progress < 30) return "text-red-600 dark:text-red-400";
+      if (progress < 60) return "text-amber-600 dark:text-amber-400";
+      if (progress < 90) return "text-blue-600 dark:text-blue-400";
+      return "text-emerald-600 dark:text-emerald-400";
     } else {
-      if (progress < 30) return 'text-red-700 dark:text-red-400'
-      if (progress < 60) return 'text-orange-600 dark:text-orange-400'
-      if (progress < 90) return 'text-emerald-700 dark:text-emerald-400'
-      return 'text-green-700 dark:text-green-400'
+      if (progress < 30) return "text-red-700 dark:text-red-400";
+      if (progress < 60) return "text-orange-600 dark:text-orange-400";
+      if (progress < 90) return "text-emerald-700 dark:text-emerald-400";
+      return "text-green-700 dark:text-green-400";
     }
-  }
+  };
 
   // Datos para análisis presupuestario específico de la unidad
   const metricColors = {
-    presupuestoTotal: '#3B82F6',
-    ejecutado: '#10B981',
-    pagado: '#F59E0B',
-    pendiente: '#EF4444',
-    disponible: '#8B5CF6'
-  }
+    presupuestoTotal: "#3B82F6",
+    ejecutado: "#10B981",
+    pagado: "#F59E0B",
+    pendiente: "#EF4444",
+    disponible: "#8B5CF6",
+  };
 
   const formatCurrencyShort = (value: number): string => {
     if (value >= 1e12) {
-      return `$${(value / 1e12).toLocaleString('de-DE', { 
-        minimumFractionDigits: 1, 
-        maximumFractionDigits: 1 
+      return `$${(value / 1e12).toLocaleString("de-DE", {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
       })}B`; // Billones (un millón de millones)
     } else if (value >= 1e9) {
-      return `$${(value / 1e9).toLocaleString('de-DE', { 
-        minimumFractionDigits: 1, 
-        maximumFractionDigits: 1 
+      return `$${(value / 1e9).toLocaleString("de-DE", {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
       })}MM`; // Mil millones (no billones)
     } else if (value >= 1e6) {
-      return `$${(value / 1e6).toLocaleString('de-DE', { 
-        minimumFractionDigits: 0, 
-        maximumFractionDigits: 0 
+      return `$${(value / 1e6).toLocaleString("de-DE", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
       })}M`;
     } else if (value >= 1e3) {
-      return `$${(value / 1e3).toLocaleString('de-DE', { 
-        minimumFractionDigits: 0, 
-        maximumFractionDigits: 0 
+      return `$${(value / 1e3).toLocaleString("de-DE", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
       })}K`;
     } else {
-      return `$${value.toLocaleString('de-DE')}`;
+      return `$${value.toLocaleString("de-DE")}`;
     }
-  }
+  };
 
   // Generar datos específicos para gráficos de la unidad
   const generateUnitBudgetData = () => {
-    const pendiente = projectUnit.budget - projectUnit.executed
-    const disponible = projectUnit.budget - projectUnit.pagado
-    
+    const pendiente = projectUnit.budget - projectUnit.executed;
+    const disponible = projectUnit.budget - projectUnit.pagado;
+
     const budgetBreakdown = [
-      { name: 'Presupuesto Total', value: projectUnit.budget, color: metricColors.presupuestoTotal },
-      { name: 'Ejecutado', value: projectUnit.executed, color: metricColors.ejecutado },
-      { name: 'Pagado', value: projectUnit.pagado, color: metricColors.pagado },
-      { name: 'Pendiente Ejecución', value: Math.max(0, pendiente), color: metricColors.pendiente }
-    ].filter(item => item.value > 0)
+      {
+        name: "Presupuesto Total",
+        value: projectUnit.budget,
+        color: metricColors.presupuestoTotal,
+      },
+      {
+        name: "Ejecutado",
+        value: projectUnit.executed,
+        color: metricColors.ejecutado,
+      },
+      { name: "Pagado", value: projectUnit.pagado, color: metricColors.pagado },
+      {
+        name: "Pendiente Ejecución",
+        value: Math.max(0, pendiente),
+        color: metricColors.pendiente,
+      },
+    ].filter((item) => item.value > 0);
 
     // Generar datos temporales para progreso mensual
-    const startDate = new Date(projectUnit.startDate)
-    const endDate = new Date(projectUnit.endDate)
-    const monthlyData = []
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-    
+    const startDate = new Date(projectUnit.startDate);
+    const endDate = new Date(projectUnit.endDate);
+    const monthlyData = [];
+    const monthNames = [
+      "Ene",
+      "Feb",
+      "Mar",
+      "Abr",
+      "May",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dic",
+    ];
+
     for (let i = 0; i < 6; i++) {
-      const progressFactor = (i + 1) / 6
-      const executedAmount = projectUnit.executed * progressFactor
-      const paidAmount = projectUnit.pagado * progressFactor
-      const monthIndex = (startDate.getMonth() + i) % 12
-      
+      const progressFactor = (i + 1) / 6;
+      const executedAmount = projectUnit.executed * progressFactor;
+      const paidAmount = projectUnit.pagado * progressFactor;
+      const monthIndex = (startDate.getMonth() + i) % 12;
+
       monthlyData.push({
         month: monthNames[monthIndex],
         ejecutado: executedAmount,
         pagado: paidAmount,
-        presupuesto: projectUnit.budget
-      })
+        presupuesto: projectUnit.budget,
+      });
     }
 
-    return { budgetBreakdown, monthlyData }
-  }
+    return { budgetBreakdown, monthlyData };
+  };
 
-  const { budgetBreakdown, monthlyData } = generateUnitBudgetData()
+  const { budgetBreakdown, monthlyData } = generateUnitBudgetData();
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-          <p className="font-semibold text-gray-900 dark:text-white mb-2">{label}</p>
+          <p className="font-semibold text-gray-900 dark:text-white mb-2">
+            {label}
+          </p>
           {payload.map((entry: any, index: number) => (
-            <p key={entry.name || `entry-${index}`} className="text-sm" style={{ color: entry.color }}>
+            <p
+              key={entry.name || `entry-${index}`}
+              className="text-sm"
+              style={{ color: entry.color }}
+            >
               {entry.name}: {formatCurrencyShort(entry.value)}
             </p>
           ))}
         </div>
-      )
+      );
     }
-    return null
-  }
+    return null;
+  };
 
   const renderChart = () => {
     switch (chartType) {
-      case 'bar':
+      case "bar":
         return (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="month" className="text-sm text-gray-600 dark:text-gray-400" />
-              <YAxis 
+              <XAxis
+                dataKey="month"
+                className="text-sm text-gray-600 dark:text-gray-400"
+              />
+              <YAxis
                 className="text-sm text-gray-600 dark:text-gray-400"
                 tickFormatter={formatCurrencyShort}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="ejecutado" fill={metricColors.ejecutado} name="Ejecutado" />
+              <Bar
+                dataKey="ejecutado"
+                fill={metricColors.ejecutado}
+                name="Ejecutado"
+              />
               <Bar dataKey="pagado" fill={metricColors.pagado} name="Pagado" />
             </BarChart>
           </ResponsiveContainer>
-        )
+        );
 
-      case 'pie':
+      case "pie":
         return (
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
@@ -243,82 +324,122 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                 onMouseLeave={() => setActiveIndex(null)}
               >
                 {budgetBreakdown.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
+                  <Cell
+                    key={`cell-${index}`}
                     fill={entry.color}
-                    stroke={activeIndex === index ? '#ffffff' : 'none'}
+                    stroke={activeIndex === index ? "#ffffff" : "none"}
                     strokeWidth={activeIndex === index ? 2 : 0}
                   />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0];
-                    const percentage = ((data.value / projectUnit.budget) * 100).toFixed(1);
+                    const percentage = (
+                      (data.value / projectUnit.budget) *
+                      100
+                    ).toFixed(1);
                     return (
                       <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                        <p className="font-semibold text-gray-900 dark:text-white mb-1">{data.name}</p>
-                        <p className="text-sm" style={{ color: data.payload.color }}>
+                        <p className="font-semibold text-gray-900 dark:text-white mb-1">
+                          {data.name}
+                        </p>
+                        <p
+                          className="text-sm"
+                          style={{ color: data.payload.color }}
+                        >
                           Valor: {formatCurrency(data.value)}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {percentage}% del Presupuesto Total
                         </p>
                       </div>
-                    )
+                    );
                   }
-                  return null
+                  return null;
                 }}
               />
-              <Legend 
-                verticalAlign="bottom" 
+              <Legend
+                verticalAlign="bottom"
                 height={36}
                 iconType="circle"
-                wrapperStyle={{ fontSize: '10px' }}
+                wrapperStyle={{ fontSize: "10px" }}
               />
             </PieChart>
           </ResponsiveContainer>
-        )
+        );
 
-      case 'line':
+      case "line":
         return (
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="month" className="text-sm text-gray-600 dark:text-gray-400" />
-              <YAxis 
+              <XAxis
+                dataKey="month"
+                className="text-sm text-gray-600 dark:text-gray-400"
+              />
+              <YAxis
                 className="text-sm text-gray-600 dark:text-gray-400"
                 tickFormatter={formatCurrencyShort}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="ejecutado" stroke={metricColors.ejecutado} strokeWidth={2} name="Ejecutado" />
-              <Line type="monotone" dataKey="pagado" stroke={metricColors.pagado} strokeWidth={2} name="Pagado" />
+              <Line
+                type="monotone"
+                dataKey="ejecutado"
+                stroke={metricColors.ejecutado}
+                strokeWidth={2}
+                name="Ejecutado"
+              />
+              <Line
+                type="monotone"
+                dataKey="pagado"
+                stroke={metricColors.pagado}
+                strokeWidth={2}
+                name="Pagado"
+              />
             </LineChart>
           </ResponsiveContainer>
-        )
+        );
 
-      case 'area':
+      case "area":
         return (
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="month" className="text-sm text-gray-600 dark:text-gray-400" />
-              <YAxis 
+              <XAxis
+                dataKey="month"
+                className="text-sm text-gray-600 dark:text-gray-400"
+              />
+              <YAxis
                 className="text-sm text-gray-600 dark:text-gray-400"
                 tickFormatter={formatCurrencyShort}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="ejecutado" stackId="1" stroke={metricColors.ejecutado} fill={metricColors.ejecutado + '80'} name="Ejecutado" />
-              <Area type="monotone" dataKey="pagado" stackId="1" stroke={metricColors.pagado} fill={metricColors.pagado + '80'} name="Pagado" />
+              <Area
+                type="monotone"
+                dataKey="ejecutado"
+                stackId="1"
+                stroke={metricColors.ejecutado}
+                fill={metricColors.ejecutado + "80"}
+                name="Ejecutado"
+              />
+              <Area
+                type="monotone"
+                dataKey="pagado"
+                stackId="1"
+                stroke={metricColors.pagado}
+                fill={metricColors.pagado + "80"}
+                name="Pagado"
+              />
             </AreaChart>
           </ResponsiveContainer>
-        )
+        );
 
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <AnimatePresence>
@@ -328,6 +449,7 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[99999]"
+          role="presentation"
           onClick={onClose}
         >
           <motion.article
@@ -337,13 +459,21 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
             transition={{ duration: 0.2 }}
             className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-4xl w-full max-h-[95vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="project-unit-title"
             id="project-unit-modal-content"
           >
             {/* Header */}
             <header className="bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-700 dark:to-purple-800 text-white p-6 border-b border-purple-500 dark:border-purple-600">
               <section className="flex justify-between items-start">
                 <section className="flex-1">
-                  <h2 className="text-2xl font-bold mb-2 text-white">{projectUnit.name}</h2>
+                  <h2
+                    id="project-unit-title"
+                    className="text-2xl font-bold mb-2 text-white"
+                  >
+                    {projectUnit.name}
+                  </h2>
                   <section className="flex items-center space-x-4 text-purple-100 dark:text-purple-200 mb-3">
                     <span className="flex items-center">
                       <Building className="w-5 h-5 mr-2" />
@@ -357,11 +487,15 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                   <section className="grid grid-cols-1 md:grid-cols-2 gap-6 text-purple-200 dark:text-purple-300 text-sm">
                     <div>
                       <span className="font-medium block">Centro Gestor:</span>
-                      <span className="text-purple-100 font-semibold text-base">{projectUnit.responsible}</span>
+                      <span className="text-purple-100 font-semibold text-base">
+                        {projectUnit.responsible}
+                      </span>
                     </div>
                     <div>
                       <span className="font-medium block">Estado:</span>
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(projectUnit.status)}`}>
+                      <span
+                        className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(projectUnit.status)}`}
+                      >
                         {projectUnit.status}
                       </span>
                     </div>
@@ -397,15 +531,21 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                     {/* Progreso Físico */}
                     <article className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                       <section className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progreso Físico</span>
-                        <span className={`text-sm font-semibold ${getProgressTextColor('physical', projectUnit.progress)}`}>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Progreso Físico
+                        </span>
+                        <span
+                          className={`text-sm font-semibold ${getProgressTextColor("physical", projectUnit.progress)}`}
+                        >
                           {formatPercentage(projectUnit.progress)}
                         </span>
                       </section>
                       <section className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                          className={`bg-gradient-to-r ${getProgressBarColor('physical', projectUnit.progress)} h-2 rounded-full transition-all duration-300`}
-                          style={{ width: `${Math.min(projectUnit.progress, 100)}%` }}
+                        <div
+                          className={`bg-gradient-to-r ${getProgressBarColor("physical", projectUnit.progress)} h-2 rounded-full transition-all duration-300`}
+                          style={{
+                            width: `${Math.min(projectUnit.progress, 100)}%`,
+                          }}
                         ></div>
                       </section>
                     </article>
@@ -413,15 +553,23 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                     {/* Progreso Financiero */}
                     <article className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                       <section className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progreso Financiero</span>
-                        <span className={`text-sm font-semibold ${getProgressTextColor('financial', (projectUnit.executed / projectUnit.budget) * 100)}`}>
-                          {formatPercentage((projectUnit.executed / projectUnit.budget) * 100)}
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Progreso Financiero
+                        </span>
+                        <span
+                          className={`text-sm font-semibold ${getProgressTextColor("financial", (projectUnit.executed / projectUnit.budget) * 100)}`}
+                        >
+                          {formatPercentage(
+                            (projectUnit.executed / projectUnit.budget) * 100,
+                          )}
                         </span>
                       </section>
                       <section className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
-                          className={`bg-gradient-to-r ${getProgressBarColor('financial', (projectUnit.executed / projectUnit.budget) * 100)} h-2 rounded-full transition-all duration-300`}
-                          style={{ width: `${Math.min((projectUnit.executed / projectUnit.budget) * 100, 100)}%` }}
+                        <div
+                          className={`bg-gradient-to-r ${getProgressBarColor("financial", (projectUnit.executed / projectUnit.budget) * 100)} h-2 rounded-full transition-all duration-300`}
+                          style={{
+                            width: `${Math.min((projectUnit.executed / projectUnit.budget) * 100, 100)}%`,
+                          }}
                         ></div>
                       </section>
                     </article>
@@ -436,50 +584,82 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                     <dl className="space-y-2 text-sm">
                       {projectUnit.tipoIntervencion && (
                         <div className="flex justify-between items-start">
-                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Tipo de Intervención:</dt>
-                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.tipoIntervencion}</dd>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                            Tipo de Intervención:
+                          </dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">
+                            {projectUnit.tipoIntervencion}
+                          </dd>
                         </div>
                       )}
                       {projectUnit.tipoEquipamiento && (
                         <div className="flex justify-between items-start">
-                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Tipo de Equipamiento:</dt>
-                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.tipoEquipamiento}</dd>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                            Tipo de Equipamiento:
+                          </dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">
+                            {projectUnit.tipoEquipamiento}
+                          </dd>
                         </div>
                       )}
                       {projectUnit.claseObra && (
                         <div className="flex justify-between items-start">
-                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Clase de Obra:</dt>
-                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.claseObra}</dd>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                            Clase de Obra:
+                          </dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">
+                            {projectUnit.claseObra}
+                          </dd>
                         </div>
                       )}
                       {projectUnit.comuna && (
                         <div className="flex justify-between items-start">
-                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Comuna:</dt>
-                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.comuna}</dd>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                            Comuna:
+                          </dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">
+                            {projectUnit.comuna}
+                          </dd>
                         </div>
                       )}
                       {projectUnit.barrio && (
                         <div className="flex justify-between items-start">
-                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Barrio:</dt>
-                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.barrio}</dd>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                            Barrio:
+                          </dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">
+                            {projectUnit.barrio}
+                          </dd>
                         </div>
                       )}
                       {projectUnit.corregimiento && (
                         <div className="flex justify-between items-start">
-                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Corregimiento:</dt>
-                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.corregimiento}</dd>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                            Corregimiento:
+                          </dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">
+                            {projectUnit.corregimiento}
+                          </dd>
                         </div>
                       )}
                       {projectUnit.direccion && (
                         <div className="flex justify-between items-start">
-                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Dirección:</dt>
-                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.direccion}</dd>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                            Dirección:
+                          </dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">
+                            {projectUnit.direccion}
+                          </dd>
                         </div>
                       )}
                       {projectUnit.beneficiaries > 0 && (
                         <div className="flex justify-between items-start">
-                          <dt className="text-gray-600 dark:text-gray-300 font-medium">Beneficiarios:</dt>
-                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">{projectUnit.beneficiaries.toLocaleString()}</dd>
+                          <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                            Beneficiarios:
+                          </dt>
+                          <dd className="font-semibold text-gray-900 dark:text-white text-right flex-1 ml-2">
+                            {projectUnit.beneficiaries.toLocaleString()}
+                          </dd>
                         </div>
                       )}
                     </dl>
@@ -506,27 +686,37 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                     </h3>
                     <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <article className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Presupuesto</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          Presupuesto
+                        </p>
                         <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                           {formatCurrency(projectUnit.budget)}
                         </p>
                       </article>
                       <article className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ejecutado</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          Ejecutado
+                        </p>
                         <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                           {formatCurrency(projectUnit.executed)}
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-300">
-                          {formatPercentage((projectUnit.executed / projectUnit.budget) * 100)}
+                          {formatPercentage(
+                            (projectUnit.executed / projectUnit.budget) * 100,
+                          )}
                         </p>
                       </article>
                       <article className="text-center p-3 bg-white dark:bg-gray-700 rounded-lg">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pagado</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          Pagado
+                        </p>
                         <p className="text-lg font-bold text-green-600 dark:text-green-400">
                           {formatCurrency(projectUnit.pagado)}
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-300">
-                          {formatPercentage((projectUnit.pagado / projectUnit.budget) * 100)}
+                          {formatPercentage(
+                            (projectUnit.pagado / projectUnit.budget) * 100,
+                          )}
                         </p>
                       </article>
                     </section>
@@ -540,19 +730,27 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                         Análisis Presupuestario
                       </h3>
                       <nav className="flex gap-1">
-                        {(['bar', 'pie', 'line', 'area'] as ChartType[]).map(type => (
-                          <button
-                            key={type}
-                            onClick={() => setChartType(type)}
-                            className={`px-2 py-1 text-xs rounded transition-colors ${
-                              chartType === type
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-                            }`}
-                          >
-                            {type === 'bar' ? 'Barras' : type === 'pie' ? 'Torta' : type === 'line' ? 'Línea' : 'Área'}
-                          </button>
-                        ))}
+                        {(["bar", "pie", "line", "area"] as ChartType[]).map(
+                          (type) => (
+                            <button
+                              key={type}
+                              onClick={() => setChartType(type)}
+                              className={`px-2 py-1 text-xs rounded transition-colors ${
+                                chartType === type
+                                  ? "bg-blue-500 text-white"
+                                  : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500"
+                              }`}
+                            >
+                              {type === "bar"
+                                ? "Barras"
+                                : type === "pie"
+                                  ? "Torta"
+                                  : type === "line"
+                                    ? "Línea"
+                                    : "Área"}
+                            </button>
+                          ),
+                        )}
                       </nav>
                     </section>
                     {renderChart()}
@@ -566,15 +764,23 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
                     </h3>
                     <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <dt className="text-gray-600 dark:text-gray-300 font-medium">Fecha de Inicio:</dt>
+                        <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                          Fecha de Inicio:
+                        </dt>
                         <dd className="font-semibold text-gray-900 dark:text-white">
-                          {new Date(projectUnit.startDate).toLocaleDateString('es-CO')}
+                          {new Date(projectUnit.startDate).toLocaleDateString(
+                            "es-CO",
+                          )}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-gray-600 dark:text-gray-300 font-medium">Fecha de Finalización:</dt>
+                        <dt className="text-gray-600 dark:text-gray-300 font-medium">
+                          Fecha de Finalización:
+                        </dt>
                         <dd className="font-semibold text-gray-900 dark:text-white">
-                          {new Date(projectUnit.endDate).toLocaleDateString('es-CO')}
+                          {new Date(projectUnit.endDate).toLocaleDateString(
+                            "es-CO",
+                          )}
                         </dd>
                       </div>
                     </dl>
@@ -587,7 +793,8 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
             <footer className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/70">
               <section className="flex justify-between items-center">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Ficha de unidad de proyecto generada el {new Date().toLocaleDateString('es-CO')}
+                  Ficha de unidad de proyecto generada el{" "}
+                  {new Date().toLocaleDateString("es-CO")}
                 </p>
                 <nav className="flex space-x-2">
                   <button
@@ -611,7 +818,7 @@ const ProjectUnitModal: React.FC<ProjectUnitModalProps> = ({ isOpen, onClose, pr
         </motion.section>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};
 
-export default ProjectUnitModal
+export default ProjectUnitModal;

@@ -33,4 +33,8 @@ export const safeConsole = {
     if (!allowVerboseLogs) return;
     console.info(...sanitizeArgs(args));
   },
+  warn: (...args: unknown[]) => {
+    if (!allowVerboseLogs) return;
+    console.warn(...sanitizeArgs(args));
+  },
 };

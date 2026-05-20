@@ -1,499 +1,572 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Plus, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
 interface AgregarConvenioTransferenciaModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSuccess: () => void
-  editingData?: any | null
-  onEdit?: (numeroContrato: string, data: FormData) => Promise<void>
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  editingData?: any | null;
+  onEdit?: (numeroContrato: string, data: FormData) => Promise<void>;
 }
 
 interface FormData {
   // Campos obligatorios
-  referencia_contrato: string
-  nombre_centro_gestor: string
-  banco: string
-  objeto_contrato: string
-  valor_contrato: string
-  nombre_resumido_proceso: string
-  
+  referencia_contrato: string;
+  nombre_centro_gestor: string;
+  banco: string;
+  objeto_contrato: string;
+  valor_contrato: string;
+  nombre_resumido_proceso: string;
+
   // Campos opcionales
-  bp?: string
-  bpin?: string
-  valor_convenio?: string
-  urlproceso?: string
-  fecha_inicio_contrato?: string
-  fecha_fin_contrato?: string
-  modalidad_contrato?: string
-  ordenador_gastor?: string
-  tipo_contrato?: string
-  estado_contrato?: string
-  sector?: string
-  
+  bp?: string;
+  bpin?: string;
+  valor_convenio?: string;
+  urlproceso?: string;
+  fecha_inicio_contrato?: string;
+  fecha_fin_contrato?: string;
+  modalidad_contrato?: string;
+  ordenador_gastor?: string;
+  tipo_contrato?: string;
+  estado_contrato?: string;
+  sector?: string;
+
   // Campos heredados del sistema anterior
-  tipo_documento?: string
-  contratista?: string
-  nit_contratista?: string
-  supervisor?: string
+  tipo_documento?: string;
+  contratista?: string;
+  nit_contratista?: string;
+  supervisor?: string;
 }
 
 interface CentroGestor {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 interface Banco {
-  id?: string
-  nombre_banco: string
+  id?: string;
+  nombre_banco: string;
 }
 
-const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaModalProps> = ({
-  isOpen,
-  onClose,
-  onSuccess,
-  editingData = null,
-  onEdit
-}) => {
+const AgregarConvenioTransferenciaModal: React.FC<
+  AgregarConvenioTransferenciaModalProps
+> = ({ isOpen, onClose, onSuccess, editingData = null, onEdit }) => {
   const [formData, setFormData] = useState<FormData>({
     // Campos obligatorios
-    referencia_contrato: '',
-    nombre_centro_gestor: '',
-    banco: '',
-    objeto_contrato: '',
-    valor_contrato: '',
-    nombre_resumido_proceso: '',
-    
-    // Campos opcionales
-    bp: '',
-    bpin: '',
-    valor_convenio: '',
-    urlproceso: '',
-    fecha_inicio_contrato: '',
-    fecha_fin_contrato: '',
-    modalidad_contrato: '',
-    ordenador_gastor: '',
-    tipo_contrato: '',
-    estado_contrato: '',
-    sector: '',
-    
-    // Campos adicionales del sistema
-    tipo_documento: 'Convenio',
-    contratista: '',
-    nit_contratista: '',
-    supervisor: ''
-  })
+    referencia_contrato: "",
+    nombre_centro_gestor: "",
+    banco: "",
+    objeto_contrato: "",
+    valor_contrato: "",
+    nombre_resumido_proceso: "",
 
-  const [centrosGestores, setCentrosGestores] = useState<CentroGestor[]>([])
-  const [bancos, setBancos] = useState<Banco[]>([])
-  const [loading, setLoading] = useState(false)
-  const [loadingData, setLoadingData] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+    // Campos opcionales
+    bp: "",
+    bpin: "",
+    valor_convenio: "",
+    urlproceso: "",
+    fecha_inicio_contrato: "",
+    fecha_fin_contrato: "",
+    modalidad_contrato: "",
+    ordenador_gastor: "",
+    tipo_contrato: "",
+    estado_contrato: "",
+    sector: "",
+
+    // Campos adicionales del sistema
+    tipo_documento: "Convenio",
+    contratista: "",
+    nit_contratista: "",
+    supervisor: "",
+  });
+
+  const [centrosGestores, setCentrosGestores] = useState<CentroGestor[]>([]);
+  const [bancos, setBancos] = useState<Banco[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   // Opciones de tipo de documento
   const tipoDocumentoOptions = [
-    { value: 'Convenio', label: 'Convenio' },
-    { value: 'Transferencia', label: 'Transferencia' }
-  ]
+    { value: "Convenio", label: "Convenio" },
+    { value: "Transferencia", label: "Transferencia" },
+  ];
 
   // Cargar datos iniciales
   useEffect(() => {
     if (isOpen) {
-      loadInitialData()
+      loadInitialData();
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   // Cargar datos cuando se está editando
   useEffect(() => {
     if (editingData && isOpen) {
       setFormData({
         // Campos obligatorios
-        referencia_contrato: editingData.referencia_contrato || editingData.numero_contrato || '',
-        nombre_centro_gestor: editingData.nombre_centro_gestor || '',
-        banco: editingData.banco || editingData.nombre_banco || '',
-        objeto_contrato: editingData.objeto_contrato || '',
-        valor_contrato: editingData.valor_contrato?.toString() || '',
-        nombre_resumido_proceso: editingData.nombre_resumido_proceso || '',
-        
+        referencia_contrato:
+          editingData.referencia_contrato || editingData.numero_contrato || "",
+        nombre_centro_gestor: editingData.nombre_centro_gestor || "",
+        banco: editingData.banco || editingData.nombre_banco || "",
+        objeto_contrato: editingData.objeto_contrato || "",
+        valor_contrato: editingData.valor_contrato?.toString() || "",
+        nombre_resumido_proceso: editingData.nombre_resumido_proceso || "",
+
         // Campos opcionales
-        bp: editingData.bp || '',
-        bpin: editingData.bpin || '',
-        valor_convenio: editingData.valor_convenio?.toString() || '',
-        urlproceso: editingData.urlproceso || '',
-        fecha_inicio_contrato: editingData.fecha_inicio_contrato || editingData.fecha_inicio || '',
-        fecha_fin_contrato: editingData.fecha_fin_contrato || editingData.fecha_fin || '',
-        modalidad_contrato: editingData.modalidad_contrato || '',
-        ordenador_gastor: editingData.ordenador_gastor || '',
-        tipo_contrato: editingData.tipo_contrato || editingData.tipo_documento || '',
-        estado_contrato: editingData.estado_contrato || '',
-        sector: editingData.sector || '',
-        
+        bp: editingData.bp || "",
+        bpin: editingData.bpin || "",
+        valor_convenio: editingData.valor_convenio?.toString() || "",
+        urlproceso: editingData.urlproceso || "",
+        fecha_inicio_contrato:
+          editingData.fecha_inicio_contrato || editingData.fecha_inicio || "",
+        fecha_fin_contrato:
+          editingData.fecha_fin_contrato || editingData.fecha_fin || "",
+        modalidad_contrato: editingData.modalidad_contrato || "",
+        ordenador_gastor: editingData.ordenador_gastor || "",
+        tipo_contrato:
+          editingData.tipo_contrato || editingData.tipo_documento || "",
+        estado_contrato: editingData.estado_contrato || "",
+        sector: editingData.sector || "",
+
         // Campos adicionales
-        tipo_documento: editingData.tipo_documento || 'Convenio',
-        contratista: editingData.contratista || '',
-        nit_contratista: editingData.nit_contratista || '',
-        supervisor: editingData.supervisor || ''
-      })
+        tipo_documento: editingData.tipo_documento || "Convenio",
+        contratista: editingData.contratista || "",
+        nit_contratista: editingData.nit_contratista || "",
+        supervisor: editingData.supervisor || "",
+      });
     }
-  }, [editingData, isOpen])
+  }, [editingData, isOpen]);
 
   const loadInitialData = async () => {
-    setLoadingData(true)
-    setError(null)
+    setLoadingData(true);
+    setError(null);
 
     try {
       const [centrosResponse, bancosResponse] = await Promise.all([
-        fetch('/api/proxy/centros-gestores/nombres-unicos'),
-        fetch('/api/proxy/asignaciones-emprestito-banco-centro-gestor')
-      ])
+        fetch("/api/proxy/centros-gestores/nombres-unicos"),
+        fetch("/api/proxy/asignaciones-emprestito-banco-centro-gestor"),
+      ]);
 
       if (!centrosResponse.ok) {
-        throw new Error(`Error cargando centros gestores: ${centrosResponse.statusText}`)
+        throw new Error(
+          `Error cargando centros gestores: ${centrosResponse.statusText}`,
+        );
       }
 
       if (!bancosResponse.ok) {
-        throw new Error(`Error cargando bancos: ${bancosResponse.statusText}`)
+        throw new Error(`Error cargando bancos: ${bancosResponse.statusText}`);
       }
 
-      const centrosData = await centrosResponse.json()
-      const bancosData = await bancosResponse.json()
+      const centrosData = await centrosResponse.json();
+      const bancosData = await bancosResponse.json();
 
       if (centrosData.success && Array.isArray(centrosData.data)) {
         const centrosFormatted = centrosData.data.map((nombre: string) => ({
           value: nombre,
-          label: nombre
-        }))
-        setCentrosGestores(centrosFormatted)
+          label: nombre,
+        }));
+        setCentrosGestores(centrosFormatted);
       }
 
       if (bancosData.success && Array.isArray(bancosData.data)) {
         // Extraer nombres únicos de bancos del campo banco
         const bancosUnicos = Array.from(
-          new Set(bancosData.data.map((asignacion: any) => asignacion.banco).filter(Boolean))
-        ) as string[]
+          new Set(
+            bancosData.data
+              .map((asignacion: any) => asignacion.banco)
+              .filter(Boolean),
+          ),
+        ) as string[];
         const bancosFormatted = bancosUnicos.map((nombre) => ({
-          nombre_banco: nombre
-        }))
-        setBancos(bancosFormatted)
+          nombre_banco: nombre,
+        }));
+        setBancos(bancosFormatted);
       }
-
     } catch (error) {
-      console.error('Error loading initial data:', error)
-      setError(error instanceof Error ? error.message : 'Error cargando datos iniciales')
+      console.error("Error loading initial data:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Error cargando datos iniciales",
+      );
     } finally {
-      setLoadingData(false)
+      setLoadingData(false);
     }
-  }
+  };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    console.log(`🔄 Campo actualizado: ${name} = "${value}"`)
-    
-    setFormData(prev => ({ ...prev, [name]: value }))
-    
-    if (error) setError(null)
-    if (success) setSuccess(null)
-  }
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+  ) => {
+    const { name, value } = e.target;
+    console.log(`🔄 Campo actualizado: ${name} = "${value}"`);
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (error) setError(null);
+    if (success) setSuccess(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    console.log('🔍 Datos del formulario (convenio/transferencia):', formData)
-    
+    e.preventDefault();
+
+    console.log("🔍 Datos del formulario (convenio/transferencia):", formData);
+
     // Campos obligatorios según el endpoint
-    const requiredFields = ['referencia_contrato', 'nombre_centro_gestor', 'banco', 'objeto_contrato', 'valor_contrato', 'nombre_resumido_proceso']
-    const missingFields = requiredFields.filter(field => {
-      const value = formData[field as keyof FormData]
-      console.log(`🔍 Campo ${field}:`, value, 'Vacío:', !value)
-      return !value || value.toString().trim() === ''
-    })
-    
+    const requiredFields = [
+      "referencia_contrato",
+      "nombre_centro_gestor",
+      "banco",
+      "objeto_contrato",
+      "valor_contrato",
+      "nombre_resumido_proceso",
+    ];
+    const missingFields = requiredFields.filter((field) => {
+      const value = formData[field as keyof FormData];
+      console.log(`🔍 Campo ${field}:`, value, "Vacío:", !value);
+      return !value || value.toString().trim() === "";
+    });
+
     if (missingFields.length > 0) {
-      console.log('❌ Campos faltantes:', missingFields)
+      console.log("❌ Campos faltantes:", missingFields);
       const fieldNames: Record<string, string> = {
-        'referencia_contrato': 'Referencia del Contrato',
-        'nombre_centro_gestor': 'Centro Gestor',
-        'banco': 'Banco',
-        'objeto_contrato': 'Objeto del Contrato',
-        'valor_contrato': 'Valor del Contrato',
-        'nombre_resumido_proceso': 'Nombre del Proceso'
-      }
-      const friendlyNames = missingFields.map(f => fieldNames[f] || f)
-      setError(`Campos obligatorios faltantes: ${friendlyNames.join(', ')}`)
-      return
+        referencia_contrato: "Referencia del Contrato",
+        nombre_centro_gestor: "Centro Gestor",
+        banco: "Banco",
+        objeto_contrato: "Objeto del Contrato",
+        valor_contrato: "Valor del Contrato",
+        nombre_resumido_proceso: "Nombre del Proceso",
+      };
+      const friendlyNames = missingFields.map((f) => fieldNames[f] || f);
+      setError(`Campos obligatorios faltantes: ${friendlyNames.join(", ")}`);
+      return;
     }
 
-    await submitToAPI()
-  }
+    await submitToAPI();
+  };
 
   const submitToAPI = async () => {
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
 
     try {
       // Si estamos editando, usar función especial
       if (editingData && onEdit) {
         try {
           // Usar el ID del documento (doc_id) que es el campo 'id' en Firestore
-          const docId = editingData.id || editingData.doc_id
+          const docId = editingData.id || editingData.doc_id;
           if (!docId) {
-            throw new Error('No se encontró el ID del documento para actualizar')
+            throw new Error(
+              "No se encontró el ID del documento para actualizar",
+            );
           }
-          await onEdit(docId, formData)
-          setSuccess('Convenio/Transferencia actualizado exitosamente')
+          await onEdit(docId, formData);
+          setSuccess("Convenio/Transferencia actualizado exitosamente");
           setTimeout(() => {
-            onClose()
-          }, 1500)
-          return
+            onClose();
+          }, 1500);
+          return;
         } catch (editError) {
-          let errorMessage = 'Error desconocido al actualizar'
+          let errorMessage = "Error desconocido al actualizar";
           if (editError instanceof Error) {
-            errorMessage = editError.message
-          } else if (typeof editError === 'string') {
-            errorMessage = editError
+            errorMessage = editError.message;
+          } else if (typeof editError === "string") {
+            errorMessage = editError;
           } else {
-            errorMessage = JSON.stringify(editError)
+            errorMessage = JSON.stringify(editError);
           }
-          console.error('Error en onEdit:', errorMessage)
-          throw new Error(errorMessage)
+          console.error("Error en onEdit:", errorMessage);
+          throw new Error(errorMessage);
         }
       }
 
-      const formDataToSend = new URLSearchParams()
-      
+      const formDataToSend = new URLSearchParams();
+
       // Campos obligatorios
-      formDataToSend.append('referencia_contrato', formData.referencia_contrato?.trim() || "")
-      formDataToSend.append('nombre_centro_gestor', formData.nombre_centro_gestor?.trim() || "")
-      formDataToSend.append('banco', formData.banco?.trim() || "")
-      formDataToSend.append('objeto_contrato', formData.objeto_contrato?.trim() || "")
-      formDataToSend.append('valor_contrato', formData.valor_contrato?.toString() || "")
-      formDataToSend.append('nombre_resumido_proceso', formData.nombre_resumido_proceso?.trim() || "")
-      
+      formDataToSend.append(
+        "referencia_contrato",
+        formData.referencia_contrato?.trim() || "",
+      );
+      formDataToSend.append(
+        "nombre_centro_gestor",
+        formData.nombre_centro_gestor?.trim() || "",
+      );
+      formDataToSend.append("banco", formData.banco?.trim() || "");
+      formDataToSend.append(
+        "objeto_contrato",
+        formData.objeto_contrato?.trim() || "",
+      );
+      formDataToSend.append(
+        "valor_contrato",
+        formData.valor_contrato?.toString() || "",
+      );
+      formDataToSend.append(
+        "nombre_resumido_proceso",
+        formData.nombre_resumido_proceso?.trim() || "",
+      );
+
       // Campos opcionales - solo enviar si tienen valor
       if (formData.bp && formData.bp.trim()) {
-        formDataToSend.append('bp', formData.bp.trim())
+        formDataToSend.append("bp", formData.bp.trim());
       }
       if (formData.bpin && formData.bpin.trim()) {
-        formDataToSend.append('bpin', formData.bpin.trim())
+        formDataToSend.append("bpin", formData.bpin.trim());
       }
       if (formData.valor_convenio && formData.valor_convenio.trim()) {
-        formDataToSend.append('valor_convenio', formData.valor_convenio.trim())
+        formDataToSend.append("valor_convenio", formData.valor_convenio.trim());
       }
       if (formData.urlproceso && formData.urlproceso.trim()) {
-        formDataToSend.append('urlproceso', formData.urlproceso.trim())
+        formDataToSend.append("urlproceso", formData.urlproceso.trim());
       }
-      if (formData.fecha_inicio_contrato && formData.fecha_inicio_contrato.trim()) {
-        formDataToSend.append('fecha_inicio_contrato', formData.fecha_inicio_contrato.trim())
+      if (
+        formData.fecha_inicio_contrato &&
+        formData.fecha_inicio_contrato.trim()
+      ) {
+        formDataToSend.append(
+          "fecha_inicio_contrato",
+          formData.fecha_inicio_contrato.trim(),
+        );
       }
       if (formData.fecha_fin_contrato && formData.fecha_fin_contrato.trim()) {
-        formDataToSend.append('fecha_fin_contrato', formData.fecha_fin_contrato.trim())
+        formDataToSend.append(
+          "fecha_fin_contrato",
+          formData.fecha_fin_contrato.trim(),
+        );
       }
       if (formData.modalidad_contrato && formData.modalidad_contrato.trim()) {
-        formDataToSend.append('modalidad_contrato', formData.modalidad_contrato.trim())
+        formDataToSend.append(
+          "modalidad_contrato",
+          formData.modalidad_contrato.trim(),
+        );
       }
       if (formData.ordenador_gastor && formData.ordenador_gastor.trim()) {
-        formDataToSend.append('ordenador_gastor', formData.ordenador_gastor.trim())
+        formDataToSend.append(
+          "ordenador_gastor",
+          formData.ordenador_gastor.trim(),
+        );
       }
       if (formData.tipo_contrato && formData.tipo_contrato.trim()) {
-        formDataToSend.append('tipo_contrato', formData.tipo_contrato.trim())
+        formDataToSend.append("tipo_contrato", formData.tipo_contrato.trim());
       }
       if (formData.estado_contrato && formData.estado_contrato.trim()) {
-        formDataToSend.append('estado_contrato', formData.estado_contrato.trim())
+        formDataToSend.append(
+          "estado_contrato",
+          formData.estado_contrato.trim(),
+        );
       }
       if (formData.sector && formData.sector.trim()) {
-        formDataToSend.append('sector', formData.sector.trim())
+        formDataToSend.append("sector", formData.sector.trim());
       }
-      const endpoint = '/emprestito/cargar-convenio-transferencia'
+      const endpoint = "/emprestito/cargar-convenio-transferencia";
 
-      console.log('📤 Enviando datos como FormData:', Object.fromEntries(formDataToSend))
-      console.log('🔗 URL de API:', `/api/proxy${endpoint}`)
+      console.log(
+        "📤 Enviando datos como FormData:",
+        Object.fromEntries(formDataToSend),
+      );
+      console.log("🔗 URL de API:", `/api/proxy${endpoint}`);
 
       const response = await fetch(`/api/proxy${endpoint}`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded',
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: formDataToSend
-      })
+        body: formDataToSend,
+      });
 
-      console.log('📡 Respuesta status:', response.status)
+      console.log("📡 Respuesta status:", response.status);
 
       if (!response.ok) {
-        let errorMessage = `Error ${response.status}: ${response.statusText}`
-        
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+
         try {
-          const errorData = await response.json()
-          console.log('❌ Error data:', errorData)
-          
+          const errorData = await response.json();
+          console.log("❌ Error data:", errorData);
+
           if (errorData?.detail) {
             if (Array.isArray(errorData.detail)) {
               const errorMessages = errorData.detail.map((err: any) => {
-                if (typeof err === 'string') {
-                  return err
+                if (typeof err === "string") {
+                  return err;
                 }
-                
+
                 if (err?.loc && err?.msg) {
-                  const field = err.loc[err.loc.length - 1]
+                  const field = err.loc[err.loc.length - 1];
                   const fieldTranslations: Record<string, string> = {
-                    'numero_contrato': 'Número de Contrato',
-                    'tipo_documento': 'Tipo de Documento',
-                    'objeto_contrato': 'Objeto del Contrato',
-                    'nombre_centro_gestor': 'Centro Gestor',
-                    'nombre_banco': 'Banco',
-                    'banco': 'Banco',
-                    'valor_contrato': 'Valor del Contrato',
-                    'nombre_resumido_proceso': 'Nombre del Proceso',
-                    'fecha_inicio': 'Fecha de Inicio',
-                    'fecha_fin': 'Fecha de Fin',
-                    'contratista': 'Contratista',
-                    'nit_contratista': 'NIT Contratista',
-                    'supervisor': 'Supervisor'
-                  }
-                  
-                  const friendlyField = fieldTranslations[field] || field
+                    numero_contrato: "Número de Contrato",
+                    tipo_documento: "Tipo de Documento",
+                    objeto_contrato: "Objeto del Contrato",
+                    nombre_centro_gestor: "Centro Gestor",
+                    nombre_banco: "Banco",
+                    banco: "Banco",
+                    valor_contrato: "Valor del Contrato",
+                    nombre_resumido_proceso: "Nombre del Proceso",
+                    fecha_inicio: "Fecha de Inicio",
+                    fecha_fin: "Fecha de Fin",
+                    contratista: "Contratista",
+                    nit_contratista: "NIT Contratista",
+                    supervisor: "Supervisor",
+                  };
+
+                  const friendlyField = fieldTranslations[field] || field;
                   const msgTranslations: Record<string, string> = {
-                    'Field required': 'es requerido',
-                    'Input should be a valid number': 'debe ser un número válido',
-                    'String should have at least 1 character': 'no puede estar vacío'
-                  }
-                  
-                  const friendlyMsg = msgTranslations[err.msg] || err.msg
-                  return `${friendlyField} ${friendlyMsg}`
+                    "Field required": "es requerido",
+                    "Input should be a valid number":
+                      "debe ser un número válido",
+                    "String should have at least 1 character":
+                      "no puede estar vacío",
+                  };
+
+                  const friendlyMsg = msgTranslations[err.msg] || err.msg;
+                  return `${friendlyField} ${friendlyMsg}`;
                 }
-                
+
                 if (err?.msg) {
-                  return err.msg
+                  return err.msg;
                 }
-                
-                return 'Error de validación desconocido'
-              })
-              
-              errorMessage = errorMessages.join('; ')
-            } else if (typeof errorData.detail === 'string') {
-              errorMessage = errorData.detail
+
+                return "Error de validación desconocido";
+              });
+
+              errorMessage = errorMessages.join("; ");
+            } else if (typeof errorData.detail === "string") {
+              errorMessage = errorData.detail;
             } else {
-              errorMessage = 'Error de validación en el servidor'
+              errorMessage = "Error de validación en el servidor";
             }
           } else if (errorData?.error) {
-            errorMessage = errorData.error
+            errorMessage = errorData.error;
           } else if (errorData?.message) {
-            errorMessage = errorData.message
+            errorMessage = errorData.message;
           } else {
-            errorMessage = 'Error desconocido del servidor'
+            errorMessage = "Error desconocido del servidor";
           }
         } catch (parseError) {
-          console.log('❌ Error parsing response:', parseError)
-          errorMessage = `Error ${response.status}: No se pudo procesar la respuesta del servidor`
+          console.log("❌ Error parsing response:", parseError);
+          errorMessage = `Error ${response.status}: No se pudo procesar la respuesta del servidor`;
         }
-        
-        throw new Error(errorMessage)
+
+        throw new Error(errorMessage);
       }
 
-      const result = await response.json()
-      console.log('✅ Respuesta exitosa:', result)
-      
-      setSuccess(editingData 
-        ? 'Convenio/Transferencia actualizado exitosamente' 
-        : 'Convenio/Transferencia agregado exitosamente')
-      
+      const result = await response.json();
+      console.log("✅ Respuesta exitosa:", result);
+
+      setSuccess(
+        editingData
+          ? "Convenio/Transferencia actualizado exitosamente"
+          : "Convenio/Transferencia agregado exitosamente",
+      );
+
       // Limpiar formulario
       setFormData({
-        referencia_contrato: '',
-        nombre_centro_gestor: '',
-        banco: '',
-        objeto_contrato: '',
-        valor_contrato: '',
-        nombre_resumido_proceso: '',
-        bp: '',
-        bpin: '',
-        valor_convenio: '',
-        urlproceso: '',
-        fecha_inicio_contrato: '',
-        fecha_fin_contrato: '',
-        modalidad_contrato: '',
-        ordenador_gastor: '',
-        tipo_contrato: '',
-        estado_contrato: '',
-        sector: '',
-        tipo_documento: 'Convenio',
-        contratista: '',
-        nit_contratista: '',
-        supervisor: ''
-      })
+        referencia_contrato: "",
+        nombre_centro_gestor: "",
+        banco: "",
+        objeto_contrato: "",
+        valor_contrato: "",
+        nombre_resumido_proceso: "",
+        bp: "",
+        bpin: "",
+        valor_convenio: "",
+        urlproceso: "",
+        fecha_inicio_contrato: "",
+        fecha_fin_contrato: "",
+        modalidad_contrato: "",
+        ordenador_gastor: "",
+        tipo_contrato: "",
+        estado_contrato: "",
+        sector: "",
+        tipo_documento: "Convenio",
+        contratista: "",
+        nit_contratista: "",
+        supervisor: "",
+      });
 
       // NO cerrar automáticamente, dejar que el usuario vea el mensaje y cierre manualmente
-
     } catch (error) {
-      console.error('❌ Error completo:', error)
-      
-      let errorMessage = 'Error desconocido'
-      
+      console.error("❌ Error completo:", error);
+
+      let errorMessage = "Error desconocido";
+
       if (error instanceof Error) {
-        errorMessage = error.message
-      } else if (typeof error === 'string') {
-        errorMessage = error
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
       } else {
-        errorMessage = `Error: ${JSON.stringify(error)}`
+        errorMessage = `Error: ${JSON.stringify(error)}`;
       }
-      
-      setError(errorMessage)
+
+      setError(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleClose = () => {
     if (!loading) {
       // Si hubo éxito, llamar onSuccess para recargar solo la tabla
-      const hadSuccess = !!success
-      
+      const hadSuccess = !!success;
+
       setFormData({
-        referencia_contrato: '',
-        nombre_centro_gestor: '',
-        banco: '',
-        objeto_contrato: '',
-        valor_contrato: '',
-        nombre_resumido_proceso: '',
-        bp: '',
-        bpin: '',
-        valor_convenio: '',
-        urlproceso: '',
-        fecha_inicio_contrato: '',
-        fecha_fin_contrato: '',
-        modalidad_contrato: '',
-        ordenador_gastor: '',
-        tipo_contrato: '',
-        estado_contrato: '',
-        sector: '',
-        tipo_documento: 'Convenio',
-        contratista: '',
-        nit_contratista: '',
-        supervisor: ''
-      })
-      setError(null)
-      setSuccess(null)
-      onClose()
-      
+        referencia_contrato: "",
+        nombre_centro_gestor: "",
+        banco: "",
+        objeto_contrato: "",
+        valor_contrato: "",
+        nombre_resumido_proceso: "",
+        bp: "",
+        bpin: "",
+        valor_convenio: "",
+        urlproceso: "",
+        fecha_inicio_contrato: "",
+        fecha_fin_contrato: "",
+        modalidad_contrato: "",
+        ordenador_gastor: "",
+        tipo_contrato: "",
+        estado_contrato: "",
+        sector: "",
+        tipo_documento: "Convenio",
+        contratista: "",
+        nit_contratista: "",
+        supervisor: "",
+      });
+      setError(null);
+      setSuccess(null);
+      onClose();
+
       // Recargar la tabla solo si fue exitoso
       if (hadSuccess) {
-        onSuccess()
+        onSuccess();
       }
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
       style={{ zIndex: 99999 }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="agregar-convenio-title"
         className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -504,8 +577,13 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
               <Plus className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                {editingData ? 'Editar Convenio/Transferencia' : 'Añadir Convenio o Transferencia'}
+              <h3
+                id="agregar-convenio-title"
+                className="text-lg font-medium text-gray-900 dark:text-white"
+              >
+                {editingData
+                  ? "Editar Convenio/Transferencia"
+                  : "Añadir Convenio o Transferencia"}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Complete los datos del convenio o transferencia del empréstito
@@ -515,6 +593,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
           <button
             onClick={handleClose}
             disabled={loading}
+            aria-label="Cerrar modal"
             className="rounded-lg p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -544,7 +623,9 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
                   <p className="text-lg font-bold text-red-800 dark:text-red-200 mb-1">
                     Error en la Operación
                   </p>
-                  <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                  <p className="text-sm text-red-700 dark:text-red-300">
+                    {error}
+                  </p>
                 </div>
                 <button
                   onClick={() => setError(null)}
@@ -574,7 +655,9 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
                   <p className="text-lg font-bold text-green-800 dark:text-green-200 mb-1">
                     ¡Operación Exitosa!
                   </p>
-                  <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    {success}
+                  </p>
                 </div>
                 <button
                   onClick={handleClose}
@@ -590,7 +673,9 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
           {loadingData && (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
-              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Cargando datos...</span>
+              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                Cargando datos...
+              </span>
             </div>
           )}
 
@@ -598,11 +683,12 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
           {!loadingData && !success && !error && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* === CAMPOS OBLIGATORIOS === */}
-              
+
               {/* Referencia del Contrato */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Referencia del Contrato <span className="text-red-500">*</span>
+                  Referencia del Contrato{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -629,8 +715,11 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">Seleccione un banco</option>
-                  {bancos.map(banco => (
-                    <option key={banco.id || banco.nombre_banco} value={banco.nombre_banco}>
+                  {bancos.map((banco) => (
+                    <option
+                      key={banco.id || banco.nombre_banco}
+                      value={banco.nombre_banco}
+                    >
                       {banco.nombre_banco}
                     </option>
                   ))}
@@ -666,7 +755,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">Seleccione un centro gestor</option>
-                  {centrosGestores.map(centro => (
+                  {centrosGestores.map((centro) => (
                     <option key={centro.value} value={centro.value}>
                       {centro.label}
                     </option>
@@ -708,7 +797,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
               </div>
 
               {/* === CAMPOS OPCIONALES === */}
-              
+
               {/* BP */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -948,7 +1037,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
                 ) : (
                   <>
                     <Plus className="w-4 h-4" />
-                    <span>{editingData ? 'Actualizar' : 'Agregar'}</span>
+                    <span>{editingData ? "Actualizar" : "Agregar"}</span>
                   </>
                 )}
               </button>
@@ -957,7 +1046,7 @@ const AgregarConvenioTransferenciaModal: React.FC<AgregarConvenioTransferenciaMo
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AgregarConvenioTransferenciaModal
+export default AgregarConvenioTransferenciaModal;

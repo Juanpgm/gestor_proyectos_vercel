@@ -185,6 +185,22 @@ const CACHE_TTL =
     ? parsedUnidadesCacheTtl
     : DEFAULT_UNIDADES_CACHE_TTL_MS;
 
+const DEBUG_LOGS = process.env.NEXT_PUBLIC_DEBUG === "true";
+const debugLog = (...args: unknown[]) => {
+  if (DEBUG_LOGS) console.log(...args);
+};
+
+/** Invalida el cache en memoria. Si se pasa un patrón, solo borra entradas que lo contengan. */
+export const invalidateUnidadesProyectoCache = (pattern?: string): void => {
+  if (!pattern) {
+    memoryCache.clear();
+    return;
+  }
+  for (const key of Array.from(memoryCache.keys())) {
+    if (key.includes(pattern)) memoryCache.delete(key);
+  }
+};
+
 // Utilidad para hacer fetch con retry optimizado
 const fetchWithRetry = async (
   url: string,
@@ -196,7 +212,7 @@ const fetchWithRetry = async (
   if (useCache) {
     const cached = memoryCache.get(url);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log("💾 Using cached data for:", url.split("?")[0]);
+      debugLog("💾 Using cached data for:", url.split("?")[0]);
       return new Response(JSON.stringify(cached.data), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -258,9 +274,16 @@ const FILTER_KEY_MAP: Record<string, string> = {
   centro_gestor_multiple: "nombre_centro_gestor",
   comuna_corregimiento: "comuna_corregimiento",
   comuna_corregimiento_multiple: "comuna_corregimiento",
-  presupuesto_min: "presupuesto_base",
-  avance_min: "avance_obra",
 };
+
+// Claves de rango (filtrado real `>=`/`<=`) que NO deben enviarse como equality
+// al backend; se procesan client-side en filterAttributeData.
+const RANGE_FILTER_KEYS = new Set([
+  "presupuesto_min",
+  "presupuesto_max",
+  "avance_min",
+  "avance_max",
+]);
 
 // Función optimizada para construir query string de filtros
 const buildFilterQuery = (
@@ -286,6 +309,10 @@ const buildFilterQuery = (
 
   Object.entries(filters).forEach(([key, value]) => {
     if (value === undefined || value === null || value === "") return;
+
+    // Los filtros de rango (presupuesto_min/max, avance_min/max) se aplican
+    // client-side; no enviarlos al backend como equality.
+    if (RANGE_FILTER_KEYS.has(key)) return;
 
     // Determinar la clave del parámetro para la API
     const apiKey = FILTER_KEY_MAP[key] || key.replace("_multiple", "");
@@ -1900,6 +1927,7 @@ async function proxyPost<T = MutationResponse>(
   const json = await res.json();
   if (!res.ok)
     throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  invalidateUnidadesProyectoCache();
   return json as T;
 }
 
@@ -1915,6 +1943,7 @@ async function proxyPut<T = MutationResponse>(
   const json = await res.json();
   if (!res.ok)
     throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  invalidateUnidadesProyectoCache();
   return json as T;
 }
 
@@ -1933,6 +1962,7 @@ async function proxyPutParams<T = MutationResponse>(
   const json = await res.json();
   if (!res.ok)
     throw new Error(json?.detail || json?.message || `Error ${res.status}`);
+  invalidateUnidadesProyectoCache();
   return json as T;
 }
 
@@ -2056,6 +2086,14 @@ export const rechazarUnidadProyecto = (upid: string) =>
     aprobado: "false",
     extra_data_: "{}",
   });
+
+/** PUT /modificar/unidad_proyecto — aplicar edición directa de UP */
+export interface ModificarUnidadProyectoPayload {
+  upid: string;
+  [key: string]: any;
+}
+export const modificarUnidadProyecto = (data: ModificarUnidadProyectoPayload) =>
+  proxyPut("modificar/unidad_proyecto", { ...data, aprobado: true });
 
 /** PUT /modificar/intervencion — aprobar: aplica cambios + aprobado=true (body) */
 export const modificarIntervencion = (data: ModificarIntervencionPayload) =>

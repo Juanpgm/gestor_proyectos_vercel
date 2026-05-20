@@ -3708,8 +3708,15 @@ const GestionRegistrosTab: React.FC = () => {
 
           {/* Paginación */}
           {totalPages > 1 && (
-            <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+            <nav
+              role="navigation"
+              aria-label="Paginación de registros"
+              className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-2"
+            >
+              <span
+                className="text-xs text-gray-500 dark:text-gray-400"
+                aria-live="polite"
+              >
                 {filteredUPs.length} registros · página {currentPage} de{" "}
                 {totalPages}
               </span>
@@ -3717,6 +3724,7 @@ const GestionRegistrosTab: React.FC = () => {
                 <button
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
+                  aria-label="Ir a la primera página"
                   className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
                 >
                   <ChevronsLeft className="w-4 h-4" />
@@ -3724,6 +3732,7 @@ const GestionRegistrosTab: React.FC = () => {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  aria-label="Página anterior"
                   className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -3737,6 +3746,8 @@ const GestionRegistrosTab: React.FC = () => {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page as number)}
+                      aria-label={`Ir a la página ${page}`}
+                      aria-current={currentPage === page ? "page" : undefined}
                       className={`min-w-[28px] h-7 text-xs rounded transition-colors ${
                         currentPage === page
                           ? "bg-blue-600 text-white font-medium"
@@ -3752,6 +3763,7 @@ const GestionRegistrosTab: React.FC = () => {
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
+                  aria-label="Página siguiente"
                   className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
                 >
                   <ChevronRightIcon className="w-4 h-4" />
@@ -3759,12 +3771,13 @@ const GestionRegistrosTab: React.FC = () => {
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
+                  aria-label="Ir a la última página"
                   className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
                 >
                   <ChevronsRight className="w-4 h-4" />
                 </button>
               </div>
-            </div>
+            </nav>
           )}
         </div>
       )}

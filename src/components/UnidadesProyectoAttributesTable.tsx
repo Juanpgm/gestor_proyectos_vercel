@@ -30,6 +30,11 @@ import { type AttributeData } from "@/services/unidades-proyecto.service";
 import { formatCurrency, formatCurrencyFull } from "@/utils/formatCurrency";
 import dynamic from "next/dynamic";
 import { safeConsole } from "@/lib/safe-console";
+import { useAuth } from "@/context/AuthContext";
+import {
+  getCentroGestorAccessFromSession,
+  userCanEditItem,
+} from "@/utils/centroGestorAccess";
 
 // Componentes dinámicos para modales de avances
 const RegistrarAvanceUPModal = dynamic(
@@ -97,6 +102,12 @@ interface UnidadesProyectoAttributesTableProps {
   onRowClick?: (upid: string) => void; // Callback para cuando se hace clic en una fila
   focusedItem?: string | null; // UPID del elemento enfocado
   onShowDetails?: (upid: string) => void; // Callback para mostrar detalles en modal
+  /**
+   * Override opcional: si se pasa, sobreescribe el cálculo interno de
+   * permisos para registrar avance/ver historial. Usado por pantallas
+   * que ya determinaron el permiso del usuario.
+   */
+  canRegistrarAvance?: boolean;
 }
 
 // Componente de barra de progreso
@@ -249,7 +260,29 @@ const UnidadesProyectoAttributesTable: React.FC<
   onRowClick,
   focusedItem = null,
   onShowDetails,
+  canRegistrarAvance,
 }) => {
+  // Permisos y acceso por centro gestor (defensa en profundidad)
+  const { hasRole, hasPermission, state: authState } = useAuth();
+  const centroGestorAccess = useMemo(
+    () => getCentroGestorAccessFromSession(),
+    [authState.user],
+  );
+  const userHasWritePermission = useMemo(() => {
+    // Roles con permiso de escritura en unidades (consistente con admin.ts).
+    // Si la app expone hasPermission('write:unidades') lo usamos como override.
+    if (hasPermission && hasPermission("write:unidades")) return true;
+    return (
+      hasRole("super_admin") ||
+      hasRole("admin_general") ||
+      hasRole("admin_centro_gestor") ||
+      hasRole("editor_datos")
+    );
+  }, [hasRole, hasPermission]);
+  const effectiveCanRegistrarAvance =
+    typeof canRegistrarAvance === "boolean"
+      ? canRegistrarAvance
+      : userHasWritePermission;
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(pageSize);
@@ -281,10 +314,11 @@ const UnidadesProyectoAttributesTable: React.FC<
   // Estado para modales de avances y edición
   const [modalAvance, setModalAvance] = useState<{
     upid: string;
-    intervencionId: string;
+    intervencionId?: string;
     nombre: string;
     avance: number;
     presupuesto: number;
+    itemCentroGestor?: string | null;
   } | null>(null);
   const [modalHistorial, setModalHistorial] = useState<{
     upid: string;
@@ -1888,52 +1922,95 @@ const UnidadesProyectoAttributesTable: React.FC<
                                   {visibleColumns.acciones && (
                                     <td className="px-3 py-4 whitespace-nowrap text-sm">
                                       <div className="flex items-center space-x-1.5 justify-center">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setModalAvance({
-                                              upid: item.upid,
-                                              intervencionId:
-                                                intervencion.intervencion_id,
-                                              nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
-                                              avance:
-                                                intervencion.avance_obra || 0,
-                                              presupuesto:
-                                                intervencion.presupuesto_base ||
-                                                0,
-                                            });
-                                          }}
-                                          className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.avance}`}
-                                          title="Registrar avance de esta intervención"
-                                        >
-                                          <Activity
-                                            className={ACTION_BUTTON_ICON_CLASS}
-                                          />
-                                          Avance
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setModalHistorial({
-                                              upid: item.upid,
-                                              intervencionId:
-                                                intervencion.intervencion_id,
-                                              nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
-                                              avance:
-                                                intervencion.avance_obra || 0,
-                                              presupuesto:
-                                                intervencion.presupuesto_base ||
-                                                0,
-                                            });
-                                          }}
-                                          className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.historial}`}
-                                          title="Ver historial de avances de esta intervención"
-                                        >
-                                          <Clock
-                                            className={ACTION_BUTTON_ICON_CLASS}
-                                          />
-                                          Historial
-                                        </button>
+                                        {(() => {
+                                          const canEditThisRow =
+                                            userCanEditItem(
+                                              item as any,
+                                              centroGestorAccess,
+                                            );
+                                          if (
+                                            !effectiveCanRegistrarAvance ||
+                                            !canEditThisRow
+                                          ) {
+                                            return (
+                                              <span
+                                                className="text-[11px] text-gray-400 dark:text-gray-500 italic"
+                                                title={
+                                                  !effectiveCanRegistrarAvance
+                                                    ? "No tienes permiso para registrar avance"
+                                                    : "Esta UP pertenece a otro centro gestor"
+                                                }
+                                                data-testid="acciones-bloqueadas"
+                                              >
+                                                Sin permiso
+                                              </span>
+                                            );
+                                          }
+                                          return (
+                                            <>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setModalAvance({
+                                                    upid: item.upid,
+                                                    intervencionId:
+                                                      intervencion.intervencion_id,
+                                                    nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
+                                                    avance:
+                                                      intervencion.avance_obra ||
+                                                      0,
+                                                    presupuesto:
+                                                      intervencion.presupuesto_base ||
+                                                      0,
+                                                    itemCentroGestor:
+                                                      (item as any)
+                                                        ?.nombre_centro_gestor ??
+                                                      (item as any)
+                                                        ?.centro_gestor ??
+                                                      null,
+                                                  });
+                                                }}
+                                                className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.avance}`}
+                                                title="Registrar avance de esta intervención"
+                                                data-testid="boton-registrar-avance"
+                                              >
+                                                <Activity
+                                                  className={
+                                                    ACTION_BUTTON_ICON_CLASS
+                                                  }
+                                                />
+                                                Avance
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setModalHistorial({
+                                                    upid: item.upid,
+                                                    intervencionId:
+                                                      intervencion.intervencion_id,
+                                                    nombre: `${item.nombre_up} · ${intervencion.intervencion_id}`,
+                                                    avance:
+                                                      intervencion.avance_obra ||
+                                                      0,
+                                                    presupuesto:
+                                                      intervencion.presupuesto_base ||
+                                                      0,
+                                                  });
+                                                }}
+                                                className={`${ACTION_BUTTON_BASE_CLASS} ${ACTION_BUTTON_VARIANTS.historial}`}
+                                                title="Ver historial de avances de esta intervención"
+                                                data-testid="boton-ver-historial"
+                                              >
+                                                <Clock
+                                                  className={
+                                                    ACTION_BUTTON_ICON_CLASS
+                                                  }
+                                                />
+                                                Historial
+                                              </button>
+                                            </>
+                                          );
+                                        })()}
                                       </div>
                                     </td>
                                   )}
@@ -2020,11 +2097,16 @@ const UnidadesProyectoAttributesTable: React.FC<
               </div>
 
               {/* Controles de navegación */}
-              <div className="flex items-center space-x-1">
+              <div
+                className="flex items-center space-x-1"
+                role="navigation"
+                aria-label="Paginación de unidades de proyecto"
+              >
                 {/* Primera página */}
                 <button
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage === 1}
+                  aria-label="Ir a la primera página"
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Primera página"
                 >
@@ -2035,6 +2117,7 @@ const UnidadesProyectoAttributesTable: React.FC<
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
+                  aria-label="Página anterior"
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Página anterior"
                 >
@@ -2063,6 +2146,8 @@ const UnidadesProyectoAttributesTable: React.FC<
                         <button
                           key={i}
                           onClick={() => handlePageChange(i)}
+                          aria-label={`Ir a la página ${i}`}
+                          aria-current={i === currentPage ? "page" : undefined}
                           className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                             i === currentPage
                               ? "bg-blue-600 text-white"
@@ -2082,6 +2167,7 @@ const UnidadesProyectoAttributesTable: React.FC<
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
+                  aria-label="Página siguiente"
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   title="Página siguiente"
                 >
@@ -2092,6 +2178,7 @@ const UnidadesProyectoAttributesTable: React.FC<
                 <button
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage === totalPages}
+                  aria-label="Ir a la última página"
                   className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   title="Última página"
                 >
@@ -2148,6 +2235,8 @@ const UnidadesProyectoAttributesTable: React.FC<
             nombreUP={modalAvance.nombre}
             avanceActual={modalAvance.avance}
             presupuesto={modalAvance.presupuesto}
+            itemCentroGestor={modalAvance.itemCentroGestor ?? null}
+            centroGestorAccess={centroGestorAccess}
             onClose={() => setModalAvance(null)}
             onSuccess={() => setModalAvance(null)}
           />
