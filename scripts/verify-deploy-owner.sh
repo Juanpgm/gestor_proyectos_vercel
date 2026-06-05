@@ -17,12 +17,13 @@ fi
 
 # Para producción (master), verificar autor del commit
 COMMIT_AUTHOR="${VERCEL_GIT_COMMIT_AUTHOR_LOGIN}"
-ALLOWED_USER="Juanpgm"
+ALLOWED_USER="juanpgm"
 
 echo "Rama: $BRANCH_NAME"
 echo "Autor del commit: $COMMIT_AUTHOR"
 
-if [ "$COMMIT_AUTHOR" != "$ALLOWED_USER" ]; then
+# Comparacion case-insensitive para evitar fallos por capitalización
+if [ "${COMMIT_AUTHOR,,}" != "${ALLOWED_USER,,}" ]; then
   echo "❌ Build de producción bloqueado."
   echo "Solo $ALLOWED_USER puede hacer deploy a producción."
   echo "Autor del commit: $COMMIT_AUTHOR"
