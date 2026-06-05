@@ -93,6 +93,9 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   clearError: () => void;
   validateSession: () => Promise<void>;
+  /** Refresca los datos del usuario desde el backend de forma silenciosa,
+   *  sin disparar SET_LOADING ni mostrar el spinner global. */
+  refreshUserSilently: () => Promise<void>;
   // Helpers para roles y permisos
   hasRole: (role: string) => boolean;
   hasPermission: (permission: string) => boolean;
@@ -120,6 +123,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Inicialización simplificada
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       try {
         dispatch({ type: "SET_LOADING", payload: true });
@@ -127,13 +132,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Inicializar servicio primero para configurar persistencia
         await authService.initialize();
 
+        // Esperar a que Firebase restaure su estado desde IndexedDB.
+        // Sin esto, auth.currentUser es null durante unos 100-500ms en el boot,
+        // haciendo que validateSession use el token expirado de localStorage y
+        // falle con 401 → clearSession() → logout innecesario.
+        if (auth) {
+          await new Promise<void>((resolve) => {
+            const unsub = onAuthStateChanged(auth, () => {
+              unsub();
+              resolve();
+            });
+          });
+        }
+
+        if (!isMounted) return;
+
         // Verificar sesión almacenada
         const storedSession = authService.getStoredSession();
 
         if (storedSession?.user) {
           try {
-            const updatedUser = await authService.validateSession();
-            if (isUserSessionReady(updatedUser)) {
+            // Si Firebase tiene usuario activo, usar su token fresco (evita usar el
+            // token expirado de localStorage que causa 401 → clearSession).
+            const firebaseUser = auth?.currentUser;
+            const freshToken = firebaseUser
+              ? await firebaseUser.getIdToken(false).catch(() => null)
+              : null;
+
+            const updatedUser = await authService.validateSession(freshToken ?? undefined);
+            if (isMounted && isUserSessionReady(updatedUser)) {
               dispatch({ type: "SET_USER", payload: updatedUser });
               return;
             }
@@ -141,20 +168,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
             safeConsole.debug("Error validando sesión almacenada:", error);
           }
 
-          await authService.signOut();
-          dispatch({ type: "SIGN_OUT" });
+          if (!isMounted) return;
+
+          // Solo cerrar sesión si Firebase tampoco tiene usuario activo.
+          // Esto evita logout agresivo por errores transitorios del backend.
+          const firebaseUser = auth?.currentUser;
+          if (!firebaseUser) {
+            await authService.signOut();
+            dispatch({ type: "SIGN_OUT" });
+          } else {
+            // Firebase tiene usuario pero el backend falló transitoriamente.
+            // Mantener la sesión almacenada y dejar que el usuario reintente.
+            safeConsole.debug("Backend no disponible al inicio, conservando sesión Firebase.");
+            dispatch({ type: "SET_LOADING", payload: false });
+          }
           return;
         }
 
         // Si no hay sesión almacenada, terminar loading
-        dispatch({ type: "SET_LOADING", payload: false });
+        if (isMounted) dispatch({ type: "SET_LOADING", payload: false });
       } catch (error) {
         safeConsole.debug("Auth init error:", error);
-        dispatch({ type: "SET_LOADING", payload: false });
+        if (isMounted) dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
     initAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Funciones de autenticación
@@ -302,6 +345,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  /**
+   * Refresca roles, permisos y centro_gestor del usuario desde el backend
+   * SIN despachar SET_LOADING:true, por lo que no activa el spinner global.
+   * Falla silenciosamente: si el backend no responde, conserva el usuario actual.
+   */
+  const refreshUserSilently = async (): Promise<void> => {
+    if (!state.isAuthenticated || !state.user) return;
+    try {
+      const user = await authService.validateSession();
+      if (user && isUserSessionReady(user)) {
+        dispatch({ type: "SET_USER", payload: user });
+      }
+      // Si el backend falla o devuelve datos incompletos, mantener el estado actual
+    } catch {
+      // Falla silenciosa — no cerrar sesión por un error de red transitorio
+    }
+  };
+
   // Helper: Verificar si el usuario tiene un rol específico
   const hasRole = (role: string): boolean => {
     return state.user?.roles?.includes(role) || false;
@@ -371,6 +432,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOut,
     clearError,
     validateSession,
+    refreshUserSilently,
     hasRole,
     hasPermission,
     canModifyOrDeleteRecords,

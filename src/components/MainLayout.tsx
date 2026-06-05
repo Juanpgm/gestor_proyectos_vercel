@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -27,40 +27,38 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     hasRole("editor_datos");
   const isAdminCentroGestor = hasRole("admin_centro_gestor");
 
-  const canAccessSection = (section: string): boolean => {
-    if (section === "dashboard") return true;
-    if (section === "gestionar-usuarios") return hasRole("super_admin");
+  const canAccessSection = useCallback(
+    (section: string): boolean => {
+      if (section === "dashboard") return true;
+      if (section === "gestionar-usuarios") return hasRole("super_admin");
 
-    if (canAccessFullManagementSidebar) {
-      return [
-        "gestionar-procesos",
-        "gestionar-contratos",
-        "gestion-pagos",
-        "gestionar-unidades-proyecto",
-        "gestionar-emprestito",
-      ].includes(section);
-    }
+      if (canAccessFullManagementSidebar) {
+        return [
+          "gestionar-procesos",
+          "gestionar-contratos",
+          "gestion-pagos",
+          "gestionar-unidades-proyecto",
+          "gestionar-emprestito",
+        ].includes(section);
+      }
 
-    if (isAdminCentroGestor) {
-      return (
-        section === "gestionar-unidades-proyecto" ||
-        section === "gestionar-emprestito"
-      );
-    }
+      if (isAdminCentroGestor) {
+        return (
+          section === "gestionar-unidades-proyecto" ||
+          section === "gestionar-emprestito"
+        );
+      }
 
-    return false;
-  };
+      return false;
+    },
+    [hasRole, canAccessFullManagementSidebar, isAdminCentroGestor],
+  );
 
   useEffect(() => {
     if (!canAccessSection(activeSection)) {
       setActiveSection("dashboard");
     }
-  }, [
-    activeSection,
-    canAccessFullManagementSidebar,
-    isAdminCentroGestor,
-    hasRole,
-  ]);
+  }, [activeSection, canAccessSection]);
 
   const handleToggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
