@@ -286,7 +286,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
     level: 0,
     permissions: ["*"],
     description: "Control absoluto del sistema incluyendo gestión de usuarios",
-    color: "#FF0000",
+    color: "#8B5CF6",
     icon: "shield"
   },
   admin_general: {
@@ -302,7 +302,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
       "export:*"
     ],
     description: "Administración completa de datos y roles, sin acceso a gestión de usuarios",
-    color: "#FF6B6B",
+    color: "#EC4899",
     icon: "user-shield"
   },
   admin_centro_gestor: {
@@ -323,7 +323,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
       "download:geojson"
     ],
     description: "Gestión completa de datos de su centro gestor (sin acceso a usuarios)",
-    color: "#4ECDC4",
+    color: "#3B82F6",
     icon: "building"
   },
   editor_datos: {
@@ -336,7 +336,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
       "export:proyectos", "export:unidades"
     ],
     description: "Edición de datos sin eliminación",
-    color: "#95E1D3",
+    color: "#14B8A6",
     icon: "edit"
   },
   gestor_contratos: {
@@ -350,7 +350,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
       "export:contratos"
     ],
     description: "Gestión exclusiva de contratos",
-    color: "#F38181",
+    color: "#F59E0B",
     icon: "file-contract"
   },
   analista: {
@@ -364,7 +364,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
       "view:dashboard:advanced"
     ],
     description: "Análisis y exportación de datos",
-    color: "#A8E6CF",
+    color: "#10B981",
     icon: "chart-line"
   },
   visualizador: {
@@ -377,7 +377,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
       "view:dashboard:basic"
     ],
     description: "Solo lectura de datos básicos (ROL POR DEFECTO)",
-    color: "#DCEDC8",
+    color: "#06B6D4",
     icon: "eye"
   },
   publico: {
@@ -389,7 +389,7 @@ export const ROLES_CONFIG: Record<RoleId, Omit<Role, 'id'>> = {
       "view:map:public"
     ],
     description: "Acceso público limitado",
-    color: "#E0E0E0",
+    color: "#64748B",
     icon: "globe"
   }
 }

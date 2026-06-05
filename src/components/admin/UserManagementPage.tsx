@@ -306,7 +306,10 @@ export default function UserManagementPage({
 
       return {
         label: roleFromCatalog?.name || roleFromConfig?.name || fallbackName,
-        color: roleFromCatalog?.color || roleFromConfig?.color || "#64748B",
+        // ROLES_CONFIG is the source of truth for colors (backend never sends color).
+        // Catalog color is always the #64748B fallback set by normalizeRole, so
+        // it must not take priority over the real palette in ROLES_CONFIG.
+        color: roleFromConfig?.color || roleFromCatalog?.color || "#64748B",
         description:
           roleFromCatalog?.description ||
           roleFromConfig?.description ||
