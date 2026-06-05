@@ -55,6 +55,7 @@ import RoleAssignmentModal from "./RoleAssignmentModal";
 import UserDetailsViewer from "./UserDetailsViewer";
 import ManagementFeatureTour from "@/components/ManagementFeatureTour";
 import RecordsCrudPanel, { CrudFieldConfig } from "./RecordsCrudPanel";
+import ComunicacionesPanel from "./comunicaciones/ComunicacionesPanel";
 
 interface UserManagementPageProps {
   currentUserRole?: RoleId;
@@ -68,7 +69,12 @@ interface EndpointDiagnosticItem {
   message: string;
 }
 
-type AdminTab = "permisos" | "bugs" | "escaladas" | "recomendaciones";
+type AdminTab =
+  | "permisos"
+  | "bugs"
+  | "escaladas"
+  | "recomendaciones"
+  | "comunicaciones";
 
 // Pure helpers — no component state, safe to define outside
 function normalizePermissionList(value: any): string[] {
@@ -1063,32 +1069,50 @@ export default function UserManagementPage({
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-2">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-          {[
-            { key: "permisos", label: "Permisos y Privilegios" },
-            { key: "bugs", label: "Reportes de Bugs" },
-            {
-              key: "escaladas",
-              label: "Solicitudes de Aumento de Privilegios",
-            },
-            { key: "recomendaciones", label: "Recomendaciones" },
-          ].map((tab) => {
-            const selected = activeTab === tab.key;
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+          {(
+            [
+              {
+                key: "permisos",
+                label: "Permisos y Privilegios",
+                visible: true,
+              },
+              { key: "bugs", label: "Reportes de Bugs", visible: true },
+              {
+                key: "escaladas",
+                label: "Solicitudes de Aumento de Privilegios",
+                visible: true,
+              },
+              {
+                key: "recomendaciones",
+                label: "Recomendaciones",
+                visible: true,
+              },
+              {
+                key: "comunicaciones",
+                label: "Comunicaciones",
+                visible: isSuperAdmin || isAdminGeneral,
+              },
+            ] as Array<{ key: string; label: string; visible: boolean }>
+          )
+            .filter((tab) => tab.visible)
+            .map((tab) => {
+              const selected = activeTab === tab.key;
 
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as AdminTab)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selected
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as AdminTab)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selected
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
         </div>
       </div>
 
@@ -1192,6 +1216,10 @@ export default function UserManagementPage({
             await loadRecommendations();
           }}
         />
+      )}
+
+      {activeTab === "comunicaciones" && (isSuperAdmin || isAdminGeneral) && (
+        <ComunicacionesPanel />
       )}
 
       {activeTab === "permisos" && (

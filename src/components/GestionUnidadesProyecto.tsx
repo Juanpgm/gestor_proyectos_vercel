@@ -37,6 +37,7 @@ import {
   getCentroGestorAccessFromSession,
   itemMatchesCentroGestor,
 } from "@/utils/centroGestorAccess";
+import { fetchIntervenciones } from "@/services/unidades-proyecto.service";
 
 const GestionRegistrosTab = dynamic(() => import("./GestionRegistrosTab"), {
   ssr: false,
@@ -487,23 +488,13 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
       if (hasAllGlobalOptions) return;
 
       try {
-        if (!firebaseAuth) return;
-        await firebaseAuth.authStateReady();
-        const currentUser = firebaseAuth.currentUser;
-        if (!currentUser) return;
-        const token = await currentUser.getIdToken();
-        const response = await fetch(
-          `${API_BASE_URL}/intervenciones?limit=10000`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        if (!response.ok) return;
-
-        const json = await response.json();
-        let records = Array.isArray(json)
-          ? json
-          : Array.isArray(json?.data)
-            ? json.data
-            : [];
+        let records: any[] = (await fetchIntervenciones({
+          limit: "10000",
+        })) as any[];
+        if (!Array.isArray(records)) {
+          const payload = records as any;
+          records = Array.isArray(payload?.data) ? payload.data : [];
+        }
 
         // Filtrar intervenciones por centro gestor del usuario si es restringido
         if (!canViewAll && userCentroGestor) {
@@ -558,7 +549,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
     };
 
     hydrateGlobalOptionsFromRecords();
-  }, [API_BASE_URL, canViewAll, userCentroGestor]);
+  }, [canViewAll, userCentroGestor]);
 
   // Definición de tabs - quality-control endpoints de la API
   const tabs = [

@@ -190,14 +190,22 @@ const debugLog = (...args: unknown[]) => {
   if (DEBUG_LOGS) console.log(...args);
 };
 
+// In-flight deduplication: si dos consumidores piden la misma URL simultáneamente,
+// comparten la misma Promise en lugar de disparar dos requests idénticos.
+const _inFlightRequests = new Map<string, Promise<any>>();
+
 /** Invalida el cache en memoria. Si se pasa un patrón, solo borra entradas que lo contengan. */
 export const invalidateUnidadesProyectoCache = (pattern?: string): void => {
   if (!pattern) {
     memoryCache.clear();
+    _inFlightRequests.clear();
     return;
   }
   for (const key of Array.from(memoryCache.keys())) {
     if (key.includes(pattern)) memoryCache.delete(key);
+  }
+  for (const key of Array.from(_inFlightRequests.keys())) {
+    if (key.includes(pattern)) _inFlightRequests.delete(key);
   }
 };
 
@@ -411,140 +419,131 @@ const FETCH_PAGE_SIZE = 10000;
 const fetchUnidadesProyectoRaw = async (
   filters: FilterParams = {},
 ): Promise<any> => {
-  try {
-    const hasFilters = Object.keys(filters).length > 0;
-    const queryString = buildFilterQuery(filters, false);
+  const hasFilters = Object.keys(filters).length > 0;
+  const queryString = buildFilterQuery(filters, false);
 
-    // Primera página: limit + offset=0
-    const firstPageQuery = queryString
-      ? `${queryString}&limit=${FETCH_PAGE_SIZE}&offset=0`
-      : `limit=${FETCH_PAGE_SIZE}&offset=0`;
+  // Primera página: limit + offset=0
+  const firstPageQuery = queryString
+    ? `${queryString}&limit=${FETCH_PAGE_SIZE}&offset=0`
+    : `limit=${FETCH_PAGE_SIZE}&offset=0`;
 
-    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINT}?${firstPageQuery}`;
+  const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINT}?${firstPageQuery}`;
 
-    console.log(
-      `🌐 fetchUnidadesProyectoRaw: Fetching page 1 (limit=${FETCH_PAGE_SIZE})`,
+  // In-flight deduplication: si dos consumidores piden la misma URL antes de
+  // que la primera respuesta llegue, comparten la Promise y se hace un solo fetch.
+  const inFlightKey = url;
+  const existingPromise = _inFlightRequests.get(inFlightKey);
+  if (existingPromise) {
+    debugLog(
+      `[dedupe] fetchUnidadesProyectoRaw: reutilizando request en vuelo para`,
+      url.split("?")[0],
     );
-    console.log(`🔗 fetchUnidadesProyectoRaw: URL = ${url}`);
+    return existingPromise;
+  }
 
-    // Usar cache para peticiones sin filtros (solo primera página)
-    const response = await fetchWithRetry(
-      url,
-      {},
-      API_CONFIG.RETRY_ATTEMPTS,
-      !hasFilters,
-    );
-    const rawResponse = await response.json();
-
-    // El proxy de Next.js (`/api/proxy/[...path]`) desempaqueta automáticamente
-    // las respuestas `{success: true, data: [...]}` para endpoints
-    // `unidades-proyecto`. Si llega un array plano, lo envolvemos aquí
-    // manualmente para mantener compatibilidad con la lógica de paginación.
-    const rawData = Array.isArray(rawResponse)
-      ? {
-          success: true,
-          data: rawResponse,
-          count: rawResponse.length,
-        }
-      : rawResponse;
-
-    console.log(
-      `📦 fetchUnidadesProyectoRaw: Response keys =`,
-      Object.keys(rawData),
-    );
-
-    if (!rawData.success || !Array.isArray(rawData.data)) {
-      console.error("❌ Invalid API response structure:", rawData);
-      throw new Error(
-        "Respuesta inválida: se esperaba { success: true, data: [...] }",
-      );
-    }
-
-    const totalCount = Number(
-      rawData.count ?? rawData.total ?? rawData.data.length,
-    );
-    let allData = [...rawData.data];
-
-    // Paginar si hay más registros que los recibidos en la primera página
-    if (allData.length < totalCount) {
-      const totalPages = Math.ceil(totalCount / FETCH_PAGE_SIZE);
-      console.log(
-        `📄 fetchUnidadesProyectoRaw: Paginando — total ${totalCount} registros, ${totalPages} páginas`,
+  const requestPromise = (async () => {
+    try {
+      debugLog(
+        `fetchUnidadesProyectoRaw: Fetching page 1 (limit=${FETCH_PAGE_SIZE})`,
       );
 
-      for (
-        let page = 1;
-        page < totalPages && allData.length < totalCount;
-        page++
-      ) {
-        const offset = page * FETCH_PAGE_SIZE;
-        const pageQuery = queryString
-          ? `${queryString}&limit=${FETCH_PAGE_SIZE}&offset=${offset}`
-          : `limit=${FETCH_PAGE_SIZE}&offset=${offset}`;
+      // Usar cache para peticiones sin filtros (solo primera página)
+      const response = await fetchWithRetry(
+        url,
+        {},
+        API_CONFIG.RETRY_ATTEMPTS,
+        !hasFilters,
+      );
+      const rawResponse = await response.json();
 
-        const pageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINT}?${pageQuery}`;
+      // El proxy de Next.js (`/api/proxy/[...path]`) desempaqueta automáticamente
+      // las respuestas `{success: true, data: [...]}` para endpoints
+      // `unidades-proyecto`. Si llega un array plano, lo envolvemos aquí
+      // manualmente para mantener compatibilidad con la lógica de paginación.
+      const rawData = Array.isArray(rawResponse)
+        ? {
+            success: true,
+            data: rawResponse,
+            count: rawResponse.length,
+          }
+        : rawResponse;
 
-        console.log(
-          `📄 fetchUnidadesProyectoRaw: Fetching page ${page + 1}/${totalPages} (offset=${offset})`,
+      if (!rawData.success || !Array.isArray(rawData.data)) {
+        throw new Error(
+          "Respuesta inválida: se esperaba { success: true, data: [...] }",
+        );
+      }
+
+      const totalCount = Number(
+        rawData.count ?? rawData.total ?? rawData.data.length,
+      );
+      let allData = [...rawData.data];
+
+      // Paginar si hay más registros que los recibidos en la primera página
+      if (allData.length < totalCount) {
+        const totalPages = Math.ceil(totalCount / FETCH_PAGE_SIZE);
+        debugLog(
+          `fetchUnidadesProyectoRaw: Paginando — total ${totalCount} registros, ${totalPages} páginas`,
         );
 
-        const pageResponse = await fetchWithRetry(
-          pageUrl,
-          {},
-          API_CONFIG.RETRY_ATTEMPTS,
-          false,
-        );
-        const pageRaw = await pageResponse.json();
-        // Aceptar tanto array plano (desempaquetado por el proxy) como
-        // estructura envuelta `{success, data}`.
-        const pageData = Array.isArray(pageRaw)
-          ? { success: true, data: pageRaw }
-          : pageRaw;
-
-        if (
-          pageData.success &&
-          Array.isArray(pageData.data) &&
-          pageData.data.length > 0
+        for (
+          let page = 1;
+          page < totalPages && allData.length < totalCount;
+          page++
         ) {
-          allData = allData.concat(pageData.data);
-        } else {
-          console.log(
-            `📄 fetchUnidadesProyectoRaw: Page ${page + 1} returned no data, stopping pagination`,
+          const offset = page * FETCH_PAGE_SIZE;
+          const pageQuery = queryString
+            ? `${queryString}&limit=${FETCH_PAGE_SIZE}&offset=${offset}`
+            : `limit=${FETCH_PAGE_SIZE}&offset=${offset}`;
+
+          const pageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINT}?${pageQuery}`;
+
+          const pageResponse = await fetchWithRetry(
+            pageUrl,
+            {},
+            API_CONFIG.RETRY_ATTEMPTS,
+            false,
           );
-          break;
+          const pageRaw = await pageResponse.json();
+          // Aceptar tanto array plano (desempaquetado por el proxy) como
+          // estructura envuelta `{success, data}`.
+          const pageData = Array.isArray(pageRaw)
+            ? { success: true, data: pageRaw }
+            : pageRaw;
+
+          if (
+            pageData.success &&
+            Array.isArray(pageData.data) &&
+            pageData.data.length > 0
+          ) {
+            allData = allData.concat(pageData.data);
+          } else {
+            break;
+          }
         }
       }
-    }
 
-    console.log(
-      `📊 fetchUnidadesProyectoRaw: Total ${allData.length} registros obtenidos (API reportó ${totalCount})`,
-    );
+      // Convertir cada item del array "data" a un Feature GeoJSON
+      const features = allData.map((item: any) => {
+        const { geometry, ...properties } = item;
+        return {
+          type: "Feature",
+          geometry: geometry || null,
+          properties: properties,
+        };
+      });
 
-    // Convertir cada item del array "data" a un Feature GeoJSON
-    const features = allData.map((item: any) => {
-      const { geometry, ...properties } = item;
       return {
-        type: "Feature",
-        geometry: geometry || null,
-        properties: properties,
+        type: "FeatureCollection",
+        features: features,
       };
-    });
+    } finally {
+      _inFlightRequests.delete(inFlightKey);
+    }
+  })();
 
-    // Crear GeoJSON FeatureCollection
-    const geoJsonData = {
-      type: "FeatureCollection",
-      features: features,
-    };
-
-    console.log(
-      `✅ fetchUnidadesProyectoRaw: ${geoJsonData.features.length} features in GeoJSON FeatureCollection`,
-    );
-
-    return geoJsonData;
-  } catch (error) {
-    console.error("❌ fetchUnidadesProyectoRaw error:", error);
-    throw error;
-  }
+  _inFlightRequests.set(inFlightKey, requestPromise);
+  return requestPromise;
 };
 
 /**
@@ -558,38 +557,23 @@ export const fetchGeometryData = async (
     const hasFilters = Object.keys(filters).length > 0;
 
     if (hasFilters) {
-      console.log(`🌐 fetchGeometryData: Fetching with filters`);
+      debugLog(`fetchGeometryData: Fetching with filters`);
     }
 
     // Obtener datos desde el endpoint unificado
     const rawData = await fetchUnidadesProyectoRaw(filters);
 
     // El endpoint unificado ya devuelve un GeoJSON FeatureCollection válido
-    let geoJsonData = {
+    const geoJsonData = {
       type: rawData.type,
       features: rawData.features,
     };
 
-    if (hasFilters) {
-      console.log(
-        `📊 fetchGeometryData: ${geoJsonData.features.length} features loaded`,
-      );
-    }
-
     // Procesar geometrías con el parser para manejar strings JSON
-    console.log(`🔧 fetchGeometryData: Parsing geometries...`);
     const parsedFeatures = geoJsonData.features
       .map((feature: any) => {
         const parsedGeometry = parseGeometry(feature.geometry);
-
-        if (!parsedGeometry) {
-          console.warn(
-            `⚠️ Failed to parse geometry for feature:`,
-            feature.properties?.upid,
-          );
-          return null;
-        }
-
+        if (!parsedGeometry) return null;
         return {
           type: "Feature",
           geometry: parsedGeometry,
@@ -603,20 +587,11 @@ export const fetchGeometryData = async (
       features: parsedFeatures,
     };
 
-    console.log(
-      `✅ fetchGeometryData: Parsed ${parsedFeatures.length} of ${geoJsonData.features.length} features`,
-    );
-
     // Validar estructura de datos con el schema
     const validatedData = GeometrySchema.parse(parsedGeoJsonData);
-
-    console.log(
-      `✅ fetchGeometryData: Successfully validated ${validatedData.features.length} features`,
-    );
-
+    debugLog(`fetchGeometryData: ${validatedData.features.length} features`);
     return validatedData;
   } catch (error) {
-    console.error("❌ fetchGeometryData error:", error);
     return handleApiError(error);
   }
 };
@@ -637,9 +612,7 @@ export const fetchAttributeData = async (
     // Procesar features del GeoJSON: cada feature es una unidad con properties + (opcional) intervenciones
     const dataArray = rawData.features;
 
-    console.log(
-      `📊 fetchAttributeData: Processing ${dataArray.length} raw items`,
-    );
+    debugLog(`fetchAttributeData: Processing ${dataArray.length} raw items`);
 
     // Detectar si el endpoint de unidades trae campos de intervención
     const hasInterventionFields = dataArray.some((item: any) => {
@@ -656,8 +629,8 @@ export const fetchAttributeData = async (
     // Si el endpoint de unidades NO trae campos de intervención, usar fallback con /intervenciones
     let intervencionesByUpid = new Map<string, any[]>();
     if (!hasInterventionFields) {
-      console.warn(
-        "⚠️ fetchAttributeData: Datos de unidades sin intervenciones. Usando fallback /intervenciones.",
+      debugLog(
+        "fetchAttributeData: Datos de unidades sin intervenciones. Usando fallback /intervenciones.",
       );
       try {
         let allIntervenciones: any[] = [];
@@ -706,12 +679,12 @@ export const fetchAttributeData = async (
           }
         });
 
-        console.log(
-          `✅ fetchAttributeData: ${allIntervenciones.length} intervenciones agrupadas por UPID`,
+        debugLog(
+          `fetchAttributeData: ${allIntervenciones.length} intervenciones agrupadas por UPID`,
         );
       } catch (intervencionesError) {
-        console.error(
-          "❌ fetchAttributeData: Error cargando /intervenciones",
+        debugLog(
+          "fetchAttributeData: Error cargando /intervenciones",
           intervencionesError,
         );
       }

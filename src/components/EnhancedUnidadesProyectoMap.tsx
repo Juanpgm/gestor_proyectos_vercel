@@ -32,6 +32,11 @@ if (typeof window !== "undefined") {
   });
 }
 
+// Module-level cache for static base layer GeoJSON files.
+// Shared across all component instances — avoids redundant network requests
+// on every mount (comunas/barrios/etc. are immutable during a session).
+const _baseLayerGeoJsonCache = new Map<string, any>();
+
 interface UnidadesProyectoMapProps {
   geometryData: GeometryData | null;
   filteredData: AttributeData[];
@@ -647,45 +652,33 @@ const UnidadesProyectoMap: React.FC<UnidadesProyectoMapProps> = ({
   const [pulmonData, setPulmonData] = useState<any>(null);
   const [microterritoriosData, setMicroterritoriosData] = useState<any>(null);
 
-  // Cargar archivos GeoJSON de capas base
+  // Cargar archivos GeoJSON de capas base (con cache en módulo para evitar fetches repetidos)
   useEffect(() => {
     const loadBaseLayerData = async () => {
+      const urls = [
+        "/data/geodata/cartografia_base/comunas_corregimientos.geojson",
+        "/data/geodata/cartografia_base/barrios_veredas.geojson",
+        "/data/geodata/cartografia_base/PoligonoPropuestoPulmonDeOriente.geojson",
+        "/data/geodata/cartografia_base/microterritorios.geojson",
+      ] as const;
+
+      const fetchOrCache = async (url: string) => {
+        if (_baseLayerGeoJsonCache.has(url))
+          return _baseLayerGeoJsonCache.get(url);
+        const res = await fetch(url, { cache: "force-cache" });
+        if (!res.ok) return null;
+        const json = await res.json();
+        _baseLayerGeoJsonCache.set(url, json);
+        return json;
+      };
+
       try {
-        const [
-          comunasResponse,
-          barriosResponse,
-          pulmonResponse,
-          microterritoriosResponse,
-        ] = await Promise.all([
-          fetch(
-            "/data/geodata/cartografia_base/comunas_corregimientos.geojson",
-          ),
-          fetch("/data/geodata/cartografia_base/barrios_veredas.geojson"),
-          fetch(
-            "/data/geodata/cartografia_base/PoligonoPropuestoPulmonDeOriente.geojson",
-          ),
-          fetch("/data/geodata/cartografia_base/microterritorios.geojson"),
-        ]);
-
-        if (comunasResponse.ok) {
-          const comunasJson = await comunasResponse.json();
-          setComunasData(comunasJson);
-        }
-
-        if (barriosResponse.ok) {
-          const barriosJson = await barriosResponse.json();
-          setBarriosData(barriosJson);
-        }
-
-        if (pulmonResponse.ok) {
-          const pulmonJson = await pulmonResponse.json();
-          setPulmonData(pulmonJson);
-        }
-
-        if (microterritoriosResponse.ok) {
-          const microterritoriosJson = await microterritoriosResponse.json();
-          setMicroterritoriosData(microterritoriosJson);
-        }
+        const [comunasJson, barriosJson, pulmonJson, microJson] =
+          await Promise.all(urls.map(fetchOrCache));
+        if (comunasJson) setComunasData(comunasJson);
+        if (barriosJson) setBarriosData(barriosJson);
+        if (pulmonJson) setPulmonData(pulmonJson);
+        if (microJson) setMicroterritoriosData(microJson);
       } catch (error) {
         console.error("Error al cargar capas base:", error);
       }
