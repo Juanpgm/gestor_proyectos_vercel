@@ -1307,7 +1307,7 @@ const UnidadesProyecto: React.FC = () => {
                   </button>
 
                   {exportMenuOpen && !isExporting && (
-                    <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[190px]">
+                    <div className="absolute right-0 top-full mt-1 z-[9999] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[190px]">
                       <p className="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                         Formato
                       </p>

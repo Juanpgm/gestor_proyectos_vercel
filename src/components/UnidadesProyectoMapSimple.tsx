@@ -795,6 +795,19 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
     }
   }, [geometryData, filteredData, focusedItem, showOnlyFocused]);
 
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Limpia el _leaflet_id del nodo DOM al desmontar el componente para evitar
+  // el error "Map container is already initialized" en HMR / remounts.
+  useEffect(() => {
+    return () => {
+      if (mapContainerRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (mapContainerRef.current as any)._leaflet_id;
+      }
+    };
+  }, []);
+
   const [mapType, setMapType] = useState<"streets" | "satellite">("streets");
   const [isDark, setIsDark] = useState(false);
   const [coloringType, setColoringType] = useState<ColoringType>("estado");
@@ -1643,6 +1656,7 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
       />
 
       {/* Mapa de Leaflet */}
+      <div ref={mapContainerRef} className="h-full w-full">
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
@@ -2094,9 +2108,10 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
             />
           )}
 
-        {/* Herramienta de mediciÃ³n */}
+        {/* Herramienta de medición */}
         <MapMeasureTool />
       </MapContainer>
+      </div>
     </div>
   );
 };
