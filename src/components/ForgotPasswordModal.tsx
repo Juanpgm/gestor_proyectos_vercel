@@ -7,8 +7,6 @@ import {
   EnvelopeIcon,
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;
@@ -48,21 +46,6 @@ export default function ForgotPasswordModal({
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleClose]);
 
-  const getFirebaseErrorMessage = (code: string): string => {
-    switch (code) {
-      case "auth/user-not-found":
-        return "No existe una cuenta registrada con este correo electrónico.";
-      case "auth/invalid-email":
-        return "El correo electrónico ingresado no es válido.";
-      case "auth/too-many-requests":
-        return "Demasiados intentos. Por favor espera unos minutos antes de intentar nuevamente.";
-      case "auth/network-request-failed":
-        return "Error de conexión. Verifica tu conexión a internet e intenta nuevamente.";
-      default:
-        return "Ocurrió un error al enviar el correo de recuperación. Intenta nuevamente.";
-    }
-  };
-
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -71,25 +54,33 @@ export default function ForgotPasswordModal({
     setMessage(null);
 
     try {
-      if (!auth) {
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_BASE_URL ||
+        process.env.NEXT_PUBLIC_API_URL ||
+        "";
+      const res = await fetch(`${apiBase}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      // La API devuelve 200 tanto si el usuario existe como si no
+      // (evita enumeración). Mostramos confirmación siempre.
+      if (res.ok || res.status === 404) {
+        setEmailSent(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
         setMessage({
           type: "error",
-          text: "Firebase no está configurado. Contacta al administrador del sistema.",
+          text:
+            data?.detail?.error ||
+            "Ocurrió un error al enviar el correo de recuperación. Intenta nuevamente.",
         });
-        setIsLoading(false);
-        return;
       }
-      await sendPasswordResetEmail(auth, email);
-      setEmailSent(true);
-      setMessage({
-        type: "success",
-        text: "Se ha enviado un enlace de recuperación a tu correo electrónico. Revisa tu bandeja de entrada y la carpeta de spam.",
-      });
-    } catch (error: any) {
-      const errorCode = error?.code || "";
+    } catch {
       setMessage({
         type: "error",
-        text: getFirebaseErrorMessage(errorCode),
+        text: "Error de conexión. Verifica tu conexión a internet e intenta nuevamente.",
       });
     } finally {
       setIsLoading(false);
