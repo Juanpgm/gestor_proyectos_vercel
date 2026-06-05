@@ -136,9 +136,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Sin esto, auth.currentUser es null durante unos 100-500ms en el boot,
         // haciendo que validateSession use el token expirado de localStorage y
         // falle con 401 → clearSession() → logout innecesario.
-        if (auth) {
+        const firebaseAuth = auth;
+        if (firebaseAuth) {
           await new Promise<void>((resolve) => {
-            const unsub = onAuthStateChanged(auth, () => {
+            const unsub = onAuthStateChanged(firebaseAuth, () => {
               unsub();
               resolve();
             });
@@ -159,7 +160,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
               ? await firebaseUser.getIdToken(false).catch(() => null)
               : null;
 
-            const updatedUser = await authService.validateSession(freshToken ?? undefined);
+            const updatedUser = await authService.validateSession(
+              freshToken ?? undefined,
+            );
             if (isMounted && isUserSessionReady(updatedUser)) {
               dispatch({ type: "SET_USER", payload: updatedUser });
               return;
@@ -179,7 +182,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           } else {
             // Firebase tiene usuario pero el backend falló transitoriamente.
             // Mantener la sesión almacenada y dejar que el usuario reintente.
-            safeConsole.debug("Backend no disponible al inicio, conservando sesión Firebase.");
+            safeConsole.debug(
+              "Backend no disponible al inicio, conservando sesión Firebase.",
+            );
             dispatch({ type: "SET_LOADING", payload: false });
           }
           return;
