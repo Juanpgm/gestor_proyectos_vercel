@@ -59,13 +59,22 @@ export default function RoleAssignmentModal({
   const detectedRoles = normalizeRoles((user as any)?.roles);
   const detectedCurrentRole =
     getHighestRole(detectedRoles) || detectedRoles[0] || null;
+  const detectedCentro: string =
+    (user as any)?.centro_gestor_assigned ||
+    (user as any)?.nombre_centro_gestor ||
+    (user as any)?.centro_gestor ||
+    "";
   const [selectedRole, setSelectedRole] = useState<RoleId | null>(
     detectedCurrentRole,
   );
   const [availableRoles, setAvailableRoles] = useState<Role[]>(rolesCatalog);
   const [reason, setReason] = useState("");
+  const [centroGestor, setCentroGestor] = useState<string>(detectedCentro);
+  const [centrosOptions, setCentrosOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const requiresCentro = selectedRole === "admin_centro_gestor";
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -77,6 +86,7 @@ export default function RoleAssignmentModal({
 
   useEffect(() => {
     setSelectedRole(detectedCurrentRole);
+    setCentroGestor(detectedCentro);
   }, [user.uid, user.roles]);
 
   useEffect(() => {
@@ -97,6 +107,22 @@ export default function RoleAssignmentModal({
 
     loadRoles();
   }, [rolesCatalog.length]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCentros = async () => {
+      try {
+        const list = await adminService.getCentrosGestores();
+        if (!cancelled) setCentrosOptions(Array.isArray(list) ? list : []);
+      } catch {
+        if (!cancelled) setCentrosOptions([]);
+      }
+    };
+    loadCentros();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const rolesToRender = useMemo(() => {
     const backendById = new Map<string, Role>();
@@ -121,6 +147,14 @@ export default function RoleAssignmentModal({
       return;
     }
 
+    const trimmedCentro = centroGestor.trim();
+    if (requiresCentro && !trimmedCentro) {
+      setError(
+        "El rol Administrador de Centro Gestor requiere asignar un centro gestor",
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -129,6 +163,27 @@ export default function RoleAssignmentModal({
         reason:
           reason || "Asignación de rol único desde panel de administración",
       });
+
+      // Persistir centro gestor cuando corresponda
+      if (requiresCentro && trimmedCentro && trimmedCentro !== detectedCentro) {
+        try {
+          await adminService.updateCentroGestor(user.uid, {
+            centro_gestor_assigned: trimmedCentro,
+            reason:
+              reason || "Asignación de centro desde panel de administración",
+          });
+        } catch (centroErr: any) {
+          // Intento fallback usando updateUser (campo centro_gestor_assigned)
+          try {
+            await adminService.updateUser(user.uid, {
+              centro_gestor_assigned: trimmedCentro,
+            } as any);
+          } catch {
+            throw centroErr;
+          }
+        }
+      }
+
       onSuccess();
     } catch (err: any) {
       setError(err.message || "Error al asignar roles");
@@ -335,6 +390,39 @@ export default function RoleAssignmentModal({
               </div>
             </div>
 
+            {/* Centro Gestor (requerido solo para admin_centro_gestor) */}
+            {requiresCentro && (
+              <div className="space-y-3 border-2 border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
+                <label className="block text-sm font-semibold text-orange-900 dark:text-orange-100">
+                  Centro Gestor asignado <span className="text-red-600">*</span>
+                </label>
+                <p className="text-xs text-orange-800 dark:text-orange-200">
+                  Este rol limita el acceso al centro gestor seleccionado. Es
+                  obligatorio para que el usuario pueda operar unidades de
+                  proyecto.
+                </p>
+                <input
+                  list="centros-gestores-list"
+                  type="text"
+                  value={centroGestor}
+                  onChange={(e) => setCentroGestor(e.target.value)}
+                  placeholder="Ej: Secretaría del Deporte y la Recreación"
+                  className="w-full px-4 py-2 border border-orange-300 dark:border-orange-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500"
+                />
+                <datalist id="centros-gestores-list">
+                  {centrosOptions.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+                {detectedCentro && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Centro actual:{" "}
+                    <span className="font-medium">{detectedCentro}</span>
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Razón del Cambio */}
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -366,7 +454,11 @@ export default function RoleAssignmentModal({
               </button>
               <button
                 onClick={handleSave}
-                disabled={loading || !selectedRole}
+                disabled={
+                  loading ||
+                  !selectedRole ||
+                  (requiresCentro && !centroGestor.trim())
+                }
                 className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg flex items-center gap-2"
               >
                 {loading ? (

@@ -32,6 +32,7 @@ import { MultiSelect } from "./MultiSelect";
 import dynamic from "next/dynamic";
 import ManagementFeatureTour from "./ManagementFeatureTour";
 import { useAuth } from "@/context/AuthContext";
+import { auth as firebaseAuth } from "@/lib/firebase";
 import {
   getCentroGestorAccessFromSession,
   itemMatchesCentroGestor,
@@ -486,8 +487,13 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
       if (hasAllGlobalOptions) return;
 
       try {
+        await firebaseAuth.authStateReady();
+        const currentUser = firebaseAuth.currentUser;
+        if (!currentUser) return;
+        const token = await currentUser.getIdToken();
         const response = await fetch(
           `${API_BASE_URL}/intervenciones?limit=10000`,
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         if (!response.ok) return;
 
@@ -1720,17 +1726,57 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
     const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     try {
+      // Obtener token Firebase para autenticar el request en el backend.
+      const headers: Record<string, string> = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      };
+      try {
+        // Esperar a que Firebase restaure la sesión persistida antes de leer currentUser.
+        if (
+          firebaseAuth &&
+          typeof (firebaseAuth as any).authStateReady === "function"
+        ) {
+          await (firebaseAuth as any).authStateReady();
+        }
+        const currentUser = firebaseAuth?.currentUser;
+        if (currentUser) {
+          // forceRefresh=true para traer los custom claims más recientes (rol/centro).
+          const token = await currentUser.getIdToken(true);
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+        } else {
+          const err: any = new Error(
+            "No autenticado: inicia sesión para acceder a esta sección.",
+          );
+          err.status = 401;
+          throw err;
+        }
+      } catch (tokenErr: any) {
+        if (tokenErr?.status === 401) throw tokenErr;
+        // Si falla obtener token, dejamos que el backend responda 401 y se maneje abajo.
+      }
+
       const response = await fetch(url, {
         cache: "no-store",
         signal: controller.signal,
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-        },
+        headers,
       });
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        // Intentar extraer detail/error del backend para un mensaje más útil.
+        let backendDetail = "";
+        try {
+          const payload = await response.clone().json();
+          backendDetail =
+            payload?.detail || payload?.error || payload?.message || "";
+        } catch {
+          /* ignore */
+        }
+        const err: any = new Error(
+          backendDetail || `Error ${response.status}: ${response.statusText}`,
+        );
+        err.status = response.status;
+        throw err;
       }
 
       return response.json();
@@ -2172,28 +2218,48 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
           animate={{ opacity: 1, y: 0 }}
           className="h-full flex flex-col p-4"
         >
-          {/* Error Message */}
-          {error && (
-            <div className="mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex-shrink-0">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-red-900 dark:text-red-100">
-                    Error al cargar datos
-                  </h3>
-                  <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                    {error}
-                  </p>
-                  <button
-                    onClick={loadData}
-                    className="mt-2 text-xs px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-                  >
-                    Reintentar
-                  </button>
+          {/* Error Message - distingue 401 (sesion) / 403 (permisos) / otros */}
+          {error &&
+            (() => {
+              const isUnauth = /401|Unauthorized|No autenticado|Token/i.test(
+                error,
+              );
+              const isForbidden =
+                /403|Forbidden|Permiso denegado|denegado/i.test(error);
+              const title = isUnauth
+                ? "Sesión expirada o no autenticado"
+                : isForbidden
+                  ? "No tienes permisos para esta sección"
+                  : "Error al cargar datos";
+              const help = isUnauth
+                ? "Cierra sesión e inicia de nuevo para refrescar tu token."
+                : isForbidden
+                  ? "Tu rol actual no incluye permisos sobre 'Unidades de Proyecto'. Contacta a un administrador para que actualice tu rol."
+                  : error;
+              return (
+                <div className="mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex-shrink-0">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-red-900 dark:text-red-100">
+                        {title}
+                      </h3>
+                      <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                        {help}
+                      </p>
+                      {!isForbidden && (
+                        <button
+                          onClick={loadData}
+                          className="mt-2 text-xs px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                        >
+                          Reintentar
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              );
+            })()}
 
           {/* Loading State */}
           {loading && (

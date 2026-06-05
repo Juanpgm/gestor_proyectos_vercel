@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RefreshCw,
@@ -11,6 +11,7 @@ import {
   Filter as FilterIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   Building2,
   DollarSign,
@@ -743,6 +744,8 @@ const UnidadesProyecto: React.FC = () => {
     string | null
   >(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   const canExportFilteredData =
     hasRole("admin_centro_gestor") ||
@@ -972,6 +975,74 @@ const UnidadesProyecto: React.FC = () => {
   const handleRefresh = () => {
     actions.refetch();
     refetchDashboard();
+  };
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(e.target as Node)
+      ) {
+        setExportMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [exportMenuOpen]);
+
+  const handleExportKML = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const { generateKml } = await import("@/utils/kmlExport");
+      const kmlString = generateKml(filteredData, filteredGeometry);
+      const blob = new Blob([kmlString], {
+        type: "application/vnd.google-earth.kml+xml",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const dateTag = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `unidades_proyecto_${dateTag}.kml`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("❌ Error al exportar KML:", error);
+      window.alert("No se pudo exportar el archivo KML. Inténtalo nuevamente.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportKMZ = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const { generateKml, generateKmz } = await import("@/utils/kmlExport");
+      const kmlString = generateKml(filteredData, filteredGeometry);
+      const kmzBytes = await generateKmz(kmlString);
+      const blob = new Blob([kmzBytes], {
+        type: "application/vnd.google-earth.kmz",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const dateTag = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `unidades_proyecto_${dateTag}.kmz`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("❌ Error al exportar KMZ:", error);
+      window.alert("No se pudo exportar el archivo KMZ. Inténtalo nuevamente.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleExportFilteredData = async () => {
@@ -1218,22 +1289,82 @@ const UnidadesProyecto: React.FC = () => {
             {/* Controles de vista y acciones */}
             <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
               {canExportFilteredData && (
-                <button
-                  onClick={handleExportFilteredData}
-                  disabled={isExporting}
-                  className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
-                  title="Descargar datos filtrados"
-                >
-                  <Download className="w-3 h-3 md:w-4 md:h-4" />
-                  <span className="hidden sm:inline">
-                    {isExporting
-                      ? "Descargando..."
-                      : "Descargar datos filtrados"}
-                  </span>
-                  <span className="inline sm:hidden">
-                    {isExporting ? "..." : "XLSX"}
-                  </span>
-                </button>
+                <div className="relative" ref={exportMenuRef}>
+                  <button
+                    onClick={() => setExportMenuOpen((v) => !v)}
+                    disabled={isExporting}
+                    className="flex items-center space-x-1 md:space-x-2 px-2 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                    title="Exportar datos filtrados"
+                  >
+                    <Download className="w-3 h-3 md:w-4 md:h-4" />
+                    <span className="hidden sm:inline">
+                      {isExporting ? "Exportando..." : "Exportar"}
+                    </span>
+                    <span className="inline sm:hidden">
+                      {isExporting ? "..." : "EXP"}
+                    </span>
+                    <ChevronDown className="w-3 h-3 ml-0.5 opacity-70" />
+                  </button>
+
+                  {exportMenuOpen && !isExporting && (
+                    <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-[190px]">
+                      <p className="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        Formato
+                      </p>
+
+                      {/* XLSX */}
+                      <button
+                        onClick={() => {
+                          setExportMenuOpen(false);
+                          handleExportFilteredData();
+                        }}
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <FileText className="w-4 h-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <div className="text-left">
+                          <div className="font-medium">XLSX</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Excel · incluye geometría
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* KML */}
+                      <button
+                        onClick={() => {
+                          setExportMenuOpen(false);
+                          handleExportKML();
+                        }}
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Map className="w-4 h-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                        <div className="text-left">
+                          <div className="font-medium">KML</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Google My Maps · QGIS · ArcGIS
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* KMZ */}
+                      <button
+                        onClick={() => {
+                          setExportMenuOpen(false);
+                          handleExportKMZ();
+                        }}
+                        className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <Layers className="w-4 h-4 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+                        <div className="text-left">
+                          <div className="font-medium">KMZ</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Comprimido · Google Earth
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Selector de vista */}

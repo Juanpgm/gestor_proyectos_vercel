@@ -43,6 +43,7 @@ import {
 } from "@/services/unidades-proyecto.service";
 import { useAuth } from "@/context/AuthContext";
 import { getCentroGestorAccessFromSession } from "@/utils/centroGestorAccess";
+import { authFetch } from "@/lib/authFetch";
 
 const UpLocationPickerMap = dynamic(() => import("./UpLocationPickerMap"), {
   ssr: false,
@@ -2559,7 +2560,7 @@ const GestionRegistrosTab: React.FC = () => {
       }
 
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `${API_BASE}/avances_unidades_proyecto?intervencion_id=${encodeURIComponent(key)}`,
         );
         if (!res.ok) {
@@ -2678,7 +2679,7 @@ const GestionRegistrosTab: React.FC = () => {
       });
 
       try {
-        const res = await fetch(`${API_BASE}/intervenciones?limit=10000`);
+        const res = await authFetch(`${API_BASE}/intervenciones?limit=10000`);
         const json = await res.json();
 
         // Guardar intervenciones filtradas por centro gestor del usuario
@@ -2713,7 +2714,7 @@ const GestionRegistrosTab: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/unidades-proyecto?limit=10000`);
+      const res = await authFetch(`${API_BASE}/unidades-proyecto?limit=10000`);
       const json = await res.json();
       const rawItems = Array.isArray(json)
         ? json
@@ -2792,7 +2793,7 @@ const GestionRegistrosTab: React.FC = () => {
         // primaria de filtrado, ya que nombre_centro_gestor está a nivel de
         // intervención y puede no existir a nivel de UP.
         try {
-          const intervRes = await fetch(
+          const intervRes = await authFetch(
             `${API_BASE}/intervenciones?limit=10000`,
           );
           const intervJson = await intervRes.json();
@@ -2901,7 +2902,7 @@ const GestionRegistrosTab: React.FC = () => {
         return;
       setLoadingIntervUp((prev) => ({ ...prev, [upid]: true }));
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `${API_BASE}/intervenciones?upid=${encodeURIComponent(upid)}&limit=10000`,
         );
         const json = await res.json();

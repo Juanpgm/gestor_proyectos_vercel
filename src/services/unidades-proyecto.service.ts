@@ -151,11 +151,11 @@ export interface ApiResponse<T> {
 }
 
 // Configuración de la API
+// IMPORTANTE: Usamos siempre /api/proxy (Next.js route handler) en lugar de
+// http://localhost:8000 directamente. El proxy reenvía el header
+// Authorization al backend y resuelve CORS en producción.
 const API_CONFIG = {
-  BASE_URL:
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "",
+  BASE_URL: "/api/proxy",
   ENDPOINT: "/unidades-proyecto", // Endpoint unificado simplificado
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3,
@@ -229,6 +229,30 @@ const fetchWithRetry = async (
       ? url
       : `${url}${url.includes("?") ? "&" : "?"}_t=${Date.now()}`;
 
+    // Adjuntar Firebase ID token si no viene en options.headers.
+    // Usamos lazy import para evitar circular deps con @/lib/firebase.
+    let authHeader: Record<string, string> = {};
+    const incomingAuth =
+      (options.headers as Record<string, string> | undefined)?.[
+        "Authorization"
+      ] ||
+      (options.headers as Record<string, string> | undefined)?.[
+        "authorization"
+      ];
+    if (!incomingAuth && typeof window !== "undefined") {
+      try {
+        const { auth: firebaseAuth } = await import("@/lib/firebase");
+        await firebaseAuth.authStateReady();
+        const user = firebaseAuth.currentUser;
+        if (user) {
+          const token = await user.getIdToken(false);
+          authHeader = { Authorization: `Bearer ${token}` };
+        }
+      } catch {
+        // Sin token disponible — dejar que el backend devuelva 401.
+      }
+    }
+
     const response = await fetch(finalUrl, {
       ...options,
       signal: controller.signal,
@@ -242,6 +266,7 @@ const fetchWithRetry = async (
               "Cache-Control": "no-cache",
               Pragma: "no-cache",
             }),
+        ...authHeader,
         ...options.headers,
       },
     });
@@ -408,7 +433,19 @@ const fetchUnidadesProyectoRaw = async (
       API_CONFIG.RETRY_ATTEMPTS,
       !hasFilters,
     );
-    const rawData = await response.json();
+    const rawResponse = await response.json();
+
+    // El proxy de Next.js (`/api/proxy/[...path]`) desempaqueta automáticamente
+    // las respuestas `{success: true, data: [...]}` para endpoints
+    // `unidades-proyecto`. Si llega un array plano, lo envolvemos aquí
+    // manualmente para mantener compatibilidad con la lógica de paginación.
+    const rawData = Array.isArray(rawResponse)
+      ? {
+          success: true,
+          data: rawResponse,
+          count: rawResponse.length,
+        }
+      : rawResponse;
 
     console.log(
       `📦 fetchUnidadesProyectoRaw: Response keys =`,
@@ -456,7 +493,12 @@ const fetchUnidadesProyectoRaw = async (
           API_CONFIG.RETRY_ATTEMPTS,
           false,
         );
-        const pageData = await pageResponse.json();
+        const pageRaw = await pageResponse.json();
+        // Aceptar tanto array plano (desempaquetado por el proxy) como
+        // estructura envuelta `{success, data}`.
+        const pageData = Array.isArray(pageRaw)
+          ? { success: true, data: pageRaw }
+          : pageRaw;
 
         if (
           pageData.success &&
@@ -1707,6 +1749,21 @@ export const filterAttributeData = (
 
 const PROXY_BASE = "/api/proxy";
 
+/** Devuelve el header `Authorization: Bearer <id_token>` si hay sesión Firebase. */
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const { auth: firebaseAuth } = await import("@/lib/firebase");
+    await firebaseAuth.authStateReady();
+    const user = firebaseAuth.currentUser;
+    if (!user) return {};
+    const token = await user.getIdToken(false);
+    return { Authorization: `Bearer ${token}` };
+  } catch {
+    return {};
+  }
+}
+
 /** Tipo genérico para la respuesta de mutaciones del backend */
 export interface MutationResponse {
   success?: boolean;
@@ -1919,9 +1976,10 @@ async function proxyPost<T = MutationResponse>(
   path: string,
   body: Record<string, any>,
 ): Promise<T> {
+  const authHeader = await getAuthHeaders();
   const res = await fetch(`${PROXY_BASE}/${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader },
     body: JSON.stringify(body),
   });
   const json = await res.json();
@@ -1935,9 +1993,10 @@ async function proxyPut<T = MutationResponse>(
   path: string,
   body: Record<string, any>,
 ): Promise<T> {
+  const authHeader = await getAuthHeaders();
   const res = await fetch(`${PROXY_BASE}/${path}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader },
     body: JSON.stringify(body),
   });
   const json = await res.json();
@@ -1954,9 +2013,10 @@ async function proxyPutParams<T = MutationResponse>(
   body?: Record<string, any>,
 ): Promise<T> {
   const qs = new URLSearchParams(params).toString();
+  const authHeader = await getAuthHeaders();
   const res = await fetch(`${PROXY_BASE}/${path}?${qs}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader },
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json();
@@ -1971,8 +2031,10 @@ async function proxyDelete<T = MutationResponse>(
   params: Record<string, string>,
 ): Promise<T> {
   const qs = new URLSearchParams(params).toString();
+  const authHeader = await getAuthHeaders();
   const res = await fetch(`${PROXY_BASE}/${path}?${qs}`, {
     method: "DELETE",
+    headers: { ...authHeader },
   });
   const json = await res.json();
   if (!res.ok)
@@ -1985,7 +2047,10 @@ async function proxyGet<T = any>(
   params?: Record<string, string>,
 ): Promise<T> {
   const qs = params ? `?${new URLSearchParams(params).toString()}` : "";
-  const res = await fetch(`${PROXY_BASE}/${path}${qs}`);
+  const authHeader = await getAuthHeaders();
+  const res = await fetch(`${PROXY_BASE}/${path}${qs}`, {
+    headers: { ...authHeader },
+  });
   const json = await res.json();
   if (!res.ok)
     throw new Error(json?.detail || json?.message || `Error ${res.status}`);

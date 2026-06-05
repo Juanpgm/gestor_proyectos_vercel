@@ -733,9 +733,24 @@ export const useUnidadesProyecto = (
         // Usar proxy para consistencia entre local y producción
         const url = `/api/proxy/intervenciones?limit=10000`;
 
+        // Adjuntar Firebase ID token para que el backend autorice la
+        // petición (el middleware exige Authorization: Bearer <token>).
+        let authHeader: Record<string, string> = {};
+        try {
+          const { auth: firebaseAuth } = await import("@/lib/firebase");
+          await firebaseAuth.authStateReady();
+          const user = firebaseAuth.currentUser;
+          if (user) {
+            const token = await user.getIdToken(false);
+            authHeader = { Authorization: `Bearer ${token}` };
+          }
+        } catch {
+          // Sin token disponible — la respuesta será 401 y se manejará abajo.
+        }
+
         const response = await fetch(url, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeader },
           cache: "no-store",
         });
 
