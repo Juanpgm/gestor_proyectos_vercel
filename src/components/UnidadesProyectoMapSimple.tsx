@@ -1657,268 +1657,270 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
 
       {/* Mapa de Leaflet */}
       <div ref={mapContainerRef} className="h-full w-full">
-      <MapContainer
-        center={defaultCenter}
-        zoom={defaultZoom}
-        className="h-full w-full"
-        zoomControl={false}
-      >
-        <TileLayer url={getTileUrl()} attribution={getTileAttribution()} />
+        <MapContainer
+          center={defaultCenter}
+          zoom={defaultZoom}
+          className="h-full w-full"
+          zoomControl={false}
+        >
+          <TileLayer url={getTileUrl()} attribution={getTileAttribution()} />
 
-        {/* Controlador de enfoque */}
-        <MapFocusController
-          focusedItem={focusedItem}
-          geometryData={geometryData}
-        />
+          {/* Controlador de enfoque */}
+          <MapFocusController
+            focusedItem={focusedItem}
+            geometryData={geometryData}
+          />
 
-        {/* Capas base - se renderizan primero para quedar por debajo */}
-        {baseLayer === "comunas" && comunasData && (
-          <>
+          {/* Capas base - se renderizan primero para quedar por debajo */}
+          {baseLayer === "comunas" && comunasData && (
+            <>
+              <GeoJSON
+                key={`comunas-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+                data={comunasData}
+                style={getBaseLayerStyle}
+                pane="tilePane"
+              />
+              {showBaseLayerLabels && (
+                <BaseLayerLabels data={comunasData} layerType="comunas" />
+              )}
+            </>
+          )}
+
+          {baseLayer === "barrios" && barriosData && (
+            <>
+              <GeoJSON
+                key={`barrios-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+                data={barriosData}
+                style={getBaseLayerStyle}
+                pane="tilePane"
+              />
+              {showBaseLayerLabels && (
+                <BaseLayerLabels data={barriosData} layerType="barrios" />
+              )}
+            </>
+          )}
+
+          {baseLayer === "pulmon" && pulmonData && (
             <GeoJSON
-              key={`comunas-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
-              data={comunasData}
+              key={`pulmon-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+              data={pulmonData}
               style={getBaseLayerStyle}
               pane="tilePane"
             />
-            {showBaseLayerLabels && (
-              <BaseLayerLabels data={comunasData} layerType="comunas" />
-            )}
-          </>
-        )}
+          )}
 
-        {baseLayer === "barrios" && barriosData && (
-          <>
+          {baseLayer === "microterritorios" && microterritoriosData && (
             <GeoJSON
-              key={`barrios-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
-              data={barriosData}
+              key={`microterritorios-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
+              data={microterritoriosData}
               style={getBaseLayerStyle}
               pane="tilePane"
             />
-            {showBaseLayerLabels && (
-              <BaseLayerLabels data={barriosData} layerType="barrios" />
-            )}
-          </>
-        )}
+          )}
 
-        {baseLayer === "pulmon" && pulmonData && (
-          <GeoJSON
-            key={`pulmon-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
-            data={pulmonData}
-            style={getBaseLayerStyle}
-            pane="tilePane"
-          />
-        )}
+          {/* GeometrÃ­as de la API - se renderizan despuÃ©s para quedar por encima */}
+          {geometryData &&
+            geometryData.features &&
+            (() => {
+              console.log(
+                "Rendering GeoJSON layer with",
+                geometryData.features.length,
+                "features",
+              );
+              return true;
+            })() && (
+              <GeoJSON
+                key={`${mapType}-${isDark}-${coloringType}-${geometryData.features.length}`}
+                data={geometryData as any}
+                style={getFeatureStyle}
+                pointToLayer={(feature: any, latlng: any) => {
+                  const style = getCircleMarkerStyle(feature);
+                  return L.circleMarker(latlng, style);
+                }}
+                onEachFeature={(feature: any, layer: any) => {
+                  // Normalizar UPID para comparaciÃ³n case-insensitive
+                  const featureUpid = String(feature.properties.upid || "")
+                    .trim()
+                    .toLowerCase();
+                  const attributeItem = filteredData.find(
+                    (item) =>
+                      String(item.upid || "")
+                        .trim()
+                        .toLowerCase() === featureUpid,
+                  );
 
-        {baseLayer === "microterritorios" && microterritoriosData && (
-          <GeoJSON
-            key={`microterritorios-${mapType}-${isDark}-${baseLayerColorMode}-${baseLayerMonotoneColor}`}
-            data={microterritoriosData}
-            style={getBaseLayerStyle}
-            pane="tilePane"
-          />
-        )}
+                  if (attributeItem) {
+                    const avance = Math.round(attributeItem.avance_obra || 0);
 
-        {/* GeometrÃ­as de la API - se renderizan despuÃ©s para quedar por encima */}
-        {geometryData &&
-          geometryData.features &&
-          (() => {
-            console.log(
-              "Rendering GeoJSON layer with",
-              geometryData.features.length,
-              "features",
-            );
-            return true;
-          })() && (
-            <GeoJSON
-              key={`${mapType}-${isDark}-${coloringType}-${geometryData.features.length}`}
-              data={geometryData as any}
-              style={getFeatureStyle}
-              pointToLayer={(feature: any, latlng: any) => {
-                const style = getCircleMarkerStyle(feature);
-                return L.circleMarker(latlng, style);
-              }}
-              onEachFeature={(feature: any, layer: any) => {
-                // Normalizar UPID para comparaciÃ³n case-insensitive
-                const featureUpid = String(feature.properties.upid || "")
-                  .trim()
-                  .toLowerCase();
-                const attributeItem = filteredData.find(
-                  (item) =>
-                    String(item.upid || "")
-                      .trim()
-                      .toLowerCase() === featureUpid,
-                );
+                    // FunciÃ³n para formatear valores monetarios
+                    const formatCurrency = (amount: number) => {
+                      if (!amount) return "0";
+                      if (amount >= 1000000000)
+                        return `${(amount / 1000000000).toFixed(1)}MM`;
+                      if (amount >= 1000000)
+                        return `${(amount / 1000000).toFixed(1)}M`;
+                      if (amount >= 1000)
+                        return `${(amount / 1000).toFixed(0)}K`;
+                      return amount.toLocaleString("es-CO");
+                    };
 
-                if (attributeItem) {
-                  const avance = Math.round(attributeItem.avance_obra || 0);
-
-                  // FunciÃ³n para formatear valores monetarios
-                  const formatCurrency = (amount: number) => {
-                    if (!amount) return "0";
-                    if (amount >= 1000000000)
-                      return `${(amount / 1000000000).toFixed(1)}MM`;
-                    if (amount >= 1000000)
-                      return `${(amount / 1000000).toFixed(1)}M`;
-                    if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
-                    return amount.toLocaleString("es-CO");
-                  };
-
-                  // FunciÃ³n para calcular duraciÃ³n del proyecto
-                  const calculateProjectDuration = (
-                    fechaInicio: string,
-                    fechaFin: string,
-                  ) => {
-                    if (!fechaInicio || !fechaFin) {
-                      return {
-                        duration: "N/A",
-                        status: "sin-fecha",
-                        dateRange: "Fechas no disponibles",
-                      };
-                    }
-
-                    try {
-                      const startDate = new Date(fechaInicio);
-                      const endDate = new Date(fechaFin);
-                      const today = new Date();
-
-                      if (
-                        isNaN(startDate.getTime()) ||
-                        isNaN(endDate.getTime())
-                      ) {
+                    // FunciÃ³n para calcular duraciÃ³n del proyecto
+                    const calculateProjectDuration = (
+                      fechaInicio: string,
+                      fechaFin: string,
+                    ) => {
+                      if (!fechaInicio || !fechaFin) {
                         return {
-                          duration: "Fecha inválida",
-                          status: "error",
-                          dateRange: "Formato de fecha incorrecto",
+                          duration: "N/A",
+                          status: "sin-fecha",
+                          dateRange: "Fechas no disponibles",
                         };
                       }
 
-                      const diffTime = endDate.getTime() - startDate.getTime();
-                      const daysTotal = Math.ceil(
-                        diffTime / (1000 * 60 * 60 * 24),
-                      );
-                      const monthsTotal = Math.ceil(daysTotal / 30);
+                      try {
+                        const startDate = new Date(fechaInicio);
+                        const endDate = new Date(fechaFin);
+                        const today = new Date();
 
-                      let status = "planificado";
-                      if (today >= startDate && today <= endDate) {
-                        status = "en-curso";
-                      } else if (today > endDate) {
-                        status = "finalizado";
+                        if (
+                          isNaN(startDate.getTime()) ||
+                          isNaN(endDate.getTime())
+                        ) {
+                          return {
+                            duration: "Fecha inválida",
+                            status: "error",
+                            dateRange: "Formato de fecha incorrecto",
+                          };
+                        }
+
+                        const diffTime =
+                          endDate.getTime() - startDate.getTime();
+                        const daysTotal = Math.ceil(
+                          diffTime / (1000 * 60 * 60 * 24),
+                        );
+                        const monthsTotal = Math.ceil(daysTotal / 30);
+
+                        let status = "planificado";
+                        if (today >= startDate && today <= endDate) {
+                          status = "en-curso";
+                        } else if (today > endDate) {
+                          status = "finalizado";
+                        }
+
+                        const formatDate = (date: Date) => {
+                          return date.toLocaleDateString("es-CO", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          });
+                        };
+
+                        let duration = "";
+                        if (monthsTotal > 12) {
+                          const years = Math.floor(monthsTotal / 12);
+                          const remainingMonths = monthsTotal % 12;
+                          duration = `${years} año${years > 1 ? "s" : ""}${remainingMonths > 0 ? ` ${remainingMonths} mes${remainingMonths > 1 ? "es" : ""}` : ""}`;
+                        } else if (monthsTotal >= 1) {
+                          duration = `${monthsTotal} mes${monthsTotal > 1 ? "es" : ""}`;
+                        } else {
+                          duration = `${daysTotal} día${daysTotal > 1 ? "s" : ""}`;
+                        }
+
+                        return {
+                          duration,
+                          status,
+                          dateRange: `${formatDate(startDate)} - ${formatDate(endDate)}`,
+                        };
+                      } catch (error) {
+                        return {
+                          duration: "Error",
+                          status: "error",
+                          dateRange: "Error al calcular fechas",
+                        };
                       }
+                    };
 
-                      const formatDate = (date: Date) => {
-                        return date.toLocaleDateString("es-CO", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        });
-                      };
+                    const popupContent = document.createElement("div");
 
-                      let duration = "";
-                      if (monthsTotal > 12) {
-                        const years = Math.floor(monthsTotal / 12);
-                        const remainingMonths = monthsTotal % 12;
-                        duration = `${years} año${years > 1 ? "s" : ""}${remainingMonths > 0 ? ` ${remainingMonths} mes${remainingMonths > 1 ? "es" : ""}` : ""}`;
-                      } else if (monthsTotal >= 1) {
-                        duration = `${monthsTotal} mes${monthsTotal > 1 ? "es" : ""}`;
-                      } else {
-                        duration = `${daysTotal} día${daysTotal > 1 ? "s" : ""}`;
+                    // Estilos basados en el tema
+                    const bgGradient = isDark
+                      ? "linear-gradient(135deg, #1f2937 0%, #111827 100%)"
+                      : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
+
+                    const borderColor = isDark
+                      ? "rgba(255,255,255,0.1)"
+                      : "rgba(0,0,0,0.1)";
+                    const textColor = isDark ? "#f9fafb" : "#1e293b";
+                    const labelColor = isDark ? "#9ca3af" : "#64748b";
+                    const cardBg = isDark ? "#374151" : "#f1f5f9";
+                    const cardBorder = isDark ? "#4b5563" : "#e2e8f0";
+
+                    // Calcular duraciÃ³n del proyecto
+                    const projectDuration = calculateProjectDuration(
+                      attributeItem.fecha_inicio,
+                      attributeItem.fecha_fin,
+                    );
+
+                    // Determinar colores del estado de duraciÃ³n
+                    const getDurationStatusColor = (status: string) => {
+                      switch (status) {
+                        case "en-curso":
+                          return isDark
+                            ? {
+                                bg: "#065f46",
+                                border: "#059669",
+                                text: "#6ee7b7",
+                              }
+                            : {
+                                bg: "#dcfce7",
+                                border: "#22c55e",
+                                text: "#15803d",
+                              };
+                        case "finalizado":
+                          return isDark
+                            ? {
+                                bg: "#1e40af",
+                                border: "#2563eb",
+                                text: "#93c5fd",
+                              }
+                            : {
+                                bg: "#dbeafe",
+                                border: "#3b82f6",
+                                text: "#1d4ed8",
+                              };
+                        case "planificado":
+                          return isDark
+                            ? {
+                                bg: "#92400e",
+                                border: "#d97706",
+                                text: "#fcd34d",
+                              }
+                            : {
+                                bg: "#fef3c7",
+                                border: "#f59e0b",
+                                text: "#d97706",
+                              };
+                        default:
+                          return isDark
+                            ? {
+                                bg: "#374151",
+                                border: "#6b7280",
+                                text: "#d1d5db",
+                              }
+                            : {
+                                bg: "#f3f4f6",
+                                border: "#9ca3af",
+                                text: "#6b7280",
+                              };
                       }
+                    };
 
-                      return {
-                        duration,
-                        status,
-                        dateRange: `${formatDate(startDate)} - ${formatDate(endDate)}`,
-                      };
-                    } catch (error) {
-                      return {
-                        duration: "Error",
-                        status: "error",
-                        dateRange: "Error al calcular fechas",
-                      };
-                    }
-                  };
+                    const durationColors = getDurationStatusColor(
+                      projectDuration.status,
+                    );
 
-                  const popupContent = document.createElement("div");
-
-                  // Estilos basados en el tema
-                  const bgGradient = isDark
-                    ? "linear-gradient(135deg, #1f2937 0%, #111827 100%)"
-                    : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
-
-                  const borderColor = isDark
-                    ? "rgba(255,255,255,0.1)"
-                    : "rgba(0,0,0,0.1)";
-                  const textColor = isDark ? "#f9fafb" : "#1e293b";
-                  const labelColor = isDark ? "#9ca3af" : "#64748b";
-                  const cardBg = isDark ? "#374151" : "#f1f5f9";
-                  const cardBorder = isDark ? "#4b5563" : "#e2e8f0";
-
-                  // Calcular duraciÃ³n del proyecto
-                  const projectDuration = calculateProjectDuration(
-                    attributeItem.fecha_inicio,
-                    attributeItem.fecha_fin,
-                  );
-
-                  // Determinar colores del estado de duraciÃ³n
-                  const getDurationStatusColor = (status: string) => {
-                    switch (status) {
-                      case "en-curso":
-                        return isDark
-                          ? {
-                              bg: "#065f46",
-                              border: "#059669",
-                              text: "#6ee7b7",
-                            }
-                          : {
-                              bg: "#dcfce7",
-                              border: "#22c55e",
-                              text: "#15803d",
-                            };
-                      case "finalizado":
-                        return isDark
-                          ? {
-                              bg: "#1e40af",
-                              border: "#2563eb",
-                              text: "#93c5fd",
-                            }
-                          : {
-                              bg: "#dbeafe",
-                              border: "#3b82f6",
-                              text: "#1d4ed8",
-                            };
-                      case "planificado":
-                        return isDark
-                          ? {
-                              bg: "#92400e",
-                              border: "#d97706",
-                              text: "#fcd34d",
-                            }
-                          : {
-                              bg: "#fef3c7",
-                              border: "#f59e0b",
-                              text: "#d97706",
-                            };
-                      default:
-                        return isDark
-                          ? {
-                              bg: "#374151",
-                              border: "#6b7280",
-                              text: "#d1d5db",
-                            }
-                          : {
-                              bg: "#f3f4f6",
-                              border: "#9ca3af",
-                              text: "#6b7280",
-                            };
-                    }
-                  };
-
-                  const durationColors = getDurationStatusColor(
-                    projectDuration.status,
-                  );
-
-                  // Popup minimalista y elegante
-                  popupContent.innerHTML = `
+                    // Popup minimalista y elegante
+                    popupContent.innerHTML = `
                   <div style="
                     background: ${isDark ? "#1f2937" : "#ffffff"};
                     border-radius: 12px;
@@ -2091,26 +2093,26 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
                   </div>
                 `;
 
-                  layer.bindPopup(popupContent, {
-                    maxWidth: 400,
-                    className: "custom-popup",
-                    zIndexOffset: 10000,
-                  });
+                    layer.bindPopup(popupContent, {
+                      maxWidth: 400,
+                      className: "custom-popup",
+                      zIndexOffset: 10000,
+                    });
 
-                  // AÃ±adir click handler para enfocar el elemento
-                  layer.on("click", () => {
-                    if (onItemClick && attributeItem) {
-                      onItemClick(attributeItem.upid);
-                    }
-                  });
-                }
-              }}
-            />
-          )}
+                    // AÃ±adir click handler para enfocar el elemento
+                    layer.on("click", () => {
+                      if (onItemClick && attributeItem) {
+                        onItemClick(attributeItem.upid);
+                      }
+                    });
+                  }
+                }}
+              />
+            )}
 
-        {/* Herramienta de medición */}
-        <MapMeasureTool />
-      </MapContainer>
+          {/* Herramienta de medición */}
+          <MapMeasureTool />
+        </MapContainer>
       </div>
     </div>
   );

@@ -747,11 +747,7 @@ const UnidadesProyecto: React.FC = () => {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
 
-  const canExportFilteredData =
-    hasRole("admin_centro_gestor") ||
-    hasRole("analista") ||
-    hasRole("admin_general") ||
-    hasRole("super_admin");
+  const canExportFilteredData = !!authState.user;
 
   // Hook principal con configuración mejorada
   const { state, filteredData, filteredGeometry, metrics, actions, filters } =
