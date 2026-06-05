@@ -487,6 +487,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
       if (hasAllGlobalOptions) return;
 
       try {
+        if (!firebaseAuth) return;
         await firebaseAuth.authStateReady();
         const currentUser = firebaseAuth.currentUser;
         if (!currentUser) return;
