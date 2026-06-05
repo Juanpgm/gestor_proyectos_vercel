@@ -54,7 +54,9 @@ export default function UsuariosPage() {
           <p className="text-red-600 dark:text-red-400 font-medium">
             No se pudo verificar la sesión con el servidor
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{state.error}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {state.error}
+          </p>
           <button
             onClick={() => validateSession()}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
