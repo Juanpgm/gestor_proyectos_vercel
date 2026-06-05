@@ -26,6 +26,7 @@ export class AuthFetchError extends Error {
 export async function getFirebaseIdToken(
   forceRefresh = false,
 ): Promise<string> {
+  if (!firebaseAuth) throw new AuthFetchError("Firebase Auth no disponible", 401);
   await firebaseAuth.authStateReady();
   const user = firebaseAuth.currentUser;
   if (!user) {

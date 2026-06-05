@@ -738,6 +738,7 @@ export const useUnidadesProyecto = (
         let authHeader: Record<string, string> = {};
         try {
           const { auth: firebaseAuth } = await import("@/lib/firebase");
+          if (!firebaseAuth) throw new Error("firebaseAuth unavailable");
           await firebaseAuth.authStateReady();
           const user = firebaseAuth.currentUser;
           if (user) {

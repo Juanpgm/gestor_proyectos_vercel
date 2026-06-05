@@ -242,6 +242,7 @@ const fetchWithRetry = async (
     if (!incomingAuth && typeof window !== "undefined") {
       try {
         const { auth: firebaseAuth } = await import("@/lib/firebase");
+        if (!firebaseAuth) throw new Error("firebaseAuth unavailable");
         await firebaseAuth.authStateReady();
         const user = firebaseAuth.currentUser;
         if (user) {
@@ -1754,6 +1755,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   if (typeof window === "undefined") return {};
   try {
     const { auth: firebaseAuth } = await import("@/lib/firebase");
+    if (!firebaseAuth) return {};
     await firebaseAuth.authStateReady();
     const user = firebaseAuth.currentUser;
     if (!user) return {};
