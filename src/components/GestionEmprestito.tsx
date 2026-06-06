@@ -36,6 +36,7 @@ import {
 import type { EmprestitoTabId } from "@/types/gestion-emprestito";
 import { EMPRESTITO_TAB_LABELS } from "@/types/gestion-emprestito";
 import { cn } from "@/lib/cn";
+import { proxyFetch } from "@/utils/errorHandler";
 
 // Dynamic imports for heavy tabs
 const GestionRegistrosEmprestitoTab = dynamic(
@@ -324,7 +325,9 @@ const GestionEmprestito: React.FC<GestionEmprestitoProps> = ({
         return;
 
       try {
-        const res = await fetch(`${API_BASE_URL}/contratos_emprestito_all`);
+        const res = await proxyFetch(
+          `${API_BASE_URL}/contratos_emprestito_all`,
+        );
         if (!res.ok) return;
         const json = await res.json();
         let records = Array.isArray(json)
@@ -1243,7 +1246,7 @@ const GestionEmprestito: React.FC<GestionEmprestitoProps> = ({
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
     try {
-      const res = await fetch(url, {
+      const res = await proxyFetch(url, {
         cache: "no-store",
         signal: controller.signal,
         headers: {

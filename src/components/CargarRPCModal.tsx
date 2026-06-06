@@ -14,6 +14,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import FileUploadZone from "./FileUploadZone";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface ContratoData {
   referencia_contrato?: string;
@@ -263,7 +264,7 @@ const CargarRPCModal: React.FC<CargarRPCModalProps> = ({
       );
       console.log("Total archivos nuevos:", uploadedFiles.length);
 
-      const response = await fetch(`${apiUrl}/emprestito/cargar-rpc`, {
+      const response = await proxyFetch(`${apiUrl}/emprestito/cargar-rpc`, {
         method: "POST",
         // NO incluir Content-Type header - el navegador lo establece automáticamente con boundary
         body: dataToSend,

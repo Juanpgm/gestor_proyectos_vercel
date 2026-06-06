@@ -287,7 +287,32 @@ export const fetchSolicitudesCambiosEmprestito = async (
     limit: "500",
     ...params,
   });
-  return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+  const raw: any[] = Array.isArray(res?.data)
+    ? res.data
+    : Array.isArray(res)
+      ? res
+      : [];
+
+  // Normalize backend field names → frontend SolicitudCambioEmprestito shape
+  return raw.map((s) => ({
+    id: s.id ?? "",
+    tipo: (s.tipo ??
+      s.tipo_registro ??
+      "") as SolicitudCambioEmprestito["tipo"],
+    referencia: s.referencia ?? s.referencia_id ?? "",
+    campos_modificados: s.campos_modificados ?? {},
+    justificacion: s.justificacion ?? s.motivo ?? "",
+    solicitado_por: s.solicitado_por ?? s.actor_nombre ?? s.created_by ?? "",
+    nombre_centro_gestor:
+      s.nombre_centro_gestor ?? s.centro_gestor ?? s.actor_centro_gestor ?? "",
+    estado_decision: (s.estado_decision ??
+      s.estado ??
+      null) as SolicitudCambioEmprestito["estado_decision"],
+    decidido_por: s.decidido_por ?? null,
+    fecha_decision: s.fecha_decision ?? null,
+    created_at: s.created_at ?? "",
+    registro_actual: s.registro_actual ?? undefined,
+  }));
 };
 
 // ── CRUD (procesos, RPCs, pagos, convenios, órdenes) ─────────────

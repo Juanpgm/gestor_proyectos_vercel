@@ -2667,7 +2667,7 @@ const GestionRegistrosTab: React.FC = () => {
   );
 
   const loadIntervencionesSummary = useCallback(
-    async (upsToEvaluate: UP[]) => {
+    async (upsToEvaluate: UP[], prefetchedRawItems?: any[]) => {
       if (upsToEvaluate.length === 0) {
         setIntervencionesCountByUpid({});
         return;
@@ -2679,34 +2679,74 @@ const GestionRegistrosTab: React.FC = () => {
       });
 
       try {
-        const res = await authFetch(`${API_BASE}/intervenciones?limit=10000`);
-        const json = await res.json();
+        let rawItems: any[];
+        if (prefetchedRawItems) {
+          // Reutilizar datos ya cargados por loadUPs — evita request duplicado
+          rawItems = prefetchedRawItems;
+        } else {
+          const res = await authFetch(`${API_BASE}/intervenciones?limit=10000`);
+          const json = await res.json();
+          rawItems = parseListPayload(json);
+        }
 
         // Guardar intervenciones filtradas por centro gestor del usuario
-        const rawItems = parseListPayload(json);
         const filteredIntervenciones = canViewAllCentros
           ? (rawItems as Intervencion[])
           : (rawItems as Intervencion[]).filter(intervMatchesCentro);
         setAllIntervencionesRaw(filteredIntervenciones);
 
-        // Recalcular conteos solo con intervenciones filtradas
+        // Agrupar por upid: conteos + mapa de intervenciones + métricas
         const filteredCountByUpid: Record<string, number> = {};
+        const bulkByUpid: Record<string, Intervencion[]> = {};
         filteredIntervenciones.forEach((interv) => {
           const upid = String(interv.upid || "").trim();
-          if (upid)
-            filteredCountByUpid[upid] = (filteredCountByUpid[upid] || 0) + 1;
+          if (!upid) return;
+          filteredCountByUpid[upid] = (filteredCountByUpid[upid] || 0) + 1;
+          if (!bulkByUpid[upid]) bulkByUpid[upid] = [];
+          bulkByUpid[upid].push(interv);
         });
 
-        setIntervencionesCountByUpid({
-          ...baseMap,
-          ...filteredCountByUpid,
+        setIntervencionesCountByUpid({ ...baseMap, ...filteredCountByUpid });
+
+        // Pre-poblar intervencionesMap y metrics desde la carga masiva.
+        // Elimina la necesidad de cargar por UP individual en el auto-load.
+        const bulkMetrics: Record<
+          string,
+          { avance: number; presupuesto: number }
+        > = {};
+        Object.entries(bulkByUpid).forEach(([upid, intervs]) => {
+          const avance =
+            intervs.length > 0
+              ? intervs.reduce((s, i) => s + (i.avance_obra || 0), 0) /
+                intervs.length
+              : 0;
+          const presupuesto = intervs.reduce(
+            (s, i) => s + (i.presupuesto_base || 0),
+            0,
+          );
+          bulkMetrics[upid] = { avance, presupuesto };
         });
+        upsToEvaluate.forEach((up) => {
+          const upid = String(up.upid || "").trim();
+          if (!bulkMetrics[upid])
+            bulkMetrics[upid] = { avance: 0, presupuesto: 0 };
+        });
+
+        // Solo sobrescribir entradas que aún no tienen datos cargados individualmente
+        setIntervencionesMap((prev) => {
+          const next = { ...prev };
+          Object.entries(bulkByUpid).forEach(([upid, intervs]) => {
+            if (next[upid] === undefined) next[upid] = intervs;
+          });
+          return next;
+        });
+        setMetrics((prev) => ({ ...bulkMetrics, ...prev }));
       } catch {
         // Mantener estado base (0) para permitir identificar rápidamente UP sin intervenciones.
         setIntervencionesCountByUpid(baseMap);
       }
     },
-    [API_BASE, intervMatchesCentro, canViewAllCentros],
+    [API_BASE, intervMatchesCentro, canViewAllCentros, parseListPayload],
   );
 
   // Cargar UPs
@@ -2785,6 +2825,9 @@ const GestionRegistrosTab: React.FC = () => {
       };
 
       let filteredItems: UP[];
+      // Intervenciones pre-cargadas para usuarios restringidos — se reusan
+      // en loadIntervencionesSummary para evitar un segundo request idéntico.
+      let prefetchedIntervencionesForSummary: any[] | undefined;
 
       if (canViewAllCentros) {
         filteredItems = normalizedItems.map(({ up }) => up);
@@ -2798,6 +2841,7 @@ const GestionRegistrosTab: React.FC = () => {
           );
           const intervJson = await intervRes.json();
           const intervRows = parseListPayload(intervJson);
+          prefetchedIntervencionesForSummary = intervRows; // reusar en summary
 
           const allowedUpids = new Set(
             intervRows
@@ -2872,7 +2916,10 @@ const GestionRegistrosTab: React.FC = () => {
       }
 
       setUps(filteredItems);
-      void loadIntervencionesSummary(filteredItems);
+      void loadIntervencionesSummary(
+        filteredItems,
+        prefetchedIntervencionesForSummary,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar UPs");
     } finally {
@@ -3113,19 +3160,6 @@ const GestionRegistrosTab: React.FC = () => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredUPs.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredUPs, currentPage]);
-
-  // Auto-cargar métricas para la página actual
-  useEffect(() => {
-    paginatedUPs.forEach((up) => {
-      if (
-        intervencionesMap[up.upid] === undefined &&
-        !loadingIntervUp[up.upid]
-      ) {
-        loadIntervenciones(up.upid);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paginatedUPs]);
 
   // Paginación — páginas visibles
   const getVisiblePages = (): Array<number | "ellipsis"> => {

@@ -34,6 +34,7 @@ import ModificarProcesoSecopModal from "./ModificarProcesoSecopModal";
 import ManagementFeatureTour from "./ManagementFeatureTour";
 import { deleteProcesoWithFallback } from "@/utils/procesoDeleteFallback";
 import { isProcesoRefDeletedLocally } from "@/utils/procesosDeleteLocalStore";
+import { proxyFetch } from "@/utils/errorHandler";
 
 // Interfaz para proceso de emprÃ©stito
 interface ProcesoEmprestito {
@@ -476,7 +477,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({
           records: ProcesoEmprestito[];
           explicitApiEmpty: boolean;
         }> => {
-          const response = await fetch(url, { cache: "no-store", signal });
+          const response = await proxyFetch(url, { cache: "no-store", signal });
 
           if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -614,7 +615,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({
           await new Promise((resolve) => setTimeout(resolve, 1200));
           if (signal.aborted || !isLatestRequest()) return;
 
-          const retryResponse = await fetch(
+          const retryResponse = await proxyFetch(
             `/api/proxy/emprestito/obtener-procesos-bp?bypass_cache=1&_t=${Date.now()}`,
             { cache: "no-store", signal },
           );
@@ -686,7 +687,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({
     try {
       setLoadingOrdenes(true);
 
-      const response = await fetch("/api/proxy/emprestito/ordenes-compra");
+      const response = await proxyFetch("/api/proxy/emprestito/ordenes-compra");
       if (!response.ok) return;
 
       const result = await response.json();
@@ -704,7 +705,9 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({
     try {
       setLoadingConvenios(true);
 
-      const response = await fetch("/api/proxy/convenios_transferencias_all");
+      const response = await proxyFetch(
+        "/api/proxy/convenios_transferencias_all",
+      );
       if (!response.ok) return;
 
       const result = await response.json();
@@ -811,7 +814,7 @@ const GestionProcesos: React.FC<GestionProcesosProps> = ({
         valor_proyectado: formData.valor_proyectado,
       });
 
-      const response = await fetch(
+      const response = await proxyFetch(
         `/api/proxy/emprestito/proceso/${referenciaProceso}`,
         {
           method: "PUT",

@@ -35,6 +35,7 @@ import AgregarConvenioTransferenciaModal from "@/components/AgregarConvenioTrans
 import CargarRPCModal from "@/components/CargarRPCModal";
 import EditarRPCModal from "@/components/EditarRPCModal";
 import ManagementFeatureTour from "./ManagementFeatureTour";
+import { proxyFetch } from "@/utils/errorHandler";
 
 // Interfaz para RPC
 interface DocumentoConEnlace {
@@ -305,7 +306,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
       const url = bypassCache
         ? "/api/proxy/contratos_emprestito_all?bypass_cache=1"
         : "/api/proxy/contratos_emprestito_all";
-      const response = await fetch(url);
+      const response = await proxyFetch(url);
 
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -340,7 +341,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
         throw new Error("URL de API no configurada");
       }
 
-      const response = await fetch("/api/proxy/rpc_all");
+      const response = await proxyFetch("/api/proxy/rpc_all");
 
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -418,7 +419,7 @@ const GestionContratos: React.FC<GestionContratosProps> = ({
         "[DocViewer] Fetching proxy URL:",
         proxyUrl.substring(0, 100),
       );
-      const response = await fetch(proxyUrl);
+      const response = await proxyFetch(proxyUrl);
       console.log(
         "[DocViewer] Response status:",
         response.status,

@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { type AttributeData } from "@/services/unidades-proyecto.service";
 import { formatCurrency, formatCurrencyFull } from "@/utils/formatCurrency";
+import { proxyFetch } from "@/utils/errorHandler";
 import dynamic from "next/dynamic";
 import { safeConsole } from "@/lib/safe-console";
 import { useAuth } from "@/context/AuthContext";
@@ -639,7 +640,7 @@ const UnidadesProyectoAttributesTable: React.FC<
       setLoadingIntervenciones((prev) => new Set(prev).add(upid));
 
       try {
-        const response = await fetch(
+        const response = await proxyFetch(
           `/api/proxy/intervenciones?upid=${upid}&limit=10000`,
         );
 
@@ -750,7 +751,7 @@ const UnidadesProyectoAttributesTable: React.FC<
         setLoadingIntervenciones((prev) => new Set(prev).add(upid));
 
         try {
-          const response = await fetch(
+          const response = await proxyFetch(
             `/api/proxy/intervenciones?upid=${upid}&limit=10000`,
           );
 

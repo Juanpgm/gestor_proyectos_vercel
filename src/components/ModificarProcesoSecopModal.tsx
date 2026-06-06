@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Edit2, AlertCircle, CheckCircle, Upload } from "lucide-react";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface ModificarProcesoSecopModalProps {
   isOpen: boolean;
@@ -119,7 +120,7 @@ const ModificarProcesoSecopModal: React.FC<ModificarProcesoSecopModalProps> = ({
       formData.append("change_motivo", change_motivo);
       formData.append("change_support_file", change_support_file!);
 
-      const response = await fetch(
+      const response = await proxyFetch(
         `/api/proxy/emprestito/modificar-valores/proceso/${encodeURIComponent(procesoData.referencia_proceso)}`,
         {
           method: "PUT",

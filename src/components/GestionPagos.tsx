@@ -29,6 +29,7 @@ import PagosTable from "./PagosTable";
 import { fetchPagosEmprestito, PagoEmprestito } from "@/services/pagos.service";
 import RegistrarPagoModal from "./RegistrarPagoModal";
 import ManagementFeatureTour from "./ManagementFeatureTour";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface RPC {
   id: string;
@@ -109,7 +110,7 @@ const GestionPagos: React.FC<GestionPagosProps> = ({ onNavigateHome }) => {
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
       if (!apiUrl) throw new Error("URL de API no configurada");
-      const response = await fetch("/api/proxy/rpc_all");
+      const response = await proxyFetch("/api/proxy/rpc_all");
       if (!response.ok) throw new Error(`Error ${response.status}`);
       const data = await response.json();
       if (data.success && Array.isArray(data.data)) {

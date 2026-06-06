@@ -11,6 +11,7 @@ import {
   Edit2,
   FileText,
 } from "lucide-react";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface ContratoData {
   referencia_contrato?: string;
@@ -290,7 +291,7 @@ const EditarRPCModal: React.FC<EditarRPCModalProps> = ({
       payload.append("numero_rpc", numeroRpc);
       payload.append("datos_actualizacion", JSON.stringify(datosActualizacion));
 
-      const response = await fetch(`${apiUrl}/emprestito/modificar-rpc`, {
+      const response = await proxyFetch(`${apiUrl}/emprestito/modificar-rpc`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",

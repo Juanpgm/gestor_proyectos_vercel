@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import React, { useState, useMemo, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  TrendingUp, 
+import React, { useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  TrendingUp,
   TrendingDown,
   DollarSign,
   AlertTriangle,
@@ -20,107 +20,117 @@ import {
   Filter,
   Building,
   Target,
-  Layers
-} from 'lucide-react'
-import { 
-  useEmprestitoBP, 
-  useAnalisisPorBP, 
+  Layers,
+} from "lucide-react";
+import {
+  useEmprestitoBP,
+  useAnalisisPorBP,
   useTotalesGenerales,
   useEmprestitoPagos,
   useEmprestitoPagosAll,
-  AnalisisPorBP 
-} from '@/hooks/useEmprestitoBP'
+  AnalisisPorBP,
+} from "@/hooks/useEmprestitoBP";
+import { proxyFetch } from "@/utils/errorHandler";
 
 // Interface para contratos del endpoint
 interface ContratoBP {
-  bp: string
-  banco: string
-  nombre_centro_gestor: string
-  nombre_resumido_proceso: string
-  tipo_contrato: string
-  urlproceso: any
-  valor_contrato: number
-  fecha_inicio_contrato: string | null
-  fecha_fin_contrato: string | null
-  sector: string
+  bp: string;
+  banco: string;
+  nombre_centro_gestor: string;
+  nombre_resumido_proceso: string;
+  tipo_contrato: string;
+  urlproceso: any;
+  valor_contrato: number;
+  fecha_inicio_contrato: string | null;
+  fecha_fin_contrato: string | null;
+  sector: string;
 }
 
 // Función para formatear montos con notación dinámica
 const formatMonto = (valor: number): { valor: string; unidad: string } => {
-  const absValor = Math.abs(valor)
-  
+  const absValor = Math.abs(valor);
+
   if (absValor >= 1_000_000_000_000) {
     // Billones (colombiano): 1,000,000,000,000
     return {
       valor: (valor / 1_000_000_000_000).toFixed(3),
-      unidad: 'Billones'
-    }
+      unidad: "Billones",
+    };
   } else if (absValor >= 1_000_000_000) {
     // Miles de millones: 1,000,000,000
     return {
       valor: (valor / 1_000_000_000).toFixed(3),
-      unidad: 'Mil M'
-    }
+      unidad: "Mil M",
+    };
   } else if (absValor >= 1_000_000) {
     // Millones: 1,000,000
     return {
       valor: (valor / 1_000_000).toFixed(3),
-      unidad: 'MM'
-    }
+      unidad: "MM",
+    };
   } else if (absValor >= 1_000) {
     // Miles
     return {
       valor: (valor / 1_000).toFixed(3),
-      unidad: 'Mil'
-    }
+      unidad: "Mil",
+    };
   } else {
     return {
       valor: valor.toFixed(0),
-      unidad: ''
-    }
+      unidad: "",
+    };
   }
-}
+};
 
 // Colores para los bancos
 const BANK_COLORS: Record<string, string> = {
-  'Bancolombia': '#1e3a8a',
-  'Davivienda': '#dc2626',
-  'BBVA': '#16a34a',
-  'Banco de Occidente': '#eab308',
-  'Banco Occidente': '#eab308',
-  'Davivienda - (Otro sí)': '#f97316',
-  'IFC': '#8b5cf6',
-}
+  Bancolombia: "#1e3a8a",
+  Davivienda: "#dc2626",
+  BBVA: "#16a34a",
+  "Banco de Occidente": "#eab308",
+  "Banco Occidente": "#eab308",
+  "Davivienda - (Otro sí)": "#f97316",
+  IFC: "#8b5cf6",
+};
 
 const getColorForBank = (banco: string, index: number): string => {
-  const defaultColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#f97316', '#8b5cf6', '#ec4899', '#14b8a6']
-  return BANK_COLORS[banco] || defaultColors[index % defaultColors.length]
-}
+  const defaultColors = [
+    "#3b82f6",
+    "#ef4444",
+    "#22c55e",
+    "#eab308",
+    "#f97316",
+    "#8b5cf6",
+    "#ec4899",
+    "#14b8a6",
+  ];
+  return BANK_COLORS[banco] || defaultColors[index % defaultColors.length];
+};
 
 const getSafeBpCode = (value: unknown): string => {
-  const bp = (value ?? '').toString().trim()
-  return bp.length > 0 ? bp : 'Sin BP'
-}
+  const bp = (value ?? "").toString().trim();
+  return bp.length > 0 ? bp : "Sin BP";
+};
 
 const getBpBadge = (value: unknown): string => {
-  const bp = (value ?? '').toString().trim()
-  return bp.length > 0 ? bp.slice(-4) : 'N/A'
-}
+  const bp = (value ?? "").toString().trim();
+  return bp.length > 0 ? bp.slice(-4) : "N/A";
+};
 
 // Componente de tarjeta de métrica mejorado
 const MetricCard: React.FC<{
-  title: string
-  value: string
-  subtitle?: string
-  icon: React.ElementType
-  variant?: 'primary' | 'success' | 'danger' | 'info'
-}> = React.memo(({ title, value, subtitle, icon: Icon, variant = 'info' }) => {
+  title: string;
+  value: string;
+  subtitle?: string;
+  icon: React.ElementType;
+  variant?: "primary" | "success" | "danger" | "info";
+}> = React.memo(({ title, value, subtitle, icon: Icon, variant = "info" }) => {
   const iconColors = {
-    primary: 'text-blue-600 dark:text-blue-400',
-    success: 'text-green-600 dark:text-green-400',
-    danger: 'text-red-600 dark:text-red-400',
-    info: 'text-gray-500 dark:text-gray-400'
-  }
+    primary: "text-blue-600 dark:text-blue-400",
+    success: "text-green-600 dark:text-green-400",
+    danger: "text-red-600 dark:text-red-400",
+    info: "text-gray-500 dark:text-gray-400",
+  };
 
   return (
     <motion.div
@@ -145,35 +155,35 @@ const MetricCard: React.FC<{
         <Icon className={`w-6 h-6 ${iconColors[variant]}`} />
       </div>
     </motion.div>
-  )
-})
+  );
+});
 
-MetricCard.displayName = 'MetricCard'
+MetricCard.displayName = "MetricCard";
 
 // Componente de gráfica de donut (participación por banco) - SVG real
 const DonutChartSVG: React.FC<{
-  data: { banco: string; monto: number; porcentaje: number }[]
-  title: string
-  totalLabel?: string
+  data: { banco: string; monto: number; porcentaje: number }[];
+  title: string;
+  totalLabel?: string;
 }> = React.memo(({ data, title, totalLabel }) => {
-  const total = data.reduce((sum, item) => sum + item.monto, 0)
-  const totalFormateado = formatMonto(total)
-  const radius = 120
-  const strokeWidth = 35
-  const circumference = 2 * Math.PI * radius
-  
-  let currentOffset = 0
+  const total = data.reduce((sum, item) => sum + item.monto, 0);
+  const totalFormateado = formatMonto(total);
+  const radius = 120;
+  const strokeWidth = 35;
+  const circumference = 2 * Math.PI * radius;
+
+  let currentOffset = 0;
   const segments = data.map((item, index) => {
-    const segmentLength = (item.porcentaje / 100) * circumference
+    const segmentLength = (item.porcentaje / 100) * circumference;
     const segment = {
       ...item,
       offset: currentOffset,
       length: segmentLength,
-      color: getColorForBank(item.banco, index)
-    }
-    currentOffset += segmentLength
-    return segment
-  })
+      color: getColorForBank(item.banco, index),
+    };
+    currentOffset += segmentLength;
+    return segment;
+  });
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -183,7 +193,12 @@ const DonutChartSVG: React.FC<{
       <div className="flex flex-col lg:flex-row items-center gap-8">
         {/* SVG Donut */}
         <div className="relative flex-shrink-0">
-          <svg width="300" height="300" viewBox="0 0 300 300" className="transform -rotate-90">
+          <svg
+            width="300"
+            height="300"
+            viewBox="0 0 300 300"
+            className="transform -rotate-90"
+          >
             {segments.map((segment, index) => (
               <circle
                 key={segment.banco}
@@ -205,7 +220,9 @@ const DonutChartSVG: React.FC<{
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">
                   ${totalFormateado.valor}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{totalFormateado.unidad} Total</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {totalFormateado.unidad} Total
+                </p>
               </div>
             </div>
           )}
@@ -214,13 +231,18 @@ const DonutChartSVG: React.FC<{
         {/* Leyenda */}
         <div className="flex-1 space-y-3 w-full">
           {data.map((item, index) => {
-            const montoFormateado = formatMonto(item.monto)
+            const montoFormateado = formatMonto(item.monto);
             return (
-              <div key={item.banco} className="flex items-center justify-between">
+              <div
+                key={item.banco}
+                className="flex items-center justify-between"
+              >
                 <div className="flex items-center space-x-2">
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0" 
-                    style={{ backgroundColor: getColorForBank(item.banco, index) }}
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{
+                      backgroundColor: getColorForBank(item.banco, index),
+                    }}
                   />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                     {item.banco}
@@ -235,20 +257,20 @@ const DonutChartSVG: React.FC<{
                   </span>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
-})
+  );
+});
 
-DonutChartSVG.displayName = 'DonutChartSVG'
+DonutChartSVG.displayName = "DonutChartSVG";
 
 // Componente de barras para bancos con adjudicado y pagos
 const BankBarChart: React.FC<{
-  data: { banco: string; monto: number; porcentaje: number }[]
-  title: string
+  data: { banco: string; monto: number; porcentaje: number }[];
+  title: string;
 }> = React.memo(({ data, title }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -257,11 +279,14 @@ const BankBarChart: React.FC<{
       </h3>
       <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
         {data.map((item, index) => {
-          const montoFormateado = formatMonto(item.monto)
+          const montoFormateado = formatMonto(item.monto);
           return (
             <div key={item.banco} className="group">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-medium text-gray-700 dark:text-gray-300" title={item.banco}>
+                <span
+                  className="font-medium text-gray-700 dark:text-gray-300"
+                  title={item.banco}
+                >
                   {item.banco}
                 </span>
                 <div className="text-right flex-shrink-0">
@@ -282,21 +307,21 @@ const BankBarChart: React.FC<{
                 />
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
-})
+  );
+});
 
-BankBarChart.displayName = 'BankBarChart'
+BankBarChart.displayName = "BankBarChart";
 
 // Componente de barras horizontales para presupuesto por organismo
 const HorizontalBarChart: React.FC<{
-  data: { organismo: string; monto: number; porcentaje: number }[]
-  title: string
+  data: { organismo: string; monto: number; porcentaje: number }[];
+  title: string;
 }> = React.memo(({ data, title }) => {
-  const topData = data.slice(0, 12)
+  const topData = data.slice(0, 12);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -305,11 +330,14 @@ const HorizontalBarChart: React.FC<{
       </h3>
       <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
         {topData.map((item, index) => {
-          const montoFormateado = formatMonto(item.monto)
+          const montoFormateado = formatMonto(item.monto);
           return (
             <div key={item.organismo} className="group">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-medium text-gray-700 dark:text-gray-300" title={item.organismo}>
+                <span
+                  className="font-medium text-gray-700 dark:text-gray-300"
+                  title={item.organismo}
+                >
                   {item.organismo}
                 </span>
                 <div className="text-right flex-shrink-0">
@@ -330,35 +358,35 @@ const HorizontalBarChart: React.FC<{
                 />
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
-})
+  );
+});
 
-HorizontalBarChart.displayName = 'HorizontalBarChart'
+HorizontalBarChart.displayName = "HorizontalBarChart";
 
 // Componente de Gauge para % de ejecución
 const GaugeChart: React.FC<{
-  percentage: number
-  title: string
-  brecha: number
+  percentage: number;
+  title: string;
+  brecha: number;
 }> = React.memo(({ percentage, title, brecha }) => {
-  const clampedPercentage = Math.min(Math.max(percentage, 0), 100)
-  const angle = (clampedPercentage / 100) * 180 - 90
-  
+  const clampedPercentage = Math.min(Math.max(percentage, 0), 100);
+  const angle = (clampedPercentage / 100) * 180 - 90;
+
   const getColor = (p: number) => {
-    if (p >= 80) return '#22c55e' // green
-    if (p >= 50) return '#eab308' // yellow
-    return '#ef4444' // red
-  }
+    if (p >= 80) return "#22c55e"; // green
+    if (p >= 50) return "#eab308"; // yellow
+    return "#ef4444"; // red
+  };
 
   const getLabel = (p: number) => {
-    if (p >= 80) return 'ACEPTABLE'
-    if (p >= 50) return 'EN PROGRESO'
-    return 'CRÍTICO'
-  }
+    if (p >= 80) return "ACEPTABLE";
+    if (p >= 50) return "EN PROGRESO";
+    return "CRÍTICO";
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -407,43 +435,57 @@ const GaugeChart: React.FC<{
         </svg>
       </div>
       <div className="text-center mt-2">
-        <p className="text-3xl font-bold" style={{ color: getColor(clampedPercentage) }}>
+        <p
+          className="text-3xl font-bold"
+          style={{ color: getColor(clampedPercentage) }}
+        >
           {clampedPercentage.toFixed(1)}%
         </p>
-        <p className="text-sm font-medium" style={{ color: getColor(clampedPercentage) }}>
+        <p
+          className="text-sm font-medium"
+          style={{ color: getColor(clampedPercentage) }}
+        >
           {getLabel(clampedPercentage)}
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Brecha de Adjudicación: <span className="font-semibold text-red-500">
-            ${(() => { const f = formatMonto(Math.abs(brecha)); return `${f.valor} ${f.unidad}` })()}
+          Brecha de Adjudicación:{" "}
+          <span className="font-semibold text-red-500">
+            $
+            {(() => {
+              const f = formatMonto(Math.abs(brecha));
+              return `${f.valor} ${f.unidad}`;
+            })()}
           </span>
         </p>
       </div>
     </div>
-  )
-})
+  );
+});
 
-GaugeChart.displayName = 'GaugeChart'
+GaugeChart.displayName = "GaugeChart";
 
 // Componente de acordeón para Centro Gestor con subagrupación por banco
 const CentroGestorConBancosAccordion: React.FC<{
-  centroGestor: string
-  bpsPorBanco: Array<{ banco: string; bps: AnalisisPorBP[] }>
-  totales: { programado: number; adjudicado: number; brecha: number }
+  centroGestor: string;
+  bpsPorBanco: Array<{ banco: string; bps: AnalisisPorBP[] }>;
+  totales: { programado: number; adjudicado: number; brecha: number };
 }> = React.memo(({ centroGestor, bpsPorBanco, totales }) => {
-  const porcentaje = totales.programado > 0 ? (totales.adjudicado / totales.programado) * 100 : 0
-  const totalBPs = bpsPorBanco.reduce((sum, g) => sum + g.bps.length, 0)
+  const porcentaje =
+    totales.programado > 0
+      ? (totales.adjudicado / totales.programado) * 100
+      : 0;
+  const totalBPs = bpsPorBanco.reduce((sum, g) => sum + g.bps.length, 0);
 
   const getColorForBank = (banco: string) => {
     const colors: Record<string, string> = {
-      'Davivienda': '#EF4444',
-      'Bancolombia': '#FBBF24',
-      'BBVA': '#3B82F6',
-      'Banco Occidente': '#8B5CF6',
-      'Davivienda - (Otro sí)': '#EC4899',
-    }
-    return colors[banco] || '#6B7280'
-  }
+      Davivienda: "#EF4444",
+      Bancolombia: "#FBBF24",
+      BBVA: "#3B82F6",
+      "Banco Occidente": "#8B5CF6",
+      "Davivienda - (Otro sí)": "#EC4899",
+    };
+    return colors[banco] || "#6B7280";
+  };
 
   return (
     <details className="group border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
@@ -454,13 +496,15 @@ const CentroGestorConBancosAccordion: React.FC<{
             <Building2 className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="font-bold text-gray-900 dark:text-white">{centroGestor}</span>
+            <span className="font-bold text-gray-900 dark:text-white">
+              {centroGestor}
+            </span>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full">
-                {totalBPs} BP{totalBPs !== 1 ? 's' : ''}
+                {totalBPs} BP{totalBPs !== 1 ? "s" : ""}
               </span>
               <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full">
-                {bpsPorBanco.length} banco{bpsPorBanco.length !== 1 ? 's' : ''}
+                {bpsPorBanco.length} banco{bpsPorBanco.length !== 1 ? "s" : ""}
               </span>
             </div>
           </div>
@@ -469,124 +513,184 @@ const CentroGestorConBancosAccordion: React.FC<{
           <div className="text-right hidden md:block">
             <span className="text-xs text-gray-500">Programado</span>
             <p className="font-bold text-gray-900 dark:text-white">
-              ${(() => { const f = formatMonto(totales.programado); return `${f.valor} ${f.unidad}` })()}
+              $
+              {(() => {
+                const f = formatMonto(totales.programado);
+                return `${f.valor} ${f.unidad}`;
+              })()}
             </p>
           </div>
           <div className="text-right hidden md:block">
             <span className="text-xs text-gray-500">Adjudicado</span>
             <p className="font-bold text-green-600 dark:text-green-400">
-              ${(() => { const f = formatMonto(totales.adjudicado); return `${f.valor} ${f.unidad}` })()}
+              $
+              {(() => {
+                const f = formatMonto(totales.adjudicado);
+                return `${f.valor} ${f.unidad}`;
+              })()}
             </p>
           </div>
-          <div className={`text-sm font-bold px-3 py-1 rounded ${
-            porcentaje >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-            porcentaje >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-          }`}>
+          <div
+            className={`text-sm font-bold px-3 py-1 rounded ${
+              porcentaje >= 80
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : porcentaje >= 50
+                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+            }`}
+          >
             {porcentaje.toFixed(1)}%
           </div>
         </div>
       </summary>
       <div className="p-4 space-y-3 bg-gray-50 dark:bg-gray-900/30 border-t border-gray-200 dark:border-gray-700">
         {bpsPorBanco.map(({ banco, bps }) => {
-          const totalProgramadoBanco = bps.reduce((sum, bp) => sum + bp.monto_programado, 0)
-          const totalAdjudicadoBanco = bps.reduce((sum, bp) => sum + bp.monto_adjudicado, 0)
-          const porcentajeBanco = totalProgramadoBanco > 0 ? (totalAdjudicadoBanco / totalProgramadoBanco) * 100 : 0
+          const totalProgramadoBanco = bps.reduce(
+            (sum, bp) => sum + bp.monto_programado,
+            0,
+          );
+          const totalAdjudicadoBanco = bps.reduce(
+            (sum, bp) => sum + bp.monto_adjudicado,
+            0,
+          );
+          const porcentajeBanco =
+            totalProgramadoBanco > 0
+              ? (totalAdjudicadoBanco / totalProgramadoBanco) * 100
+              : 0;
 
           return (
-            <details key={banco} className="group/banco border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+            <details
+              key={banco}
+              className="group/banco border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800"
+            >
               <summary className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <div className="flex items-center gap-2">
                   <ChevronRight className="w-4 h-4 text-gray-500 group-open/banco:rotate-90 transition-transform" />
-                  <div 
-                    className="w-3 h-3 rounded-full" 
+                  <div
+                    className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: getColorForBank(banco) }}
                   />
                   <Banknote className="w-4 h-4 text-gray-500" />
-                  <span className="font-semibold text-gray-900 dark:text-white text-sm">{banco}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white text-sm">
+                    {banco}
+                  </span>
                   <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full">
                     {bps.length} BP
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
-                    ${(() => { const f = formatMonto(totalProgramadoBanco); return `${f.valor} ${f.unidad}` })()}
+                    $
+                    {(() => {
+                      const f = formatMonto(totalProgramadoBanco);
+                      return `${f.valor} ${f.unidad}`;
+                    })()}
                   </span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                    porcentajeBanco >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                    porcentajeBanco >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                  }`}>
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded ${
+                      porcentajeBanco >= 80
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : porcentajeBanco >= 50
+                          ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}
+                  >
                     {porcentajeBanco.toFixed(1)}%
                   </span>
                 </div>
               </summary>
               <div className="p-2 space-y-1 bg-gray-50 dark:bg-gray-700/20">
                 {bps.map((bp, index) => {
-                  const porcentajeBP = bp.monto_programado > 0 
-                    ? (bp.monto_adjudicado / bp.monto_programado) * 100 
-                    : 0
-                  const bpCode = getSafeBpCode(bp.bp)
-                  const bpBadge = getBpBadge(bp.bp)
+                  const porcentajeBP =
+                    bp.monto_programado > 0
+                      ? (bp.monto_adjudicado / bp.monto_programado) * 100
+                      : 0;
+                  const bpCode = getSafeBpCode(bp.bp);
+                  const bpBadge = getBpBadge(bp.bp);
 
                   return (
-                    <div key={`${bpCode}-${index}`} className="flex items-center justify-between py-2 px-3 bg-white dark:bg-gray-800 rounded">
+                    <div
+                      key={`${bpCode}-${index}`}
+                      className="flex items-center justify-between py-2 px-3 bg-white dark:bg-gray-800 rounded"
+                    >
                       <div className="flex items-center gap-2 flex-1">
                         <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs">
                           {bpBadge}
                         </div>
                         <div>
-                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bpCode}</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">
+                            {bpCode}
+                          </span>
                           {bp.contratos.length > 0 && (
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {bp.contratos.length} contrato{bp.contratos.length > 1 ? 's' : ''}
+                              {bp.contratos.length} contrato
+                              {bp.contratos.length > 1 ? "s" : ""}
                             </p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right hidden sm:block">
-                          <div className="text-xs text-gray-500">Programado</div>
+                          <div className="text-xs text-gray-500">
+                            Programado
+                          </div>
                           <div className="font-medium text-gray-900 dark:text-white text-xs">
-                            ${(() => { const f = formatMonto(bp.monto_programado); return `${f.valor} ${f.unidad}` })()}
+                            $
+                            {(() => {
+                              const f = formatMonto(bp.monto_programado);
+                              return `${f.valor} ${f.unidad}`;
+                            })()}
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xs text-gray-500">Adjudicado</div>
+                          <div className="text-xs text-gray-500">
+                            Adjudicado
+                          </div>
                           <div className="font-semibold text-green-600 dark:text-green-400 text-xs">
-                            ${(() => { const f = formatMonto(bp.monto_adjudicado); return `${f.valor} ${f.unidad}` })()}
+                            $
+                            {(() => {
+                              const f = formatMonto(bp.monto_adjudicado);
+                              return `${f.valor} ${f.unidad}`;
+                            })()}
                           </div>
                         </div>
-                        <div className={`text-xs font-bold px-2 py-1 rounded ${
-                          porcentajeBP >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          porcentajeBP >= 50 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
+                        <div
+                          className={`text-xs font-bold px-2 py-1 rounded ${
+                            porcentajeBP >= 80
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : porcentajeBP >= 50
+                                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          }`}
+                        >
                           {porcentajeBP.toFixed(1)}%
                         </div>
                       </div>
                     </div>
-                  )
+                  );
                 })}
               </div>
             </details>
-          )
+          );
         })}
       </div>
     </details>
-  )
-})
+  );
+});
 
-CentroGestorConBancosAccordion.displayName = 'CentroGestorConBancosAccordion'
+CentroGestorConBancosAccordion.displayName = "CentroGestorConBancosAccordion";
 
 // Componente de acordeón para Centro Gestor
 const CentroGestorAccordion: React.FC<{
-  centroGestor: string
-  bps: AnalisisPorBP[]
-  totales: { programado: number; adjudicado: number; brecha: number }
+  centroGestor: string;
+  bps: AnalisisPorBP[];
+  totales: { programado: number; adjudicado: number; brecha: number };
 }> = React.memo(({ centroGestor, bps, totales }) => {
-  const [expanded, setExpanded] = useState(false)
-  const porcentaje = totales.programado > 0 ? (totales.adjudicado / totales.programado) * 100 : 0
+  const [expanded, setExpanded] = useState(false);
+  const porcentaje =
+    totales.programado > 0
+      ? (totales.adjudicado / totales.programado) * 100
+      : 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -597,109 +701,165 @@ const CentroGestorAccordion: React.FC<{
         <div className="flex items-center space-x-3">
           <Building2 className="w-5 h-5 text-teal-500" />
           <div className="text-left">
-            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{centroGestor}</h4>
+            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+              {centroGestor}
+            </h4>
             <p className="text-xs text-gray-500">{bps.length} proyectos BP</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Programado</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Programado
+            </p>
             <p className="text-sm font-bold text-gray-900 dark:text-white">
-              ${(() => { const f = formatMonto(totales.programado); return `${f.valor} ${f.unidad}` })()}
+              $
+              {(() => {
+                const f = formatMonto(totales.programado);
+                return `${f.valor} ${f.unidad}`;
+              })()}
             </p>
           </div>
           <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Adjudicado</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Adjudicado
+            </p>
             <p className="text-sm font-bold text-green-600 dark:text-green-400">
-              ${(() => { const f = formatMonto(totales.adjudicado); return `${f.valor} ${f.unidad}` })()}
+              $
+              {(() => {
+                const f = formatMonto(totales.adjudicado);
+                return `${f.valor} ${f.unidad}`;
+              })()}
             </p>
           </div>
           <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Ejecución</p>
-            <p className={`text-sm font-bold ${
-              porcentaje >= 80 ? 'text-green-600' :
-              porcentaje >= 50 ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Ejecución
+            </p>
+            <p
+              className={`text-sm font-bold ${
+                porcentaje >= 80
+                  ? "text-green-600"
+                  : porcentaje >= 50
+                    ? "text-yellow-600"
+                    : "text-red-600"
+              }`}
+            >
               {porcentaje.toFixed(1)}%
             </p>
           </div>
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          {expanded ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
         </div>
       </button>
       <AnimatePresence>
         {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="border-t border-gray-200 dark:border-gray-700"
           >
             <div className="p-4 space-y-2">
               {bps.map((bp, index) => {
-                const porcentajeBP = bp.monto_programado > 0 ? (bp.monto_adjudicado / bp.monto_programado) * 100 : 0
-                const bpCode = getSafeBpCode(bp.bp)
-                const bpBadge = getBpBadge(bp.bp)
+                const porcentajeBP =
+                  bp.monto_programado > 0
+                    ? (bp.monto_adjudicado / bp.monto_programado) * 100
+                    : 0;
+                const bpCode = getSafeBpCode(bp.bp);
+                const bpBadge = getBpBadge(bp.bp);
                 return (
-                  <div key={`${bpCode}-${index}`} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                  <div
+                    key={`${bpCode}-${index}`}
+                    className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600"
+                  >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                           {bpBadge}
                         </div>
                         <div>
-                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bpCode}</span>
+                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">
+                            {bpCode}
+                          </span>
                           {bp.contratos.length > 0 && (
-                            <p className="text-xs text-gray-500">{bp.contratos.length} contrato{bp.contratos.length > 1 ? 's' : ''}</p>
+                            <p className="text-xs text-gray-500">
+                              {bp.contratos.length} contrato
+                              {bp.contratos.length > 1 ? "s" : ""}
+                            </p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
                         <div className="text-left sm:text-right flex-1 sm:flex-none">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Programado</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Programado
+                          </p>
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            ${(() => { const f = formatMonto(bp.monto_programado); return `${f.valor} ${f.unidad}` })()}
+                            $
+                            {(() => {
+                              const f = formatMonto(bp.monto_programado);
+                              return `${f.valor} ${f.unidad}`;
+                            })()}
                           </p>
                         </div>
                         <div className="text-left sm:text-right flex-1 sm:flex-none">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Adjudicado</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Adjudicado
+                          </p>
                           <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                            ${(() => { const f = formatMonto(bp.monto_adjudicado); return `${f.valor} ${f.unidad}` })()}
+                            $
+                            {(() => {
+                              const f = formatMonto(bp.monto_adjudicado);
+                              return `${f.valor} ${f.unidad}`;
+                            })()}
                           </p>
                         </div>
                         <div className="text-left sm:text-right flex-1 sm:flex-none">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Ejecución</p>
-                          <p className={`text-sm font-bold ${
-                            porcentajeBP >= 80 ? 'text-green-600' :
-                            porcentajeBP >= 50 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Ejecución
+                          </p>
+                          <p
+                            className={`text-sm font-bold ${
+                              porcentajeBP >= 80
+                                ? "text-green-600"
+                                : porcentajeBP >= 50
+                                  ? "text-yellow-600"
+                                  : "text-red-600"
+                            }`}
+                          >
                             {porcentajeBP.toFixed(1)}%
                           </p>
                         </div>
                       </div>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
-  )
-})
+  );
+});
 
-CentroGestorAccordion.displayName = 'CentroGestorAccordion'
+CentroGestorAccordion.displayName = "CentroGestorAccordion";
 
 // Componente de acordeón para Banco
 const BancoAccordion: React.FC<{
-  banco: string
-  bps: AnalisisPorBP[]
-  totales: { programado: number; adjudicado: number }
+  banco: string;
+  bps: AnalisisPorBP[];
+  totales: { programado: number; adjudicado: number };
 }> = React.memo(({ banco, bps, totales }) => {
-  const [expanded, setExpanded] = useState(false)
-  const porcentaje = totales.programado > 0 ? (totales.adjudicado / totales.programado) * 100 : 0
+  const [expanded, setExpanded] = useState(false);
+  const porcentaje =
+    totales.programado > 0
+      ? (totales.adjudicado / totales.programado) * 100
+      : 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -708,478 +868,627 @@ const BancoAccordion: React.FC<{
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
       >
         <div className="flex items-center space-x-3">
-          <div 
-            className="w-4 h-4 rounded-full" 
+          <div
+            className="w-4 h-4 rounded-full"
             style={{ backgroundColor: getColorForBank(banco, 0) }}
           />
           <div className="text-left">
-            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{banco}</h4>
+            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+              {banco}
+            </h4>
             <p className="text-xs text-gray-500">{bps.length} proyectos BP</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Programado</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Programado
+            </p>
             <p className="text-sm font-bold text-gray-900 dark:text-white">
-              ${(() => { const f = formatMonto(totales.programado); return `${f.valor} ${f.unidad}` })()}
+              $
+              {(() => {
+                const f = formatMonto(totales.programado);
+                return `${f.valor} ${f.unidad}`;
+              })()}
             </p>
           </div>
           <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Adjudicado</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Adjudicado
+            </p>
             <p className="text-sm font-bold text-green-600 dark:text-green-400">
-              ${(() => { const f = formatMonto(totales.adjudicado); return `${f.valor} ${f.unidad}` })()}
+              $
+              {(() => {
+                const f = formatMonto(totales.adjudicado);
+                return `${f.valor} ${f.unidad}`;
+              })()}
             </p>
           </div>
           <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Ejecución</p>
-            <p className={`text-sm font-bold ${
-              porcentaje >= 80 ? 'text-green-600' :
-              porcentaje >= 50 ? 'text-yellow-600' :
-              'text-red-600'
-            }`}>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Ejecución
+            </p>
+            <p
+              className={`text-sm font-bold ${
+                porcentaje >= 80
+                  ? "text-green-600"
+                  : porcentaje >= 50
+                    ? "text-yellow-600"
+                    : "text-red-600"
+              }`}
+            >
               {porcentaje.toFixed(1)}%
             </p>
           </div>
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          {expanded ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
         </div>
       </button>
       <AnimatePresence>
         {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="border-t border-gray-200 dark:border-gray-700"
           >
             <div className="p-4 space-y-2">
               {bps.map((bp, index) => {
-                const porcentajeBP = bp.monto_programado > 0 ? (bp.monto_adjudicado / bp.monto_programado) * 100 : 0
-                const bpCode = getSafeBpCode(bp.bp)
-                const bpBadge = getBpBadge(bp.bp)
+                const porcentajeBP =
+                  bp.monto_programado > 0
+                    ? (bp.monto_adjudicado / bp.monto_programado) * 100
+                    : 0;
+                const bpCode = getSafeBpCode(bp.bp);
+                const bpBadge = getBpBadge(bp.bp);
                 return (
-                  <div key={`${bpCode}-${index}`} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                  <div
+                    key={`${bpCode}-${index}`}
+                    className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600"
+                  >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                           {bpBadge}
                         </div>
                         <div className="flex-1">
-                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">{bpCode}</span>
-                          <p className="text-xs text-gray-500">{bp.nombre_centro_gestor}</p>
+                          <span className="font-medium text-blue-600 dark:text-blue-400 text-sm">
+                            {bpCode}
+                          </span>
+                          <p className="text-xs text-gray-500">
+                            {bp.nombre_centro_gestor}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
                         <div className="text-left sm:text-right flex-1 sm:flex-none">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Programado</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Programado
+                          </p>
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            ${(() => { const f = formatMonto(bp.monto_programado); return `${f.valor} ${f.unidad}` })()}
+                            $
+                            {(() => {
+                              const f = formatMonto(bp.monto_programado);
+                              return `${f.valor} ${f.unidad}`;
+                            })()}
                           </p>
                         </div>
                         <div className="text-left sm:text-right flex-1 sm:flex-none">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Adjudicado</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Adjudicado
+                          </p>
                           <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                            ${(() => { const f = formatMonto(bp.monto_adjudicado); return `${f.valor} ${f.unidad}` })()}
+                            $
+                            {(() => {
+                              const f = formatMonto(bp.monto_adjudicado);
+                              return `${f.valor} ${f.unidad}`;
+                            })()}
                           </p>
                         </div>
                         <div className="text-left sm:text-right flex-1 sm:flex-none">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide">Ejecución</p>
-                          <p className={`text-sm font-bold ${
-                            porcentajeBP >= 80 ? 'text-green-600' :
-                            porcentajeBP >= 50 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">
+                            Ejecución
+                          </p>
+                          <p
+                            className={`text-sm font-bold ${
+                              porcentajeBP >= 80
+                                ? "text-green-600"
+                                : porcentajeBP >= 50
+                                  ? "text-yellow-600"
+                                  : "text-red-600"
+                            }`}
+                          >
                             {porcentajeBP.toFixed(1)}%
                           </p>
                         </div>
                       </div>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
-  )
-})
+  );
+});
 
-BancoAccordion.displayName = 'BancoAccordion'
+BancoAccordion.displayName = "BancoAccordion";
 
 // Componente de detalle de BP individual
-const BPDetailCard: React.FC<{ analisis: AnalisisPorBP }> = React.memo(({ analisis }) => {
-  const [expanded, setExpanded] = useState(false)
-  const porcentaje = analisis.monto_programado > 0 
-    ? (analisis.monto_adjudicado / analisis.monto_programado) * 100 
-    : 0
-  const bpCode = getSafeBpCode(analisis.bp)
-  const bpBadge = getBpBadge(analisis.bp)
+const BPDetailCard: React.FC<{ analisis: AnalisisPorBP }> = React.memo(
+  ({ analisis }) => {
+    const [expanded, setExpanded] = useState(false);
+    const porcentaje =
+      analisis.monto_programado > 0
+        ? (analisis.monto_adjudicado / analisis.monto_programado) * 100
+        : 0;
+    const bpCode = getSafeBpCode(analisis.bp);
+    const bpBadge = getBpBadge(analisis.bp);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
-    >
-      <button
-        onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
-        className="w-full px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors gap-4"
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
       >
-        <div className="flex items-center space-x-4 w-full sm:w-auto">
-          <div className="flex-shrink-0">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
-              {bpBadge}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+          className="w-full px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors gap-4"
+        >
+          <div className="flex items-center space-x-4 w-full sm:w-auto">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
+                {bpBadge}
+              </div>
+            </div>
+            <div className="text-left flex-1">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                {bpCode}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md">
+                {analisis.nombre_centro_gestor}
+              </p>
             </div>
           </div>
-          <div className="text-left flex-1">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              {bpCode}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-md">
-              {analisis.nombre_centro_gestor}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6 w-full sm:w-auto">
-          <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Programado</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">
-              ${(() => { const f = formatMonto(analisis.monto_programado); return `${f.valor} ${f.unidad}` })()}
-            </p>
-          </div>
-          <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Adjudicado</p>
-            <p className="text-lg font-bold text-green-600 dark:text-green-400">
-              ${(() => { const f = formatMonto(analisis.monto_adjudicado); return `${f.valor} ${f.unidad}` })()}
-            </p>
-          </div>
-          <div className="text-left sm:text-right">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Ejecución</p>
-            <p className={`text-lg font-bold \${
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 w-full sm:w-auto">
+            <div className="text-left sm:text-right">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                Programado
+              </p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                $
+                {(() => {
+                  const f = formatMonto(analisis.monto_programado);
+                  return `${f.valor} ${f.unidad}`;
+                })()}
+              </p>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                Adjudicado
+              </p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                $
+                {(() => {
+                  const f = formatMonto(analisis.monto_adjudicado);
+                  return `${f.valor} ${f.unidad}`;
+                })()}
+              </p>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">
+                Ejecución
+              </p>
+              <p
+                className={`text-lg font-bold \${
               porcentaje >= 80 ? 'text-green-600' :
               porcentaje >= 50 ? 'text-yellow-600' :
               'text-red-600'
-            }`}>
-              {porcentaje.toFixed(1)}%
-            </p>
+            }`}
+              >
+                {porcentaje.toFixed(1)}%
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700">
+              {expanded ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </div>
           </div>
-          <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700">
-            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
-        </div>
-      </button>
+        </button>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="border-t border-gray-200 dark:border-gray-700"
-          >
-            <div className="px-4 sm:px-6 py-6">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <DonutChartSVG
-                  data={analisis.participacion_bancos}
-                  title="Distribución por Banco"
-                  totalLabel="Total"
-                />
-                <HorizontalBarChart
-                  data={analisis.presupuesto_organismos}
-                  title="Presupuesto por Organismo"
-                />
-              </div>
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="border-t border-gray-200 dark:border-gray-700"
+            >
+              <div className="px-4 sm:px-6 py-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <DonutChartSVG
+                    data={analisis.participacion_bancos}
+                    title="Distribución por Banco"
+                    totalLabel="Total"
+                  />
+                  <HorizontalBarChart
+                    data={analisis.presupuesto_organismos}
+                    title="Presupuesto por Organismo"
+                  />
+                </div>
 
-              {analisis.contratos.length > 0 && (
-                <div className="mt-6">
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-green-600 rounded-lg">
-                          <FileText className="w-5 h-5 text-white" />
+                {analisis.contratos.length > 0 && (
+                  <div className="mt-6">
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-green-600 rounded-lg">
+                            <FileText className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                              Total Contratos
+                            </p>
+                            <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                              {analisis.contratos.length}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Contratos</p>
-                          <p className="text-3xl font-bold text-green-600 dark:text-green-400">{analisis.contratos.length}</p>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                            Valor Total
+                          </p>
+                          <p className="text-xl font-bold text-gray-900 dark:text-white">
+                            $
+                            {(() => {
+                              const total = analisis.contratos.reduce(
+                                (sum, c) => sum + c.valor_contrato,
+                                0,
+                              );
+                              const f = formatMonto(total);
+                              return `${f.valor} ${f.unidad}`;
+                            })()}
+                          </p>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Valor Total</p>
-                        <p className="text-xl font-bold text-gray-900 dark:text-white">
-                          ${(() => { 
-                            const total = analisis.contratos.reduce((sum, c) => sum + c.valor_contrato, 0)
-                            const f = formatMonto(total)
-                            return `${f.valor} ${f.unidad}` 
-                          })()}
-                        </p>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  )
-})
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  },
+);
 
-BPDetailCard.displayName = 'BPDetailCard'
+BPDetailCard.displayName = "BPDetailCard";
 
 // Componente principal
 const EmprestitoAnalisisProyectosBP: React.FC = () => {
-  const { procesos, contratos, asignaciones, loading, error } = useEmprestitoBP()
-  const { pagos } = useEmprestitoPagos()
-  const { pagos: pagosEmprestito } = useEmprestitoPagosAll()
-  
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedBancos, setSelectedBancos] = useState<string[]>([])
-  const [selectedCentrosGestores, setSelectedCentrosGestores] = useState<string[]>([])
-  const [selectedAnios, setSelectedAnios] = useState<number[]>([])
-  const [viewMode, setViewMode] = useState<'bp' | 'banco'>('bp')
-  const [dataMode, setDataMode] = useState<'programado' | 'adjudicado'>('adjudicado')
-  const [showFilterPanel, setShowFilterPanel] = useState(false)
-  const [contratosBP, setContratosBP] = useState<ContratoBP[]>([])
+  const { procesos, contratos, asignaciones, loading, error } =
+    useEmprestitoBP();
+  const { pagos } = useEmprestitoPagos();
+  const { pagos: pagosEmprestito } = useEmprestitoPagosAll();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBancos, setSelectedBancos] = useState<string[]>([]);
+  const [selectedCentrosGestores, setSelectedCentrosGestores] = useState<
+    string[]
+  >([]);
+  const [selectedAnios, setSelectedAnios] = useState<number[]>([]);
+  const [viewMode, setViewMode] = useState<"bp" | "banco">("bp");
+  const [dataMode, setDataMode] = useState<"programado" | "adjudicado">(
+    "adjudicado",
+  );
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [contratosBP, setContratosBP] = useState<ContratoBP[]>([]);
 
   // Cargar contratos desde el endpoint
   React.useEffect(() => {
     const fetchContratosBP = async () => {
       try {
-        const response = await fetch('/api/proxy/emprestito/obtener-contratos-bp')
-        const result = await response.json()
+        const response = await proxyFetch(
+          "/api/proxy/emprestito/obtener-contratos-bp",
+        );
+        const result = await response.json();
         if (result.success && result.data) {
-          setContratosBP(result.data)
+          setContratosBP(result.data);
         }
       } catch (error) {
-        console.error('Error al cargar contratos BP:', error)
+        console.error("Error al cargar contratos BP:", error);
       }
-    }
-    fetchContratosBP()
-  }, [])
+    };
+    fetchContratosBP();
+  }, []);
 
   // Convertir selectedAnios para el hook - si no hay años seleccionados, usar 'all'
-  const filtroAnio = selectedAnios.length === 0 ? 'all' : selectedAnios[0]
-  
+  const filtroAnio = selectedAnios.length === 0 ? "all" : selectedAnios[0];
+
   // El hook ahora recibe el filtro de año
-  const analisisPorBP = useAnalisisPorBP(procesos, contratos, asignaciones, filtroAnio)
-  const totales = useTotalesGenerales(analisisPorBP)
+  const analisisPorBP = useAnalisisPorBP(
+    procesos,
+    contratos,
+    asignaciones,
+    filtroAnio,
+  );
+  const totales = useTotalesGenerales(analisisPorBP);
 
   // Obtener años únicos
   const anios = useMemo(() => {
-    const aniosSet = new Set<number>()
-    asignaciones.forEach(a => {
-      if (a.anio) aniosSet.add(a.anio)
-    })
-    return Array.from(aniosSet).sort((a, b) => b - a)
-  }, [asignaciones])
+    const aniosSet = new Set<number>();
+    asignaciones.forEach((a) => {
+      if (a.anio) aniosSet.add(a.anio);
+    });
+    return Array.from(aniosSet).sort((a, b) => b - a);
+  }, [asignaciones]);
 
   // Obtener lista única de bancos
   const bancos = useMemo(() => {
-    const bancosSet = new Set<string>()
-    asignaciones.forEach(a => bancosSet.add(a.banco))
-    return Array.from(bancosSet).sort()
-  }, [asignaciones])
+    const bancosSet = new Set<string>();
+    asignaciones.forEach((a) => bancosSet.add(a.banco));
+    return Array.from(bancosSet).sort();
+  }, [asignaciones]);
 
   // Obtener lista única de centros gestores
   const centrosGestores = useMemo(() => {
-    const centrosSet = new Set<string>()
-    analisisPorBP.forEach(a => centrosSet.add(a.nombre_centro_gestor))
-    return Array.from(centrosSet).sort()
-  }, [analisisPorBP])
+    const centrosSet = new Set<string>();
+    analisisPorBP.forEach((a) => centrosSet.add(a.nombre_centro_gestor));
+    return Array.from(centrosSet).sort();
+  }, [analisisPorBP]);
 
   // Filtrar análisis
   const analisisFiltrado = useMemo(() => {
-    return analisisPorBP.filter(analisis => {
-      const normalizedSearch = searchTerm.trim().toLowerCase()
-      const bp = (analisis.bp ?? '').toString().toLowerCase()
-      const centroGestor = (analisis.nombre_centro_gestor ?? '').toString().toLowerCase()
+    return analisisPorBP.filter((analisis) => {
+      const normalizedSearch = searchTerm.trim().toLowerCase();
+      const bp = (analisis.bp ?? "").toString().toLowerCase();
+      const centroGestor = (analisis.nombre_centro_gestor ?? "")
+        .toString()
+        .toLowerCase();
       const matchSearch =
         normalizedSearch.length === 0 ||
         bp.includes(normalizedSearch) ||
-        centroGestor.includes(normalizedSearch)
-      
-      const matchBanco = selectedBancos.length === 0 || 
-                        analisis.participacion_bancos.some(b => selectedBancos.includes(b.banco))
+        centroGestor.includes(normalizedSearch);
 
-      const matchCentroGestor = selectedCentrosGestores.length === 0 ||
-                                selectedCentrosGestores.includes(analisis.nombre_centro_gestor)
+      const matchBanco =
+        selectedBancos.length === 0 ||
+        analisis.participacion_bancos.some((b) =>
+          selectedBancos.includes(b.banco),
+        );
 
-      return matchSearch && matchBanco && matchCentroGestor
-    })
-  }, [analisisPorBP, searchTerm, selectedBancos, selectedCentrosGestores])
+      const matchCentroGestor =
+        selectedCentrosGestores.length === 0 ||
+        selectedCentrosGestores.includes(analisis.nombre_centro_gestor);
+
+      return matchSearch && matchBanco && matchCentroGestor;
+    });
+  }, [analisisPorBP, searchTerm, selectedBancos, selectedCentrosGestores]);
 
   // Totales filtrados
   const totalesFiltrados = useMemo(() => {
-    const totalProgramado = analisisFiltrado.reduce((sum, a) => sum + a.monto_programado, 0)
-    const totalAdjudicado = analisisFiltrado.reduce((sum, a) => sum + a.monto_adjudicado, 0)
+    const totalProgramado = analisisFiltrado.reduce(
+      (sum, a) => sum + a.monto_programado,
+      0,
+    );
+    const totalAdjudicado = analisisFiltrado.reduce(
+      (sum, a) => sum + a.monto_adjudicado,
+      0,
+    );
     return {
       totalProgramado,
       totalAdjudicado,
       brecha: totalProgramado - totalAdjudicado,
-      porcentaje: totalProgramado > 0 ? (totalAdjudicado / totalProgramado) * 100 : 0,
+      porcentaje:
+        totalProgramado > 0 ? (totalAdjudicado / totalProgramado) * 100 : 0,
       cantidadBPs: analisisFiltrado.length,
-      cantidadContratos: analisisFiltrado.reduce((sum, a) => sum + a.contratos.length, 0)
-    }
-  }, [analisisFiltrado])
+      cantidadContratos: analisisFiltrado.reduce(
+        (sum, a) => sum + a.contratos.length,
+        0,
+      ),
+    };
+  }, [analisisFiltrado]);
 
   // Participación global por banco (usando adjudicado real)
   const participacionBancosAdjudicado = useMemo(() => {
-    const montosPorBanco = new Map<string, number>()
-    
+    const montosPorBanco = new Map<string, number>();
+
     // Iterar sobre los análisis filtrados y sus contratos
-    analisisFiltrado.forEach(analisis => {
-      analisis.contratos.forEach(contrato => {
-        const banco = contrato.banco || 'Sin banco'
-        const actual = montosPorBanco.get(banco) || 0
-        montosPorBanco.set(banco, actual + (contrato.valor_contrato || 0))
-      })
-    })
-    
-    const total = Array.from(montosPorBanco.values()).reduce((sum, m) => sum + m, 0)
+    analisisFiltrado.forEach((analisis) => {
+      analisis.contratos.forEach((contrato) => {
+        const banco = contrato.banco || "Sin banco";
+        const actual = montosPorBanco.get(banco) || 0;
+        montosPorBanco.set(banco, actual + (contrato.valor_contrato || 0));
+      });
+    });
+
+    const total = Array.from(montosPorBanco.values()).reduce(
+      (sum, m) => sum + m,
+      0,
+    );
     return Array.from(montosPorBanco.entries())
       .map(([banco, monto]) => ({
         banco,
         monto,
-        porcentaje: total > 0 ? (monto / total) * 100 : 0
+        porcentaje: total > 0 ? (monto / total) * 100 : 0,
       }))
-      .sort((a, b) => b.monto - a.monto)
-  }, [analisisFiltrado])
+      .sort((a, b) => b.monto - a.monto);
+  }, [analisisFiltrado]);
 
   // Participación global por banco (usando programado)
   const participacionBancosProgramado = useMemo(() => {
-    const montosPorBanco = new Map<string, number>()
-    
-    analisisFiltrado.forEach(analisis => {
-      analisis.participacion_bancos.forEach(pb => {
-        const actual = montosPorBanco.get(pb.banco) || 0
-        montosPorBanco.set(pb.banco, actual + pb.monto)
-      })
-    })
-    
-    const total = Array.from(montosPorBanco.values()).reduce((sum, m) => sum + m, 0)
+    const montosPorBanco = new Map<string, number>();
+
+    analisisFiltrado.forEach((analisis) => {
+      analisis.participacion_bancos.forEach((pb) => {
+        const actual = montosPorBanco.get(pb.banco) || 0;
+        montosPorBanco.set(pb.banco, actual + pb.monto);
+      });
+    });
+
+    const total = Array.from(montosPorBanco.values()).reduce(
+      (sum, m) => sum + m,
+      0,
+    );
     return Array.from(montosPorBanco.entries())
       .map(([banco, monto]) => ({
         banco,
         monto,
-        porcentaje: total > 0 ? (monto / total) * 100 : 0
+        porcentaje: total > 0 ? (monto / total) * 100 : 0,
       }))
-      .sort((a, b) => b.monto - a.monto)
-  }, [analisisFiltrado])
+      .sort((a, b) => b.monto - a.monto);
+  }, [analisisFiltrado]);
 
-  const participacionBancosGlobal = dataMode === 'adjudicado' ? participacionBancosAdjudicado : participacionBancosProgramado
+  const participacionBancosGlobal =
+    dataMode === "adjudicado"
+      ? participacionBancosAdjudicado
+      : participacionBancosProgramado;
 
   // Presupuesto global por organismo (usando adjudicado real)
   const presupuestoOrganismosAdjudicado = useMemo(() => {
-    const montosPorOrganismo = new Map<string, number>()
-    
+    const montosPorOrganismo = new Map<string, number>();
+
     // Agrupar por organismo usando el monto adjudicado ya calculado
-    analisisFiltrado.forEach(analisis => {
-      const organismo = analisis.nombre_centro_gestor || 'Sin organismo'
-      const actual = montosPorOrganismo.get(organismo) || 0
-      montosPorOrganismo.set(organismo, actual + analisis.monto_adjudicado)
-    })
-    
-    const total = Array.from(montosPorOrganismo.values()).reduce((sum, m) => sum + m, 0)
+    analisisFiltrado.forEach((analisis) => {
+      const organismo = analisis.nombre_centro_gestor || "Sin organismo";
+      const actual = montosPorOrganismo.get(organismo) || 0;
+      montosPorOrganismo.set(organismo, actual + analisis.monto_adjudicado);
+    });
+
+    const total = Array.from(montosPorOrganismo.values()).reduce(
+      (sum, m) => sum + m,
+      0,
+    );
     return Array.from(montosPorOrganismo.entries())
       .map(([organismo, monto]) => ({
         organismo,
         monto,
-        porcentaje: total > 0 ? (monto / total) * 100 : 0
+        porcentaje: total > 0 ? (monto / total) * 100 : 0,
       }))
-      .sort((a, b) => b.monto - a.monto)
-  }, [analisisFiltrado])
+      .sort((a, b) => b.monto - a.monto);
+  }, [analisisFiltrado]);
 
   // Presupuesto global por organismo (usando programado)
   const presupuestoOrganismosProgramado = useMemo(() => {
-    const montosPorOrganismo = new Map<string, number>()
-    
-    analisisFiltrado.forEach(analisis => {
-      const organismo = analisis.nombre_centro_gestor || 'Sin organismo'
-      const actual = montosPorOrganismo.get(organismo) || 0
-      montosPorOrganismo.set(organismo, actual + analisis.monto_programado)
-    })
-    
-    const total = Array.from(montosPorOrganismo.values()).reduce((sum, m) => sum + m, 0)
+    const montosPorOrganismo = new Map<string, number>();
+
+    analisisFiltrado.forEach((analisis) => {
+      const organismo = analisis.nombre_centro_gestor || "Sin organismo";
+      const actual = montosPorOrganismo.get(organismo) || 0;
+      montosPorOrganismo.set(organismo, actual + analisis.monto_programado);
+    });
+
+    const total = Array.from(montosPorOrganismo.values()).reduce(
+      (sum, m) => sum + m,
+      0,
+    );
     return Array.from(montosPorOrganismo.entries())
       .map(([organismo, monto]) => ({
         organismo,
         monto,
-        porcentaje: total > 0 ? (monto / total) * 100 : 0
+        porcentaje: total > 0 ? (monto / total) * 100 : 0,
       }))
-      .sort((a, b) => b.monto - a.monto)
-  }, [analisisFiltrado])
+      .sort((a, b) => b.monto - a.monto);
+  }, [analisisFiltrado]);
 
-  const presupuestoOrganismosGlobal = dataMode === 'adjudicado' ? presupuestoOrganismosAdjudicado : presupuestoOrganismosProgramado
+  const presupuestoOrganismosGlobal =
+    dataMode === "adjudicado"
+      ? presupuestoOrganismosAdjudicado
+      : presupuestoOrganismosProgramado;
 
   // Pagos filtrados por BPs seleccionados
   const pagosFiltrrados = useMemo(() => {
-    const bpsSet = new Set(analisisFiltrado.map(a => a.bp))
-    return pagos.filter(pago => bpsSet.has(pago.bp))
-  }, [pagos, analisisFiltrado])
+    const bpsSet = new Set(analisisFiltrado.map((a) => a.bp));
+    return pagos.filter((pago) => bpsSet.has(pago.bp));
+  }, [pagos, analisisFiltrado]);
 
   // Pagos por organismo para las gráficas
   const pagosPorOrganismo = useMemo(() => {
-    return pagosFiltrrados.map(p => ({
+    return pagosFiltrrados.map((p) => ({
       organismo: p.nombre_centro_gestor,
-      monto: p.valor_pago
-    }))
-  }, [pagosFiltrrados])
+      monto: p.valor_pago,
+    }));
+  }, [pagosFiltrrados]);
 
   const totalesPagos = useMemo(() => {
-    const totalPagado = pagosFiltrrados.reduce((sum, p) => sum + p.valor_pago, 0)
+    const totalPagado = pagosFiltrrados.reduce(
+      (sum, p) => sum + p.valor_pago,
+      0,
+    );
     return {
       totalPagado,
       cantidadPagos: pagosFiltrrados.length,
-      conDocumentos: pagosFiltrrados.filter(p => p.tiene_documentos_soporte).length
-    }
-  }, [pagosFiltrrados])
+      conDocumentos: pagosFiltrrados.filter((p) => p.tiene_documentos_soporte)
+        .length,
+    };
+  }, [pagosFiltrrados]);
 
   // Métricas para Pagos y Desembolsos (nueva sección)
   const metricasPagosDesembolsos = useMemo(() => {
     // Filtrar asignaciones por años seleccionados
-    const asignacionesFiltradas = selectedAnios.length > 0
-      ? asignaciones.filter(a => selectedAnios.includes(a.anio))
-      : asignaciones
+    const asignacionesFiltradas =
+      selectedAnios.length > 0
+        ? asignaciones.filter((a) => selectedAnios.includes(a.anio))
+        : asignaciones;
 
     // Total pagado desde pagos empréstito
-    const pagosEmprestitoFiltrados = selectedAnios.length > 0
-      ? pagosEmprestito.filter(p => {
-          const year = new Date(p.fecha_transaccion).getFullYear()
-          return selectedAnios.includes(year)
-        })
-      : pagosEmprestito
+    const pagosEmprestitoFiltrados =
+      selectedAnios.length > 0
+        ? pagosEmprestito.filter((p) => {
+            const year = new Date(p.fecha_transaccion).getFullYear();
+            return selectedAnios.includes(year);
+          })
+        : pagosEmprestito;
 
-    const totalPagado = pagosEmprestitoFiltrados.reduce((sum, p) => sum + p.valor_pago, 0)
-    
+    const totalPagado = pagosEmprestitoFiltrados.reduce(
+      (sum, p) => sum + p.valor_pago,
+      0,
+    );
+
     // Total adjudicado (de los contratos filtrados)
-    const totalAdjudicado = analisisFiltrado.reduce((sum, a) => sum + a.monto_adjudicado, 0)
-    
+    const totalAdjudicado = analisisFiltrado.reduce(
+      (sum, a) => sum + a.monto_adjudicado,
+      0,
+    );
+
     // Cuentas por pagar (diferencia entre adjudicado y pagado)
-    const cuentasPorPagar = totalAdjudicado - totalPagado
+    const cuentasPorPagar = totalAdjudicado - totalPagado;
 
     // Pagos por banco (relacionar pagos con bancos mediante BP)
-    const pagosPorBanco = new Map<string, number>()
-    
-    pagosEmprestitoFiltrados.forEach(pago => {
+    const pagosPorBanco = new Map<string, number>();
+
+    pagosEmprestitoFiltrados.forEach((pago) => {
       // Buscar el banco asociado al BP en las asignaciones
-      const asignacionesBP = asignacionesFiltradas.filter(a => a.bp === pago.bp)
-      asignacionesBP.forEach(asig => {
-        const bancoActual = pagosPorBanco.get(asig.banco) || 0
+      const asignacionesBP = asignacionesFiltradas.filter(
+        (a) => a.bp === pago.bp,
+      );
+      asignacionesBP.forEach((asig) => {
+        const bancoActual = pagosPorBanco.get(asig.banco) || 0;
         // Distribuir el pago proporcionalmente entre los bancos del BP
-        const proporcion = asignacionesBP.length > 0 ? 1 / asignacionesBP.length : 1
-        pagosPorBanco.set(asig.banco, bancoActual + (pago.valor_pago * proporcion))
-      })
-    })
+        const proporcion =
+          asignacionesBP.length > 0 ? 1 / asignacionesBP.length : 1;
+        pagosPorBanco.set(
+          asig.banco,
+          bancoActual + pago.valor_pago * proporcion,
+        );
+      });
+    });
 
     const pagosPorBancoArray = Array.from(pagosPorBanco.entries())
       .map(([banco, monto]) => ({
         banco,
         monto,
-        porcentaje: totalPagado > 0 ? (monto / totalPagado) * 100 : 0
+        porcentaje: totalPagado > 0 ? (monto / totalPagado) * 100 : 0,
       }))
-      .sort((a, b) => b.monto - a.monto)
+      .sort((a, b) => b.monto - a.monto);
 
     return {
       totalAdjudicado,
@@ -1187,130 +1496,151 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
       cuentasPorPagar,
       cantidadPagos: pagosEmprestitoFiltrados.length,
       pagosPorBanco: pagosPorBancoArray,
-      porcentajePagado: totalAdjudicado > 0 ? (totalPagado / totalAdjudicado) * 100 : 0
-    }
-  }, [analisisFiltrado, pagosEmprestito, selectedAnios, asignaciones])
+      porcentajePagado:
+        totalAdjudicado > 0 ? (totalPagado / totalAdjudicado) * 100 : 0,
+    };
+  }, [analisisFiltrado, pagosEmprestito, selectedAnios, asignaciones]);
 
   // Pagos por banco para las gráficas (usando metricasPagosDesembolsos) - MOVIDO DESPUÉS
   const pagosPorBancoParaGrafica = useMemo(() => {
-    return metricasPagosDesembolsos.pagosPorBanco
-  }, [metricasPagosDesembolsos])
+    return metricasPagosDesembolsos.pagosPorBanco;
+  }, [metricasPagosDesembolsos]);
 
   // Pagos agrupados por Centro Gestor, BP y Contratos para la tabla de la sección de pagos
   const pagosAgrupadosPorCentroGestor = useMemo(() => {
     // Filtrar pagos por años seleccionados
-    const pagosFiltrados = selectedAnios.length > 0
-      ? pagosEmprestito.filter(p => {
-          const year = new Date(p.fecha_transaccion).getFullYear()
-          return selectedAnios.includes(year)
-        })
-      : pagosEmprestito
+    const pagosFiltrados =
+      selectedAnios.length > 0
+        ? pagosEmprestito.filter((p) => {
+            const year = new Date(p.fecha_transaccion).getFullYear();
+            return selectedAnios.includes(year);
+          })
+        : pagosEmprestito;
 
     // Agrupar por centro gestor
-    const grupos = new Map<string, {
-      centroGestor: string
-      totalPagado: number
-      cantidadPagos: number
-      bps: Map<string, { 
-        bp: string; 
-        totalPagado: number; 
+    const grupos = new Map<
+      string,
+      {
+        centroGestor: string;
+        totalPagado: number;
         cantidadPagos: number;
-        contratos: Map<string, { 
-          numeroContrato: string; 
-          totalPagado: number; 
-          cantidadPagos: number;
-          montoAdjudicado: number;
-        }>
-      }>
-    }>()
+        bps: Map<
+          string,
+          {
+            bp: string;
+            totalPagado: number;
+            cantidadPagos: number;
+            contratos: Map<
+              string,
+              {
+                numeroContrato: string;
+                totalPagado: number;
+                cantidadPagos: number;
+                montoAdjudicado: number;
+              }
+            >;
+          }
+        >;
+      }
+    >();
 
-    pagosFiltrados.forEach(pago => {
-      const centroGestor = pago.nombre_centro_gestor || 'Sin Centro Gestor'
-      
+    pagosFiltrados.forEach((pago) => {
+      const centroGestor = pago.nombre_centro_gestor || "Sin Centro Gestor";
+
       if (!grupos.has(centroGestor)) {
         grupos.set(centroGestor, {
           centroGestor,
           totalPagado: 0,
           cantidadPagos: 0,
-          bps: new Map()
-        })
+          bps: new Map(),
+        });
       }
-      
-      const grupo = grupos.get(centroGestor)!
-      grupo.totalPagado += pago.valor_pago
-      grupo.cantidadPagos += 1
-      
+
+      const grupo = grupos.get(centroGestor)!;
+      grupo.totalPagado += pago.valor_pago;
+      grupo.cantidadPagos += 1;
+
       // Agrupar por BP dentro del centro gestor
       if (!grupo.bps.has(pago.bp)) {
-        grupo.bps.set(pago.bp, { bp: pago.bp, totalPagado: 0, cantidadPagos: 0, contratos: new Map() })
+        grupo.bps.set(pago.bp, {
+          bp: pago.bp,
+          totalPagado: 0,
+          cantidadPagos: 0,
+          contratos: new Map(),
+        });
       }
-      const bpGrupo = grupo.bps.get(pago.bp)!
-      bpGrupo.totalPagado += pago.valor_pago
-      bpGrupo.cantidadPagos += 1
-      
+      const bpGrupo = grupo.bps.get(pago.bp)!;
+      bpGrupo.totalPagado += pago.valor_pago;
+      bpGrupo.cantidadPagos += 1;
+
       // Agrupar por contrato dentro del BP
-      const referenciaContrato = pago.referencia_contrato || 'Sin contrato'
+      const referenciaContrato = pago.referencia_contrato || "Sin contrato";
       if (!bpGrupo.contratos.has(referenciaContrato)) {
         // Buscar el valor del contrato en contratosBP
         // Primero intentar por BP y nombre_resumido_proceso
-        let contratoEncontrado = contratosBP.find(c => 
-          c.bp === pago.bp && 
-          c.nombre_resumido_proceso && 
-          referenciaContrato.includes(c.nombre_resumido_proceso)
-        )
-        
+        let contratoEncontrado = contratosBP.find(
+          (c) =>
+            c.bp === pago.bp &&
+            c.nombre_resumido_proceso &&
+            referenciaContrato.includes(c.nombre_resumido_proceso),
+        );
+
         // Si no se encuentra, buscar solo por BP y tomar el primer contrato
         if (!contratoEncontrado) {
-          contratoEncontrado = contratosBP.find(c => c.bp === pago.bp)
+          contratoEncontrado = contratosBP.find((c) => c.bp === pago.bp);
         }
-        
-        const montoAdjudicado = contratoEncontrado?.valor_contrato || 0
-        
-        bpGrupo.contratos.set(referenciaContrato, { 
-          numeroContrato: referenciaContrato, 
-          totalPagado: 0, 
+
+        const montoAdjudicado = contratoEncontrado?.valor_contrato || 0;
+
+        bpGrupo.contratos.set(referenciaContrato, {
+          numeroContrato: referenciaContrato,
+          totalPagado: 0,
           cantidadPagos: 0,
-          montoAdjudicado
-        })
+          montoAdjudicado,
+        });
       }
-      const contratoGrupo = bpGrupo.contratos.get(referenciaContrato)!
-      contratoGrupo.totalPagado += pago.valor_pago
-      contratoGrupo.cantidadPagos += 1
-    })
+      const contratoGrupo = bpGrupo.contratos.get(referenciaContrato)!;
+      contratoGrupo.totalPagado += pago.valor_pago;
+      contratoGrupo.cantidadPagos += 1;
+    });
 
     // Convertir a array y ordenar
     return Array.from(grupos.values())
-      .map(g => ({
+      .map((g) => ({
         ...g,
         bps: Array.from(g.bps.values())
-          .map(bp => ({
+          .map((bp) => ({
             ...bp,
-            contratos: Array.from(bp.contratos.values()).sort((a, b) => b.totalPagado - a.totalPagado)
+            contratos: Array.from(bp.contratos.values()).sort(
+              (a, b) => b.totalPagado - a.totalPagado,
+            ),
           }))
-          .sort((a, b) => b.totalPagado - a.totalPagado)
+          .sort((a, b) => b.totalPagado - a.totalPagado),
       }))
-      .sort((a, b) => b.totalPagado - a.totalPagado)
-  }, [pagosEmprestito, selectedAnios, analisisPorBP, contratosBP])
+      .sort((a, b) => b.totalPagado - a.totalPagado);
+  }, [pagosEmprestito, selectedAnios, analisisPorBP, contratosBP]);
 
   // Agrupar por Centro Gestor
   const agrupadoPorCentroGestor = useMemo(() => {
-    const grupos = new Map<string, AnalisisPorBP[]>()
-    analisisFiltrado.forEach(a => {
-      const actual = grupos.get(a.nombre_centro_gestor) || []
-      grupos.set(a.nombre_centro_gestor, [...actual, a])
-    })
+    const grupos = new Map<string, AnalisisPorBP[]>();
+    analisisFiltrado.forEach((a) => {
+      const actual = grupos.get(a.nombre_centro_gestor) || [];
+      grupos.set(a.nombre_centro_gestor, [...actual, a]);
+    });
     return Array.from(grupos.entries())
       .map(([centro, bps]) => {
         // Organizar BPs por banco dentro del centro gestor
-        const bpsPorBanco = new Map<string, AnalisisPorBP[]>()
-        bps.forEach(bp => {
+        const bpsPorBanco = new Map<string, AnalisisPorBP[]>();
+        bps.forEach((bp) => {
           // Obtener el banco principal (el de mayor participación)
-          const bancoPrincipal = bp.participacion_bancos.length > 0 
-            ? bp.participacion_bancos.sort((a, b) => b.monto - a.monto)[0].banco
-            : 'Sin banco'
-          const actualBanco = bpsPorBanco.get(bancoPrincipal) || []
-          bpsPorBanco.set(bancoPrincipal, [...actualBanco, bp])
-        })
+          const bancoPrincipal =
+            bp.participacion_bancos.length > 0
+              ? bp.participacion_bancos.sort((a, b) => b.monto - a.monto)[0]
+                  .banco
+              : "Sin banco";
+          const actualBanco = bpsPorBanco.get(bancoPrincipal) || [];
+          bpsPorBanco.set(bancoPrincipal, [...actualBanco, bp]);
+        });
 
         return {
           centro,
@@ -1318,55 +1648,65 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
           bpsPorBanco: Array.from(bpsPorBanco.entries())
             .map(([banco, bpsBanco]) => ({
               banco,
-              bps: bpsBanco.sort((a, b) => b.monto_programado - a.monto_programado)
+              bps: bpsBanco.sort(
+                (a, b) => b.monto_programado - a.monto_programado,
+              ),
             }))
             .sort((a, b) => {
-              const sumaA = a.bps.reduce((sum, bp) => sum + bp.monto_programado, 0)
-              const sumaB = b.bps.reduce((sum, bp) => sum + bp.monto_programado, 0)
-              return sumaB - sumaA
+              const sumaA = a.bps.reduce(
+                (sum, bp) => sum + bp.monto_programado,
+                0,
+              );
+              const sumaB = b.bps.reduce(
+                (sum, bp) => sum + bp.monto_programado,
+                0,
+              );
+              return sumaB - sumaA;
             }),
           totales: {
             programado: bps.reduce((sum, b) => sum + b.monto_programado, 0),
             adjudicado: bps.reduce((sum, b) => sum + b.monto_adjudicado, 0),
-            brecha: bps.reduce((sum, b) => sum + b.brecha, 0)
-          }
-        }
+            brecha: bps.reduce((sum, b) => sum + b.brecha, 0),
+          },
+        };
       })
-      .sort((a, b) => b.totales.programado - a.totales.programado)
-  }, [analisisFiltrado])
+      .sort((a, b) => b.totales.programado - a.totales.programado);
+  }, [analisisFiltrado]);
 
   // Agrupar por Banco
   const agrupadoPorBanco = useMemo(() => {
-    const grupos = new Map<string, AnalisisPorBP[]>()
-    analisisFiltrado.forEach(a => {
-      a.participacion_bancos.forEach(pb => {
-        const actual = grupos.get(pb.banco) || []
-        if (!actual.some(x => x.bp === a.bp)) {
-          grupos.set(pb.banco, [...actual, a])
+    const grupos = new Map<string, AnalisisPorBP[]>();
+    analisisFiltrado.forEach((a) => {
+      a.participacion_bancos.forEach((pb) => {
+        const actual = grupos.get(pb.banco) || [];
+        if (!actual.some((x) => x.bp === a.bp)) {
+          grupos.set(pb.banco, [...actual, a]);
         }
-      })
-    })
+      });
+    });
     return Array.from(grupos.entries())
       .map(([banco, bps]) => ({
         banco,
         bps,
         totales: {
           programado: bps.reduce((sum, b) => sum + b.monto_programado, 0),
-          adjudicado: bps.reduce((sum, b) => sum + b.monto_adjudicado, 0)
-        }
+          adjudicado: bps.reduce((sum, b) => sum + b.monto_adjudicado, 0),
+        },
       }))
-      .sort((a, b) => b.totales.programado - a.totales.programado)
-  }, [analisisFiltrado])
+      .sort((a, b) => b.totales.programado - a.totales.programado);
+  }, [analisisFiltrado]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Cargando análisis de proyectos BP...</p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Cargando análisis de proyectos BP...
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -1377,7 +1717,7 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
           <span className="font-medium">Error al cargar datos: {error}</span>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -1387,29 +1727,41 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-extrabold mb-2 tracking-tight">
-              RESUMEN EJECUTIVO DE EJECUCIÓN {selectedAnios.length > 0 ? selectedAnios.join(', ') : ''}
+              RESUMEN EJECUTIVO DE EJECUCIÓN{" "}
+              {selectedAnios.length > 0 ? selectedAnios.join(", ") : ""}
             </h1>
-            <p className="text-blue-100 text-lg">Análisis detallado por Proyecto de Inversión (BP)</p>
+            <p className="text-blue-100 text-lg">
+              Análisis detallado por Proyecto de Inversión (BP)
+            </p>
           </div>
-          
+
           {/* Botón de Filtro Flotante */}
           <div className="relative">
             <button
               onClick={() => setShowFilterPanel(!showFilterPanel)}
               className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all duration-200 ${
-                showFilterPanel || selectedBancos.length > 0 || selectedAnios.length > 0 || selectedCentrosGestores.length > 0
-                  ? 'bg-white text-blue-700 shadow-lg'
-                  : 'bg-blue-600 hover:bg-blue-500 text-white'
+                showFilterPanel ||
+                selectedBancos.length > 0 ||
+                selectedAnios.length > 0 ||
+                selectedCentrosGestores.length > 0
+                  ? "bg-white text-blue-700 shadow-lg"
+                  : "bg-blue-600 hover:bg-blue-500 text-white"
               }`}
             >
               <Filter className="w-5 h-5" />
               <span className="font-semibold">Filtros</span>
-              {(selectedBancos.length > 0 || selectedAnios.length > 0 || selectedCentrosGestores.length > 0) && (
+              {(selectedBancos.length > 0 ||
+                selectedAnios.length > 0 ||
+                selectedCentrosGestores.length > 0) && (
                 <span className="bg-teal-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {selectedBancos.length + selectedAnios.length + selectedCentrosGestores.length}
+                  {selectedBancos.length +
+                    selectedAnios.length +
+                    selectedCentrosGestores.length}
                 </span>
               )}
-              <ChevronDown className={`w-4 h-4 transition-transform ${showFilterPanel ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${showFilterPanel ? "rotate-180" : ""}`}
+              />
             </button>
 
             {/* Panel de Filtros Flotante */}
@@ -1424,13 +1776,15 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
                 >
                   <div className="p-5 space-y-4 max-h-[600px] overflow-y-auto">
                     <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filtros Avanzados</h3>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        Filtros Avanzados
+                      </h3>
                       <button
                         onClick={() => {
-                          setSelectedBancos([])
-                          setSelectedAnios([])
-                          setSelectedCentrosGestores([])
-                          setSearchTerm('')
+                          setSelectedBancos([]);
+                          setSelectedAnios([]);
+                          setSelectedCentrosGestores([]);
+                          setSearchTerm("");
                         }}
                         className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                       >
@@ -1458,21 +1812,28 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
                         Años ({selectedAnios.length} seleccionados)
                       </label>
                       <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-2">
-                        {anios.map(anio => (
-                          <label key={anio} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded">
+                        {anios.map((anio) => (
+                          <label
+                            key={anio}
+                            className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded"
+                          >
                             <input
                               type="checkbox"
                               checked={selectedAnios.includes(anio)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setSelectedAnios([...selectedAnios, anio])
+                                  setSelectedAnios([...selectedAnios, anio]);
                                 } else {
-                                  setSelectedAnios(selectedAnios.filter(a => a !== anio))
+                                  setSelectedAnios(
+                                    selectedAnios.filter((a) => a !== anio),
+                                  );
                                 }
                               }}
                               className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                             />
-                            <span className="text-sm text-gray-900 dark:text-white">{anio}</span>
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {anio}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -1484,21 +1845,28 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
                         Bancos ({selectedBancos.length} seleccionados)
                       </label>
                       <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-2">
-                        {bancos.map(banco => (
-                          <label key={banco} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded">
+                        {bancos.map((banco) => (
+                          <label
+                            key={banco}
+                            className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded"
+                          >
                             <input
                               type="checkbox"
                               checked={selectedBancos.includes(banco)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setSelectedBancos([...selectedBancos, banco])
+                                  setSelectedBancos([...selectedBancos, banco]);
                                 } else {
-                                  setSelectedBancos(selectedBancos.filter(b => b !== banco))
+                                  setSelectedBancos(
+                                    selectedBancos.filter((b) => b !== banco),
+                                  );
                                 }
                               }}
                               className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                             />
-                            <span className="text-sm text-gray-900 dark:text-white">{banco}</span>
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {banco}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -1507,24 +1875,37 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
                     {/* Centro Gestor - Selección Múltiple con Scroll */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Centros Gestores ({selectedCentrosGestores.length} seleccionados)
+                        Centros Gestores ({selectedCentrosGestores.length}{" "}
+                        seleccionados)
                       </label>
                       <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 max-h-48 overflow-y-auto bg-white dark:bg-gray-700">
-                        {centrosGestores.map(centro => (
-                          <label key={centro} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-2 rounded transition-colors">
+                        {centrosGestores.map((centro) => (
+                          <label
+                            key={centro}
+                            className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-2 rounded transition-colors"
+                          >
                             <input
                               type="checkbox"
                               checked={selectedCentrosGestores.includes(centro)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setSelectedCentrosGestores([...selectedCentrosGestores, centro])
+                                  setSelectedCentrosGestores([
+                                    ...selectedCentrosGestores,
+                                    centro,
+                                  ]);
                                 } else {
-                                  setSelectedCentrosGestores(selectedCentrosGestores.filter(c => c !== centro))
+                                  setSelectedCentrosGestores(
+                                    selectedCentrosGestores.filter(
+                                      (c) => c !== centro,
+                                    ),
+                                  );
                                 }
                               }}
                               className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                             />
-                            <span className="text-sm text-gray-900 dark:text-white">{centro}</span>
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {centro}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -1547,37 +1928,41 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
 
       {/* Métricas principales - Estilo similar a la imagen */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div 
-          onClick={() => setDataMode('programado')}
+        <div
+          onClick={() => setDataMode("programado")}
           className={`cursor-pointer transition-all duration-200 rounded-xl ${
-            dataMode === 'programado' 
-              ? 'opacity-100 bg-blue-50 dark:bg-blue-950/10' 
-              : 'opacity-70 hover:opacity-90'
+            dataMode === "programado"
+              ? "opacity-100 bg-blue-50 dark:bg-blue-950/10"
+              : "opacity-70 hover:opacity-90"
           }`}
         >
           <MetricCard
-            title={selectedAnios.length > 0 ? `Total Programado Concejo ${selectedAnios.join(', ')}` : 'Total Programado'}
+            title={
+              selectedAnios.length > 0
+                ? `Total Programado Concejo ${selectedAnios.join(", ")}`
+                : "Total Programado"
+            }
             value={(() => {
-              const f = formatMonto(totalesFiltrados.totalProgramado)
-              return `$${f.valor} ${f.unidad}`
+              const f = formatMonto(totalesFiltrados.totalProgramado);
+              return `$${f.valor} ${f.unidad}`;
             })()}
             icon={DollarSign}
             variant="info"
           />
         </div>
-        <div 
-          onClick={() => setDataMode('adjudicado')}
+        <div
+          onClick={() => setDataMode("adjudicado")}
           className={`cursor-pointer transition-all duration-200 rounded-xl ${
-            dataMode === 'adjudicado' 
-              ? 'opacity-100 bg-green-50 dark:bg-green-950/10' 
-              : 'opacity-70 hover:opacity-90'
+            dataMode === "adjudicado"
+              ? "opacity-100 bg-green-50 dark:bg-green-950/10"
+              : "opacity-70 hover:opacity-90"
           }`}
         >
           <MetricCard
             title="Total Adjudicado Real (Subtotal)"
             value={(() => {
-              const f = formatMonto(totalesFiltrados.totalAdjudicado)
-              return `$${f.valor} ${f.unidad}`
+              const f = formatMonto(totalesFiltrados.totalAdjudicado);
+              return `$${f.valor} ${f.unidad}`;
             })()}
             subtitle={`${totalesFiltrados.cantidadContratos} contratos adjudicados`}
             icon={TrendingUp}
@@ -1595,28 +1980,50 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
         </div>
       </div>
 
-
       {/* Métricas secundarias - Solo Adjudicado, optimizado */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4 mt-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-700 text-center flex flex-col justify-center items-center">
-          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Proyectos (BP)</span>
-          <span className="text-2xl md:text-3xl font-bold text-blue-600">{totalesFiltrados.cantidadBPs}</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+            Proyectos (BP)
+          </span>
+          <span className="text-2xl md:text-3xl font-bold text-blue-600">
+            {totalesFiltrados.cantidadBPs}
+          </span>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-700 text-center flex flex-col justify-center items-center">
-          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Contratos</span>
-          <span className="text-2xl md:text-3xl font-bold text-green-600">{totalesFiltrados.cantidadContratos}</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+            Contratos
+          </span>
+          <span className="text-2xl md:text-3xl font-bold text-green-600">
+            {totalesFiltrados.cantidadContratos}
+          </span>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-700 text-center flex flex-col justify-center items-center">
-          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Bancos</span>
-          <span className="text-2xl md:text-3xl font-bold text-teal-600">{participacionBancosAdjudicado.length}</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+            Bancos
+          </span>
+          <span className="text-2xl md:text-3xl font-bold text-teal-600">
+            {participacionBancosAdjudicado.length}
+          </span>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-700 text-center flex flex-col justify-center items-center">
-          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Pagos</span>
-          <span className="text-2xl md:text-3xl font-bold text-purple-600">{totalesPagos.cantidadPagos}</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+            Pagos
+          </span>
+          <span className="text-2xl md:text-3xl font-bold text-purple-600">
+            {totalesPagos.cantidadPagos}
+          </span>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 md:p-4 border border-gray-200 dark:border-gray-700 text-center flex flex-col justify-center items-center">
-          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Total Pagado</span>
-          <span className="text-2xl md:text-3xl font-bold text-purple-600">{(() => { const f = formatMonto(totalesPagos.totalPagado); return `$${f.valor} ${f.unidad}` })()}</span>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+            Total Pagado
+          </span>
+          <span className="text-2xl md:text-3xl font-bold text-purple-600">
+            {(() => {
+              const f = formatMonto(totalesPagos.totalPagado);
+              return `$${f.valor} ${f.unidad}`;
+            })()}
+          </span>
         </div>
       </div>
 
@@ -1648,12 +2055,16 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
               <div className="p-2 bg-blue-500 rounded-lg">
                 <FileText className="w-5 h-5 text-white" />
               </div>
-              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">Número de Pagos</span>
+              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                Número de Pagos
+              </span>
             </div>
             <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">
               {metricasPagosDesembolsos.cantidadPagos.toLocaleString()}
             </p>
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Transacciones registradas</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              Transacciones registradas
+            </p>
           </div>
 
           {/* Pagos Efectivos */}
@@ -1662,12 +2073,19 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
               <div className="p-2 bg-green-500 rounded-lg">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <span className="text-sm font-semibold text-green-700 dark:text-green-300">Pagos Efectivos</span>
+              <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+                Pagos Efectivos
+              </span>
             </div>
             <p className="text-2xl font-bold text-green-800 dark:text-green-200">
-              {(() => { const f = formatMonto(metricasPagosDesembolsos.totalPagado); return `$${f.valor} ${f.unidad}` })()}
+              {(() => {
+                const f = formatMonto(metricasPagosDesembolsos.totalPagado);
+                return `$${f.valor} ${f.unidad}`;
+              })()}
             </p>
-            <p className="text-xs text-green-600 dark:text-green-400 mt-1">Monto total pagado</p>
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+              Monto total pagado
+            </p>
           </div>
 
           {/* Cuentas por Pagar */}
@@ -1676,13 +2094,22 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
               <div className="p-2 bg-orange-500 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-white" />
               </div>
-              <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">Cuentas por Pagar</span>
+              <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                Cuentas por Pagar
+              </span>
             </div>
             <p className="text-2xl font-bold text-orange-800 dark:text-orange-200">
-              {(() => { const f = formatMonto(Math.abs(metricasPagosDesembolsos.cuentasPorPagar)); return `$${f.valor} ${f.unidad}` })()}
+              {(() => {
+                const f = formatMonto(
+                  Math.abs(metricasPagosDesembolsos.cuentasPorPagar),
+                );
+                return `$${f.valor} ${f.unidad}`;
+              })()}
             </p>
             <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-              {metricasPagosDesembolsos.cuentasPorPagar >= 0 ? 'Pendiente por ejecutar' : 'Sobreejecución'}
+              {metricasPagosDesembolsos.cuentasPorPagar >= 0
+                ? "Pendiente por ejecutar"
+                : "Sobreejecución"}
             </p>
           </div>
 
@@ -1692,12 +2119,16 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
               <div className="p-2 bg-purple-500 rounded-lg">
                 <Layers className="w-5 h-5 text-white" />
               </div>
-              <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">Reservas Presupuestales</span>
+              <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                Reservas Presupuestales
+              </span>
             </div>
             <p className="text-2xl font-bold text-purple-800 dark:text-purple-200">
               --
             </p>
-            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Pendiente endpoint</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+              Pendiente endpoint
+            </p>
           </div>
         </div>
 
@@ -1724,72 +2155,111 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
                 </div>
               ) : (
                 pagosAgrupadosPorCentroGestor.map((grupo, idx) => (
-                  <details key={grupo.centroGestor} className="group border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <details
+                    key={grupo.centroGestor}
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                  >
                     <summary className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                       <div className="flex items-center gap-2">
                         <ChevronRight className="w-4 h-4 text-gray-500 group-open:rotate-90 transition-transform" />
-                        <span className="font-medium text-gray-900 dark:text-white text-sm">{grupo.centroGestor}</span>
+                        <span className="font-medium text-gray-900 dark:text-white text-sm">
+                          {grupo.centroGestor}
+                        </span>
                         <span className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs px-2 py-0.5 rounded-full">
-                          {grupo.bps.length} BP{grupo.bps.length !== 1 ? 's' : ''}
+                          {grupo.bps.length} BP
+                          {grupo.bps.length !== 1 ? "s" : ""}
                         </span>
                       </div>
                       <div className="text-right">
                         <span className="font-bold text-green-600 dark:text-green-400 text-sm">
-                          {(() => { const f = formatMonto(grupo.totalPagado); return `$${f.valor} ${f.unidad}` })()}
+                          {(() => {
+                            const f = formatMonto(grupo.totalPagado);
+                            return `$${f.valor} ${f.unidad}`;
+                          })()}
                         </span>
-                        <span className="text-xs text-gray-500 ml-2">({grupo.cantidadPagos} pagos)</span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({grupo.cantidadPagos} pagos)
+                        </span>
                       </div>
                     </summary>
                     <div className="p-3 bg-white dark:bg-gray-800 space-y-2">
                       {grupo.bps.map((bp, index) => {
-                        const bpCode = getSafeBpCode(bp.bp)
-                        const bpBadge = getBpBadge(bp.bp)
+                        const bpCode = getSafeBpCode(bp.bp);
+                        const bpBadge = getBpBadge(bp.bp);
 
                         return (
-                        <details key={`${bpCode}-${index}`} className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <summary className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700/30 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <ChevronRight className="w-3 h-3 text-gray-500 group-open:rotate-90 transition-transform" />
-                              <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white font-bold text-xs">
-                                {bpBadge}
-                              </div>
-                              <span className="text-sm text-gray-700 dark:text-gray-300">{bpCode}</span>
-                              <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full">
-                                {bp.contratos.length} contrato{bp.contratos.length !== 1 ? 's' : ''}
-                              </span>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-semibold text-green-600 dark:text-green-400 text-sm">
-                                {(() => { const f = formatMonto(bp.totalPagado); return `$${f.valor} ${f.unidad}` })()}
-                              </span>
-                              <span className="text-xs text-gray-500 ml-2">({bp.cantidadPagos})</span>
-                            </div>
-                          </summary>
-                          <div className="p-2 bg-white dark:bg-gray-800 space-y-1">
-                            {bp.contratos.map(contrato => {
-                              return (
-                                <div key={contrato.numeroContrato} className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700/20 rounded">
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <FileText className="w-4 h-4 text-gray-400" />
-                                    <span className="text-xs text-gray-600 dark:text-gray-400">{contrato.numeroContrato}</span>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <div className="text-right">
-                                      <div className="text-xs text-gray-500">Pagado:</div>
-                                      <div className="font-semibold text-green-600 dark:text-green-400 text-xs">
-                                        {(() => { const f = formatMonto(contrato.totalPagado); return `$${f.valor} ${f.unidad}` })()}
-                                      </div>
-                                    </div>
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                      ({contrato.cantidadPagos} pago{contrato.cantidadPagos !== 1 ? 's' : ''})
-                                    </span>
-                                  </div>
+                          <details
+                            key={`${bpCode}-${index}`}
+                            className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden"
+                          >
+                            <summary className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700/30 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <ChevronRight className="w-3 h-3 text-gray-500 group-open:rotate-90 transition-transform" />
+                                <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white font-bold text-xs">
+                                  {bpBadge}
                                 </div>
-                              )
-                            })}
-                          </div>
-                        </details>
-                      )})}
+                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                  {bpCode}
+                                </span>
+                                <span className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full">
+                                  {bp.contratos.length} contrato
+                                  {bp.contratos.length !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-semibold text-green-600 dark:text-green-400 text-sm">
+                                  {(() => {
+                                    const f = formatMonto(bp.totalPagado);
+                                    return `$${f.valor} ${f.unidad}`;
+                                  })()}
+                                </span>
+                                <span className="text-xs text-gray-500 ml-2">
+                                  ({bp.cantidadPagos})
+                                </span>
+                              </div>
+                            </summary>
+                            <div className="p-2 bg-white dark:bg-gray-800 space-y-1">
+                              {bp.contratos.map((contrato) => {
+                                return (
+                                  <div
+                                    key={contrato.numeroContrato}
+                                    className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700/20 rounded"
+                                  >
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <FileText className="w-4 h-4 text-gray-400" />
+                                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                                        {contrato.numeroContrato}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-right">
+                                        <div className="text-xs text-gray-500">
+                                          Pagado:
+                                        </div>
+                                        <div className="font-semibold text-green-600 dark:text-green-400 text-xs">
+                                          {(() => {
+                                            const f = formatMonto(
+                                              contrato.totalPagado,
+                                            );
+                                            return `$${f.valor} ${f.unidad}`;
+                                          })()}
+                                        </div>
+                                      </div>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        ({contrato.cantidadPagos} pago
+                                        {contrato.cantidadPagos !== 1
+                                          ? "s"
+                                          : ""}
+                                        )
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </details>
+                        );
+                      })}
                     </div>
                   </details>
                 ))
@@ -1805,31 +2275,34 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
         {/* Selector de agrupación */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-            {viewMode === 'bp' && <FileText className="w-5 h-5 mr-2" />}
-            {viewMode === 'banco' && <Banknote className="w-5 h-5 mr-2" />}
-            {viewMode === 'bp' && `Proyectos BP por Centro Gestor (${agrupadoPorCentroGestor.length} organismos)`}
-            {viewMode === 'banco' && `Por Banco (${agrupadoPorBanco.length})`}
+            {viewMode === "bp" && <FileText className="w-5 h-5 mr-2" />}
+            {viewMode === "banco" && <Banknote className="w-5 h-5 mr-2" />}
+            {viewMode === "bp" &&
+              `Proyectos BP por Centro Gestor (${agrupadoPorCentroGestor.length} organismos)`}
+            {viewMode === "banco" && `Por Banco (${agrupadoPorBanco.length})`}
           </h2>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Agrupar por:</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Agrupar por:
+              </span>
               <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
                 <button
-                  onClick={() => setViewMode('bp')}
+                  onClick={() => setViewMode("bp")}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    viewMode === 'bp' 
-                      ? 'bg-teal-500 text-white' 
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    viewMode === "bp"
+                      ? "bg-teal-500 text-white"
+                      : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
                   }`}
                 >
                   Centro Gestor
                 </button>
                 <button
-                  onClick={() => setViewMode('banco')}
+                  onClick={() => setViewMode("banco")}
                   className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    viewMode === 'banco' 
-                      ? 'bg-teal-500 text-white' 
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    viewMode === "banco"
+                      ? "bg-teal-500 text-white"
+                      : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
                   }`}
                 >
                   Banco
@@ -1839,7 +2312,7 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
           </div>
         </div>
 
-        {viewMode === 'bp' && (
+        {viewMode === "bp" && (
           <div className="space-y-4">
             {analisisFiltrado.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
@@ -1858,7 +2331,7 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
           </div>
         )}
 
-        {viewMode === 'banco' && (
+        {viewMode === "banco" && (
           <div className="space-y-3">
             {agrupadoPorBanco.map((grupo) => (
               <BancoAccordion
@@ -1872,7 +2345,7 @@ const EmprestitoAnalisisProyectosBP: React.FC = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default EmprestitoAnalisisProyectosBP
+export default EmprestitoAnalisisProyectosBP;

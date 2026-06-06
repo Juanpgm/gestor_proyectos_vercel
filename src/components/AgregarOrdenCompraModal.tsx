@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingCart, AlertCircle, CheckCircle } from "lucide-react";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface AgregarOrdenCompraModalProps {
   isOpen: boolean;
@@ -83,7 +84,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
   const fetchBancosYCentros = async () => {
     setLoadingData(true);
     try {
-      const response = await fetch(
+      const response = await proxyFetch(
         "/api/proxy/asignaciones-emprestito-banco-centro-gestor",
         {
           method: "GET",
@@ -199,7 +200,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
         );
         console.log("📤 Parámetros a enviar:", Object.fromEntries(params));
 
-        const response = await fetch(
+        const response = await proxyFetch(
           `/api/proxy/emprestito/modificar-orden-compra?${params.toString()}`,
           {
             method: "PUT",
@@ -273,7 +274,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
           Number(formData.valor_proyectado).toString(),
         );
 
-        const response = await fetch(
+        const response = await proxyFetch(
           "/api/proxy/emprestito/cargar-orden-compra",
           {
             method: "POST",
@@ -304,7 +305,7 @@ const AgregarOrdenCompraModal: React.FC<AgregarOrdenCompraModalProps> = ({
 
         // Ejecutar sincronización TVEC inmediatamente después de crear la orden
         try {
-          const syncResponse = await fetch(
+          const syncResponse = await proxyFetch(
             "/api/proxy/emprestito/obtener-ordenes-compra-TVEC",
             {
               method: "POST",

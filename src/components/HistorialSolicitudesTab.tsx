@@ -13,6 +13,7 @@ import {
   XCircle,
   Hourglass,
 } from "lucide-react";
+import { proxyFetch } from "@/utils/errorHandler";
 import {
   fetchSolicitudesCambiosUP,
   fetchSolicitudesCambiosIntervencion,
@@ -263,7 +264,7 @@ const HistorialSolicitudesTab: React.FC<HistorialSolicitudesTabProps> = ({
 
       for (const url of candidates) {
         try {
-          const response = await fetch(url, {
+          const response = await proxyFetch(url, {
             method: "GET",
             cache: "no-store",
           });

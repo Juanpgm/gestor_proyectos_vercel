@@ -11,6 +11,7 @@ import {
   Search,
   ChevronDown,
 } from "lucide-react";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface AgregarProcesoModalProps {
   isOpen: boolean;
@@ -424,7 +425,7 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
           );
           console.log("📤 Parámetros a enviar:", Object.fromEntries(params));
 
-          const response = await fetch(
+          const response = await proxyFetch(
             `/api/proxy/emprestito/modificar-proceso?${params.toString()}`,
             {
               method: "PUT",
@@ -529,7 +530,7 @@ const AgregarProcesoModal: React.FC<AgregarProcesoModalProps> = ({
       );
       console.log("🔗 URL de API:", `/api/proxy${endpoint}`);
 
-      const response = await fetch(`/api/proxy${endpoint}`, {
+      const response = await proxyFetch(`/api/proxy${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",

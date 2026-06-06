@@ -2150,8 +2150,10 @@ export const exportarIntervencionesXLSX = async (
   filters?: Record<string, string>,
 ): Promise<Blob> => {
   const qs = filters ? `?${new URLSearchParams(filters).toString()}` : "";
+  const authHeader = await getAuthHeaders();
   const res = await fetch(
     `${API_CONFIG.BASE_URL}/unidades-proyecto/intervenciones/export-xlsx${qs}`,
+    { headers: { ...authHeader } },
   );
   if (!res.ok) {
     const errText = await res.text().catch(() => "Error desconocido");

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface AgregarConvenioTransferenciaModalProps {
   isOpen: boolean;
@@ -379,7 +380,7 @@ const AgregarConvenioTransferenciaModal: React.FC<
       );
       console.log("🔗 URL de API:", `/api/proxy${endpoint}`);
 
-      const response = await fetch(`/api/proxy${endpoint}`, {
+      const response = await proxyFetch(`/api/proxy${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",

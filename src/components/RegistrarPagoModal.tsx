@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import FileUploadZone from "./FileUploadZone";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface RegistrarPagoModalProps {
   isOpen: boolean;
@@ -147,7 +148,7 @@ const RegistrarPagoModal: React.FC<RegistrarPagoModalProps> = ({
 
       console.log("Enviando request a:", "/api/proxy/emprestito/cargar-pago");
 
-      const response = await fetch("/api/proxy/emprestito/cargar-pago", {
+      const response = await proxyFetch("/api/proxy/emprestito/cargar-pago", {
         method: "POST",
         // NO incluir Content-Type header - el navegador lo establecerá automáticamente con el boundary correcto
         body: formDataToSend,

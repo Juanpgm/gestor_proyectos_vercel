@@ -10,6 +10,7 @@ import {
   Upload,
   Handshake,
 } from "lucide-react";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface ModificarConvenioModalProps {
   isOpen: boolean;
@@ -127,7 +128,7 @@ const ModificarConvenioModal: React.FC<ModificarConvenioModalProps> = ({
       formData.append("change_motivo", change_motivo);
       formData.append("change_support_file", change_support_file!);
 
-      const response = await fetch(
+      const response = await proxyFetch(
         `/api/proxy/emprestito/modificar-valores/convenio/${encodeURIComponent(convenioData.referencia_contrato)}`,
         {
           method: "PUT",

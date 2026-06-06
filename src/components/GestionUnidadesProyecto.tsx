@@ -1694,7 +1694,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
 
     if (tab === "by-centro-gestor") {
       const payload = pickFirst(...byCentro);
-      const hasRecords = getRecordsArrayFromCalidadDatos(source).length > 0;
+      const hasRecords = buildRecordsFromCalidadDatos(source).length > 0;
       if (!payload && !hasRecords) return { found: false, payload: null };
       return {
         found: true,
@@ -1704,7 +1704,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
 
     if (tab === "stats") {
       const payload = pickFirst(...stats);
-      const hasRecords = getRecordsArrayFromCalidadDatos(source).length > 0;
+      const hasRecords = buildRecordsFromCalidadDatos(source).length > 0;
       if ((!payload || typeof payload !== "object") && !hasRecords)
         return { found: false, payload: null };
       return { found: true, payload: buildStatsFromCalidadDatos(source) };
@@ -1787,7 +1787,10 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
       "historial-solicitudes",
       "analisis-procesos",
     ];
-    if (autonomousTabs.includes(activeTab)) return;
+    if (autonomousTabs.includes(activeTab)) {
+      setError(null);
+      return;
+    }
 
     setLoading(true);
     setError(null);

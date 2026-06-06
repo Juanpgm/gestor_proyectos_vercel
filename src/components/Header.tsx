@@ -4,7 +4,10 @@ import React, { useState } from "react";
 import { Bell, Sun, Moon, Menu } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { UserProfile } from "@/components/AuthWrapper";
-import { useRecentNotificationCount } from "@/hooks/useNotifications";
+import {
+  useRecentNotificationCount,
+  useBackendUnreadCount,
+} from "@/hooks/useNotifications";
 import NotificationPanel from "@/components/NotificationPanel";
 import { useAuth } from "@/context/AuthContext";
 import RoleFeatureTour from "@/components/RoleFeatureTour";
@@ -17,7 +20,14 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { theme, setTheme } = useTheme();
   const { state, getHighestRole } = useAuth();
-  const unreadCount = useRecentNotificationCount(5);
+  const localUnreadCount = useRecentNotificationCount(5);
+  const role = state.user?.primary_role ?? state.user?.roles?.[0];
+  const centro_gestor = state.user?.nombre_centro_gestor ?? undefined;
+  const backendUnreadCount = useBackendUnreadCount(
+    role ?? undefined,
+    centro_gestor ?? undefined,
+  );
+  const unreadCount = localUnreadCount + backendUnreadCount;
   const [showNotifications, setShowNotifications] = useState(false);
   const highestRole = getHighestRole();
 

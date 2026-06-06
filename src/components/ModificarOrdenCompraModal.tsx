@@ -10,6 +10,7 @@ import {
   Upload,
   ShoppingCart,
 } from "lucide-react";
+import { proxyFetch } from "@/utils/errorHandler";
 
 interface ModificarOrdenCompraModalProps {
   isOpen: boolean;
@@ -145,7 +146,7 @@ const ModificarOrdenCompraModal: React.FC<ModificarOrdenCompraModalProps> = ({
       formData.append("change_motivo", change_motivo);
       formData.append("change_support_file", change_support_file!);
 
-      const response = await fetch(
+      const response = await proxyFetch(
         `/api/proxy/emprestito/modificar-valores/orden-compra/${encodeURIComponent(ordenData.numero_orden)}`,
         {
           method: "PUT",

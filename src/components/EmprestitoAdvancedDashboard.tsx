@@ -43,7 +43,7 @@ import {
 } from "recharts";
 import { CATEGORIES, formatNumber, CHART_COLORS } from "@/lib/design-system";
 import ContratosModal from "./ContratosModal";
-import { fetchWithErrorHandling } from "@/utils/errorHandler";
+import { fetchWithErrorHandling, proxyFetch } from "@/utils/errorHandler";
 import { fetchPagosEmprestito, PagoEmprestito } from "@/services/pagos.service";
 import { formatCurrency } from "@/utils/formatCurrency";
 import {
@@ -2032,7 +2032,7 @@ const useEmprestitoRealData = () => {
             const baseUrl =
               typeof window !== "undefined" ? window.location.origin : "";
             const timestamp = new Date().getTime();
-            const response = await fetch(
+            const response = await proxyFetch(
               `${baseUrl}/api/proxy/emprestito/leer-tabla-proyecciones?solo_no_guardados=false&_t=${timestamp}`,
               {
                 cache: "no-store",
