@@ -205,7 +205,8 @@ class NotificationService {
         actividad: 0,
         proceso: 0,
         presupuesto: 0,
-        sistema: 0
+        sistema: 0,
+        solicitud_cambio: 0
       },
       byPriority: {
         low: 0,

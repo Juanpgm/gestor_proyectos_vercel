@@ -171,6 +171,7 @@ const ENTITY_ICONS: Record<EmprestitoEntityType, React.ElementType> = {
   rpc: ClipboardList,
   pago: DollarSign,
   convenio: Building2,
+  orden_compra: Pencil,
 };
 
 // ── Columnas por tipo de entidad ─────────────────────────────────
@@ -218,6 +219,14 @@ const ENTITY_COLUMNS: Record<
     { key: "banco", label: "Banco" },
     { key: "nombre_centro_gestor", label: "Centro Gestor" },
     { key: "objeto", label: "Objeto" },
+    { key: "valor", label: "Valor", format: "currency" },
+    { key: "estado", label: "Estado" },
+  ],
+  orden_compra: [
+    { key: "numero_orden", label: "No. Orden" },
+    { key: "referencia_contrato", label: "Ref. Contrato" },
+    { key: "nombre_centro_gestor", label: "Centro Gestor" },
+    { key: "proveedor", label: "Proveedor" },
     { key: "valor", label: "Valor", format: "currency" },
     { key: "estado", label: "Estado" },
   ],
@@ -348,6 +357,10 @@ export default function GestionRegistrosEmprestitoTab({ onRefresh }: Props) {
         return `pay-${row.numero_rpc || ""}-${idx}`;
       case "convenio":
         return row.referencia_contrato || `conv-${idx}`;
+      case "orden_compra":
+        return row.numero_orden || row.id || `oc-${idx}`;
+      default:
+        return `row-${idx}`;
     }
   };
 
@@ -939,7 +952,7 @@ const ChangeRequestModal: React.FC<{
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {editableFields.map((field) => (
+          {(editableFields ?? []).map((field) => (
             <div key={field}>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                 {field.replace(/_/g, " ")}
