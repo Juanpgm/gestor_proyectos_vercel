@@ -413,7 +413,7 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
           });
         }
 
-        const apiResponse = await fetch(REGISTRAR_AVANCE_ENDPOINT, {
+        const apiResponse = await proxyFetch(REGISTRAR_AVANCE_ENDPOINT, {
           method: "POST",
           body: payload,
         });

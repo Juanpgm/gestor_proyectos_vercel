@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   History,
@@ -21,11 +21,11 @@ import {
   ZoomIn,
   ExternalLink,
   RefreshCw,
-  Download
-} from 'lucide-react';
-import { useAvancesUP } from '@/hooks/useAvancesUP';
-import { formatCurrency, formatCurrencyFull } from '@/utils/formatCurrency';
-import type { AvanceUP } from '@/types/avances-up';
+  Download,
+} from "lucide-react";
+import { useAvancesUP } from "@/hooks/useAvancesUP";
+import { formatCurrency, formatCurrencyFull } from "@/utils/formatCurrency";
+import type { AvanceUP } from "@/types/avances-up";
 
 interface HistorialAvancesUPProps {
   upid: string;
@@ -34,13 +34,16 @@ interface HistorialAvancesUPProps {
   presupuesto?: number;
   onClose: () => void;
   onRegistrarAvance?: () => void;
+  onAvanceChanged?: () => void;
 }
 
-const TendenciaIcon: React.FC<{ tendencia: 'subiendo' | 'estable' | 'bajando' }> = ({ tendencia }) => {
+const TendenciaIcon: React.FC<{
+  tendencia: "subiendo" | "estable" | "bajando";
+}> = ({ tendencia }) => {
   switch (tendencia) {
-    case 'subiendo':
+    case "subiendo":
       return <TrendingUp className="w-4 h-4 text-green-500" />;
-    case 'bajando':
+    case "bajando":
       return <TrendingDown className="w-4 h-4 text-red-500" />;
     default:
       return <Minus className="w-4 h-4 text-gray-400" />;
@@ -58,10 +61,12 @@ const AvanceCard: React.FC<{
   const [isDeleting, setIsDeleting] = useState(false);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
-  const [directImageFallback, setDirectImageFallback] = useState<Set<number>>(new Set());
+  const [directImageFallback, setDirectImageFallback] = useState<Set<number>>(
+    new Set(),
+  );
 
   const markBroken = (index: number) =>
-    setBrokenImages(prev => new Set(prev).add(index));
+    setBrokenImages((prev) => new Set(prev).add(index));
 
   // The backend currently returns SigV2 presigned URLs that fail on S3.
   // Prefer regenerating SigV4 URLs in /api/proxy/s3-file using a resolvable S3 key.
@@ -72,12 +77,12 @@ const AvanceCard: React.FC<{
     `/api/proxy/s3-file?key=${encodeURIComponent(s3Key)}&name=${encodeURIComponent(nombre)}`;
 
   const normalizeUrlPath = (value?: string): string => {
-    if (!value) return '';
+    if (!value) return "";
     try {
       const parsed = new URL(value);
-      return decodeURIComponent(parsed.pathname.replace(/\/+$/, ''));
+      return decodeURIComponent(parsed.pathname.replace(/\/+$/, ""));
     } catch {
-      return value.split('?')[0].replace(/\/+$/, '');
+      return value.split("?")[0].replace(/\/+$/, "");
     }
   };
 
@@ -86,11 +91,11 @@ const AvanceCard: React.FC<{
 
     try {
       const parsed = new URL(value);
-      const last = parsed.pathname.split('/').filter(Boolean).pop();
+      const last = parsed.pathname.split("/").filter(Boolean).pop();
       return last ? decodeURIComponent(last) : fallback;
     } catch {
-      const withoutQuery = value.split('?')[0].split('#')[0];
-      const last = withoutQuery.split('/').filter(Boolean).pop();
+      const withoutQuery = value.split("?")[0].split("#")[0];
+      const last = withoutQuery.split("/").filter(Boolean).pop();
       return last ? decodeURIComponent(last) : fallback;
     }
   };
@@ -100,21 +105,24 @@ const AvanceCard: React.FC<{
     try {
       const parsed = new URL(value);
       const host = parsed.hostname.toLowerCase();
-      const path = parsed.pathname.replace(/^\/+/, '');
-      if (host.includes('.s3.') || host.endsWith('.s3.amazonaws.com')) {
+      const path = parsed.pathname.replace(/^\/+/, "");
+      if (host.includes(".s3.") || host.endsWith(".s3.amazonaws.com")) {
         return decodeURIComponent(path);
       }
-      if (host.startsWith('s3.') || host === 's3.amazonaws.com') {
-        const segments = path.split('/');
+      if (host.startsWith("s3.") || host === "s3.amazonaws.com") {
+        const segments = path.split("/");
         if (segments.length >= 2) {
-          return decodeURIComponent(segments.slice(1).join('/'));
+          return decodeURIComponent(segments.slice(1).join("/"));
         }
       }
       return decodeURIComponent(path);
     } catch {
       // Some backends return values like "file.jpg?X-Amz-..." (without scheme/host).
       // In that case, recover the object key from the URL-like prefix.
-      const withoutQuery = value.split('?')[0].split('#')[0].replace(/^\/+/, '');
+      const withoutQuery = value
+        .split("?")[0]
+        .split("#")[0]
+        .replace(/^\/+/, "");
       if (!withoutQuery) return undefined;
       try {
         return decodeURIComponent(withoutQuery);
@@ -125,15 +133,23 @@ const AvanceCard: React.FC<{
   };
 
   const findSoporteByUrl = (
-    tipo: 'imagen' | 'documento',
+    tipo: "imagen" | "documento",
     url: string,
-    index: number
+    index: number,
   ) => {
     const byType = avance.soportes.filter((s) => s.tipo === tipo);
     const targetPath = normalizeUrlPath(url);
     const byPath = byType.find((s) => {
-      const candidates = [s.url, s.url_presigned, s.presigned_url, s.url_directa]
-        .filter((candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0)
+      const candidates = [
+        s.url,
+        s.url_presigned,
+        s.presigned_url,
+        s.url_directa,
+      ]
+        .filter(
+          (candidate): candidate is string =>
+            typeof candidate === "string" && candidate.length > 0,
+        )
         .map(normalizeUrlPath);
       return candidates.includes(targetPath);
     });
@@ -144,8 +160,11 @@ const AvanceCard: React.FC<{
   const imgUrl = (url: string, index: number) => {
     if (directImageFallback.has(index)) return url;
 
-    const soporte = findSoporteByUrl('imagen', url, index);
-    const key = soporte?.s3_key || extractS3Key(soporte?.url_directa) || extractS3Key(url);
+    const soporte = findSoporteByUrl("imagen", url, index);
+    const key =
+      soporte?.s3_key ||
+      extractS3Key(soporte?.url_directa) ||
+      extractS3Key(url);
     if (key) return s3FileUrl(key);
     return `/api/proxy/fetch-file?url=${btoa(url)}&inline=1`;
   };
@@ -153,7 +172,7 @@ const AvanceCard: React.FC<{
   const handleImageError = (index: number) => {
     // First failure retries using direct presigned URL from backend.
     if (!directImageFallback.has(index)) {
-      setDirectImageFallback(prev => new Set(prev).add(index));
+      setDirectImageFallback((prev) => new Set(prev).add(index));
       return;
     }
 
@@ -161,22 +180,32 @@ const AvanceCard: React.FC<{
   };
 
   const docProxyUrl = (url: string, nombre: string, index: number) => {
-    const soporte = findSoporteByUrl('documento', url, index);
-    const key = soporte?.s3_key || extractS3Key(soporte?.url_directa) || extractS3Key(url);
+    const soporte = findSoporteByUrl("documento", url, index);
+    const key =
+      soporte?.s3_key ||
+      extractS3Key(soporte?.url_directa) ||
+      extractS3Key(url);
     if (key) return s3DownloadUrl(key, nombre);
     return `/api/proxy/fetch-file?url=${btoa(url)}&name=${encodeURIComponent(nombre)}`;
   };
 
   const docInlineUrl = (url: string, index: number) => {
-    const soporte = findSoporteByUrl('documento', url, index);
-    const key = soporte?.s3_key || extractS3Key(soporte?.url_directa) || extractS3Key(url);
+    const soporte = findSoporteByUrl("documento", url, index);
+    const key =
+      soporte?.s3_key ||
+      extractS3Key(soporte?.url_directa) ||
+      extractS3Key(url);
     if (key) return s3FileUrl(key);
     return `/api/proxy/fetch-file?url=${btoa(url)}&inline=1`;
   };
 
-  const diffAvance = prevAvance ? avance.avance_fisico - prevAvance.avance_fisico : 0;
+  const diffAvance = prevAvance
+    ? avance.avance_fisico - prevAvance.avance_fisico
+    : 0;
 
-  const handleDeleteConfirm = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleDeleteConfirm = async (
+    e: React.MouseEvent<HTMLButtonElement>,
+  ) => {
     e.stopPropagation();
     if (isDeleting) return;
 
@@ -191,10 +220,10 @@ const AvanceCard: React.FC<{
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleDateString('es-CO', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
+      return new Date(dateStr).toLocaleDateString("es-CO", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       });
     } catch {
       return dateStr;
@@ -207,8 +236,8 @@ const AvanceCard: React.FC<{
       animate={{ opacity: 1, y: 0 }}
       className={`border rounded-lg overflow-hidden ${
         isLatest
-          ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/10'
-          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+          ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/10"
+          : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
       }`}
     >
       {/* Header del avance */}
@@ -235,15 +264,17 @@ const AvanceCard: React.FC<{
                   Más reciente
                 </span>
               )}
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                avance.estado_reporte === 'aprobado'
-                  ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                  : avance.estado_reporte === 'enviado'
-                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
-                  : avance.estado_reporte === 'rechazado'
-                  ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-              }`}>
+              <span
+                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                  avance.estado_reporte === "aprobado"
+                    ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
+                    : avance.estado_reporte === "enviado"
+                      ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
+                      : avance.estado_reporte === "rechazado"
+                        ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                }`}
+              >
                 {avance.estado_reporte}
               </span>
             </div>
@@ -256,8 +287,11 @@ const AvanceCard: React.FC<{
                 {avance.avance_fisico.toFixed(1)}%
               </span>
               {prevAvance && diffAvance !== 0 && (
-                <span className={`text-xs font-medium ${diffAvance > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {diffAvance > 0 ? '+' : ''}{diffAvance.toFixed(1)}%
+                <span
+                  className={`text-xs font-medium ${diffAvance > 0 ? "text-green-500" : "text-red-500"}`}
+                >
+                  {diffAvance > 0 ? "+" : ""}
+                  {diffAvance.toFixed(1)}%
                 </span>
               )}
             </div>
@@ -271,7 +305,7 @@ const AvanceCard: React.FC<{
         {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
@@ -281,7 +315,9 @@ const AvanceCard: React.FC<{
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-gray-500 dark:text-gray-400">Avance</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Avance
+                    </span>
                     <span className="font-bold text-blue-600 dark:text-blue-400">
                       {avance.avance_fisico.toFixed(1)}%
                     </span>
@@ -289,7 +325,9 @@ const AvanceCard: React.FC<{
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div
                       className="bg-blue-500 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min(avance.avance_fisico, 100)}%` }}
+                      style={{
+                        width: `${Math.min(avance.avance_fisico, 100)}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -299,7 +337,9 @@ const AvanceCard: React.FC<{
               {avance.valor_ejecutado > 0 && (
                 <div className="flex items-center gap-2 text-sm">
                   <DollarSign className="w-4 h-4 text-amber-500" />
-                  <span className="text-gray-600 dark:text-gray-400">Valor ejecutado:</span>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Valor ejecutado:
+                  </span>
                   <span className="font-bold text-gray-900 dark:text-white">
                     {formatCurrency(avance.valor_ejecutado)}
                   </span>
@@ -332,8 +372,9 @@ const AvanceCard: React.FC<{
                   </div>
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {avance.imagenes_urls.map((url, i) => {
-                      const soporte = findSoporteByUrl('imagen', url, i);
-                      const label = soporte?.nombre_original || `Fotografía ${i + 1}`;
+                      const soporte = findSoporteByUrl("imagen", url, i);
+                      const label =
+                        soporte?.nombre_original || `Fotografía ${i + 1}`;
                       const proxied = imgUrl(url, i);
                       if (brokenImages.has(i)) {
                         return (
@@ -347,7 +388,9 @@ const AvanceCard: React.FC<{
                             title={`Abrir ${label}`}
                           >
                             <ImageIcon className="w-6 h-6 text-blue-400" />
-                            <span className="text-[10px] text-blue-500 dark:text-blue-400 text-center line-clamp-2 leading-tight">{label}</span>
+                            <span className="text-[10px] text-blue-500 dark:text-blue-400 text-center line-clamp-2 leading-tight">
+                              {label}
+                            </span>
                           </a>
                         );
                       }
@@ -355,7 +398,10 @@ const AvanceCard: React.FC<{
                         <button
                           key={i}
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setViewingImage(url); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingImage(url);
+                          }}
                           className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 aspect-square bg-gray-100 dark:bg-gray-700"
                           title={label}
                         >
@@ -386,9 +432,10 @@ const AvanceCard: React.FC<{
                   </div>
                   <div className="space-y-1.5">
                     {avance.documentos_urls.map((url, i) => {
-                      const soporte = findSoporteByUrl('documento', url, i);
-                      const nombre = soporte?.nombre_original
-                        || getFileNameFromUrl(url, `Documento ${i + 1}`);
+                      const soporte = findSoporteByUrl("documento", url, i);
+                      const nombre =
+                        soporte?.nombre_original ||
+                        getFileNameFromUrl(url, `Documento ${i + 1}`);
                       const proxyUrl = docProxyUrl(url, nombre, i);
                       const openUrl = docInlineUrl(url, i);
                       return (
@@ -422,38 +469,40 @@ const AvanceCard: React.FC<{
               )}
 
               {/* Archivos adjuntos (legacy: sin soportes ni urls tipadas) */}
-              {avance.imagenes_urls.length === 0 && avance.documentos_urls.length === 0 && avance.archivos.length > 0 && (
-                <div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Archivos adjuntos ({avance.archivos.length})
-                  </span>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {avance.archivos.map(archivo => (
-                      archivo.url ? (
-                        <a
-                          key={archivo.id}
-                          href={archivo.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-xs text-gray-600 dark:text-gray-300 transition-colors"
-                        >
-                          <FileText className="w-3 h-3" />
-                          {archivo.nombre}
-                        </a>
-                      ) : (
-                        <span
-                          key={archivo.id}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-300"
-                        >
-                          <FileText className="w-3 h-3" />
-                          {archivo.nombre}
-                        </span>
-                      )
-                    ))}
+              {avance.imagenes_urls.length === 0 &&
+                avance.documentos_urls.length === 0 &&
+                avance.archivos.length > 0 && (
+                  <div>
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Archivos adjuntos ({avance.archivos.length})
+                    </span>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {avance.archivos.map((archivo) =>
+                        archivo.url ? (
+                          <a
+                            key={archivo.id}
+                            href={archivo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-xs text-gray-600 dark:text-gray-300 transition-colors"
+                          >
+                            <FileText className="w-3 h-3" />
+                            {archivo.nombre}
+                          </a>
+                        ) : (
+                          <span
+                            key={archivo.id}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-300"
+                          >
+                            <FileText className="w-3 h-3" />
+                            {archivo.nombre}
+                          </span>
+                        ),
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Lightbox de imagen */}
               <AnimatePresence>
@@ -474,11 +523,20 @@ const AvanceCard: React.FC<{
                       onClick={(e) => e.stopPropagation()}
                     >
                       <img
-                        src={imgUrl(viewingImage, Math.max(0, avance.imagenes_urls.indexOf(viewingImage)))}
+                        src={imgUrl(
+                          viewingImage,
+                          Math.max(
+                            0,
+                            avance.imagenes_urls.indexOf(viewingImage),
+                          ),
+                        )}
                         alt="Vista completa"
                         className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl"
                         onError={() => {
-                          const idx = Math.max(0, avance.imagenes_urls.indexOf(viewingImage));
+                          const idx = Math.max(
+                            0,
+                            avance.imagenes_urls.indexOf(viewingImage),
+                          );
                           handleImageError(idx);
                         }}
                       />
@@ -524,10 +582,13 @@ const AvanceCard: React.FC<{
                         disabled={isDeleting}
                         className="px-2 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed rounded transition-colors"
                       >
-                        {isDeleting ? 'Borrando...' : 'Sí'}
+                        {isDeleting ? "Borrando..." : "Sí"}
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDelete(false);
+                        }}
                         disabled={isDeleting}
                         className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded transition-colors"
                       >
@@ -536,7 +597,10 @@ const AvanceCard: React.FC<{
                     </div>
                   ) : (
                     <button
-                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDelete(true);
+                      }}
                       disabled={isDeleting}
                       className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors"
                       title="Eliminar avance"
@@ -560,9 +624,20 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
   nombreUP,
   presupuesto = 0,
   onClose,
-  onRegistrarAvance
+  onRegistrarAvance,
+  onAvanceChanged,
 }) => {
-  const { avances, loading, error, resumen, deleteAvance, refresh } = useAvancesUP(upid, intervencionId);
+  const { avances, loading, error, resumen, deleteAvance, refresh } =
+    useAvancesUP(upid, intervencionId);
+
+  const handleDelete = React.useCallback(
+    async (id: string): Promise<boolean> => {
+      const success = await deleteAvance(id);
+      if (success) onAvanceChanged?.();
+      return success;
+    },
+    [deleteAvance, onAvanceChanged],
+  );
 
   return (
     <motion.div
@@ -586,7 +661,9 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
               <History className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Historial de Avances</h2>
+              <h2 className="text-lg font-bold text-white">
+                Historial de Avances
+              </h2>
               <p className="text-purple-100 text-sm truncate max-w-md">
                 {upid} - {nombreUP}
               </p>
@@ -599,7 +676,9 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
               className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors disabled:opacity-50"
               title="Recargar avances (actualiza enlaces de archivos)"
             >
-              <RefreshCw className={`w-4 h-4 text-white ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 text-white ${loading ? "animate-spin" : ""}`}
+              />
             </button>
             <button
               onClick={onClose}
@@ -618,13 +697,17 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
                 <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
                   {resumen.total_reportes}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Reportes</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Reportes
+                </p>
               </div>
               <div>
                 <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                   {resumen.ultimo_avance_fisico.toFixed(1)}%
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Últ. Avance</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Últ. Avance
+                </p>
               </div>
               <div className="flex flex-col items-center">
                 <TendenciaIcon tendencia={resumen.tendencia} />
@@ -651,12 +734,16 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
           {loading ? (
             <div className="flex flex-col items-center justify-center h-48 gap-3">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Cargando historial...</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Cargando historial...
+              </span>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-48 gap-3">
               <AlertCircle className="w-8 h-8 text-red-500" />
-              <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+              <span className="text-sm text-red-600 dark:text-red-400">
+                {error}
+              </span>
             </div>
           ) : avances.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
@@ -687,7 +774,7 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
                   avance={avance}
                   isLatest={index === 0}
                   prevAvance={avances[index + 1]}
-                  onDelete={deleteAvance}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -697,7 +784,8 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <span className="text-xs text-gray-400 dark:text-gray-500">
-            {avances.length} reporte{avances.length !== 1 ? 's' : ''} registrado{avances.length !== 1 ? 's' : ''}
+            {avances.length} reporte{avances.length !== 1 ? "s" : ""} registrado
+            {avances.length !== 1 ? "s" : ""}
           </span>
           <div className="flex items-center gap-3">
             <button

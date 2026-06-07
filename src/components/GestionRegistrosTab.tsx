@@ -2943,8 +2943,8 @@ const GestionRegistrosTab: React.FC = () => {
     async (upid: string, options?: { force?: boolean }) => {
       const force = options?.force === true;
       if (
-        (!force && intervencionesMap[upid] !== undefined) ||
-        loadingIntervUp[upid]
+        !force &&
+        (intervencionesMap[upid] !== undefined || loadingIntervUp[upid])
       )
         return;
       setLoadingIntervUp((prev) => ({ ...prev, [upid]: true }));
@@ -3844,6 +3844,9 @@ const GestionRegistrosTab: React.FC = () => {
             nombreUP={modalHistorial.nombre}
             presupuesto={modalHistorial.presupuesto}
             onClose={() => setModalHistorial(null)}
+            onAvanceChanged={() =>
+              refreshIntervencionesForUpid(modalHistorial.upid)
+            }
             onRegistrarAvance={() => {
               setModalHistorial(null);
               setModalAvance({
