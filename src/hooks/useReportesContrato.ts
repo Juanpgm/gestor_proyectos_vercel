@@ -161,6 +161,33 @@ export function useReportesContrato(referenciaContrato?: string) {
     [fetchReportes],
   );
 
+  // Eliminar reporte por ID (solo super_admin)
+  const eliminarReporte = useCallback(
+    async (reporteId: string): Promise<boolean> => {
+      try {
+        const res = await proxyFetch(
+          `${API_BASE}/reportes_contratos/${encodeURIComponent(reporteId)}`,
+          { method: "DELETE" },
+        );
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(
+            errData?.detail || errData?.error || `Error ${res.status}`,
+          );
+        }
+        await fetchReportes();
+        return true;
+      } catch (err) {
+        console.error("Error eliminando reporte:", err);
+        setError(
+          err instanceof Error ? err.message : "Error eliminando reporte",
+        );
+        return false;
+      }
+    },
+    [fetchReportes],
+  );
+
   // Cargar reportes al montar y cuando cambie la referencia
   useEffect(() => {
     fetchReportes();
@@ -172,6 +199,7 @@ export function useReportesContrato(referenciaContrato?: string) {
     error,
     submitting,
     crearReporte,
+    eliminarReporte,
     refetch: fetchReportes,
   };
 }

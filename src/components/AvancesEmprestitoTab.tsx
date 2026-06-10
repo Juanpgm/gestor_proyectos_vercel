@@ -18,6 +18,7 @@ import {
   Calendar,
   ExternalLink,
   Download,
+  Trash2,
 } from "lucide-react";
 import {
   useReportesCentroGestorDashboard,
@@ -27,6 +28,7 @@ import type { ReporteContrato } from "@/types/avances-emprestito";
 import { getCentroGestorAccessFromSession } from "@/utils/centroGestorAccess";
 import { useAuth } from "@/context/AuthContext";
 import { generarReporteEmprestitoPorCentroGestor } from "@/utils/reporteEmprestitoPdf";
+import { proxyFetch } from "@/utils/errorHandler";
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -70,6 +72,14 @@ export default function AvancesEmprestitoTab() {
   );
   const canViewAll = centroGestorAccess.canViewAll;
   const userCentroGestor = centroGestorAccess.userCentroGestor || "";
+  const isSuperAdmin = useMemo(
+    () =>
+      Array.isArray(authState.user?.roles) &&
+      authState.user.roles.includes("super_admin"),
+    [authState.user?.roles],
+  );
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const {
     reportes,
@@ -88,6 +98,29 @@ export default function AvancesEmprestitoTab() {
   const [ordenDir, setOrdenDir] = useState<"asc" | "desc">("asc");
   const [expandido, setExpandido] = useState<string | null>(null);
   const [generandoPdf, setGenerandoPdf] = useState(false);
+
+  const handleEliminarReporte = useCallback(
+    async (reporteId: string) => {
+      if (!reporteId || deletingId) return;
+      setDeletingId(reporteId);
+      try {
+        const res = await proxyFetch(
+          `/api/proxy/reportes_contratos/${encodeURIComponent(reporteId)}`,
+          { method: "DELETE" },
+        );
+        if (res.ok) {
+          await refetch();
+        } else {
+          console.error("Error eliminando reporte:", res.status);
+        }
+      } catch (err) {
+        console.error("Error eliminando reporte:", err);
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [deletingId, refetch],
+  );
 
   // Filtrado y orden
   const listaFiltrada = useMemo(() => {
@@ -516,6 +549,23 @@ export default function AvancesEmprestitoTab() {
                                         </span>
                                         {r.alertas?.es_alerta && (
                                           <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                        )}
+                                        {isSuperAdmin && r.id && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleEliminarReporte(r.id);
+                                            }}
+                                            disabled={deletingId === r.id}
+                                            title="Eliminar reporte"
+                                            className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-40"
+                                          >
+                                            {deletingId === r.id ? (
+                                              <Loader2 className="w-3 h-3 animate-spin" />
+                                            ) : (
+                                              <Trash2 className="w-3 h-3" />
+                                            )}
+                                          </button>
                                         )}
                                       </div>
                                     </div>

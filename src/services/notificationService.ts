@@ -3,14 +3,14 @@
  * Gestiona el almacenamiento, recuperación y manipulación de notificaciones
  */
 
-import type { 
-  Notification as AppNotification, 
-  NotificationFilter, 
+import type {
+  Notification as AppNotification,
+  NotificationFilter,
   NotificationStats,
-  NotificationPriority 
-} from '@/types/notifications';
+  NotificationPriority,
+} from "@/types/notifications";
 
-const STORAGE_KEY = 'calitrack_notifications';
+const STORAGE_KEY = "calitrack_notifications";
 const MAX_NOTIFICATIONS = 500; // Límite para evitar sobrecarga
 
 class NotificationService {
@@ -18,7 +18,7 @@ class NotificationService {
   private listeners: Set<() => void> = new Set();
 
   constructor() {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       this.loadFromStorage();
     }
   }
@@ -33,11 +33,11 @@ class NotificationService {
         const parsed = JSON.parse(stored);
         this.notifications = parsed.map((n: any) => ({
           ...n,
-          timestamp: new Date(n.timestamp)
+          timestamp: new Date(n.timestamp),
         }));
       }
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      console.error("Error loading notifications:", error);
       this.notifications = [];
     }
   }
@@ -50,7 +50,7 @@ class NotificationService {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notifications));
       this.notifyListeners();
     } catch (error) {
-      console.error('Error saving notifications:', error);
+      console.error("Error saving notifications:", error);
     }
   }
 
@@ -58,7 +58,7 @@ class NotificationService {
    * Notificar a los listeners sobre cambios
    */
   private notifyListeners(): void {
-    this.listeners.forEach(listener => listener());
+    this.listeners.forEach((listener) => listener());
   }
 
   /**
@@ -72,12 +72,17 @@ class NotificationService {
   /**
    * Crear una nueva notificación
    */
-  create(notification: Omit<AppNotification, 'id' | 'read'> | Omit<AppNotification, 'id' | 'timestamp' | 'read'>): AppNotification {
+  create(
+    notification:
+      | Omit<AppNotification, "id" | "read">
+      | Omit<AppNotification, "id" | "timestamp" | "read">,
+  ): AppNotification {
     const newNotification: AppNotification = {
       ...notification,
       id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: 'timestamp' in notification ? notification.timestamp : new Date(),
-      read: false
+      timestamp:
+        "timestamp" in notification ? notification.timestamp : new Date(),
+      read: false,
     };
 
     this.notifications.unshift(newNotification);
@@ -103,27 +108,31 @@ class NotificationService {
 
     if (filter) {
       if (filter.read !== undefined) {
-        filtered = filtered.filter(n => n.read === filter.read);
+        filtered = filtered.filter((n) => n.read === filter.read);
       }
 
       if (filter.type && filter.type.length > 0) {
-        filtered = filtered.filter(n => filter.type!.includes(n.type));
+        filtered = filtered.filter((n) => filter.type!.includes(n.type));
       }
 
       if (filter.category && filter.category.length > 0) {
-        filtered = filtered.filter(n => filter.category!.includes(n.category));
+        filtered = filtered.filter((n) =>
+          filter.category!.includes(n.category),
+        );
       }
 
       if (filter.priority && filter.priority.length > 0) {
-        filtered = filtered.filter(n => filter.priority!.includes(n.priority));
+        filtered = filtered.filter((n) =>
+          filter.priority!.includes(n.priority),
+        );
       }
 
       if (filter.startDate) {
-        filtered = filtered.filter(n => n.timestamp >= filter.startDate!);
+        filtered = filtered.filter((n) => n.timestamp >= filter.startDate!);
       }
 
       if (filter.endDate) {
-        filtered = filtered.filter(n => n.timestamp <= filter.endDate!);
+        filtered = filtered.filter((n) => n.timestamp <= filter.endDate!);
       }
     }
 
@@ -134,14 +143,14 @@ class NotificationService {
    * Obtener una notificación por ID
    */
   getById(id: string): AppNotification | undefined {
-    return this.notifications.find(n => n.id === id);
+    return this.notifications.find((n) => n.id === id);
   }
 
   /**
    * Marcar una notificación como leída
    */
   markAsRead(id: string): void {
-    const notification = this.notifications.find(n => n.id === id);
+    const notification = this.notifications.find((n) => n.id === id);
     if (notification && !notification.read) {
       notification.read = true;
       this.saveToStorage();
@@ -153,7 +162,7 @@ class NotificationService {
    */
   markAllAsRead(): void {
     let changed = false;
-    this.notifications.forEach(n => {
+    this.notifications.forEach((n) => {
       if (!n.read) {
         n.read = true;
         changed = true;
@@ -168,7 +177,7 @@ class NotificationService {
    * Eliminar una notificación
    */
   delete(id: string): void {
-    const index = this.notifications.findIndex(n => n.id === id);
+    const index = this.notifications.findIndex((n) => n.id === id);
     if (index !== -1) {
       this.notifications.splice(index, 1);
       this.saveToStorage();
@@ -179,7 +188,7 @@ class NotificationService {
    * Eliminar todas las notificaciones leídas
    */
   deleteAllRead(): void {
-    this.notifications = this.notifications.filter(n => !n.read);
+    this.notifications = this.notifications.filter((n) => !n.read);
     this.saveToStorage();
   }
 
@@ -197,7 +206,7 @@ class NotificationService {
   getStats(): NotificationStats {
     const stats: NotificationStats = {
       total: this.notifications.length,
-      unread: this.notifications.filter(n => !n.read).length,
+      unread: this.notifications.filter((n) => !n.read).length,
       byCategory: {
         proyecto: 0,
         unidad: 0,
@@ -206,17 +215,17 @@ class NotificationService {
         proceso: 0,
         presupuesto: 0,
         sistema: 0,
-        solicitud_cambio: 0
+        solicitud_cambio: 0,
       },
       byPriority: {
         low: 0,
         medium: 0,
         high: 0,
-        urgent: 0
-      }
+        urgent: 0,
+      },
     };
 
-    this.notifications.forEach(n => {
+    this.notifications.forEach((n) => {
       stats.byCategory[n.category]++;
       stats.byPriority[n.priority]++;
     });
@@ -230,14 +239,12 @@ class NotificationService {
   getTodayUnreadCount(): number {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Inicio del día
-    
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1); // Fin del día
 
-    return this.notifications.filter(n => 
-      !n.read && 
-      n.timestamp >= today && 
-      n.timestamp < tomorrow
+    return this.notifications.filter(
+      (n) => !n.read && n.timestamp >= today && n.timestamp < tomorrow,
     ).length;
   }
 
@@ -250,10 +257,8 @@ class NotificationService {
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
-    return this.notifications.filter(n => 
-      !n.read && 
-      n.timestamp >= startDate
-    ).length;
+    return this.notifications.filter((n) => !n.read && n.timestamp >= startDate)
+      .length;
   }
 
   /**
@@ -262,11 +267,11 @@ class NotificationService {
   getTodayNotifications(includeRead: boolean = false): AppNotification[] {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Inicio del día
-    
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1); // Fin del día
 
-    return this.notifications.filter(n => {
+    return this.notifications.filter((n) => {
       const isToday = n.timestamp >= today && n.timestamp < tomorrow;
       return includeRead ? isToday : isToday && !n.read;
     });
@@ -275,13 +280,16 @@ class NotificationService {
   /**
    * Obtener notificaciones de los últimos N días
    */
-  getRecentNotifications(days: number = 5, includeRead: boolean = false): AppNotification[] {
+  getRecentNotifications(
+    days: number = 5,
+    includeRead: boolean = false,
+  ): AppNotification[] {
     const now = new Date();
     const startDate = new Date(now);
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
-    return this.notifications.filter(n => {
+    return this.notifications.filter((n) => {
       const isRecent = n.timestamp >= startDate;
       return includeRead ? isRecent : isRecent && !n.read;
     });
@@ -290,21 +298,24 @@ class NotificationService {
   /**
    * Mostrar notificación del navegador
    */
-  private async showBrowserNotification(notification: AppNotification): Promise<void> {
-    if (typeof window === 'undefined' || notification.priority === 'low') return;
+  private async showBrowserNotification(
+    notification: AppNotification,
+  ): Promise<void> {
+    if (typeof window === "undefined" || notification.priority === "low")
+      return;
 
     try {
-      if ('Notification' in window && Notification.permission === 'granted') {
+      if ("Notification" in window && Notification.permission === "granted") {
         new Notification(notification.title, {
           body: notification.message,
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
+          icon: "/favicon.ico",
+          badge: "/favicon.ico",
           tag: notification.id,
-          requireInteraction: notification.priority === 'urgent'
+          requireInteraction: notification.priority === "urgent",
         });
       }
     } catch (error) {
-      console.error('Error showing browser notification:', error);
+      console.error("Error showing browser notification:", error);
     }
   }
 
@@ -312,15 +323,15 @@ class NotificationService {
    * Solicitar permiso para notificaciones del navegador
    */
   async requestPermission(): Promise<NotificationPermission> {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      return 'denied';
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return "denied";
     }
 
     try {
       return await Notification.requestPermission();
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      return 'denied';
+      console.error("Error requesting notification permission:", error);
+      return "denied";
     }
   }
 }
@@ -330,176 +341,215 @@ export const notificationService = new NotificationService();
 
 // Helpers para crear notificaciones específicas
 export const NotificationHelpers = {
-  newProject: (projectName: string, projectId: string) => 
+  newProject: (projectName: string, projectId: string) =>
     notificationService.create({
-      type: 'new_project',
-      priority: 'medium',
-      title: 'Nuevo Proyecto Creado',
+      type: "new_project",
+      priority: "medium",
+      title: "Nuevo Proyecto Creado",
       message: `Se ha creado el proyecto: ${projectName}`,
-      category: 'proyecto',
+      category: "proyecto",
       data: { entityId: projectId, entityName: projectName },
-      actionUrl: `/proyectos/${projectId}`
+      actionUrl: `/proyectos/${projectId}`,
     }),
 
   newUnit: (unitName: string, unitId: string, projectName: string) =>
     notificationService.create({
-      type: 'new_unit',
-      priority: 'medium',
-      title: 'Nueva Unidad de Proyecto',
+      type: "new_unit",
+      priority: "medium",
+      title: "Nueva Unidad de Proyecto",
       message: `Se ha creado la unidad "${unitName}" en el proyecto ${projectName}`,
-      category: 'unidad',
+      category: "unidad",
       data: { entityId: unitId, entityName: unitName },
-      actionUrl: `/unidades/${unitId}`
+      actionUrl: `/unidades/${unitId}`,
     }),
 
   newContract: (contractNumber: string, contractId: string, amount: number) =>
     notificationService.create({
-      type: 'new_contract',
-      priority: 'high',
-      title: 'Nuevo Contrato Registrado',
-      message: `Contrato ${contractNumber} por $${amount.toLocaleString('es-CO')}`,
-      category: 'contrato',
+      type: "new_contract",
+      priority: "high",
+      title: "Nuevo Contrato Registrado",
+      message: `Contrato ${contractNumber} por $${amount.toLocaleString("es-CO")}`,
+      category: "contrato",
       data: { entityId: contractId, entityName: contractNumber },
-      actionUrl: `/contratos/${contractId}`
+      actionUrl: `/contratos/${contractId}`,
     }),
 
   newActivity: (activityName: string, activityId: string) =>
     notificationService.create({
-      type: 'new_activity',
-      priority: 'medium',
-      title: 'Nueva Actividad Registrada',
+      type: "new_activity",
+      priority: "medium",
+      title: "Nueva Actividad Registrada",
       message: `Se ha registrado la actividad: ${activityName}`,
-      category: 'actividad',
-      data: { entityId: activityId, entityName: activityName }
+      category: "actividad",
+      data: { entityId: activityId, entityName: activityName },
     }),
 
-  updateProject: (projectName: string, projectId: string, changes: Record<string, any>) =>
+  updateProject: (
+    projectName: string,
+    projectId: string,
+    changes: Record<string, any>,
+  ) =>
     notificationService.create({
-      type: 'update_project',
-      priority: 'low',
-      title: 'Proyecto Actualizado',
+      type: "update_project",
+      priority: "low",
+      title: "Proyecto Actualizado",
       message: `El proyecto "${projectName}" ha sido modificado`,
-      category: 'proyecto',
+      category: "proyecto",
       data: { entityId: projectId, entityName: projectName, changes },
-      actionUrl: `/proyectos/${projectId}`
+      actionUrl: `/proyectos/${projectId}`,
     }),
 
   budgetUpdate: (entityName: string, oldAmount: number, newAmount: number) =>
     notificationService.create({
-      type: 'update_budget',
-      priority: 'high',
-      title: 'Actualización Presupuestal',
-      message: `Presupuesto de "${entityName}" cambió de $${oldAmount.toLocaleString('es-CO')} a $${newAmount.toLocaleString('es-CO')}`,
-      category: 'presupuesto',
-      data: { 
+      type: "update_budget",
+      priority: "high",
+      title: "Actualización Presupuestal",
+      message: `Presupuesto de "${entityName}" cambió de $${oldAmount.toLocaleString("es-CO")} a $${newAmount.toLocaleString("es-CO")}`,
+      category: "presupuesto",
+      data: {
         entityName,
         oldValue: oldAmount,
-        newValue: newAmount
-      }
+        newValue: newAmount,
+      },
     }),
 
   deadlineWarning: (entityName: string, daysLeft: number, entityType: string) =>
     notificationService.create({
-      type: 'deadline_warning',
-      priority: daysLeft <= 7 ? 'urgent' : 'high',
-      title: 'Alerta de Vencimiento',
+      type: "deadline_warning",
+      priority: daysLeft <= 7 ? "urgent" : "high",
+      title: "Alerta de Vencimiento",
       message: `${entityType} "${entityName}" vence en ${daysLeft} días`,
-      category: entityType === 'Contrato' ? 'contrato' : 'proyecto',
-      data: { entityName, metadata: { daysLeft } }
+      category: entityType === "Contrato" ? "contrato" : "proyecto",
+      data: { entityName, metadata: { daysLeft } },
     }),
 
-  statusChange: (entityName: string, oldStatus: string, newStatus: string, category: AppNotification['category']) =>
+  statusChange: (
+    entityName: string,
+    oldStatus: string,
+    newStatus: string,
+    category: AppNotification["category"],
+  ) =>
     notificationService.create({
-      type: 'status_change',
-      priority: 'medium',
-      title: 'Cambio de Estado',
+      type: "status_change",
+      priority: "medium",
+      title: "Cambio de Estado",
       message: `"${entityName}" cambió de ${oldStatus} a ${newStatus}`,
       category,
       data: {
         entityName,
         oldValue: oldStatus,
-        newValue: newStatus
-      }
-    })
+        newValue: newStatus,
+      },
+    }),
 };
 
 // Funciones de debug para la consola del navegador
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   (window as any).debugNotifications = {
     getAll: () => notificationService.getAll(),
-    getRecent: (days: number = 5) => notificationService.getRecentNotifications(days, true),
+    getRecent: (days: number = 5) =>
+      notificationService.getRecentNotifications(days, true),
     getStats: () => notificationService.getStats(),
     clear: () => {
       notificationService.deleteAll();
-      console.log('✅ Todas las notificaciones han sido eliminadas');
+      console.log("✅ Todas las notificaciones han sido eliminadas");
     },
     reset: () => {
       // Crear notificaciones de ejemplo para testing
       notificationService.deleteAll();
-      
+
       const now = new Date();
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       const twoDaysAgo = new Date(now);
       twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-      
+
       // Notificaciones de empréstito
-      NotificationHelpers.newContract('CT-2024-001', 'contract_1', 500000000);
-      NotificationHelpers.deadlineWarning('Contrato Infraestructura Vial', 5, 'Contrato');
-      NotificationHelpers.budgetUpdate('Proyecto Centro Cultural', 450000000, 520000000);
-      
+      NotificationHelpers.newContract("CT-2024-001", "contract_1", 500000000);
+      NotificationHelpers.deadlineWarning(
+        "Contrato Infraestructura Vial",
+        5,
+        "Contrato",
+      );
+      NotificationHelpers.budgetUpdate(
+        "Proyecto Centro Cultural",
+        450000000,
+        520000000,
+      );
+
       // Notificaciones de proyectos
-      NotificationHelpers.newProject('Nuevo Parque Recreativo', 'PRY-001');
-      NotificationHelpers.statusChange('Remodelación Plaza', 'En ejecución', 'Completado', 'proyecto');
-      
+      NotificationHelpers.newProject("Nuevo Parque Recreativo", "PRY-001");
+      NotificationHelpers.statusChange(
+        "Remodelación Plaza",
+        "En ejecución",
+        "Completado",
+        "proyecto",
+      );
+
       // Notificaciones de actividades
-      NotificationHelpers.newActivity('Diseño arquitectónico', 'ACT-001');
-      NotificationHelpers.newActivity('Estudio de suelos', 'ACT-002');
-      
-      console.log('✅ Notificaciones de ejemplo creadas');
-      console.log('📊 Usa debugNotifications.getAll() para verlas');
+      NotificationHelpers.newActivity("Diseño arquitectónico", "ACT-001");
+      NotificationHelpers.newActivity("Estudio de suelos", "ACT-002");
+
+      console.log("✅ Notificaciones de ejemplo creadas");
+      console.log("📊 Usa debugNotifications.getAll() para verlas");
     },
     config: {
       get: () => {
-        const stored = localStorage.getItem('auto_notifications_config');
+        const stored = localStorage.getItem("auto_notifications_config");
         return stored ? JSON.parse(stored) : null;
       },
       enable: () => {
-        localStorage.setItem('auto_notifications_config', JSON.stringify({
-          enabled: true,
-          types: {
-            reportes: true,
-            contratos: true,
-            proyectos: true,
-            actividades: true,
-            presupuesto: true
-          }
-        }));
-        console.log('✅ Notificaciones automáticas activadas');
+        localStorage.setItem(
+          "auto_notifications_config",
+          JSON.stringify({
+            enabled: true,
+            types: {
+              reportes: true,
+              contratos: true,
+              proyectos: true,
+              actividades: true,
+              presupuesto: true,
+            },
+          }),
+        );
+        console.log("✅ Notificaciones automáticas activadas");
       },
       disable: () => {
-        localStorage.setItem('auto_notifications_config', JSON.stringify({
-          enabled: false,
-          types: {
-            reportes: false,
-            contratos: false,
-            proyectos: false,
-            actividades: false,
-            presupuesto: false
-          }
-        }));
-        console.log('❌ Notificaciones automáticas desactivadas');
-      }
-    }
+        localStorage.setItem(
+          "auto_notifications_config",
+          JSON.stringify({
+            enabled: false,
+            types: {
+              reportes: false,
+              contratos: false,
+              proyectos: false,
+              actividades: false,
+              presupuesto: false,
+            },
+          }),
+        );
+        console.log("❌ Notificaciones automáticas desactivadas");
+      },
+    },
   };
-  
-  console.log('🔔 Sistema de notificaciones disponible');
-  console.log('📝 Usa debugNotifications en la consola para:');
-  console.log('  - debugNotifications.getAll() - Ver todas las notificaciones');
-  console.log('  - debugNotifications.getRecent(5) - Ver notificaciones de últimos 5 días');
-  console.log('  - debugNotifications.getStats() - Ver estadísticas');
-  console.log('  - debugNotifications.clear() - Limpiar todas las notificaciones');
-  console.log('  - debugNotifications.reset() - Crear notificaciones de ejemplo');
-  console.log('  - debugNotifications.config.enable() - Activar notificaciones automáticas');
-  console.log('  - debugNotifications.config.disable() - Desactivar notificaciones automáticas');
+
+  console.log("🔔 Sistema de notificaciones disponible");
+  console.log("📝 Usa debugNotifications en la consola para:");
+  console.log("  - debugNotifications.getAll() - Ver todas las notificaciones");
+  console.log(
+    "  - debugNotifications.getRecent(5) - Ver notificaciones de últimos 5 días",
+  );
+  console.log("  - debugNotifications.getStats() - Ver estadísticas");
+  console.log(
+    "  - debugNotifications.clear() - Limpiar todas las notificaciones",
+  );
+  console.log(
+    "  - debugNotifications.reset() - Crear notificaciones de ejemplo",
+  );
+  console.log(
+    "  - debugNotifications.config.enable() - Activar notificaciones automáticas",
+  );
+  console.log(
+    "  - debugNotifications.config.disable() - Desactivar notificaciones automáticas",
+  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -395,78 +395,6 @@ const UnidadesProyectoTabularView: React.FC<
     return [];
   };
 
-  const toTimestamp = (record: Record<string, any>): number => {
-    const candidates = [
-      record.updated_at,
-      record.fecha_reporte,
-      record.created_at,
-      record.fecha,
-      record.timestamp,
-    ];
-    for (const candidate of candidates) {
-      if (typeof candidate !== "string" || candidate.trim() === "") continue;
-      const parsed = Date.parse(candidate);
-      if (!Number.isNaN(parsed)) return parsed;
-    }
-    return 0;
-  };
-
-  const toValidNumber = (value: unknown): number | null => {
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string" && value.trim() !== "") {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : null;
-    }
-    return null;
-  };
-
-  const getLatestAvanceForIntervencion = async (
-    apiUrl: string,
-    intervencionId: string,
-  ): Promise<number | null> => {
-    const cleanApiUrl = (apiUrl || "").replace(/\/+$/, "");
-    const query = `intervencion_id=${encodeURIComponent(intervencionId)}`;
-    const candidates = [
-      cleanApiUrl
-        ? `${cleanApiUrl}/avances_unidades_proyecto?${query}`
-        : `/avances_unidades_proyecto?${query}`,
-      `/api/proxy/avances_unidades_proyecto?${query}`,
-    ];
-
-    for (const url of candidates) {
-      try {
-        const response = await proxyFetch(url, {
-          method: "GET",
-          cache: "no-store",
-        });
-        if (!response.ok) continue;
-
-        const payload = await response.json();
-        const rows = extractArrayPayload(payload);
-
-        let bestValue: number | null = null;
-        let bestTimestamp = Number.NEGATIVE_INFINITY;
-
-        rows.forEach((row) => {
-          const current = toValidNumber(row?.avance_obra);
-          if (current === null) return;
-
-          const ts = toTimestamp(row);
-          if (ts > bestTimestamp) {
-            bestTimestamp = ts;
-            bestValue = current;
-          }
-        });
-
-        return bestValue;
-      } catch {
-        continue;
-      }
-    }
-
-    return null;
-  };
-
   // Filtrar datos
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
@@ -572,58 +500,23 @@ const UnidadesProyectoTabularView: React.FC<
     };
   }, [filteredData, metrics]);
 
-  // Cargar intervenciones
+  // Cargar intervenciones — sólo se invoca al expandir una fila.
+  // avance_obra ya viene actualizado desde el backend (se sincroniza al registrar avances).
   const loadIntervenciones = async (upid: string) => {
     if (intervencionesCache[upid] || loadingInterv.has(upid)) return;
 
     setLoadingInterv((prev) => new Set(prev).add(upid));
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
     try {
       const res = await proxyFetch(
-        `${apiUrl}/intervenciones?upid=${upid}&limit=10000`,
+        `/api/proxy/intervenciones?upid=${encodeURIComponent(upid)}&limit=100`,
       );
-      if (!res.ok) throw new Error("Error loading intervenciones");
+      if (!res.ok)
+        throw new Error(`Error loading intervenciones: ${res.status}`);
 
       const payload = await res.json();
       const intervenciones = extractArrayPayload(payload);
       let intList: IntervencionData[] = intervenciones || [];
-
-      const uniqueIntervencionIds = Array.from(
-        new Set(
-          intList
-            .map((interv) => String(interv.intervencion_id || "").trim())
-            .filter(Boolean),
-        ),
-      );
-
-      if (uniqueIntervencionIds.length > 0) {
-        const latestEntries = await Promise.all(
-          uniqueIntervencionIds.map(async (intervencionId) => {
-            const latest = await getLatestAvanceForIntervencion(
-              apiUrl,
-              intervencionId,
-            );
-            return [intervencionId, latest] as const;
-          }),
-        );
-
-        const latestAvanceMap = new Map<string, number>();
-        latestEntries.forEach(([intervencionId, latest]) => {
-          if (typeof latest === "number") {
-            latestAvanceMap.set(intervencionId, latest);
-          }
-        });
-
-        intList = intList.map((interv) => {
-          const intervencionId = String(interv.intervencion_id || "").trim();
-          const latest = latestAvanceMap.get(intervencionId);
-          if (typeof latest === "number") {
-            return { ...interv, avance_obra: latest };
-          }
-          return interv;
-        });
-      }
 
       // Derivar estado a partir de avance_obra (ej: avance=100 → Terminado, avance=0 → En alistamiento)
       const normalizeAccentsLocal = (s: string) =>
@@ -676,10 +569,7 @@ const UnidadesProyectoTabularView: React.FC<
       setIntervencionesCache((prev) => ({ ...prev, [upid]: intList }));
     } catch (error) {
       console.error(`Error loading intervenciones for ${upid}:`, error);
-      setMetrics((prev) => ({
-        ...prev,
-        [upid]: { avance: 0, presupuesto: 0 },
-      }));
+      // No sobreescribir métricas — el fallback item.avance_obra/presupuesto_base sigue visible
     } finally {
       setLoadingInterv((prev) => {
         const newSet = new Set(prev);
@@ -743,15 +633,6 @@ const UnidadesProyectoTabularView: React.FC<
 
     setExpandedUPs(newExpanded);
   };
-
-  // Cargar métricas iniciales
-  useEffect(() => {
-    paginatedData.forEach((item) => {
-      if (!metrics[item.upid] && !loadingInterv.has(item.upid)) {
-        loadIntervenciones(item.upid);
-      }
-    });
-  }, [paginatedData]);
 
   return (
     <div className={`space-y-4 ${className}`}>
