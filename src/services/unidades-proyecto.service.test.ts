@@ -113,3 +113,54 @@ describe('filterAttributeData — filtro frente_activo', () => {
     expect(result.length).toBe(dataset.length)
   })
 })
+
+describe('filterAttributeData — filtros múltiples heterogéneos y campos calculados', () => {
+  it('incluye UP cuando los filtros aplican a distintas intervenciones pero coinciden en el consolidado', () => {
+    const dataset = [
+      makeItem({
+        upid: 'UP-X',
+        nombre_centro_gestor: 'Secretaría de Infraestructura',
+        estado: 'En ejecución',
+        tipo_intervencion: 'Obra nueva',
+        avance_obra: 50,
+      }),
+      makeItem({
+        upid: 'UP-X',
+        nombre_centro_gestor: 'Secretaría de Educación',
+        estado: 'En ejecución',
+        tipo_intervencion: 'Adecuaciones',
+        avance_obra: 50,
+      })
+    ]
+
+    const result = filterAttributeData(dataset as any, {
+      centro_gestor_multiple: ['Secretaría de Educación'],
+      tipo_intervencion_multiple: ['Obra nueva'],
+      estado_multiple: ['En ejecución']
+    } as any)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].upid).toBe('UP-X')
+  })
+
+  it('filtra correctamente por frente_activo en datos crudos que no lo tienen pre-calculado', () => {
+    const dataset = [
+      makeItem({
+        upid: 'UP-Y',
+        estado: 'En ejecución',
+        avance_obra: 40,
+        presupuesto_base: 200000000,
+        frente_activo: undefined
+      })
+    ]
+
+    const result = filterAttributeData(dataset as any, {
+      frente_activo_multiple: ['Frente activo']
+    } as any)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].upid).toBe('UP-Y')
+    expect(result[0].frente_activo).toBe('Frente activo')
+  })
+})
+

@@ -1419,6 +1419,16 @@ export const filterAttributeData = (
 
   const consolidatedData = consolidateAttributeData(data);
 
+  // Mapear UPIDs a filas crudas para búsquedas en cascada eficientes
+  const rawRowsByUpid = new Map<string, AttributeData[]>();
+  data.forEach((row) => {
+    const upid = normalizeString(row.upid);
+    if (!upid) return;
+    const list = rawRowsByUpid.get(upid) || [];
+    list.push(row);
+    rawRowsByUpid.set(upid, list);
+  });
+
   // Log único al inicio con resumen de filtros
   const activeFilters = Object.entries(filters)
     .filter(([key, value]) => value && key !== "searchTerm")
@@ -1426,64 +1436,66 @@ export const filterAttributeData = (
 
   if (activeFilters.length > 0) {
     console.log(
-      "📊 Filtering:",
+      "📊 Filtering consolidated data:",
+      consolidatedData.length,
+      "consolidated items | raw rows:",
       data.length,
-      "items |",
+      "| filters:",
       activeFilters.join(", "),
     );
   }
 
-  const matchesAllFiltersForRow = (item: AttributeData): boolean => {
+  const filtered = consolidatedData.filter((item) => {
     try {
-      // Filtro de búsqueda por texto
+      // 1. Filtro de búsqueda por texto (searchTerm)
       if (filters.searchTerm && filters.searchTerm.trim() !== "") {
         const searchTermLower = filters.searchTerm.toLowerCase();
-        const matchesSearch =
-          (item.nombre_up &&
-            item.nombre_up.toLowerCase().includes(searchTermLower)) ||
-          (item.descripcion_intervencion &&
-            item.descripcion_intervencion
-              .toLowerCase()
-              .includes(searchTermLower)) ||
+        
+        // Comprobar coincidencia en el item consolidado primero
+        let matchesSearch =
+          (item.nombre_up && item.nombre_up.toLowerCase().includes(searchTermLower)) ||
+          (item.descripcion_intervencion && item.descripcion_intervencion.toLowerCase().includes(searchTermLower)) ||
           (item.upid && item.upid.toLowerCase().includes(searchTermLower)) ||
-          (item.identificador &&
-            item.identificador.toLowerCase().includes(searchTermLower)) ||
-          (item.unidad &&
-            item.unidad.toLowerCase().includes(searchTermLower)) ||
-          (item.cantidad != null &&
-            String(item.cantidad).toLowerCase().includes(searchTermLower));
+          (item.identificador && item.identificador.toLowerCase().includes(searchTermLower)) ||
+          (item.unidad && item.unidad.toLowerCase().includes(searchTermLower)) ||
+          (item.cantidad != null && String(item.cantidad).toLowerCase().includes(searchTermLower));
+
+        // Si no coincide, comprobar en las filas crudas de ese UPID
+        if (!matchesSearch) {
+          const rawRows = rawRowsByUpid.get(normalizeString(item.upid)) || [];
+          matchesSearch = rawRows.some((row) =>
+            (row.nombre_up && row.nombre_up.toLowerCase().includes(searchTermLower)) ||
+            (row.descripcion_intervencion && row.descripcion_intervencion.toLowerCase().includes(searchTermLower)) ||
+            (row.upid && row.upid.toLowerCase().includes(searchTermLower)) ||
+            (row.identificador && row.identificador.toLowerCase().includes(searchTermLower)) ||
+            (row.unidad && row.unidad.toLowerCase().includes(searchTermLower)) ||
+            (row.cantidad != null && String(row.cantidad).toLowerCase().includes(searchTermLower))
+          );
+        }
 
         if (!matchesSearch) {
           return false;
         }
       }
 
-      // Filtros específicos - primero recopilar todos los filtros únicos (tanto simples como múltiples)
-      // Filtros de rango (avance/presupuesto) - procesar ANTES del loop general
-      const avanceMin =
-        typeof filters.avance_min === "number" ? filters.avance_min : undefined;
-      const avanceMax =
-        typeof filters.avance_max === "number" ? filters.avance_max : undefined;
+      // 2. Filtros de rango numérico (avance y presupuesto)
+      const avanceMin = typeof filters.avance_min === "number" ? filters.avance_min : undefined;
+      const avanceMax = typeof filters.avance_max === "number" ? filters.avance_max : undefined;
       if (avanceMin !== undefined || avanceMax !== undefined) {
         const val = Number(item.avance_obra || 0);
         if (avanceMin !== undefined && val < avanceMin) return false;
         if (avanceMax !== undefined && val > avanceMax) return false;
       }
 
-      const presupuestoMin =
-        typeof filters.presupuesto_min === "number"
-          ? filters.presupuesto_min
-          : undefined;
-      const presupuestoMax =
-        typeof filters.presupuesto_max === "number"
-          ? filters.presupuesto_max
-          : undefined;
+      const presupuestoMin = typeof filters.presupuesto_min === "number" ? filters.presupuesto_min : undefined;
+      const presupuestoMax = typeof filters.presupuesto_max === "number" ? filters.presupuesto_max : undefined;
       if (presupuestoMin !== undefined || presupuestoMax !== undefined) {
         const val = Number(item.presupuesto_base || 0);
         if (presupuestoMin !== undefined && val < presupuestoMin) return false;
         if (presupuestoMax !== undefined && val > presupuestoMax) return false;
       }
 
+      // 3. Filtros por categorías (incluyendo múltiples)
       const rangeKeys = new Set([
         "avance_min",
         "avance_max",
@@ -1502,208 +1514,100 @@ export const filterAttributeData = (
       });
 
       const matchesFilters = Array.from(allFilterKeys).every((baseKey) => {
-        try {
-          const multipleKey = `${baseKey}_multiple`;
-          const multipleValues = (filters as any)[multipleKey];
-          const singleValue = (filters as any)[baseKey];
+        const multipleKey = `${baseKey}_multiple`;
+        const multipleValues = (filters as any)[multipleKey];
+        const singleValue = (filters as any)[baseKey];
 
-          // Si hay filtros múltiples, usarlos (tienen prioridad sobre el filtro singular)
-          if (
-            multipleValues &&
-            Array.isArray(multipleValues) &&
-            multipleValues.length > 0
-          ) {
+        const hasMulti = multipleValues && Array.isArray(multipleValues) && multipleValues.length > 0;
+        const hasSingle = singleValue !== undefined && singleValue !== null && String(singleValue).trim() !== "";
+
+        if (!hasMulti && !hasSingle) {
+          return true; // Filtro no activo para esta clave
+        }
+
+        const checkMatch = (obj: AttributeData): boolean => {
+          if (hasMulti) {
             switch (baseKey) {
               case "estado":
-                return valueInArray(item.estado, multipleValues);
+                return valueInArray(obj.estado, multipleValues);
               case "tipo_intervencion":
-                return valueInArray(item.tipo_intervencion, multipleValues);
+                return valueInArray(obj.tipo_intervencion, multipleValues);
               case "tipo_equipamiento":
-                return valueInArray(item.tipo_equipamiento, multipleValues);
+                return valueInArray(obj.tipo_equipamiento, multipleValues);
               case "frente_activo":
-                return valueInArray(item.frente_activo, multipleValues);
+                return valueInArray(obj.frente_activo, multipleValues);
               case "centro_gestor":
-              case "centro_gestor_multiple":
-                return valueInArray(item.nombre_centro_gestor, multipleValues);
+                return valueInArray(obj.nombre_centro_gestor, multipleValues);
               case "comuna_corregimiento":
-                return valueInArray(item.comuna_corregimiento, multipleValues);
+                return valueInArray(obj.comuna_corregimiento, multipleValues);
               case "barrio_vereda":
-                return valueInArray(item.barrio_vereda, multipleValues);
+                return valueInArray(obj.barrio_vereda, multipleValues);
               case "fuente_financiacion":
-                return valueInArray(item.fuente_financiacion, multipleValues);
+                return valueInArray(obj.fuente_financiacion, multipleValues);
               case "proyectos_estrategicos":
-                return arrayHasAnyMatch(
-                  item.proyectos_estrategicos,
-                  multipleValues,
-                );
+                return arrayHasAnyMatch(obj.proyectos_estrategicos, multipleValues);
+              case "clase_up":
+                return valueInArray(obj.clase_up, multipleValues);
               case "ano":
                 return multipleValues
                   .map((v: any) => String(v).replace(".0", ""))
-                  .includes(String(item.ano).replace(".0", ""));
-              case "presupuesto":
-              case "presupuesto_base": {
-                const budgetMin =
-                  typeof (filters as any).presupuesto_min === "number"
-                    ? (filters as any).presupuesto_min
-                    : undefined;
-                const budgetMax =
-                  typeof (filters as any).presupuesto_max === "number"
-                    ? (filters as any).presupuesto_max
-                    : undefined;
-                const value = Number(item.presupuesto_base || 0);
-                if (budgetMin !== undefined && value < budgetMin) return false;
-                if (budgetMax !== undefined && value > budgetMax) return false;
-                return true;
-              }
-              case "avance":
-              case "avance_obra": {
-                const progressMin =
-                  typeof (filters as any).avance_min === "number"
-                    ? (filters as any).avance_min
-                    : undefined;
-                const progressMax =
-                  typeof (filters as any).avance_max === "number"
-                    ? (filters as any).avance_max
-                    : undefined;
-                const value = Number(item.avance_obra || 0);
-                if (progressMin !== undefined && value < progressMin)
-                  return false;
-                if (progressMax !== undefined && value > progressMax)
-                  return false;
-                return true;
-              }
+                  .includes(String(obj.ano).replace(".0", ""));
               default:
                 return true;
             }
-          }
-
-          // Si no hay filtros múltiples pero hay un valor singular, usarlo
-          if (singleValue && singleValue !== "") {
+          } else {
             switch (baseKey) {
               case "estado":
-                return stringsMatch(item.estado, singleValue);
+                return stringsMatch(obj.estado, singleValue);
               case "tipo_intervencion":
-                return stringsMatch(item.tipo_intervencion, singleValue);
+                return stringsMatch(obj.tipo_intervencion, singleValue);
               case "tipo_equipamiento":
-                return stringsMatch(item.tipo_equipamiento, singleValue);
+                return stringsMatch(obj.tipo_equipamiento, singleValue);
               case "frente_activo":
-                return stringsMatch(item.frente_activo, singleValue);
+                return stringsMatch(obj.frente_activo, singleValue);
               case "centro_gestor":
-              case "centro_gestor_multiple":
-                return stringsMatch(item.nombre_centro_gestor, singleValue);
+                return stringsMatch(obj.nombre_centro_gestor, singleValue);
               case "comuna_corregimiento":
-                return stringsMatch(item.comuna_corregimiento, singleValue);
+                return stringsMatch(obj.comuna_corregimiento, singleValue);
               case "barrio_vereda":
-                return stringsMatch(item.barrio_vereda, singleValue);
+                return stringsMatch(obj.barrio_vereda, singleValue);
               case "fuente_financiacion":
-                return stringsMatch(item.fuente_financiacion, singleValue);
-              case "ano":
-                return (
-                  String(item.ano).replace(".0", "") ===
-                  String(singleValue).replace(".0", "")
-                );
+                return stringsMatch(obj.fuente_financiacion, singleValue);
               case "proyectos_estrategicos":
-                return arrayHasAnyMatch(item.proyectos_estrategicos, [
-                  singleValue,
-                ]);
-              case "presupuesto":
-              case "presupuesto_base": {
-                const budgetMin =
-                  typeof (filters as any).presupuesto_min === "number"
-                    ? (filters as any).presupuesto_min
-                    : undefined;
-                const budgetMax =
-                  typeof (filters as any).presupuesto_max === "number"
-                    ? (filters as any).presupuesto_max
-                    : undefined;
-                const value = Number(item.presupuesto_base || 0);
-                if (budgetMin !== undefined && value < budgetMin) return false;
-                if (budgetMax !== undefined && value > budgetMax) return false;
-                return true;
-              }
-              case "avance":
-              case "avance_obra": {
-                const progressMin =
-                  typeof (filters as any).avance_min === "number"
-                    ? (filters as any).avance_min
-                    : undefined;
-                const progressMax =
-                  typeof (filters as any).avance_max === "number"
-                    ? (filters as any).avance_max
-                    : undefined;
-                const value = Number(item.avance_obra || 0);
-                if (progressMin !== undefined && value < progressMin)
-                  return false;
-                if (progressMax !== undefined && value > progressMax)
-                  return false;
-                return true;
-              }
+                return arrayHasAnyMatch(obj.proyectos_estrategicos, [singleValue]);
+              case "clase_up":
+                return stringsMatch(obj.clase_up, singleValue);
+              case "ano":
+                return String(obj.ano).replace(".0", "") === String(singleValue).replace(".0", "");
               default:
                 return true;
             }
           }
+        };
 
-          // Si no hay ni filtros múltiples ni valor singular, no filtrar por este campo
+        // Comprobar si el item consolidado coincide directamente
+        if (checkMatch(item)) {
           return true;
-        } catch (filterError) {
-          console.warn(`⚠️ Filter error for ${baseKey}:`, filterError);
-          return true; // En caso de error, no filtrar este item
         }
+
+        // Si no coincide, y NO es estado ni frente_activo (que son exclusivamente del consolidado),
+        // comprobar si alguna de las filas crudas originales coincide
+        if (baseKey !== "estado" && baseKey !== "frente_activo") {
+          const rawRows = rawRowsByUpid.get(normalizeString(item.upid)) || [];
+          if (rawRows.some(row => checkMatch(row))) {
+            return true;
+          }
+        }
+
+        return false;
       });
 
       return matchesFilters;
-    } catch (itemError) {
-      console.warn("⚠️ Error filtering item:", itemError, item);
-      return true; // En caso de error, incluir el item
-    }
-  };
-
-  // Aplicar filtros sobre filas reales (intervenciones) para no perder coincidencias
-  // cuando una UP tiene valores heterogéneos y luego consolidar a nivel UPID.
-  // EXCEPCIÓN: el filtro de estado y frente_activo se aplica sobre datos CONSOLIDADOS
-  // para que solo se muestren UPs cuyo estado/frente consolidado coincida con el filtro.
-  const matchingUpids = new Set(
-    data
-      .filter(matchesAllFiltersForRow)
-      .map((row) => normalizeString(row.upid))
-      .filter(Boolean),
-  );
-
-  // Filtrar datos consolidados por UPIDs y luego aplicar filtros de estado/frente_activo
-  // sobre el resultado consolidado (no sobre filas sueltas)
-  const estadoMultiple = (filters as any).estado_multiple;
-  const estadoSingle = filters.estado;
-  const hasEstadoFilter =
-    (Array.isArray(estadoMultiple) && estadoMultiple.length > 0) ||
-    (estadoSingle && String(estadoSingle).trim() !== "");
-
-  const frenteMultiple = (filters as any).frente_activo_multiple;
-  const frenteSingle = (filters as any).frente_activo;
-  const hasFrenteFilter =
-    (Array.isArray(frenteMultiple) && frenteMultiple.length > 0) ||
-    (frenteSingle && String(frenteSingle).trim() !== "");
-
-  const filtered = consolidatedData
-    .filter((item) => matchingUpids.has(normalizeString(item.upid)))
-    .filter((item) => {
-      // Aplicar filtro de estado sobre dato consolidado
-      if (hasEstadoFilter) {
-        if (Array.isArray(estadoMultiple) && estadoMultiple.length > 0) {
-          if (!valueInArray(item.estado, estadoMultiple)) return false;
-        } else if (estadoSingle && String(estadoSingle).trim() !== "") {
-          if (!stringsMatch(item.estado, estadoSingle)) return false;
-        }
-      }
-      // Aplicar filtro de frente_activo sobre dato consolidado
-      if (hasFrenteFilter) {
-        if (Array.isArray(frenteMultiple) && frenteMultiple.length > 0) {
-          if (!valueInArray(item.frente_activo, frenteMultiple)) return false;
-        } else if (frenteSingle && String(frenteSingle).trim() !== "") {
-          if (!stringsMatch(item.frente_activo, frenteSingle)) return false;
-        }
-      }
+    } catch (err) {
+      console.warn("⚠️ Error filtering consolidated item:", err, item);
       return true;
-    });
+    }
+  });
 
   // Log del resultado final
   if (activeFilters.length > 0) {
