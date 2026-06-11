@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NotificationPanel â€” Panel de notificaciones.
  *
  * Muestra dos secciones:
@@ -102,9 +102,11 @@ function BackendNotifItem({
   return (
     <div
       className={cn(
-        "p-4 border-l-4 group transition-colors",
+        "p-4 border-l-4 group transition-colors border-b border-gray-100 dark:border-[#0a1829]",
         borderColor,
-        isRead ? "bg-white hover:bg-gray-50" : "bg-blue-50 hover:bg-blue-50/70",
+        isRead
+          ? "bg-white hover:bg-gray-50 dark:bg-[#0d1f36] dark:hover:bg-[#0e2540]"
+          : "bg-blue-50 hover:bg-blue-50/70 dark:bg-[#1e293b]/50 dark:hover:bg-[#1e293b]/70",
       )}
     >
       <div className="flex items-start gap-3">
@@ -116,29 +118,29 @@ function BackendNotifItem({
             <span
               className={cn(
                 "text-sm font-semibold leading-snug",
-                isRead ? "text-gray-700" : "text-gray-900",
+                isRead ? "text-gray-700 dark:text-white/70" : "text-gray-900 dark:text-white",
               )}
             >
               {notif.titulo}
             </span>
-            <span className="text-[11px] text-gray-400 whitespace-nowrap tabular-nums shrink-0">
+            <span className="text-[11px] text-gray-400 dark:text-white/40 whitespace-nowrap tabular-nums shrink-0">
               {formatNotifDateTime(notif.created_at)}
             </span>
           </div>
 
           {/* Message */}
-          <p className="text-sm text-gray-600 mt-0.5 leading-snug">
+          <p className="text-sm text-gray-600 dark:text-white/60 mt-0.5 leading-snug">
             {notif.mensaje}
           </p>
 
           {/* Actor info */}
-          <p className="text-[11px] uppercase tracking-wide font-medium text-gray-500 mt-1">
+          <p className="text-[11px] uppercase tracking-wide font-medium text-gray-500 dark:text-white/40 mt-1">
             {verboPor(notif.tipo)}: {getActorLine(notif)}
           </p>
 
           {/* Module badge + actions */}
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[11px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+            <span className="text-[11px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/70">
               {MODULO_LABEL[notif.modulo] ?? notif.modulo}
             </span>
 
@@ -146,22 +148,22 @@ function BackendNotifItem({
               {!isRead && (
                 <button
                   onClick={() => onMarkRead(notif.id)}
-                  className="p-1 rounded-md hover:bg-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500"
-                  aria-label="Marcar como leÃ­da"
+                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-blue-500"
+                  aria-label="Marcar como leída"
                 >
                   <Check
                     size={14}
                     strokeWidth={1.5}
-                    className="text-gray-600"
+                    className="text-gray-600 dark:text-white/80"
                   />
                 </button>
               )}
               <button
                 onClick={() => onDelete(notif.id)}
-                className="p-1 rounded-md hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-400"
-                aria-label="Eliminar notificaciÃ³n"
+                className="p-1 rounded-md hover:bg-red-100 dark:hover:bg-red-500/20 focus-visible:ring-2 focus-visible:ring-red-400"
+                aria-label="Eliminar notificación"
               >
-                <Trash2 size={14} strokeWidth={1.5} className="text-red-500" />
+                <Trash2 size={14} strokeWidth={1.5} className="text-red-500 dark:text-red-400" />
               </button>
             </div>
           </div>
@@ -182,57 +184,59 @@ function LocalNotifItem({ notif, onMarkRead, onDelete }: LocalNotifItemProps) {
   return (
     <div
       className={cn(
-        "p-4 border-l-4 border-l-gray-300 group transition-colors",
-        isRead ? "bg-white hover:bg-gray-50" : "bg-blue-50 hover:bg-blue-50/70",
+        "p-4 border-l-4 border-l-gray-300 dark:border-l-gray-600 group transition-colors border-b border-gray-100 dark:border-[#0a1829]",
+        isRead
+          ? "bg-white hover:bg-gray-50 dark:bg-[#0d1f36] dark:hover:bg-[#0e2540]"
+          : "bg-blue-50 hover:bg-blue-50/70 dark:bg-[#1e293b]/50 dark:hover:bg-[#1e293b]/70",
       )}
     >
       <div className="flex items-start gap-3">
         <Info
           size={16}
           strokeWidth={1.5}
-          className="text-gray-400 mt-0.5 shrink-0"
+          className="text-gray-400 dark:text-white/40 mt-0.5 shrink-0"
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <span
               className={cn(
                 "text-sm font-semibold leading-snug",
-                isRead ? "text-gray-600" : "text-gray-900",
+                isRead ? "text-gray-600 dark:text-white/70" : "text-gray-900 dark:text-white",
               )}
             >
               {notif.title}
             </span>
-            <span className="text-[11px] text-gray-400 whitespace-nowrap tabular-nums shrink-0">
+            <span className="text-[11px] text-gray-400 dark:text-white/40 whitespace-nowrap tabular-nums shrink-0">
               {formatNotifDateTime(new Date(notif.timestamp).toISOString())}
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5 leading-snug">
+          <p className="text-sm text-gray-500 dark:text-white/60 mt-0.5 leading-snug">
             {notif.message}
           </p>
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[11px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+            <span className="text-[11px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/70">
               {notif.category}
             </span>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {!isRead && (
                 <button
                   onClick={() => onMarkRead(notif.id)}
-                  className="p-1 rounded-md hover:bg-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500"
-                  aria-label="Marcar como leÃ­da"
+                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-blue-500"
+                  aria-label="Marcar como leída"
                 >
                   <Check
                     size={14}
                     strokeWidth={1.5}
-                    className="text-gray-600"
+                    className="text-gray-600 dark:text-white/80"
                   />
                 </button>
               )}
               <button
                 onClick={() => onDelete(notif.id)}
-                className="p-1 rounded-md hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-400"
+                className="p-1 rounded-md hover:bg-red-100 dark:hover:bg-red-500/20 focus-visible:ring-2 focus-visible:ring-red-400"
                 aria-label="Eliminar"
               >
-                <Trash2 size={14} strokeWidth={1.5} className="text-red-500" />
+                <Trash2 size={14} strokeWidth={1.5} className="text-red-500 dark:text-red-400" />
               </button>
             </div>
           </div>
@@ -328,16 +332,16 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-full md:w-96 bg-white border-l border-gray-200 z-50 flex flex-col">
+      <div className="fixed right-0 top-0 h-full w-full md:w-96 bg-white dark:bg-[#0d1f36] border-l border-gray-200 dark:border-[#0a1829] z-50 flex flex-col transition-colors duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#0a1829] bg-white dark:bg-[#0d1f36] text-gray-900 dark:text-white">
           <div className="flex items-center gap-2">
-            <Bell size={18} strokeWidth={1.5} className="text-gray-700" />
+            <Bell size={18} strokeWidth={1.5} className="text-gray-700 dark:text-white/80" />
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
                 Notificaciones
               </h2>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-[11px] text-gray-500 dark:text-white/60">
                 {totalUnread > 0
                   ? `${totalUnread} sin leer`
                   : "Sin nuevas notificaciones"}
@@ -346,7 +350,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-white/60 dark:hover:text-white dark:hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500"
             aria-label="Cerrar panel de notificaciones"
           >
             <X size={16} strokeWidth={1.5} />
@@ -354,7 +358,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
         </div>
 
         {/* Filters + bulk actions */}
-        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-[#0a1829] bg-gray-50 dark:bg-[#0e2540]">
           <div className="flex gap-1">
             {(
               [
@@ -369,8 +373,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                 className={cn(
                   "px-2.5 py-1 text-xs rounded-md transition-colors",
                   filter === key
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-600 hover:bg-gray-200",
+                    ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 font-semibold"
+                    : "text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/10",
                 )}
               >
                 {label}
@@ -382,48 +386,48 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
             {totalUnread > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="p-1.5 rounded-md hover:bg-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500"
-                title="Marcar todas como leÃ­das"
-                aria-label="Marcar todas como leÃ­das"
+                className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-white/60 dark:hover:text-white dark:hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500"
+                title="Marcar todas como leídas"
+                aria-label="Marcar todas como leídas"
               >
                 <CheckCheck
                   size={14}
                   strokeWidth={1.5}
-                  className="text-gray-600"
+                  className="text-gray-600 dark:text-white/80"
                 />
               </button>
             )}
             <button
               onClick={refreshBackend}
-              className="p-1.5 rounded-md hover:bg-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-white/60 dark:hover:text-white dark:hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500"
               title="Actualizar"
               aria-label="Actualizar notificaciones"
             >
               <ChevronRight
                 size={14}
                 strokeWidth={1.5}
-                className="text-gray-600 rotate-90"
+                className="text-gray-600 dark:text-white/80 rotate-90"
               />
             </button>
           </div>
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+        <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-[#0a1829] bg-white dark:bg-[#0d1f36]">
           {backendLoading ? (
             <div
               className="flex items-center justify-center h-32"
               role="status"
             >
-              <div className="h-6 w-6 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin" />
+              <div className="h-6 w-6 rounded-full border-2 border-gray-300 border-t-gray-700 dark:border-t-white animate-spin" />
             </div>
           ) : filteredBackend.length === 0 && filteredLocal.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <Bell size={40} strokeWidth={1} className="mb-3 text-gray-300" />
-              <p className="text-sm font-medium text-gray-500">
+            <div className="flex flex-col items-center justify-center h-64 text-gray-950 dark:text-white">
+              <Bell size={40} strokeWidth={1} className="mb-3 text-gray-300 dark:text-white/20" />
+              <p className="text-sm font-medium text-gray-500 dark:text-white/60">
                 Sin notificaciones
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">
                 {filter === "activas" && "No hay notificaciones activas"}
                 {filter === "no_leidas" && "Nada pendiente por leer"}
                 {filter === "todas" && "No hay notificaciones registradas"}
@@ -431,11 +435,11 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
             </div>
           ) : (
             <>
-              {/* Backend notifications â€” solicitudes */}
+              {/* Backend notifications — solicitudes */}
               {filteredBackend.length > 0 && (
                 <div>
-                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                    <span className="text-[11px] uppercase tracking-wide font-medium text-gray-500">
+                  <div className="px-4 py-2 bg-gray-50 dark:bg-[#0e2540]/60 border-b border-gray-100 dark:border-[#0a1829]">
+                    <span className="text-[11px] uppercase tracking-wide font-medium text-gray-500 dark:text-white/50">
                       Solicitudes de cambio
                     </span>
                   </div>
@@ -450,11 +454,11 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                 </div>
               )}
 
-              {/* Local notifications â€” sistema */}
+              {/* Local notifications — sistema */}
               {filteredLocal.length > 0 && (
                 <div>
-                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                    <span className="text-[11px] uppercase tracking-wide font-medium text-gray-500">
+                  <div className="px-4 py-2 bg-gray-50 dark:bg-[#0e2540]/60 border-b border-gray-100 dark:border-[#0a1829]">
+                    <span className="text-[11px] uppercase tracking-wide font-medium text-gray-500 dark:text-white/50">
                       Sistema
                     </span>
                   </div>

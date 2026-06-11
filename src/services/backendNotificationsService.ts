@@ -5,10 +5,10 @@
  * el Tier 2 (admin_general / super_admin: nuevas solicitudes).
  */
 
-import { API_ENDPOINTS } from "@/config/api";
 import { BackendNotification } from "@/types/notifications";
+import { proxyFetch } from "@/utils/errorHandler";
 
-const BASE = API_ENDPOINTS.BASE_URL;
+const BASE = "/api/proxy";
 
 // ------------------------------------------------------------------ helpers
 
@@ -16,11 +16,12 @@ function buildUrl(
   path: string,
   params: Record<string, string | boolean | number | undefined>,
 ): string {
-  const url = new URL(`${BASE}${path}`);
+  const query = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+    if (v !== undefined && v !== null) query.set(k, String(v));
   });
-  return url.toString();
+  const queryString = query.toString();
+  return `${BASE}${path}${queryString ? `?${queryString}` : ""}`;
 }
 
 // ------------------------------------------------------------------ API calls
@@ -49,7 +50,7 @@ export async function fetchNotificaciones(
     limit: params.limit ?? 50,
   });
 
-  const res = await fetch(url, { credentials: "include" });
+  const res = await proxyFetch(url, { credentials: "include" });
   if (!res.ok) throw new Error(`Error fetching notificaciones: ${res.status}`);
   return res.json();
 }
@@ -59,14 +60,14 @@ export async function fetchNotificacionesCount(
   centro_gestor?: string,
 ): Promise<number> {
   const url = buildUrl("/notificaciones/count", { role, centro_gestor });
-  const res = await fetch(url, { credentials: "include" });
+  const res = await proxyFetch(url, { credentials: "include" });
   if (!res.ok) return 0;
   const json = await res.json();
   return json.count ?? 0;
 }
 
 export async function marcarNotificacionLeida(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/notificaciones/${id}/leer`, {
+  const res = await proxyFetch(`${BASE}/notificaciones/${id}/leer`, {
     method: "PATCH",
     credentials: "include",
   });
@@ -78,14 +79,14 @@ export async function marcarTodasLeidas(
   centro_gestor?: string,
 ): Promise<number> {
   const url = buildUrl("/notificaciones/leer-todas", { role, centro_gestor });
-  const res = await fetch(url, { method: "PATCH", credentials: "include" });
+  const res = await proxyFetch(url, { method: "PATCH", credentials: "include" });
   if (!res.ok) return 0;
   const json = await res.json();
   return json.marcadas ?? 0;
 }
 
 export async function eliminarNotificacion(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/notificaciones/${id}`, {
+  const res = await proxyFetch(`${BASE}/notificaciones/${id}`, {
     method: "DELETE",
     credentials: "include",
   });

@@ -167,7 +167,10 @@ async function handleRequest(request: NextRequest, method: string) {
   const { pathname, searchParams } = request.nextUrl;
 
   // Extract the path after /api/proxy/
-  const apiPath = pathname.replace("/api/proxy/", "");
+  let apiPath = pathname.replace("/api/proxy/", "");
+  if (apiPath === "reportes_contratos") {
+    apiPath = "reportes_contratos/";
+  }
   const bypassCache = searchParams.get("bypass_cache") === "1";
   const isCacheableGet =
     method === "GET" && isCacheableEmprestitoPath(apiPath) && !bypassCache;
