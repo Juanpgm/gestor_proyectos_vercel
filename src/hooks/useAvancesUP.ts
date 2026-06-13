@@ -427,22 +427,7 @@ export const useAvancesUP = (upid: string, intervencionId?: string) => {
           );
         }
 
-        // Actualizar avance_obra oficial de la intervención con el nuevo valor reportado
-        try {
-          await proxyFetch("/api/proxy/modificar/intervencion", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              intervencion_id: intervencionId,
-              avance_obra: formData.avance_fisico,
-            }),
-          });
-        } catch (updateError) {
-          console.warn(
-            "⚠️ No se pudo actualizar avance_obra en la intervención:",
-            updateError,
-          );
-        }
+        // El avance_obra oficial de la intervención ya es actualizado automáticamente por el backend en /registrar_avance_up.
 
         // Recargar avances desde la API para reflejar el estado real
         await loadAvances();
