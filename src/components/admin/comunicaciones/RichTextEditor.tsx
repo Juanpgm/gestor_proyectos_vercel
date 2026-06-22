@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import DOMPurify from "dompurify";
 import {
   Bold,
   Italic,
@@ -121,11 +122,13 @@ export default function RichTextEditor({
   >(null);
   const editorId = useId();
 
-  // Sincronizar value (solo cuando difiere para no mover el cursor)
+  // Sincronizar value (solo cuando difiere para no mover el cursor).
+  // Sanitizar con DOMPurify antes de asignar para evitar XSS en el editor.
   useEffect(() => {
     if (!editorRef.current) return;
-    if (editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value || "";
+    const clean = DOMPurify.sanitize(value || "", { USE_PROFILES: { html: true } });
+    if (editorRef.current.innerHTML !== clean) {
+      editorRef.current.innerHTML = clean;
     }
   }, [value]);
 
@@ -520,7 +523,9 @@ export default function RichTextEditor({
         <div
           className="prose prose-sm dark:prose-invert max-w-none p-4 overflow-auto"
           style={{ minHeight }}
-          dangerouslySetInnerHTML={{ __html: value || "" }}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(value || "", { USE_PROFILES: { html: true } }),
+          }}
         />
       ) : showHtmlSource ? (
         <textarea

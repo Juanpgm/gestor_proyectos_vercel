@@ -25,6 +25,8 @@ const mockRoundedRect = vi.fn()
 const mockLine = vi.fn()
 const mockAddPage = vi.fn()
 const mockSetPage = vi.fn()
+const mockSetLanguage = vi.fn()
+const mockSetDocumentProperties = vi.fn()
 
 let autoTableCalls: any[] = []
 
@@ -47,6 +49,8 @@ function createMockDoc() {
     line: mockLine,
     addPage: mockAddPage,
     setPage: mockSetPage,
+    setLanguage: mockSetLanguage,
+    setDocumentProperties: mockSetDocumentProperties,
     save: mockSave,
     autoTable: (opts: any) => {
       autoTableCalls.push(opts)
@@ -247,10 +251,10 @@ describe('generarReporteUPsPorCentroGestor', () => {
       totalAvances: 45,
     })).resolves.not.toThrow()
 
-    // Se llamó a doc.save() con nombre correcto
+    // Se llamó a doc.save() con nombre correcto (reporte v2)
     expect(mockSave).toHaveBeenCalledTimes(1)
     const filename = mockSave.mock.calls[0][0]
-    expect(filename).toMatch(/^reporte_avances_ups_\d{4}-\d{2}-\d{2}\.pdf$/)
+    expect(filename).toMatch(/^reporte_ups_organismos_\d{4}-\d{2}-\d{2}\.pdf$/)
   })
 
   it('genera tabla principal con filas por cada centro gestor', async () => {
@@ -265,11 +269,11 @@ describe('generarReporteUPsPorCentroGestor', () => {
       totalAvances: 20,
     })
 
-    // Al menos 1 autoTable (tabla principal)
+    // Al menos 1 autoTable (tabla principal — Seccion 1.1)
     expect(autoTableCalls.length).toBeGreaterThanOrEqual(1)
     const tablaPrincipal = autoTableCalls[0]
     expect(tablaPrincipal.body).toHaveLength(2)
-    expect(tablaPrincipal.head[0]).toContain('Centro Gestor')
+    expect(tablaPrincipal.head[0]).toContain('Organismo / Centro Gestor')
   })
 
   it('genera sección de alertas cuando hay centros con alertas', async () => {
@@ -313,8 +317,13 @@ describe('generarReporteUPsPorCentroGestor', () => {
       totalAvances: 0,
     })
 
-    // Debe haber 3 autoTables: principal, alertas, sin avances
-    expect(autoTableCalls.length).toBe(3)
+    // El reporte v2 emite la Seccion 5 "sin ningun avance" cuando hay
+    // centros con intervenciones_con_avance === 0.
+    const tablaSinAvance = autoTableCalls.find((t) =>
+      t.head[0].includes('Pendientes sin Avance'),
+    )
+    expect(tablaSinAvance).toBeDefined()
+    expect(tablaSinAvance.body[0][0]).toBe('Sin Avance')
   })
 
   it('maneja datos vacíos sin errores', async () => {
@@ -325,8 +334,9 @@ describe('generarReporteUPsPorCentroGestor', () => {
     })).resolves.not.toThrow()
 
     expect(mockSave).toHaveBeenCalledTimes(1)
-    // Solo tabla principal con 0 filas
-    expect(autoTableCalls.length).toBe(1)
+    // v2 siempre emite las 3 secciones base (1.1, Semaforo, Detalle); las
+    // secciones condicionales 4 y 5 se omiten cuando no hay datos.
+    expect(autoTableCalls.length).toBe(3)
     expect(autoTableCalls[0].body).toHaveLength(0)
   })
 
@@ -343,10 +353,15 @@ describe('generarReporteUPsPorCentroGestor', () => {
       totalAvances: 25,
     })
 
-    const tabla = autoTableCalls[0]
-    expect(tabla.body[0][0]).toBe('Bajo')
-    expect(tabla.body[1][0]).toBe('Medio')
-    expect(tabla.body[2][0]).toBe('Alto')
+    // La Seccion 3 "Detalle Completo" es la que ordena de menor a mayor
+    // avance de obra; se identifica por su columna "Avance Obra %".
+    const detalle = autoTableCalls.find((t) =>
+      t.head[0].includes('Avance\nObra %'),
+    )
+    expect(detalle).toBeDefined()
+    expect(detalle.body[0][0]).toBe('Bajo')
+    expect(detalle.body[1][0]).toBe('Medio')
+    expect(detalle.body[2][0]).toBe('Alto')
   })
 })
 

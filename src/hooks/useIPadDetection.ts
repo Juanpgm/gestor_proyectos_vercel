@@ -32,10 +32,14 @@ export const useIPadDetection = (): DeviceInfo => {
       const dpr = window.devicePixelRatio || 1
       
       // Detectar si es un dispositivo táctil
+      // navigator.msMaxTouchPoints es propiedad legacy de IE/Edge, no está en
+      // los tipos estándar de TS — se tipa explícitamente en vez de @ts-ignore.
+      const legacyNavigator = navigator as Navigator & {
+        msMaxTouchPoints?: number
+      }
       const isTouch = (('ontouchstart' in window) ||
         (navigator.maxTouchPoints > 0) ||
-        // @ts-ignore
-        (navigator.msMaxTouchPoints > 0))
+        ((legacyNavigator.msMaxTouchPoints ?? 0) > 0))
 
       // Detección específica para iPad 10ª generación
       // Resolución física: 2360x1640, CSS: ~834x1194

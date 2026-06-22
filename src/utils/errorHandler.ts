@@ -205,17 +205,6 @@ async function _getAuthTokenForFetch(): Promise<string | null> {
       if (waitedToken) return waitedToken;
     }
   } catch {}
-  // Fallback: read stored session from storage
-  try {
-    const raw =
-      localStorage.getItem("auth_session") ||
-      sessionStorage.getItem("auth_session");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const t = parsed?.user?.idToken || parsed?.user?.id_token;
-      if (t) return t;
-    }
-  } catch {}
   return null;
 }
 

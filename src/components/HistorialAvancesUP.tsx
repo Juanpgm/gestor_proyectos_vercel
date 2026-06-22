@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -24,7 +25,7 @@ import {
   Download,
 } from "lucide-react";
 import { useAvancesUP } from "@/hooks/useAvancesUP";
-import { formatCurrency, formatCurrencyFull } from "@/utils/formatCurrency";
+import { formatCurrency, formatCurrencyFull } from "@/utils/currency";
 import type { AvanceUP } from "@/types/avances-up";
 
 interface HistorialAvancesUPProps {
@@ -639,7 +640,16 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
     [deleteAvance, onAvanceChanged],
   );
 
-  return (
+  // El overlay usa position:fixed. Dentro de un ancestro con `transform` (los
+  // contenedores animados con Framer Motion lo aplican) ese ancestro se vuelve
+  // el "containing block" y el modal queda anclado a su caja en vez de al
+  // viewport. Un portal a document.body lo despega de ancestros transformados.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -653,6 +663,8 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-700 dark:to-indigo-700 px-6 py-4 flex items-center justify-between">
@@ -806,7 +818,8 @@ const HistorialAvancesUP: React.FC<HistorialAvancesUPProps> = ({
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 };
 

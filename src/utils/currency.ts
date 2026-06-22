@@ -76,51 +76,55 @@ export const abbreviateNumber = (num: number): string => {
   }
 }
 
-/**
- * Obtiene el color para una categoría específica
- */
-export const getCategoryColor = (value: any, type: 'progress' | 'budget' | 'type' | 'status'): string => {
-  switch (type) {
-    case 'progress':
-      const progress = typeof value === 'number' ? value : parseFloat(value) || 0
-      if (progress >= 0.9) return '#10b981' // Verde - Completado
-      if (progress >= 0.7) return '#3b82f6' // Azul - Avanzado  
-      if (progress >= 0.4) return '#f59e0b' // Amarillo - En progreso
-      if (progress >= 0.1) return '#f97316' // Naranja - Iniciado
-      return '#ef4444' // Rojo - Sin avance
+export const formatCurrency = (value: number, showDecimals: boolean = true): string => {
+  if (value === 0) return '$0'
 
-    case 'budget':
-      const budget = typeof value === 'number' ? value : parseFloat(value) || 0
-      if (budget >= 50e9) return '#7c3aed' // Violeta - Muy alto
-      if (budget >= 10e9) return '#dc2626' // Rojo - Alto
-      if (budget >= 5e9) return '#ea580c' // Naranja - Medio-alto
-      if (budget >= 1e9) return '#f59e0b' // Amarillo - Medio
-      if (budget >= 100e6) return '#10b981' // Verde - Bajo
-      return '#6b7280' // Gris - Muy bajo
+  const absValue = Math.abs(value)
+  const isNegative = value < 0
+  const prefix = isNegative ? '-$' : '$'
 
-    case 'type':
-      const typeColors: Record<string, string> = {
-        'CONSTRUCCIÓN': '#dc2626',
-        'MANTENIMIENTO': '#f59e0b', 
-        'REHABILITACIÓN': '#3b82f6',
-        'MEJORAMIENTO': '#10b981',
-        'DOTACIÓN': '#7c3aed',
-        'ESTUDIOS': '#6b7280',
-        'INTERVENTORÍA': '#f97316',
-      }
-      return typeColors[String(value).toUpperCase()] || '#6b7280'
-
-    case 'status':
-      const statusColors: Record<string, string> = {
-        'COMPLETADO': '#10b981',
-        'EN EJECUCIÓN': '#3b82f6',
-        'EN EVALUACIÓN': '#f59e0b',
-        'PLANIFICACIÓN': '#6b7280',
-        'SUSPENDIDO': '#ef4444',
-      }
-      return statusColors[String(value).toUpperCase()] || '#6b7280'
-
-    default:
-      return '#6b7280'
+  // Mostrar cifra completa si es menor a 100,000 (cien mil)
+  if (absValue < 100000) {
+    return `${prefix}${absValue.toLocaleString('es-CO')}`
   }
+
+  // Miles (K) - de 100,000 a 999,999
+  if (absValue < 1e6) {
+    const thousands = absValue / 1e3
+    const decimals = showDecimals && thousands % 1 !== 0 ? 1 : 0
+    return `${prefix}${thousands.toFixed(decimals)}K`
+  }
+
+  // Millones (M) - de 1,000,000 a 999,999,999
+  if (absValue < 1e9) {
+    const millions = absValue / 1e6
+    const decimals = showDecimals && millions % 1 !== 0 ? 1 : 0
+    return `${prefix}${millions.toFixed(decimals)}M`
+  }
+
+  // Mil millones (MM) - de 1,000,000,000 a 999,999,999,999
+  if (absValue < 1e12) {
+    const thousands = absValue / 1e9
+    const decimals = showDecimals && thousands % 1 !== 0 ? 1 : 0
+    return `${prefix}${thousands.toFixed(decimals)}MM`
+  }
+
+  // Billones (B) - de 1,000,000,000,000 en adelante (un millón de millones)
+  const trillions = absValue / 1e12
+  const decimals = showDecimals && trillions % 1 !== 0 ? 1 : 0
+  return `${prefix}${trillions.toFixed(decimals)}B`
+}
+
+export const formatCurrencyFull = (value: number): string => {
+  if (value === 0) return '$0'
+
+  const isNegative = value < 0
+  const prefix = isNegative ? '-$' : '$'
+  const absValue = Math.abs(value)
+
+  return `${prefix}${absValue.toLocaleString('es-CO')}`
+}
+
+export const formatCurrencyCompact = (value: number): string => {
+  return formatCurrency(value, false)
 }

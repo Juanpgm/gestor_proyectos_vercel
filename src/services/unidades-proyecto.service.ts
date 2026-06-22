@@ -162,6 +162,27 @@ const API_CONFIG = {
   RETRY_DELAY: 1000,
 } as const;
 
+// ── Reglas de negocio: derivación de estado y "Frente activo" ──────────────
+// Centralizadas en un solo lugar para que fetchAttributeData y
+// consolidateAttributeData usen EXACTAMENTE los mismos umbrales. Antes estaban
+// duplicadas en cada función y podían divergir silenciosamente.
+// IMPORTANTE: estos valores son reglas de negocio — no cambiar sin validación.
+/** Avance (%) por debajo del cual la intervención se considera "En alistamiento". */
+const AVANCE_MIN_EN_EJECUCION = 0.5;
+/** Avance (%) en o por encima del cual la intervención se considera "Terminado". */
+const AVANCE_MAX_EN_EJECUCION = 99.5;
+/** Presupuesto mínimo (COP) para que una intervención cuente como frente activo. */
+const MIN_PRESUPUESTO_FRENTE_ACTIVO = 150000000;
+/** Centro gestor excluido del conteo de frentes activos (comparar normalizado sin acentos). */
+const EXCLUDED_CENTRO_GESTOR_FRENTE_ACTIVO =
+  "secretaria de vivienda social y habitat";
+/** Tipos de intervención excluidos del conteo de frentes activos (comparar normalizados). */
+const EXCLUDED_TIPOS_FRENTE_ACTIVO = new Set([
+  "mantenimiento",
+  "estudios y disenos",
+  "demarcacion vial",
+]);
+
 // Utilidad para manejar errores de manera funcional
 const handleApiError = (error: unknown): never => {
   if (error instanceof Error) {
@@ -597,6 +618,29 @@ export const fetchGeometryData = async (
 };
 
 /**
+ * Estadísticas de la última ejecución de fetchAttributeData.
+ * Permite que la UI advierta (sin bloquear) cuando se descartan registros por
+ * fallos de validación, en vez de perderlos en silencio.
+ */
+export interface AttributeValidationStats {
+  /** Total de items recibidos del backend en la última ejecución */
+  received: number;
+  /** Items que pasaron la validación y se devolvieron */
+  valid: number;
+  /** Items descartados por fallar la validación de esquema */
+  failed: number;
+  /** Muestra de upids descartados (limitada para no crecer sin control) */
+  failedUpids: string[];
+}
+
+export const lastAttributeValidationStats: AttributeValidationStats = {
+  received: 0,
+  valid: 0,
+  failed: 0,
+  failedUpids: [],
+};
+
+/**
  * Obtiene datos de atributos con filtros opcionales
  * Ahora usa el endpoint unificado internamente
  */
@@ -683,8 +727,11 @@ export const fetchAttributeData = async (
           `fetchAttributeData: ${allIntervenciones.length} intervenciones agrupadas por UPID`,
         );
       } catch (intervencionesError) {
-        debugLog(
-          "fetchAttributeData: Error cargando /intervenciones",
+        // Visible (no solo en debug): si el fallback falla, las unidades quedan
+        // sin intervenciones y los avances/reportes saldrían incompletos.
+        console.warn(
+          "⚠️ fetchAttributeData: Error cargando /intervenciones (fallback). " +
+            "Las unidades pueden quedar sin datos de intervención.",
           intervencionesError,
         );
       }
@@ -716,21 +763,16 @@ export const fetchAttributeData = async (
           ? avanceObra
           : parseFloat(String(avanceObra || "0"));
       // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
-      if (isNaN(avance) || avance < 0.5) return "En alistamiento";
-      if (avance >= 99.5) return "Terminado";
+      if (isNaN(avance) || avance < AVANCE_MIN_EN_EJECUCION)
+        return "En alistamiento";
+      if (avance >= AVANCE_MAX_EN_EJECUCION) return "Terminado";
       return "En ejecución";
     };
 
     // Determinar frente activo usando estados derivados Y avances —
     // una intervención al 100% con estado "En ejecución" NO es frente activo (debe ser Terminado).
     // Excluir ciertos centros gestores y tipos de intervención del conteo de frentes activos.
-    const EXCLUDED_CENTRO_GESTOR = "secretaria de vivienda social y habitat";
-    const EXCLUDED_TIPOS_INTERVENCION = new Set([
-      "mantenimiento",
-      "estudios y disenos",
-      "demarcacion vial",
-    ]);
-    const MIN_PRESUPUESTO_FRENTE_ACTIVO = 150000000; // $150M mínimo para ser frente activo
+    // (Umbrales/exclusiones centralizados a nivel módulo — ver constantes arriba.)
 
     const inferFrenteActivo = (
       estados: string[],
@@ -748,17 +790,18 @@ export const fetchAttributeData = async (
               typeof avances[i] === "number"
                 ? avances[i]!
                 : parseFloat(String(avances[i] || "0"));
-            if (av < 0.5 || av >= 99.5) continue; // avance que redondea a 0% o 100% → no es frente activo
+            if (av < AVANCE_MIN_EN_EJECUCION || av >= AVANCE_MAX_EN_EJECUCION)
+              continue; // avance que redondea a 0% o 100% → no es frente activo
           }
           // Excluir tipos de intervención no aplicables
           if (tiposIntervencion && tiposIntervencion[i]) {
             const tipoNorm = normalizeAccents(tiposIntervencion[i] || "");
-            if (EXCLUDED_TIPOS_INTERVENCION.has(tipoNorm)) continue;
+            if (EXCLUDED_TIPOS_FRENTE_ACTIVO.has(tipoNorm)) continue;
           }
           // Excluir centros gestores no aplicables
           if (centrosGestor && centrosGestor[i]) {
             const centroNorm = normalizeAccents(centrosGestor[i] || "");
-            if (centroNorm === EXCLUDED_CENTRO_GESTOR) continue;
+            if (centroNorm === EXCLUDED_CENTRO_GESTOR_FRENTE_ACTIVO) continue;
           }
           // Excluir intervenciones con presupuesto por debajo del mínimo
           if (presupuestos && presupuestos[i] != null) {
@@ -776,6 +819,9 @@ export const fetchAttributeData = async (
 
     // Procesar y validar cada elemento con manejo de errores individuales
     const validatedData: AttributeData[] = [];
+    let failedValidationCount = 0;
+    const failedUpids: string[] = [];
+    const MAX_FAILED_UPIDS_TRACKED = 50;
 
     dataArray.forEach((item: any, index: number) => {
       try {
@@ -813,24 +859,38 @@ export const fetchAttributeData = async (
 
         // 📊 CORRECCIÓN: Calcular avance promedio ponderado por presupuesto
         let avance_obra = 0;
-        if (
-          esEstructuraNueva &&
-          intervenciones.length > 0 &&
-          presupuesto_base > 0
-        ) {
-          // Promedio ponderado: (suma de avance * presupuesto) / presupuesto total
-          const avancePonderado = intervenciones.reduce(
-            (sum: number, interv: any) => {
-              const avance = parseFloat(interv.avance_obra || 0);
-              const presupuesto = parseFloat(interv.presupuesto_base || 0);
-              return sum + avance * presupuesto;
-            },
-            0,
-          );
-          avance_obra = avancePonderado / presupuesto_base;
+        if (esEstructuraNueva && intervenciones.length > 0) {
+          if (presupuesto_base > 0) {
+            // Promedio ponderado: (suma de avance * presupuesto) / presupuesto total
+            const avancePonderado = intervenciones.reduce(
+              (sum: number, interv: any) => {
+                const avance = parseFloat(interv.avance_obra || 0);
+                const presupuesto = parseFloat(interv.presupuesto_base || 0);
+                return sum + avance * presupuesto;
+              },
+              0,
+            );
+            avance_obra = avancePonderado / presupuesto_base;
+          } else {
+            // Presupuesto total 0: el promedio ponderado daría 0 y borraría el
+            // avance real de las intervenciones. Fallback a promedio aritmético
+            // simple para no reportar avance 0 cuando sí hay progreso.
+            const sumaAvances = intervenciones.reduce(
+              (sum: number, interv: any) =>
+                sum + parseFloat(interv.avance_obra || 0),
+              0,
+            );
+            avance_obra = sumaAvances / intervenciones.length;
+          }
         } else {
           // Estructura antigua: avance directo
           avance_obra = parseFloat(properties.avance_obra || 0);
+        }
+
+        // Blindaje numérico: nunca propagar NaN/Infinity al esquema (que los
+        // rechazaría) ni a la UI; cualquier valor no finito cae a 0.
+        if (!Number.isFinite(avance_obra)) {
+          avance_obra = 0;
         }
 
         // 🔢 CORRECCIÓN: n_intervenciones
@@ -989,14 +1049,34 @@ export const fetchAttributeData = async (
 
         validatedData.push(validatedItem);
       } catch (validationError) {
-        console.warn(
-          `⚠️ Validation failed for item ${index}:`,
+        // No interrumpir el proceso, pero NO descartar en silencio: contar y
+        // recordar el upid para poder advertir al usuario que faltan registros.
+        failedValidationCount += 1;
+        const upidFallido = String(
+          (item?.properties?.upid ?? item?.upid ?? `index_${index}`) || `index_${index}`,
+        );
+        if (failedUpids.length < MAX_FAILED_UPIDS_TRACKED) {
+          failedUpids.push(upidFallido);
+        }
+        debugLog(
+          `⚠️ Validation failed for item ${index} (upid=${upidFallido})`,
           validationError,
         );
-        console.warn("Item data:", item);
-        // Continuar con el siguiente elemento sin interrumpir el proceso
       }
     });
+
+    // Publicar estadísticas de validación de esta ejecución
+    lastAttributeValidationStats.received = dataArray.length;
+    lastAttributeValidationStats.valid = validatedData.length;
+    lastAttributeValidationStats.failed = failedValidationCount;
+    lastAttributeValidationStats.failedUpids = failedUpids;
+
+    if (failedValidationCount > 0) {
+      console.warn(
+        `⚠️ fetchAttributeData: ${failedValidationCount} de ${dataArray.length} registros descartados por fallo de validación. ` +
+          `upids (muestra): ${failedUpids.join(", ")}`,
+      );
+    }
 
     // Log conciso del resultado
     if (hasFilters) {
@@ -1126,8 +1206,9 @@ export const consolidateAttributeData = (
         ? avanceObra
         : parseFloat(String(avanceObra || "0"));
     // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
-    if (isNaN(avance) || avance < 0.5) return "En alistamiento";
-    if (avance >= 99.5) return "Terminado";
+    if (isNaN(avance) || avance < AVANCE_MIN_EN_EJECUCION)
+      return "En alistamiento";
+    if (avance >= AVANCE_MAX_EN_EJECUCION) return "Terminado";
     return "En ejecución";
   };
 
@@ -1218,13 +1299,7 @@ export const consolidateAttributeData = (
         .replace(/[\u0300-\u036f]/g, "")
         .trim()
         .toLowerCase();
-    const excludedCentroLocal = "secretaria de vivienda social y habitat";
-    const excludedTiposLocal = new Set([
-      "mantenimiento",
-      "estudios y disenos",
-      "demarcacion vial",
-    ]);
-    const minPresupuestoLocal = 150000000;
+    // Umbrales/exclusiones centralizados a nivel módulo — ver constantes arriba.
     const hasActiveExecution = group.some((item, idx) => {
       const estadoNorm = normalizeAccentsLocal(estadosDerivados[idx] || "");
       const av = typeof item.avance_obra === "number" ? item.avance_obra : 0;
@@ -1234,11 +1309,11 @@ export const consolidateAttributeData = (
       const centroNorm = normalizeAccentsLocal(item.nombre_centro_gestor || "");
       return (
         estadoNorm === "en ejecucion" &&
-        av >= 0.5 &&
-        av < 99.5 &&
-        !excludedTiposLocal.has(tipoNorm) &&
-        centroNorm !== excludedCentroLocal &&
-        pres >= minPresupuestoLocal
+        av >= AVANCE_MIN_EN_EJECUCION &&
+        av < AVANCE_MAX_EN_EJECUCION &&
+        !EXCLUDED_TIPOS_FRENTE_ACTIVO.has(tipoNorm) &&
+        centroNorm !== EXCLUDED_CENTRO_GESTOR_FRENTE_ACTIVO &&
+        pres >= MIN_PRESUPUESTO_FRENTE_ACTIVO
       );
     });
     const frenteActivoConsolidado = hasActiveExecution

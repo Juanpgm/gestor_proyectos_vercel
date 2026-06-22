@@ -47,14 +47,6 @@ export class ApiClient {
         const { getCurrentIdToken } = await import('@/lib/firebase');
         const firebaseToken = await getCurrentIdToken();
         if (firebaseToken) return firebaseToken;
-
-        // Fallback: sesión persistida por AuthService
-        const rawSession = localStorage.getItem('auth_session') || sessionStorage.getItem('auth_session');
-        if (rawSession) {
-          const parsed = JSON.parse(rawSession);
-          const sessionToken = parsed?.user?.idToken || parsed?.user?.id_token || null;
-          if (sessionToken) return sessionToken;
-        }
       }
       return null;
     } catch (error) {

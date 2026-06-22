@@ -284,14 +284,3 @@ export const scheduleUpdate = (cacheKey: string): void => {
   }
 }
 
-/**
- * Hook para usar el cache inteligente
- */
-export const useSmartCache = () => ({
-  cachedApiCall,
-  getCacheStats,
-  clearCache,
-  scheduleUpdate,
-  isWithinAllowedHours: () => isWithinAllowedHours(getCurrentHour(), CACHE_CONFIG.allowedHours),
-  getNextUpdateTime: () => getNextAllowedTime(getCurrentHour(), CACHE_CONFIG.allowedHours)
-})

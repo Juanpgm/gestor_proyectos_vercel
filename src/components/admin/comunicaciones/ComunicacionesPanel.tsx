@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import DOMPurify from "dompurify";
 import { motion } from "framer-motion";
 import {
   Send,
@@ -91,6 +92,53 @@ const AUDIENCE_TABS: Array<{
       "Pega una lista libre de correos separados por coma, espacio o salto de línea.",
   },
 ];
+
+function safeTextContent(text: string): string {
+  const div = document.createElement("div");
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
+}
+
+function safeCTAUrl(url: string): string {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.protocol === "https:" || parsed.origin === window.location.origin) {
+      return parsed.href;
+    }
+  } catch {
+    // relative path
+    if (url.startsWith("/")) return url;
+  }
+  return "#";
+}
+
+function buildPreviewHtml({
+  subject,
+  messageHtml,
+  priority,
+  ctaUrl,
+  ctaLabel,
+}: {
+  subject: string;
+  messageHtml: string;
+  priority: AnnouncementPriority;
+  ctaUrl: string;
+  ctaLabel: string;
+}): string {
+  const color =
+    priority === "warning" ? "#f59e0b" : priority === "urgent" ? "#dc2626" : "#1a56db";
+
+  const safeSubject = safeTextContent(subject || "(Sin asunto)");
+  const safeBody = DOMPurify.sanitize(messageHtml || "<p>(Sin contenido)</p>", {
+    USE_PROFILES: { html: true },
+  });
+  const ctaPart =
+    ctaUrl && ctaLabel
+      ? `<p style="text-align:center;margin-top:24px;"><a href="${safeCTAUrl(ctaUrl)}" style="background:${color};color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">${safeTextContent(ctaLabel)}</a></p>`
+      : "";
+
+  return `<h2 style="color:${color};margin:0 0 12px;">${safeSubject}</h2>${safeBody}${ctaPart}`;
+}
 
 function formatDate(iso?: string): string {
   if (!iso) return "—";
@@ -900,23 +948,13 @@ export default function ComunicacionesPanel({
               <div
                 className="bg-white rounded-lg shadow p-6 max-w-2xl mx-auto text-sm text-gray-800"
                 dangerouslySetInnerHTML={{
-                  __html: `<h2 style="color:${
-                    priority === "warning"
-                      ? "#f59e0b"
-                      : priority === "urgent"
-                        ? "#dc2626"
-                        : "#1a56db"
-                  };margin:0 0 12px;">${subject || "(Sin asunto)"}</h2>${messageHtml || "<p>(Sin contenido)</p>"}${
-                    ctaUrl && ctaLabel
-                      ? `<p style="text-align:center;margin-top:24px;"><a href="${ctaUrl}" style="background:${
-                          priority === "warning"
-                            ? "#f59e0b"
-                            : priority === "urgent"
-                              ? "#dc2626"
-                              : "#1a56db"
-                        };color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">${ctaLabel}</a></p>`
-                      : ""
-                  }`,
+                  __html: buildPreviewHtml({
+                    subject,
+                    messageHtml,
+                    priority,
+                    ctaUrl,
+                    ctaLabel,
+                  }),
                 }}
               />
             </div>

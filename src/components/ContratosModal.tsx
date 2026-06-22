@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -224,7 +225,11 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
     }
   }, [pagos, referenciaContrato, contratoData]);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   if (!isOpen) return null;
+  if (!mounted || typeof document === "undefined") return null;
 
   // Usar contratoData si está disponible, sino cargar desde API
   const contractDataToShow = contratoData || contrato;
@@ -234,7 +239,7 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
     ? getContractStateColors(contractDataToShow.estado_contrato)
     : getContractStateColors("Vigente");
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -1011,7 +1016,8 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 };
 

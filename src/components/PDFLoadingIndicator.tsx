@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { FileText, Download, CheckCircle } from 'lucide-react'
 
@@ -10,12 +11,16 @@ interface PDFLoadingIndicatorProps {
   stage: 'preparing' | 'capturing' | 'generating' | 'downloading' | 'completed'
 }
 
-const PDFLoadingIndicator: React.FC<PDFLoadingIndicatorProps> = ({ 
-  isVisible, 
-  progress, 
-  stage 
+const PDFLoadingIndicator: React.FC<PDFLoadingIndicatorProps> = ({
+  isVisible,
+  progress,
+  stage
 }) => {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   if (!isVisible) return null
+  if (!mounted || typeof document === 'undefined') return null
 
   const getStageText = () => {
     switch (stage) {
@@ -45,7 +50,7 @@ const PDFLoadingIndicator: React.FC<PDFLoadingIndicatorProps> = ({
     }
   }
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -119,7 +124,8 @@ const PDFLoadingIndicator: React.FC<PDFLoadingIndicatorProps> = ({
           )}
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   )
 }
 

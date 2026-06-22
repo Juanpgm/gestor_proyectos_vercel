@@ -1,12 +1,12 @@
 /**
- * NotificationPanel â€” Panel de notificaciones.
+ * NotificationPanel â€" Panel de notificaciones.
  *
  * Muestra dos secciones:
  *   1. Notificaciones del backend (Firestore): solicitudes aprobadas/rechazadas
  *      y nuevas solicitudes de cambio.
  *   2. Notificaciones locales (localStorage): eventos del sistema.
  *
- * DiseÃ±o: GovTech / CaliTrack â€” sin emojis, Lucide icons, cn(), tokens @/theme.
+ * DiseÃ±o: GovTech / CaliTrack â€" sin emojis, Lucide icons, cn(), tokens @/theme.
  */
 
 "use client";
@@ -48,15 +48,24 @@ interface NotificationPanelProps {
 // ---------------------------------------------------------------------------
 
 const MODULO_LABEL: Record<string, string> = {
-  emprestito: "EmprÃ©stito",
+  emprestito: "Empréstito",
   unidades_proyecto: "Unidades de Proyecto",
   intervenciones: "Intervenciones",
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  admin_centro_gestor: "Admin CG",
+  admin_general: "Admin General",
+  super_admin: "Super Admin",
+  editor_datos: "Editor",
+};
+
 function getActorLine(n: BackendNotification): string {
   const parts: string[] = [n.actor_nombre];
-  if (n.actor_role) parts.push(`(${n.actor_role})`);
-  if (n.actor_centro_gestor) parts.push(`â€” ${n.actor_centro_gestor}`);
+  const roleLabel = ROLE_LABELS[n.actor_role] ?? n.actor_role;
+  if (roleLabel) parts.push(`(${roleLabel})`);
+  if (n.actor_centro_gestor) parts.push(`— ${n.actor_centro_gestor}`);
+  if (n.actor_email) parts.push(`· ${n.actor_email}`);
   return parts.join(" ");
 }
 
@@ -260,7 +269,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
   const role = user?.primary_role ?? user?.roles?.[0] ?? "";
   const centro_gestor = user?.nombre_centro_gestor ?? undefined;
 
-  // Backend (Firestore) notifications â€” solicitudes de cambio
+  // Backend (Firestore) notifications â€" solicitudes de cambio
   const {
     notifications: backendNotifs,
     unreadCount: backendUnread,
@@ -275,7 +284,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
     enabled: !!role,
   });
 
-  // Local (localStorage) notifications â€” sistema
+  // Local (localStorage) notifications â€" sistema
   const {
     notifications: localNotifs,
     stats: localStats,

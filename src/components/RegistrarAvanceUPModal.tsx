@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -14,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAvancesUP } from "@/hooks/useAvancesUP";
 import type { AvanceUPFormData } from "@/types/avances-up";
-import { formatCurrencyFull } from "@/utils/formatCurrency";
+import { formatCurrencyFull } from "@/utils/currency";
 import {
   getCentroGestorAccessFromSession,
   normalizeCentroGestor,
@@ -66,6 +67,14 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // El overlay usa position:fixed. Si el modal se monta dentro de un ancestro
+  // con `transform` (los contenedores animados con Framer Motion lo aplican),
+  // ese ancestro se vuelve el "containing block" y el modal queda anclado a su
+  // caja en vez de al viewport — apareciendo fuera de pantalla. Renderizarlo en
+  // un portal a document.body lo despega de cualquier ancestro transformado.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -141,7 +150,9 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  return (
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -478,7 +489,8 @@ const RegistrarAvanceUPModal: React.FC<RegistrarAvanceUPModalProps> = ({
           </button>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 };
 

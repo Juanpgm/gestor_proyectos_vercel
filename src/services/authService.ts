@@ -1163,7 +1163,7 @@ class AuthService {
     }
   }
 
-  // Guardar sesión en localStorage/sessionStorage
+  // Guardar sesión en localStorage/sessionStorage (sin idToken) y en cookie httpOnly
   private saveSession(user: User, remember: boolean): void {
     console.log("💾 Guardando sesión:", {
       email: user.email,
@@ -1175,29 +1175,29 @@ class AuthService {
       storageType: remember ? "localStorage" : "sessionStorage",
     });
 
+    // Store profile metadata without idToken — token lives in httpOnly cookie only.
+    const { idToken: _token, ...userWithoutToken } = user as User & { idToken?: string | null };
     const storage = remember ? localStorage : sessionStorage;
     const sessionData = {
-      user,
+      user: userWithoutToken,
       timestamp: Date.now(),
       remember,
     };
 
     storage.setItem("auth_session", JSON.stringify(sessionData));
 
-    // Verificar que se guardó correctamente
-    const saved = storage.getItem("auth_session");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      console.log("✅ Sesión guardada correctamente:", {
-        email: parsed.user?.email,
-        roles: parsed.user?.roles,
-        rolesLength: parsed.user?.roles?.length,
-      });
-    }
-
     // Limpiar del otro storage
     const otherStorage = remember ? sessionStorage : localStorage;
     otherStorage.removeItem("auth_session");
+
+    // Set httpOnly cookie so the Next.js proxy can forward the token server-side.
+    if (_token) {
+      fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken: _token }),
+      }).catch((err) => console.warn("⚠️ Failed to set session cookie:", err));
+    }
   }
 
   // Obtener sesión guardada (versión simplificada)
@@ -1273,6 +1273,39 @@ class AuthService {
   private clearSession(): void {
     localStorage.removeItem("auth_session");
     sessionStorage.removeItem("auth_session");
+    // Clear the httpOnly session cookie via the server route.
+    fetch("/api/auth/session", { method: "DELETE" }).catch((err) =>
+      console.warn("⚠️ Failed to clear session cookie:", err),
+    );
+  }
+
+  // Keep the httpOnly session cookie in sync whenever Firebase silently refreshes
+  // the token (every ~55 min). Called once on app boot from AuthContext.
+  startTokenRefreshSync(): () => void {
+    if (typeof window === "undefined") return () => {};
+    let unsubscribe: (() => void) | null = null;
+    import("firebase/auth").then(({ onIdTokenChanged }) => {
+      import("@/lib/firebase").then(({ auth }) => {
+        if (!auth) return;
+        unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+          if (firebaseUser) {
+            try {
+              const freshToken = await firebaseUser.getIdToken();
+              fetch("/api/auth/session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idToken: freshToken }),
+              }).catch((err) =>
+                console.warn("⚠️ Failed to refresh session cookie:", err),
+              );
+            } catch {
+              // silent — Firebase will retry
+            }
+          }
+        });
+      });
+    });
+    return () => { unsubscribe?.(); };
   }
 
   // Observador de cambios de autenticación (simplificado)

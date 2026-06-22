@@ -25,14 +25,6 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     const { getCurrentIdToken } = await import("@/lib/firebase");
     const token = await getCurrentIdToken();
     if (token) return { Authorization: `Bearer ${token}` };
-    const raw =
-      localStorage.getItem("auth_session") ||
-      sessionStorage.getItem("auth_session");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const t = parsed?.user?.idToken || parsed?.user?.id_token;
-      if (t) return { Authorization: `Bearer ${t}` };
-    }
   } catch {}
   return {};
 }

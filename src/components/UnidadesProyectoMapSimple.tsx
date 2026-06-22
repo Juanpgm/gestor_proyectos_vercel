@@ -802,8 +802,8 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
   useEffect(() => {
     return () => {
       if (mapContainerRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (mapContainerRef.current as any)._leaflet_id;
+        delete (mapContainerRef.current as unknown as Record<string, unknown>)
+          ._leaflet_id;
       }
     };
   }, []);

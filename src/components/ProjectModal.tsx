@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -115,7 +116,11 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   if (!project) return null;
+  if (!mounted || typeof document === "undefined") return null;
 
   // Funciones de utilidad
   const formatCurrency = (amount: number) => {
@@ -389,7 +394,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       setPdfStage("preparing");
     }
   };
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -1210,7 +1215,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           />
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -23,13 +24,14 @@ import {
   ClipboardList,
   Pencil,
 } from "lucide-react";
-import { formatCurrencyFull } from "@/utils/formatCurrency";
+import { formatCurrencyFull } from "@/utils/currency";
 import {
   fetchContratosEmprestito,
   fetchProcesosEmprestito,
   fetchRPCsEmprestito,
   fetchPagosEmprestitoAll,
   fetchConveniosEmprestito,
+  fetchOrdenesCompraEmprestito,
   crearProcesoEmprestito,
   crearRPCEmprestito,
   crearPagoEmprestito,
@@ -39,6 +41,10 @@ import {
   crearSolicitudCambioRPC,
   crearSolicitudCambioPago,
   editarNombreResumidoProceso,
+  eliminarContratoEmprestito,
+  eliminarProcesoEmprestito,
+  eliminarOrdenCompraEmprestito,
+  eliminarConvenioEmprestito,
 } from "@/services/emprestito-gestion.service";
 import type {
   EmprestitoEntityType,
@@ -132,36 +138,44 @@ const Modal: React.FC<{
   onClose: () => void;
   children: React.ReactNode;
   maxWidthClass?: string;
-}> = ({ title, onClose, children, maxWidthClass = "max-w-2xl" }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    onClick={onClose}
-  >
+}> = ({ title, onClose, children, maxWidthClass = "max-w-2xl" }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <motion.div
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.95, opacity: 0 }}
-      className={`bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full ${maxWidthClass} max-h-[85vh] overflow-y-auto`}
-      onClick={(e) => e.stopPropagation()}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-          {title}
-        </h2>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="p-5">{children}</div>
-    </motion.div>
-  </motion.div>
-);
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className={`bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full ${maxWidthClass} max-h-[85vh] overflow-y-auto`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            {title}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </motion.div>
+    </motion.div>,
+    document.body,
+  );
+};
 
 // ── Entity icons ─────────────────────────────────────────────────
 
@@ -244,6 +258,7 @@ export default function GestionRegistrosEmprestitoTab({ onRefresh }: Props) {
     hasRole("super_admin") ||
     hasRole("admin_general") ||
     hasRole("editor_datos");
+  const canDelete = hasRole("super_admin");
   const isAdminCG = hasRole("admin_centro_gestor");
 
   // State
@@ -266,7 +281,49 @@ export default function GestionRegistrosEmprestitoTab({ onRefresh }: Props) {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{
+    row: any;
+  } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [portalMounted, setPortalMounted] = useState(false);
+  useEffect(() => setPortalMounted(true), []);
   const pageSize = 25;
+
+  const getDeleteId = (row: any): string => {
+    switch (activeEntity) {
+      case "contrato": return row.referencia_del_contrato || row.id_contrato || "";
+      case "proceso": return row.referencia_proceso || "";
+      case "orden_compra": return row.numero_orden || "";
+      case "convenio": return row.referencia_contrato || "";
+      default: return "";
+    }
+  };
+
+  const handleDelete = async (row: any) => {
+    const id = getDeleteId(row);
+    if (!id) {
+      setToast({ type: "error", message: "No se pudo identificar el registro a eliminar." });
+      return;
+    }
+    setDeleting(true);
+    try {
+      switch (activeEntity) {
+        case "contrato": await eliminarContratoEmprestito(id); break;
+        case "proceso": await eliminarProcesoEmprestito(id); break;
+        case "orden_compra": await eliminarOrdenCompraEmprestito(id); break;
+        case "convenio": await eliminarConvenioEmprestito(id); break;
+        default: throw new Error("Eliminación no soportada para este tipo de registro.");
+      }
+      setToast({ type: "success", message: "Registro eliminado correctamente." });
+      setConfirmDelete(null);
+      await fetchData();
+      onRefresh?.();
+    } catch (err: any) {
+      setToast({ type: "error", message: err.message || "Error al eliminar el registro." });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Auto-clear toast
   useEffect(() => {
@@ -296,6 +353,9 @@ export default function GestionRegistrosEmprestitoTab({ onRefresh }: Props) {
           break;
         case "convenio":
           result = await fetchConveniosEmprestito();
+          break;
+        case "orden_compra":
+          result = await fetchOrdenesCompraEmprestito();
           break;
       }
 
@@ -580,6 +640,19 @@ export default function GestionRegistrosEmprestitoTab({ onRefresh }: Props) {
                                     <Pencil className="w-4 h-4" />
                                   </button>
                                 )}
+                              {canDelete &&
+                                (activeEntity === "contrato" ||
+                                  activeEntity === "proceso" ||
+                                  activeEntity === "orden_compra" ||
+                                  activeEntity === "convenio") && (
+                                  <button
+                                    onClick={() => setConfirmDelete({ row })}
+                                    className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400"
+                                    title="Eliminar registro"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
                             </div>
                           </td>
                         )}
@@ -703,6 +776,52 @@ export default function GestionRegistrosEmprestitoTab({ onRefresh }: Props) {
               fetchData();
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Confirm delete modal */}
+      <AnimatePresence>
+        {confirmDelete && portalMounted && typeof document !== "undefined" && createPortal(
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => !deleting && setConfirmDelete(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                Confirmar eliminación
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
+                Esta acción eliminará el registro y todos sus archivos asociados en S3. No se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  disabled={deleting}
+                  className="px-4 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleDelete(confirmDelete.row)}
+                  disabled={deleting}
+                  className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>,
+          document.body,
         )}
       </AnimatePresence>
 

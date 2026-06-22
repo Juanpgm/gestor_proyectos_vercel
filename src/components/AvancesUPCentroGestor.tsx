@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2,
@@ -24,6 +25,7 @@ import {
   Activity,
   ExternalLink,
   Download,
+  Trash2,
 } from 'lucide-react'
 import {
   useAvancesCentroGestor,
@@ -102,6 +104,17 @@ export default function AvancesUPCentroGestor() {
   const [fechaHasta, setFechaHasta] = useState('')
   const [detalleCentro, setDetalleCentro] = useState<string | null>(null)
   const [generandoPdf, setGenerandoPdf] = useState(false)
+
+  const handleDeleteAvance = useCallback(async (avanceId: string) => {
+    const res = await fetch(`/api/proxy/avances_unidades_proyecto?id=${encodeURIComponent(avanceId)}`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body?.detail || `Error ${res.status} al eliminar el avance`)
+    }
+    await refetch()
+  }, [refetch])
 
   // Filtrado y orden
   const listaFiltrada = useMemo(() => {
@@ -429,6 +442,7 @@ export default function AvancesUPCentroGestor() {
               fechaDesde={fechaDesde}
               fechaHasta={fechaHasta}
               onClose={() => setDetalleCentro(null)}
+              onDeleteAvance={handleDeleteAvance}
             />
           </motion.div>
         )}
@@ -637,7 +651,8 @@ const DetalleIntervencionesPanel: React.FC<{
   fechaDesde: string
   fechaHasta: string
   onClose: () => void
-}> = ({ centroGestor, data, fechaDesde, fechaHasta, onClose }) => {
+  onDeleteAvance?: (avanceId: string) => Promise<void>
+}> = ({ centroGestor, data, fechaDesde, fechaHasta, onClose, onDeleteAvance }) => {
   const [filtroDetalle, setFiltroDetalle] = useState<'todas' | 'con_avance' | 'sin_avance' | 'completadas'>('todas')
   const [expandidoInt, setExpandidoInt] = useState<string | null>(null)
 
@@ -713,6 +728,7 @@ const DetalleIntervencionesPanel: React.FC<{
               onToggle={() => setExpandidoInt(expandidoInt === int.intervencion_id ? null : int.intervencion_id)}
               fechaDesde={desde}
               fechaHasta={hasta}
+              onDeleteAvance={onDeleteAvance}
             />
           ))
         )}
@@ -727,7 +743,8 @@ const IntervencionDetalleRow: React.FC<{
   onToggle: () => void
   fechaDesde: Date | null
   fechaHasta: Date | null
-}> = ({ data, isExpanded, onToggle, fechaDesde, fechaHasta }) => {
+  onDeleteAvance?: (avanceId: string) => Promise<void>
+}> = ({ data, isExpanded, onToggle, fechaDesde, fechaHasta, onDeleteAvance }) => {
   // Filtrar avances por rango de fechas si aplica
   const avancesFiltrados = useMemo(() => {
     if (!fechaDesde && !fechaHasta) return data.avances
@@ -809,7 +826,7 @@ const IntervencionDetalleRow: React.FC<{
                     Historial de avances ({avancesFiltrados.length})
                   </p>
                   {avancesFiltrados.map((av, idx) => (
-                    <AvanceHistorialCard key={av.id} avance={av} isLatest={idx === 0} />
+                    <AvanceHistorialCard key={av.id} avance={av} isLatest={idx === 0} onDelete={onDeleteAvance} />
                   ))}
                 </div>
               )}
@@ -824,9 +841,14 @@ const IntervencionDetalleRow: React.FC<{
 const AvanceHistorialCard: React.FC<{
   avance: AvanceUPRaw
   isLatest: boolean
-}> = ({ avance, isLatest }) => {
+  onDelete?: (avanceId: string) => Promise<void>
+}> = ({ avance, isLatest, onDelete }) => {
   const [showMedia, setShowMedia] = React.useState(false)
   const [lightboxImg, setLightboxImg] = React.useState<string | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = React.useState(false)
+  const [deleting, setDeleting] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
+  useEffect(() => setMounted(true), [])
 
   const imagenes = avance.imagenes_urls?.filter(Boolean) || []
   const documentos = avance.documentos_urls?.filter(Boolean) || []
@@ -871,6 +893,37 @@ const AvanceHistorialCard: React.FC<{
                   <span className="text-gray-400 dark:text-gray-500">·</span>
                   <span className="text-gray-500 dark:text-gray-400">por {avance.registrado_por}</span>
                 </>
+              )}
+              {onDelete && !confirmingDelete && (
+                <button
+                  onClick={() => setConfirmingDelete(true)}
+                  className="ml-auto flex-shrink-0 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                  title="Eliminar avance"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {confirmingDelete && (
+                <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
+                  <span className="text-[10px] text-red-600 dark:text-red-400 font-medium">¿Eliminar?</span>
+                  <button
+                    onClick={async () => {
+                      setDeleting(true)
+                      try { await onDelete!(avance.id) } finally { setDeleting(false); setConfirmingDelete(false) }
+                    }}
+                    disabled={deleting}
+                    className="px-2 py-0.5 rounded text-[10px] font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {deleting ? '...' : 'Sí'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={deleting}
+                    className="px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+                  >
+                    No
+                  </button>
+                </div>
               )}
             </div>
             {avance.observaciones && (
@@ -979,7 +1032,7 @@ const AvanceHistorialCard: React.FC<{
       </div>
 
       {/* Lightbox */}
-      {lightboxImg && (
+      {lightboxImg && mounted && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-pointer"
           onClick={() => setLightboxImg(null)}
@@ -1011,7 +1064,8 @@ const AvanceHistorialCard: React.FC<{
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   )

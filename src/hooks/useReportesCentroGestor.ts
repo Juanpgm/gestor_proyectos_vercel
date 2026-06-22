@@ -97,6 +97,7 @@ export function useReportesCentroGestor() {
 export function useCentrosGestorFromContratos() {
   const [centrosGestor, setCentrosGestor] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetch_ = async () => {
@@ -105,7 +106,14 @@ export function useCentrosGestorFromContratos() {
         const res = await fetch(`${API_BASE}/emprestito/obtener-contratos-bp`, {
           headers: authHeaders,
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+          // No tragar el fallo en silencio: si esta lista queda vacía, el
+          // tablero mostraría "0 centros sin reporte" de forma engañosa.
+          const msg = `Error ${res.status} cargando lista de centros gestores`;
+          console.error(`useCentrosGestorFromContratos: ${msg}`);
+          setError(msg);
+          return;
+        }
         const payload = await res.json();
         const raw = payload?.data || payload;
         const contratos = Array.isArray(raw) ? raw : [];
@@ -117,8 +125,15 @@ export function useCentrosGestorFromContratos() {
         setCentrosGestor(
           Array.from(centros).sort((a, b) => a.localeCompare(b, "es")),
         );
-      } catch {
-        // silently fail - centros list is supplementary
+        setError(null);
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Error desconocido";
+        console.error(
+          "useCentrosGestorFromContratos: fallo cargando centros gestores",
+          err,
+        );
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -126,7 +141,7 @@ export function useCentrosGestorFromContratos() {
     fetch_();
   }, []);
 
-  return { centrosGestor, loading };
+  return { centrosGestor, loading, error };
 }
 
 /**

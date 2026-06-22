@@ -7,8 +7,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { notifyChange } from '@/utils/notificationTracker';
-import { notificationService } from '@/services/notificationService';
+import { NotificationHelpers, notificationService } from '@/services/notificationService';
 import { 
   Plus, 
   Edit, 
@@ -27,14 +26,14 @@ const NotificationDemo: React.FC = () => {
     try {
       switch (type) {
         case 'new_project':
-          notifyChange.newProject(
+          NotificationHelpers.newProject(
             `Proyecto Demo ${Date.now()}`,
             `proj_${Date.now()}`
           );
           break;
 
         case 'new_unit':
-          notifyChange.newUnit(
+          NotificationHelpers.newUnit(
             `Unidad Demo ${Date.now()}`,
             `unit_${Date.now()}`,
             'Proyecto Demo'
@@ -42,7 +41,7 @@ const NotificationDemo: React.FC = () => {
           break;
 
         case 'new_contract':
-          notifyChange.newContract(
+          NotificationHelpers.newContract(
             `CT-${Date.now()}`,
             `cont_${Date.now()}`,
             Math.floor(Math.random() * 1000000000)
@@ -50,14 +49,14 @@ const NotificationDemo: React.FC = () => {
           break;
 
         case 'new_activity':
-          notifyChange.newActivity(
+          NotificationHelpers.newActivity(
             `Actividad Demo ${Date.now()}`,
             `act_${Date.now()}`
           );
           break;
 
         case 'budget_update':
-          notifyChange.budgetChange(
+          NotificationHelpers.budgetUpdate(
             'Proyecto de Infraestructura Vial',
             500000000,
             750000000
@@ -65,7 +64,7 @@ const NotificationDemo: React.FC = () => {
           break;
 
         case 'status_change':
-          notifyChange.statusChange(
+          NotificationHelpers.statusChange(
             'Proyecto de Educación',
             'En Planificación',
             'En Ejecución',
@@ -74,7 +73,7 @@ const NotificationDemo: React.FC = () => {
           break;
 
         case 'deadline_warning':
-          notifyChange.deadlineWarning(
+          NotificationHelpers.deadlineWarning(
             'Contrato de Construcción',
             5,
             'Contrato'
@@ -216,10 +215,10 @@ const NotificationDemo: React.FC = () => {
           <div className="space-y-3 text-sm">
             <div className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
               <p className="font-mono text-xs text-gray-600 dark:text-gray-400 mb-1">
-                Importar notifyChange:
+                Importar NotificationHelpers:
               </p>
               <code className="text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded block text-blue-600 dark:text-blue-400">
-                {`import { notifyChange } from '@/utils/notificationTracker';`}
+                {`import { NotificationHelpers } from '@/services/notificationService';`}
               </code>
             </div>
 
@@ -228,7 +227,7 @@ const NotificationDemo: React.FC = () => {
                 Notificar nuevo registro:
               </p>
               <code className="text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded block text-blue-600 dark:text-blue-400">
-                {`notifyChange.newProject('Mi Proyecto', 'proj_123');`}
+                {`NotificationHelpers.newProject('Mi Proyecto', 'proj_123');`}
               </code>
             </div>
 
@@ -237,7 +236,7 @@ const NotificationDemo: React.FC = () => {
                 Notificar cambio de estado:
               </p>
               <code className="text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded block text-blue-600 dark:text-blue-400">
-                {`notifyChange.statusChange('Proyecto', 'Inicio', 'Avanzado', 'proyecto');`}
+                {`NotificationHelpers.statusChange('Proyecto', 'Inicio', 'Avanzado', 'proyecto');`}
               </code>
             </div>
 

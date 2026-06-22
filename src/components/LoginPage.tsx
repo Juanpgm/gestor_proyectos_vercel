@@ -83,7 +83,7 @@ export default function LoginPage() {
       })
 
       if (!response.ok) {
-        throw new Error(`No se pudo cargar centros gestores (${response.status})`)
+        throw new Error(`status:${response.status}`)
       }
 
       const payload = await response.json().catch(() => ({}))
@@ -104,8 +104,10 @@ export default function LoginPage() {
           : CENTROS_GESTORES_EXACTOS
       )
       setApiDataLoaded(true)
-    } catch (error) {
-      console.error('Error fetching centros gestores:', error)
+    } catch (error: any) {
+      if (!error?.message?.startsWith('status:')) {
+        console.warn('Error fetching centros gestores:', error)
+      }
       setCentrosGestores(CENTROS_GESTORES_EXACTOS)
     } finally {
       setLoadingCentros(false)

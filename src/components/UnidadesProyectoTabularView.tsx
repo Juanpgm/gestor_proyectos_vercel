@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -19,7 +19,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { type AttributeData } from "@/services/unidades-proyecto.service";
-import { formatCurrency, formatCurrencyFull } from "@/utils/formatCurrency";
+import { formatCurrency, formatCurrencyFull } from "@/utils/currency";
 import { proxyFetch } from "@/utils/errorHandler";
 import dynamic from "next/dynamic";
 
@@ -442,6 +442,13 @@ const UnidadesProyectoTabularView: React.FC<
     const start = (currentPage - 1) * itemsPerPage;
     return sortedData.slice(start, start + itemsPerPage);
   }, [sortedData, currentPage]);
+
+  // Eager-load intervenciones for all visible page items so the Avance column
+  // shows the computed average (per-intervención latest avance_obra) immediately.
+  useEffect(() => {
+    paginatedData.forEach((item) => void loadIntervenciones(item.upid));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginatedData]);
 
   const getVisiblePages = () => {
     const pages: Array<number | "ellipsis"> = [];

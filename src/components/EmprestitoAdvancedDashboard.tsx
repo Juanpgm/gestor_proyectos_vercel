@@ -45,7 +45,7 @@ import { CATEGORIES, formatNumber, CHART_COLORS } from "@/lib/design-system";
 import ContratosModal from "./ContratosModal";
 import { fetchWithErrorHandling, proxyFetch } from "@/utils/errorHandler";
 import { fetchPagosEmprestito, PagoEmprestito } from "@/services/pagos.service";
-import { formatCurrency } from "@/utils/formatCurrency";
+import { formatCurrency } from "@/utils/currency";
 import {
   getCentroGestorAccessFromSession,
   filterByCentroGestor,

@@ -66,6 +66,7 @@ export interface BackendNotification {
   titulo: string;
   mensaje: string;
   actor_nombre: string;
+  actor_email?: string | null;
   actor_role: string;
   actor_centro_gestor: string | null;
   destinatario_role: string;

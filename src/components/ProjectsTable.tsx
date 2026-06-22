@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import ProjectModal from './ProjectModal'
 import { useDataContext } from '@/context/DataContext'
-import { formatCurrency, formatCurrencyFull } from '../utils/formatCurrency'
+import { formatCurrency, formatCurrencyFull } from '../utils/currency'
 import { CATEGORIES, ANIMATIONS, TYPOGRAPHY, CSS_UTILS, CHART_COLORS } from '@/lib/design-system'
 
 export interface Project {

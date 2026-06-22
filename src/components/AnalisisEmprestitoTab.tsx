@@ -26,7 +26,7 @@ import {
 } from '@/services/emprestito-gestion.service'
 import { useAuth } from '@/context/AuthContext'
 import { getCentroGestorAccessFromSession } from '@/utils/centroGestorAccess'
-import { formatCurrencyFull } from '@/utils/formatCurrency'
+import { formatCurrencyFull } from '@/utils/currency'
 
 // ── Types ────────────────────────────────────────────────────────
 

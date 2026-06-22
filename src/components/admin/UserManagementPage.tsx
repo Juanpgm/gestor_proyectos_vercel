@@ -562,13 +562,7 @@ export default function UserManagementPage({
         const refreshedToken = await getCurrentIdToken(true);
         if (refreshedToken) return true;
 
-        const sessionRaw =
-          localStorage.getItem("auth_session") ||
-          sessionStorage.getItem("auth_session");
-        if (!sessionRaw) return false;
-
-        const session = JSON.parse(sessionRaw);
-        return Boolean(session?.user?.idToken || session?.user?.id_token);
+        return false;
       } catch {
         return false;
       }

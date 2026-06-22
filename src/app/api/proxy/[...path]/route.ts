@@ -4,9 +4,17 @@ import { API_BASE_URL, DEFAULT_TIMEOUT } from "@/services/api";
 // Marcar esta ruta como dinámica
 export const dynamic = "force-dynamic";
 
-// CORS headers for FastAPI integration
+// CORS headers for FastAPI integration.
+// ALLOWED_ORIGIN can be set explicitly; otherwise derived from Vercel's
+// deployment URL (server-side only) or localhost for local dev.
+const ALLOWED_ORIGIN =
+  process.env.ALLOWED_ORIGIN ??
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept",
   "Access-Control-Max-Age": "86400",
@@ -267,9 +275,14 @@ async function handleRequest(request: NextRequest, method: string) {
       forwardedHeaders["Content-Type"] = incomingContentType;
     }
 
+    // Prefer explicit Authorization header; fall back to the httpOnly session cookie
+    // so the proxy can authenticate server-side without the token being in localStorage.
     const incomingAuthorization = request.headers.get("authorization");
-    if (incomingAuthorization) {
-      forwardedHeaders["Authorization"] = incomingAuthorization;
+    const sessionCookie = request.cookies.get("__session")?.value;
+    const resolvedAuth =
+      incomingAuthorization || (sessionCookie ? `Bearer ${sessionCookie}` : null);
+    if (resolvedAuth) {
+      forwardedHeaders["Authorization"] = resolvedAuth;
     }
 
     const requestOptions: RequestInit = {

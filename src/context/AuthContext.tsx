@@ -200,8 +200,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     initAuth();
 
+    // Keep httpOnly session cookie in sync with Firebase token refreshes.
+    const stopTokenSync = authService.startTokenRefreshSync();
+
     return () => {
       isMounted = false;
+      stopTokenSync();
     };
   }, []);
 

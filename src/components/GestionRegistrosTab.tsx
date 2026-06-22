@@ -28,7 +28,7 @@ import {
   MapPin,
   X,
 } from "lucide-react";
-import { formatCurrencyFull } from "@/utils/formatCurrency";
+import { formatCurrencyFull } from "@/utils/currency";
 import {
   crearUnidadProyecto,
   crearIntervencion,
@@ -544,36 +544,44 @@ const Modal: React.FC<{
   onClose: () => void;
   children: React.ReactNode;
   maxWidthClass?: string;
-}> = ({ title, onClose, children, maxWidthClass = "max-w-lg" }) => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    onClick={onClose}
-  >
+}> = ({ title, onClose, children, maxWidthClass = "max-w-lg" }) => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <motion.div
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.95, opacity: 0 }}
-      className={`bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full ${maxWidthClass} max-h-[85vh] overflow-y-auto`}
-      onClick={(e) => e.stopPropagation()}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-          {title}
-        </h2>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="p-5">{children}</div>
-    </motion.div>
-  </motion.div>
-);
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className={`bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full ${maxWidthClass} max-h-[85vh] overflow-y-auto`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            {title}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </motion.div>
+    </motion.div>,
+    document.body,
+  );
+};
 
 // ─── Formulario Crear UP ──────────────────────────────────────────
 
@@ -602,6 +610,8 @@ const CrearUPForm: React.FC<{ onSuccess: () => void; onClose: () => void }> = ({
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [portalMounted, setPortalMounted] = useState(false);
+  useEffect(() => setPortalMounted(true), []);
   const tipoEquipamientoOptions = useMemo(
     () => getTipoEquipamientoOptions(form.tipo_equipamiento),
     [form.tipo_equipamiento],
@@ -1010,7 +1020,7 @@ const CrearUPForm: React.FC<{ onSuccess: () => void; onClose: () => void }> = ({
         )}
       </div>
 
-      {confirmDialogOpen && (
+      {confirmDialogOpen && portalMounted && typeof document !== "undefined" && createPortal(
         <div
           className="fixed inset-0 z-[10001] bg-black/50 flex items-center justify-center p-4"
           onClick={() => setConfirmDialogOpen(false)}
@@ -1060,7 +1070,8 @@ const CrearUPForm: React.FC<{ onSuccess: () => void; onClose: () => void }> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {toast && (
