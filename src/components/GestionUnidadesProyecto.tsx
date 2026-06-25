@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Archive,
   GitBranch,
+  Upload,
 } from "lucide-react";
 import { SummaryView, RecordsView, StatsView } from "./QualityControlViews";
 import {
@@ -54,6 +55,9 @@ const HistorialSolicitudesTab = dynamic(
   { ssr: false },
 );
 const AnalisisProcesosTab = dynamic(() => import("./AnalisisProcesosTab"), {
+  ssr: false,
+});
+const ImportarGeoTab = dynamic(() => import("./ImportarGeoTab"), {
   ssr: false,
 });
 
@@ -288,7 +292,8 @@ type TabType =
   | "gestionar-registros"
   | "avances-up"
   | "solicitudes-pendientes"
-  | "historial-solicitudes";
+  | "historial-solicitudes"
+  | "importar-geo";
 
 const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
   onNavigateHome,
@@ -606,6 +611,14 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
       endpoint: "",
       description:
         "Crear, eliminar y solicitar cambios de UPs e intervenciones",
+    },
+    {
+      id: "importar-geo" as TabType,
+      label: "Importar GIS",
+      icon: Upload,
+      endpoint: "",
+      description:
+        "Importar Unidades de Proyecto o Intervenciones desde Shapefile, KMZ o GeoJSON",
     },
     {
       id: "avances-up" as TabType,
@@ -1786,6 +1799,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
       "solicitudes-pendientes",
       "historial-solicitudes",
       "analisis-procesos",
+      "importar-geo",
     ];
     if (autonomousTabs.includes(activeTab)) {
       setError(null);
@@ -2362,6 +2376,8 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
               )}
 
               {activeTab === "gestionar-registros" && <GestionRegistrosTab />}
+
+              {activeTab === "importar-geo" && <ImportarGeoTab />}
 
               {activeTab === "avances-up" && <AvancesUPCentroGestor />}
 
