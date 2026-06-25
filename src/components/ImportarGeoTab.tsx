@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -22,8 +22,14 @@ import {
 import type { GeoJSONFeature, ParseResult } from "@/utils/geoImport";
 import { parseFile } from "@/utils/geoImport";
 
-type EntityType = "unidad_proyecto" | "intervencion";
+type EntityType = "unidad_proyecto" | "intervencion" | "combinado";
 type Step = "upload" | "mapping" | "preview" | "import";
+
+const ENTITY_LABELS: Record<EntityType, string> = {
+  unidad_proyecto: "Unidades de Proyecto",
+  intervencion: "Intervenciones",
+  combinado: "UP + Intervenciones (combinado)",
+};
 
 interface ValidationResult {
   success: boolean;
@@ -39,6 +45,10 @@ interface ValidationResult {
     geometry_type: string | null;
     errors: string[];
   }>;
+  combinado_summary?: {
+    unique_ups: number;
+    total_intervenciones: number;
+  };
 }
 
 interface ImportResult {
@@ -48,6 +58,8 @@ interface ImportResult {
   error_count: number;
   created_ids: string[];
   errors: Array<{ feature_index: number; errors: string[] }>;
+  created_up_count?: number;
+  created_intervencion_count?: number;
 }
 
 // ─── Field definitions ───────────────────────────────────────────────────────
@@ -92,7 +104,7 @@ const ImportarGeoTab: React.FC = () => {
   const [parseError, setParseError] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
 
-  const [entityType, setEntityType] = useState<EntityType>("unidad_proyecto");
+  const [entityType, setEntityType] = useState<EntityType>("combinado");
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [centroGestorGlobal, setCentroGestorGlobal] = useState("");
 
@@ -109,6 +121,36 @@ const ImportarGeoTab: React.FC = () => {
 
   const targetFields =
     entityType === "unidad_proyecto" ? UP_TARGET_FIELDS : INTERVENCION_TARGET_FIELDS;
+
+  // Per-column stats (sample values, distinct count, fill rate) to make mapping easier
+  const columnStats = useMemo(() => {
+    const stats: Record<
+      string,
+      { samples: string[]; distinct: number; filled: number; total: number }
+    > = {};
+    if (!parseResult) return stats;
+    const feats = parseResult.features;
+    for (const col of parseResult.columns) {
+      const seen = new Set<string>();
+      const samples: string[] = [];
+      let filled = 0;
+      for (const f of feats) {
+        const raw = (f.properties ?? {})[col];
+        if (raw === null || raw === undefined || raw === "") continue;
+        filled++;
+        const s = String(raw).trim();
+        if (!s) continue;
+        if (!seen.has(s)) {
+          seen.add(s);
+          if (samples.length < 3) {
+            samples.push(s.length > 40 ? `${s.slice(0, 40)}…` : s);
+          }
+        }
+      }
+      stats[col] = { samples, distinct: seen.size, filled, total: feats.length };
+    }
+    return stats;
+  }, [parseResult]);
 
   // ── File handling ──────────────────────────────────────────────────────────
 
@@ -329,21 +371,40 @@ const ImportarGeoTab: React.FC = () => {
             className="space-y-4"
           >
             {/* Entity type selector */}
-            <div className="flex gap-3">
-              {(["unidad_proyecto", "intervencion"] as EntityType[]).map((et) => (
-                <button
-                  key={et}
-                  onClick={() => setEntityType(et)}
-                  className={`flex-1 py-2.5 px-4 rounded-lg border text-sm font-medium transition-colors ${
-                    entityType === et
-                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
-                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  {et === "unidad_proyecto" ? "Unidades de Proyecto" : "Intervenciones"}
-                </button>
-              ))}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {(["combinado", "unidad_proyecto", "intervencion"] as EntityType[]).map(
+                (et) => (
+                  <button
+                    key={et}
+                    onClick={() => setEntityType(et)}
+                    className={`flex-1 py-2.5 px-4 rounded-lg border text-sm font-medium transition-colors ${
+                      entityType === et
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {ENTITY_LABELS[et]}
+                  </button>
+                ),
+              )}
             </div>
+
+            {/* Combined mode hint */}
+            {entityType === "combinado" && (
+              <div className="flex gap-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-sm text-indigo-700 dark:text-indigo-300">
+                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>
+                  Cargá UP e intervenciones en una sola tabla. El sistema agrupa por{" "}
+                  <code className="font-mono text-xs bg-indigo-100 dark:bg-indigo-900/40 px-1 rounded">
+                    upid
+                  </code>
+                  : filas con el mismo <code className="font-mono text-xs">upid</code> son la
+                  misma UP. Si el <code className="font-mono text-xs">upid</code> ya existe se
+                  preserva y se le agregan las intervenciones; si es nuevo, se crea la UP con un{" "}
+                  <code className="font-mono text-xs">upid</code> generado.
+                </span>
+              </div>
+            )}
 
             {/* Drop zone */}
             <div
@@ -430,7 +491,7 @@ const ImportarGeoTab: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600 dark:text-gray-400">Importando como:</span>
               <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-medium rounded">
-                {entityType === "unidad_proyecto" ? "Unidades de Proyecto" : "Intervenciones"}
+                {ENTITY_LABELS[entityType]}
               </span>
               <button
                 onClick={() => setStep("upload")}
@@ -469,40 +530,78 @@ const ImportarGeoTab: React.FC = () => {
                 </span>
               </div>
               <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-80 overflow-y-auto">
-                {parseResult.columns.map((col) => (
-                  <div
-                    key={col}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                  >
-                    <code className="text-xs font-mono text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex-1 min-w-0 truncate">
-                      {col}
-                    </code>
-                    <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <select
-                      value={columnMapping[col] ?? ""}
-                      onChange={(e) =>
-                        setColumnMapping((prev) => {
-                          const next = { ...prev };
-                          if (e.target.value) {
-                            next[col] = e.target.value;
-                          } else {
-                            delete next[col];
-                          }
-                          return next;
-                        })
-                      }
-                      className="flex-1 min-w-0 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                {parseResult.columns.map((col) => {
+                  const stats = columnStats[col];
+                  const mapped = Boolean(columnMapping[col]);
+                  return (
+                    <div
+                      key={col}
+                      className={`px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                        mapped ? "bg-indigo-50/40 dark:bg-indigo-900/10" : ""
+                      }`}
                     >
-                      <option value="">(ignorar)</option>
-                      {targetFields.map((f) => (
-                        <option key={f.key} value={f.key}>
-                          {f.label}
-                          {f.required ? " *" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-3">
+                        <code className="text-xs font-mono text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex-1 min-w-0 truncate">
+                          {col}
+                        </code>
+                        <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <select
+                          value={columnMapping[col] ?? ""}
+                          onChange={(e) =>
+                            setColumnMapping((prev) => {
+                              const next = { ...prev };
+                              if (e.target.value) {
+                                next[col] = e.target.value;
+                              } else {
+                                delete next[col];
+                              }
+                              return next;
+                            })
+                          }
+                          className="flex-1 min-w-0 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value="">(ignorar)</option>
+                          {targetFields.map((f) => (
+                            <option key={f.key} value={f.key}>
+                              {f.label}
+                              {f.required ? " *" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Sample values + stats to ease mapping */}
+                      {stats && (stats.samples.length > 0 || stats.total > 0) && (
+                        <div className="mt-1.5 flex items-center flex-wrap gap-1.5">
+                          {stats.samples.length > 0 ? (
+                            <>
+                              <span className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                ej:
+                              </span>
+                              {stats.samples.map((s, i) => (
+                                <span
+                                  key={i}
+                                  title={s}
+                                  className="text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5 max-w-[160px] truncate"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-amber-500 dark:text-amber-400">
+                              sin valores
+                            </span>
+                          )}
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto whitespace-nowrap">
+                            {stats.distinct} distinto{stats.distinct === 1 ? "" : "s"} ·{" "}
+                            {stats.filled}/{stats.total} con dato
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -604,6 +703,28 @@ const ImportarGeoTab: React.FC = () => {
               </div>
             </div>
 
+            {/* Combined-mode summary: how many UPs vs intervenciones */}
+            {validationResult.combinado_summary && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
+                    {validationResult.combinado_summary.unique_ups}
+                  </div>
+                  <div className="text-xs text-indigo-600 dark:text-indigo-400">
+                    Unidades de Proyecto
+                  </div>
+                </div>
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
+                    {validationResult.combinado_summary.total_intervenciones}
+                  </div>
+                  <div className="text-xs text-indigo-600 dark:text-indigo-400">
+                    Intervenciones
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Global errors */}
             {validationResult.error_count > 0 && (
               <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
@@ -693,8 +814,19 @@ const ImportarGeoTab: React.FC = () => {
             {validationResult.valid_count > 0 && (
               <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl space-y-3">
                 <div className="text-sm font-medium text-indigo-800 dark:text-indigo-300">
-                  Listo para importar {validationResult.valid_count}{" "}
-                  {entityType === "unidad_proyecto" ? "Unidades de Proyecto" : "Intervenciones"}
+                  {validationResult.combinado_summary ? (
+                    <>
+                      Listo para importar{" "}
+                      {validationResult.combinado_summary.unique_ups} Unidades de Proyecto
+                      {" y "}
+                      {validationResult.combinado_summary.total_intervenciones} Intervenciones
+                    </>
+                  ) : (
+                    <>
+                      Listo para importar {validationResult.valid_count}{" "}
+                      {ENTITY_LABELS[entityType]}
+                    </>
+                  )}
                   {validationResult.error_count > 0 && (
                     <span className="text-amber-600 dark:text-amber-400">
                       {" "}({validationResult.error_count} con errores serán omitidos)
@@ -791,6 +923,25 @@ const ImportarGeoTab: React.FC = () => {
                   <div className="text-xs text-gray-500">Con errores</div>
                 </div>
               </div>
+
+              {/* Combined-mode breakdown: UPs vs intervenciones created */}
+              {importResult.entity_type === "combinado" &&
+                importResult.created_up_count != null && (
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <div className="text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                        {importResult.created_up_count}
+                      </div>
+                      <div className="text-xs text-gray-500">UP creadas</div>
+                    </div>
+                    <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <div className="text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                        {importResult.created_intervencion_count ?? 0}
+                      </div>
+                      <div className="text-xs text-gray-500">Intervenciones creadas</div>
+                    </div>
+                  </div>
+                )}
             </div>
 
             {importResult.created_count > 0 && (

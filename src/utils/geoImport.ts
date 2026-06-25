@@ -23,27 +23,30 @@ export interface ParseResult {
 
 // ── Known column aliases → target field ──────────────────────────────────────
 
+// Nota: los shapefiles truncan los nombres de columna a 10 caracteres (límite DBF),
+// por eso se incluyen las formas truncadas (p.ej. "PRESUPUEST", "AVANCE_OBR").
+// Mantener en sync con _UP_FIELD_ALIASES del backend (unidades_proyecto.py).
 export const UP_FIELD_ALIASES: Record<string, string[]> = {
   nombre_up: ["NOMBRE", "NOM", "NAME", "NOMBRE_UP", "NOM_UP", "PROYECTO"],
-  nombre_up_detalle: ["DETALLE", "DESCRIPCION", "DESCRIPCIÓN", "DESC", "NOM_DET"],
-  tipo_equipamiento: ["TIPO_EQ", "EQUIPAMIENTO", "TIPO_EQUIPAMIENTO"],
+  nombre_up_detalle: ["DETALLE", "DESCRIPCION", "DESCRIPCIÓN", "DESC", "NOM_DET", "NOMBRE_UP_"],
+  tipo_equipamiento: ["TIPO_EQ", "EQUIPAMIENTO", "TIPO_EQUIPAMIENTO", "TIPO_EQUIP"],
   clase_up: ["CLASE", "CLASE_UP", "CLASE_OBRA"],
-  tipo_intervencion: ["TIPO_INT", "TIPO_INTERV", "TIPO_INTERVENCION", "T_INTERV"],
+  tipo_intervencion: ["TIPO_INT", "TIPO_INTERV", "TIPO_INTERVENCION", "T_INTERV", "TIPO_INTER"],
   estado: ["ESTADO", "STATUS", "ESTADO_UP"],
-  presupuesto_base: ["PRESUPUESTO", "PRESUP", "VALOR", "COSTO", "PRESUPUESTO_BASE"],
-  avance_obra: ["AVANCE", "AVANCE_OBRA", "PROGRESO", "PORCENTAJE"],
+  presupuesto_base: ["PRESUPUESTO", "PRESUP", "VALOR", "COSTO", "PRESUPUESTO_BASE", "PRESUPUEST"],
+  avance_obra: ["AVANCE", "AVANCE_OBRA", "PROGRESO", "PORCENTAJE", "AVANCE_OBR"],
   fuente_financiacion: ["FUENTE", "FUENTE_FIN", "FINANCIACION", "FUENTE_FINANCIACION"],
-  nombre_centro_gestor: ["CENTRO", "CENTRO_GESTOR", "SECRETARIA", "SECRETARÍA", "CG"],
+  nombre_centro_gestor: ["CENTRO", "CENTRO_GESTOR", "SECRETARIA", "SECRETARÍA", "CG", "NOMBRE_CEN"],
   direccion: ["DIRECCION", "DIRECCIÓN", "ADDRESS", "DIR"],
   bpin: ["BPIN", "B_PIN"],
-  identificador: ["ID", "IDENTIFICADOR", "COD", "CODIGO", "CÓDIGO", "IDENT"],
+  identificador: ["IDENTIFICADOR", "IDENTIFICA", "COD", "CODIGO", "CÓDIGO", "IDENT", "ID"],
   ano: ["AÑO", "ANO", "YEAR", "VIGENCIA", "ANIO"],
-  fecha_inicio: ["FECHA_INI", "FECHA_INICIO", "F_INICIO", "INICIO"],
+  fecha_inicio: ["FECHA_INI", "FECHA_INICIO", "F_INICIO", "INICIO", "FECHA_INIC"],
   fecha_fin: ["FECHA_FIN", "F_FIN", "FIN", "FECHA_CIERRE"],
   referencia_contrato: ["CONTRATO", "REF_CONTRATO", "REFERENCIA_CONTRATO"],
   referencia_proceso: ["PROCESO", "REF_PROCESO", "REFERENCIA_PROCESO"],
-  url_proceso: ["URL", "URL_PROCESO", "LINK", "ENLACE", "SECOP"],
-  descripcion_intervencion: ["DESCRIPCION_INT", "DESC_INT"],
+  url_proceso: ["URL", "URL_PROCESO", "LINK", "ENLACE", "SECOP", "URL_PROCES"],
+  descripcion_intervencion: ["DESCRIPCION_INT", "DESC_INT", "DESCRIPCIO", "DESCRIPCION"],
   cantidad: ["CANTIDAD", "CANT", "QUANTITY"],
   unidad: ["UNIDAD", "UNIT", "UM"],
 };
