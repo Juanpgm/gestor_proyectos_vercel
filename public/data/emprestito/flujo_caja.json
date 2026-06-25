@@ -2,7 +2,7 @@
   "Hoja1": [
     {
       "banco": "Bancolombia",
-      "centro_gestor": "Bienestar Social",
+      "centro_gestor": "Secretaría de Bienestar Social",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -15,7 +15,7 @@
     },
     {
       "banco": "Bancolombia",
-      "centro_gestor": "Cultura",
+      "centro_gestor": "Secretaría de Cultura",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -28,7 +28,7 @@
     },
     {
       "banco": "Bancolombia",
-      "centro_gestor": "DATIC",
+      "centro_gestor": "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -41,7 +41,7 @@
     },
     {
       "banco": "Bancolombia",
-      "centro_gestor": "Deportes",
+      "centro_gestor": "Secretaría del Deporte y la Recreación",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "35759795.76",
@@ -54,7 +54,7 @@
     },
     {
       "banco": "Bancolombia",
-      "centro_gestor": "Desarrollo Económico",
+      "centro_gestor": "Secretaría de Desarrollo Económico",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "7865242000.0",
@@ -67,7 +67,7 @@
     },
     {
       "banco": "Bancolombia",
-      "centro_gestor": "Desarrollo Terriotiral",
+      "centro_gestor": "Secretaría de Desarrollo Territorial y Participación Ciudadana",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "454393881.0",
@@ -80,7 +80,7 @@
     },
     {
       "banco": "Bancolombia",
-      "centro_gestor": "Educación",
+      "centro_gestor": "Secretaría de Educación",
       "2025-07-01 00:00:00": "12000000000.0",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -93,7 +93,7 @@
     },
     {
       "banco": "Bancolombia",
-      "centro_gestor": "Infraestructura",
+      "centro_gestor": "Secretaría de Infraestructura",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "1018254430.0",
       "2025-09-01 00:00:00": "667343491.0",
@@ -106,7 +106,7 @@
     },
     {
       "banco": "Bancolombia",
-      "centro_gestor": "Vivienda",
+      "centro_gestor": "Secretaría de Vivienda Social y Hábitat",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -119,7 +119,7 @@
     },
     {
       "banco": "BBVA",
-      "centro_gestor": "Bienes",
+      "centro_gestor": "Unidad Administrativa Especial de Gestión de Bienes y Servicios",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -132,7 +132,7 @@
     },
     {
       "banco": "BBVA",
-      "centro_gestor": "Educación",
+      "centro_gestor": "Secretaría de Educación",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -145,7 +145,7 @@
     },
     {
       "banco": "BBVA",
-      "centro_gestor": "Infraestructura",
+      "centro_gestor": "Secretaría de Infraestructura",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -158,7 +158,7 @@
     },
     {
       "banco": "BBVA",
-      "centro_gestor": "Salud",
+      "centro_gestor": "Secretaría de Salud Pública",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -171,7 +171,7 @@
     },
     {
       "banco": "Davivienda",
-      "centro_gestor": "Bienestar Social",
+      "centro_gestor": "Secretaría de Bienestar Social",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -184,7 +184,7 @@
     },
     {
       "banco": "Davivienda",
-      "centro_gestor": "Cultura",
+      "centro_gestor": "Secretaría de Cultura",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -197,7 +197,7 @@
     },
     {
       "banco": "Davivienda",
-      "centro_gestor": "DATIC",
+      "centro_gestor": "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -210,7 +210,7 @@
     },
     {
       "banco": "Davivienda",
-      "centro_gestor": "Desarrollo Económico",
+      "centro_gestor": "Secretaría de Desarrollo Económico",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -223,7 +223,7 @@
     },
     {
       "banco": "Davivienda",
-      "centro_gestor": "Desarrollo Terriotiral",
+      "centro_gestor": "Secretaría de Desarrollo Territorial y Participación Ciudadana",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -236,7 +236,7 @@
     },
     {
       "banco": "Davivienda",
-      "centro_gestor": "Educación",
+      "centro_gestor": "Secretaría de Educación",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -249,7 +249,7 @@
     },
     {
       "banco": "Davivienda",
-      "centro_gestor": "Infraestructura",
+      "centro_gestor": "Secretaría de Infraestructura",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -262,7 +262,7 @@
     },
     {
       "banco": "Davivienda",
-      "centro_gestor": "Vivienda",
+      "centro_gestor": "Secretaría de Vivienda Social y Hábitat",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -275,7 +275,7 @@
     },
     {
       "banco": "Davivienda/Otro Si",
-      "centro_gestor": "Bienestar Social",
+      "centro_gestor": "Secretaría de Bienestar Social",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -288,7 +288,7 @@
     },
     {
       "banco": "Davivienda/Otro Si",
-      "centro_gestor": "Cultura",
+      "centro_gestor": "Secretaría de Cultura",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -301,7 +301,7 @@
     },
     {
       "banco": "Davivienda/Otro Si",
-      "centro_gestor": "DATIC",
+      "centro_gestor": "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -314,7 +314,7 @@
     },
     {
       "banco": "Davivienda/Otro Si",
-      "centro_gestor": "Infraestructura",
+      "centro_gestor": "Secretaría de Infraestructura",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -327,7 +327,7 @@
     },
     {
       "banco": "Davivienda/Otro Si",
-      "centro_gestor": "Riesgos",
+      "centro_gestor": "Secretaría de Gestión del Riesgo de Emergencias y Desastres",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",
@@ -340,7 +340,7 @@
     },
     {
       "banco": "Davivienda/Otro Si",
-      "centro_gestor": "Salud",
+      "centro_gestor": "Secretaría de Salud Pública",
       "2025-07-01 00:00:00": "0.0",
       "2025-08-01 00:00:00": "0.0",
       "2025-09-01 00:00:00": "0.0",
@@ -353,7 +353,7 @@
     },
     {
       "banco": "Davivienda/Otro Si",
-      "centro_gestor": "Vivienda",
+      "centro_gestor": "Secretaría de Vivienda Social y Hábitat",
       "2025-07-01 00:00:00": "",
       "2025-08-01 00:00:00": "",
       "2025-09-01 00:00:00": "",

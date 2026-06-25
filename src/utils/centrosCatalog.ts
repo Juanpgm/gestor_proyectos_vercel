@@ -87,6 +87,23 @@ const ALIASES_RAW: Record<string, string> = {
     "Secretaría de Gestión del Riesgo de Emergencias y Desastres",
   datic:
     "Departamento Administrativo de Tecnologías de la Información y las Comunicaciones",
+  // Formas cortas legacy detectadas en flujo_caja.json (Excel exportado).
+  deportes: "Secretaría del Deporte y la Recreación",
+  deporte: "Secretaría del Deporte y la Recreación",
+  "secretaria de deporte y recreacion": "Secretaría del Deporte y la Recreación",
+  "bienestar social": "Secretaría de Bienestar Social",
+  cultura: "Secretaría de Cultura",
+  "desarrollo economico": "Secretaría de Desarrollo Económico",
+  "desarrollo territorial":
+    "Secretaría de Desarrollo Territorial y Participación Ciudadana",
+  "desarrollo terriotiral":
+    "Secretaría de Desarrollo Territorial y Participación Ciudadana",
+  educacion: "Secretaría de Educación",
+  infraestructura: "Secretaría de Infraestructura",
+  riesgos: "Secretaría de Gestión del Riesgo de Emergencias y Desastres",
+  salud: "Secretaría de Salud Pública",
+  vivienda: "Secretaría de Vivienda Social y Hábitat",
+  bienes: "Unidad Administrativa Especial de Gestión de Bienes y Servicios",
 };
 
 const ALIASES = new Map<string, string>(

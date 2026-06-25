@@ -134,6 +134,23 @@ describe("filtrado por centro_gestor", () => {
     ).toBe(false);
   });
 
+  it("itemMatchesCentroGestor matchea formas cortas/alias vía canonicalización", () => {
+    // El usuario tiene el centro canónico; el dato trae la forma corta legacy.
+    const access = restricted("Secretaría del Deporte y la Recreación");
+    expect(itemMatchesCentroGestor({ centro_gestor: "Deportes" }, access)).toBe(
+      true,
+    );
+  });
+
+  it("filterByCentroGestor matchea data en forma corta legacy (flujo_caja)", () => {
+    const access = restricted("Secretaría de Cultura");
+    const items = [
+      { id: 1, centro_gestor: "Cultura" }, // forma corta legacy
+      { id: 2, centro_gestor: "Deportes" },
+    ];
+    expect(filterByCentroGestor(items, access).map((x) => x.id)).toEqual([1]);
+  });
+
   it("filterByCentroGestor filtra cuando no es canViewAll", () => {
     const access = restricted("Secretaría de Cultura");
     const items = [

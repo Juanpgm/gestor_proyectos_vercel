@@ -12,7 +12,11 @@
  */
 
 import { rolesCanViewAll } from "./rbac";
-import { normalizeCentro, isGlobalViewCentro } from "./centrosCatalog";
+import {
+  normalizeCentro,
+  canonicalizeCentro,
+  isGlobalViewCentro,
+} from "./centrosCatalog";
 
 export interface CentroGestorAccess {
   userCentroGestor: string | null;
@@ -21,6 +25,18 @@ export interface CentroGestorAccess {
 }
 
 const normalizeValue = normalizeCentro;
+
+/**
+ * Clave de comparación CANÓNICA de un centro gestor.
+ *
+ * Mapea formas cortas/alias al nombre canónico antes de normalizar, igual que el
+ * backend. Así un dato en forma corta (p.ej. "Deportes", "Cultura" en
+ * flujo_caja.json) matchea contra el centro canónico del usuario. Si el valor no
+ * es un centro reconocible (p.ej. un nombre de persona en "responsible"), cae a
+ * la normalización simple para no perder coincidencias legítimas.
+ */
+const centroMatchKey = (value: unknown): string =>
+  normalizeCentro(canonicalizeCentro(value) ?? value);
 
 const extractUserCentroGestor = (sessionPayload: any): string | null => {
   const user = sessionPayload?.user ?? sessionPayload ?? {};
@@ -102,20 +118,20 @@ export const itemMatchesCentroGestor = (
 ): boolean => {
   if (access.canViewAll || !access.userCentroGestor) return true;
 
-  const normalizedUserCentro = normalizeValue(access.userCentroGestor);
+  const userKey = centroMatchKey(access.userCentroGestor);
 
   for (const key of candidateKeys) {
     const value = item?.[key];
 
     if (Array.isArray(value)) {
       const hasMatchInArray = value.some(
-        (entry) => normalizeValue(entry) === normalizedUserCentro,
+        (entry) => centroMatchKey(entry) === userKey,
       );
       if (hasMatchInArray) return true;
       continue;
     }
 
-    if (normalizeValue(value) === normalizedUserCentro) {
+    if (centroMatchKey(value) === userKey) {
       return true;
     }
   }
