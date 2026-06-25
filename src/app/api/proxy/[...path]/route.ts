@@ -320,6 +320,33 @@ async function handleRequest(request: NextRequest, method: string) {
       response = await fetch(targetUrl, requestOptions);
       const contentType = response.headers.get("content-type") || "";
 
+      // Passthrough for binary / file downloads (shapefile .zip, .kmz, .kml,
+      // .geojson, Excel, PDF, etc.). The default path below reads the body as
+      // text and re-wraps it as JSON, which corrupts binary content. We detect a
+      // download via Content-Disposition: attachment or a binary content-type and
+      // return the raw bytes, preserving the original headers (incl. filename).
+      const contentDisposition =
+        response.headers.get("content-disposition") || "";
+      const isFileDownload =
+        contentDisposition.toLowerCase().includes("attachment") ||
+        /(application\/zip|application\/octet-stream|google-earth|geo\+json|spreadsheetml|vnd\.ms-excel|application\/pdf)/i.test(
+          contentType,
+        );
+      if (isFileDownload) {
+        clearTimeout(timeoutId);
+        const fileBuffer = await response.arrayBuffer();
+        return new NextResponse(fileBuffer, {
+          status: response.status,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": contentType || "application/octet-stream",
+            ...(contentDisposition
+              ? { "Content-Disposition": contentDisposition }
+              : {}),
+          },
+        });
+      }
+
       if (contentType.includes("application/json")) {
         const rawText = await response.text();
         const trimmed = rawText?.trim?.() || "";
