@@ -12,6 +12,13 @@ import { auth } from "@/lib/firebase";
 import { AuthState, User } from "@/types/auth";
 import authService from "@/services/authService";
 import { safeConsole } from "@/lib/safe-console";
+import {
+  hasRole as rbacHasRole,
+  hasPermission as rbacHasPermission,
+  hasAnyRole as rbacHasAnyRole,
+  getHighestRole as rbacGetHighestRole,
+  ROLES,
+} from "@/utils/rbac";
 
 // Estado inicial optimizado - comenzar con isLoading false para mostrar UI más rápido
 const initialState: AuthState = {
@@ -372,53 +379,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Helper: Verificar si el usuario tiene un rol específico
+  // Helper: Verificar si el usuario tiene un rol específico (normalizado)
   const hasRole = (role: string): boolean => {
-    return state.user?.roles?.includes(role) || false;
+    return rbacHasRole(state.user?.roles, role);
   };
 
   // Helper: Verificar si el usuario tiene un permiso específico
   const hasPermission = (permission: string): boolean => {
-    return (
-      state.user?.permissions?.includes(permission) ||
-      state.user?.permissions?.includes("*") ||
-      false
-    );
+    return rbacHasPermission(state.user?.permissions, permission);
   };
 
   // Helper: Verificar si el usuario puede modificar o borrar registros
   const canModifyOrDeleteRecords = (): boolean => {
-    const allowedRoles = [
-      "admin_centro_gestor",
-      "admin_general",
-      "super_admin",
-      "editor_datos",
-    ];
-    const roles = state.user?.roles || [];
-    return roles.some((role) => allowedRoles.includes(role));
+    return rbacHasAnyRole(state.user?.roles, [
+      ROLES.ADMIN_CENTRO_GESTOR,
+      ROLES.ADMIN_GENERAL,
+      ROLES.SUPER_ADMIN,
+      ROLES.EDITOR_DATOS,
+    ]);
   };
 
-  // Helper: Obtener el rol con mayor jerarquía del usuario
+  // Helper: Obtener el rol con mayor jerarquía del usuario (jerarquía real)
   const getHighestRole = (): string | null => {
-    const roles = state.user?.roles || [];
-    if (roles.length === 0) return null;
-
-    // Orden jerárquico de roles (de mayor a menor)
-    const roleHierarchy = [
-      "super_admin",
-      "admin",
-      "gestor_master",
-      "gestor",
-      "consultor_master",
-      "consultor",
-      "publico",
-    ];
-
-    for (const role of roleHierarchy) {
-      if (roles.includes(role)) return role;
-    }
-
-    return roles[0]; // Devolver el primero si no coincide ninguno
+    return rbacGetHighestRole(state.user?.roles);
   };
 
   // Helper: Verificar si es super admin

@@ -8,38 +8,13 @@ import { API_CONFIG, AUTH_CONFIG } from '@/config/app'
 import PasswordStrengthIndicator from '@/components/PasswordStrengthIndicator'
 import ForgotPasswordModal from '@/components/ForgotPasswordModal'
 import SearchableSelect from '@/components/SearchableSelect'
+import { CENTROS_GESTORES } from '@/utils/centrosCatalog'
 
 type AuthMode = 'login' | 'register'
 
-const CENTROS_GESTORES_EXACTOS: string[] = [
-  'Secretaría de Gobierno',
-  'Departamento Administrativo de Gestión Jurídica Pública',
-  'Departamento Administrativo de Control Interno',
-  'Departamento Administrativo de Control Disciplinario Interno de Instrucción',
-  'Departamento Administrativo de Hacienda',
-  'Departamento Administrativo de Planeación',
-  'Departamento Administrativo de Gestión del Medio Ambiente',
-  'Departamento Administrativo de Tecnologías de la Información y las Comunicaciones',
-  'Departamento Administrativo de Contratación Pública',
-  'Departamento Administrativo de Desarrollo e Innovación Institucional',
-  'Secretaría de Educación',
-  'Secretaría de Salud Pública',
-  'Secretaría de Bienestar Social',
-  'Secretaría de Vivienda Social y Hábitat',
-  'Secretaría de Cultura',
-  'Secretaría de Infraestructura',
-  'Secretaría de Movilidad',
-  'Secretaría de Seguridad y Justicia',
-  'Secretaría del Deporte y la Recreación',
-  'Secretaría de Gestión del Riesgo de Emergencias y Desastres',
-  'Secretaría de Paz y Cultura Ciudadana',
-  'Secretaría de Desarrollo Económico',
-  'Secretaría de Turismo',
-  'Secretaría de Desarrollo Territorial y Participación Ciudadana',
-  'Unidad Administrativa Especial de Gestión de Bienes y Servicios',
-  'Unidad Administrativa Especial de Servicios Públicos',
-  'Unidad Administrativa Especial de Protección Animal'
-]
+// Fallback local del picklist de centros: catálogo canónico (fuente única).
+// Si el endpoint /centros-gestores/nombres-unicos falla, se usa esta lista.
+const CENTROS_GESTORES_EXACTOS: string[] = CENTROS_GESTORES
 
 export default function LoginPage() {
   const { state, signIn, signUp, signInWithGoogle, clearError } = useAuth()

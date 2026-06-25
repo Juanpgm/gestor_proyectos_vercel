@@ -15,6 +15,10 @@ export interface User {
   permissions?: string[]
   nombre_centro_gestor?: string | null
   centro_gestor_assigned?: string | null
+  /** Centro gestor canónico resuelto por el backend (fuente única). */
+  effective_centro_gestor?: string | null
+  /** Scope autoritativo del backend: true si el rol ve todos los centros. */
+  can_view_all?: boolean
   is_active?: boolean
   phone?: string | null
   profile_complete?: boolean

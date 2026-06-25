@@ -551,6 +551,29 @@ class AuthService {
       safeMeta?.data?.nombre_centro_gestor ||
       null;
 
+    // Scope autoritativo resuelto por el backend (fuente única de verdad).
+    // El backend emite can_view_all + effective_centro_gestor desde _build_user_payload.
+    const effective_centro_gestor =
+      safeApiUser.effective_centro_gestor ??
+      safeApiUser.firestore_data?.effective_centro_gestor ??
+      safeMeta?.effective_centro_gestor ??
+      safeMeta?.user?.effective_centro_gestor ??
+      nombre_centro_gestor ??
+      null;
+
+    const can_view_all =
+      (typeof safeApiUser.can_view_all === "boolean"
+        ? safeApiUser.can_view_all
+        : undefined) ??
+      (typeof safeMeta?.can_view_all === "boolean"
+        ? safeMeta.can_view_all
+        : undefined) ??
+      (typeof safeMeta?.user?.can_view_all === "boolean"
+        ? safeMeta.user.can_view_all
+        : undefined) ??
+      // Fallback seguro (sesión legacy sin el campo): solo roles admin globales.
+      roles.some((r: string) => r === "super_admin" || r === "admin_general");
+
     // Extraer is_active desde firestore_data
     const is_active =
       safeApiUser.firestore_data?.is_active !== undefined
@@ -610,6 +633,8 @@ class AuthService {
       permissions: permissions,
       nombre_centro_gestor: nombre_centro_gestor,
       centro_gestor_assigned: centro_gestor_assigned,
+      effective_centro_gestor: effective_centro_gestor,
+      can_view_all: can_view_all,
       is_active: is_active,
       phone: phone,
       profile_complete: profileComplete,

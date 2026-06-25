@@ -1,54 +1,35 @@
+/**
+ * Acceso por centro gestor (frontend) — CONSUME el scope autoritativo del backend.
+ *
+ * Antes este módulo re-derivaba la autorización con listas hardcodeadas
+ * (PRIVILEGED_ROLES + OPEN_ACCESS_CENTROS), divergentes del backend. Ahora la
+ * fuente única de verdad es el backend, que emite en la sesión:
+ *   - `can_view_all`: si el rol ve todos los centros (política A: solo admins),
+ *   - `effective_centro_gestor`: el centro canónico del usuario.
+ *
+ * Si la sesión es legacy (sin esos campos), se cae a un fallback seguro basado en
+ * rol (solo super_admin/admin_general son globales) — nunca por centro.
+ */
+
+import { rolesCanViewAll } from "./rbac";
+import { normalizeCentro, isGlobalViewCentro } from "./centrosCatalog";
+
 export interface CentroGestorAccess {
   userCentroGestor: string | null;
   canViewAll: boolean;
   isRestricted: boolean;
 }
 
-const OPEN_ACCESS_CENTROS_RAW = [
-  "calitrack",
-  "otro",
-  "secretaría de gobierno",
-  "departamento administrativo de gestión jurídica pública",
-  "departamento administrativo de control interno",
-  "departamento administrativo de control disciplinario interno de instrucción",
-  "departamento administrativo de hacienda",
-  "departamento administrativo de planeación",
-  "departamento administrativo de gestión del medio ambiente",
-  "departamento administrativo de tecnologías de la información y las comunicaciones",
-  "departamento administrativo de contratación pública",
-  "departamento administrativo de desarrollo e innovación institucional",
-];
-
-const normalizeValue = (value: unknown): string =>
-  String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-
-const OPEN_ACCESS_CENTROS = new Set(
-  OPEN_ACCESS_CENTROS_RAW.map(normalizeValue),
-);
-
-const normalizeRole = (role: unknown): string =>
-  String(role || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[-\s]+/g, "_");
-
-const PRIVILEGED_ROLES = new Set([
-  "super_admin",
-  "superadmin",
-  "admin_general",
-  "admin",
-]);
+const normalizeValue = normalizeCentro;
 
 const extractUserCentroGestor = (sessionPayload: any): string | null => {
+  const user = sessionPayload?.user ?? sessionPayload ?? {};
   const value =
-    sessionPayload?.user?.nombre_centro_gestor ||
-    sessionPayload?.user?.centro_gestor_assigned ||
+    user.effective_centro_gestor ||
+    user.nombre_centro_gestor ||
+    user.centro_gestor_assigned ||
+    sessionPayload?.effective_centro_gestor ||
     sessionPayload?.nombre_centro_gestor ||
-    sessionPayload?.centro_gestor_assigned ||
     null;
 
   if (!value || typeof value !== "string") return null;
@@ -56,41 +37,22 @@ const extractUserCentroGestor = (sessionPayload: any): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
-const extractUserRoles = (sessionPayload: any): string[] => {
-  const roleCandidates = [
-    sessionPayload?.user?.roles,
-    sessionPayload?.user?.role,
-    sessionPayload?.user?.primary_role,
-    sessionPayload?.roles,
-    sessionPayload?.role,
-    sessionPayload?.primary_role,
-  ];
-
-  const flatRoles = roleCandidates.flatMap((candidate) => {
-    if (Array.isArray(candidate)) return candidate;
-    if (typeof candidate === "string") return [candidate];
-    return [];
-  });
-
-  return Array.from(
-    new Set(flatRoles.map(normalizeRole).filter((role) => role.length > 0)),
-  );
+const extractRoles = (sessionPayload: any): unknown => {
+  const user = sessionPayload?.user ?? sessionPayload ?? {};
+  return user.roles ?? user.role ?? sessionPayload?.roles ?? [];
 };
 
-export const isOpenCentroGestor = (
-  centroGestor: string | null | undefined,
-): boolean => {
-  if (!centroGestor) return false;
-  return OPEN_ACCESS_CENTROS.has(normalizeValue(centroGestor));
+const extractCanViewAll = (sessionPayload: any): boolean | undefined => {
+  const user = sessionPayload?.user ?? sessionPayload ?? {};
+  if (typeof user.can_view_all === "boolean") return user.can_view_all;
+  if (typeof sessionPayload?.can_view_all === "boolean")
+    return sessionPayload.can_view_all;
+  return undefined;
 };
 
 export const getCentroGestorAccessFromSession = (): CentroGestorAccess => {
   if (typeof window === "undefined") {
-    return {
-      userCentroGestor: null,
-      canViewAll: true,
-      isRestricted: false,
-    };
+    return { userCentroGestor: null, canViewAll: true, isRestricted: false };
   }
 
   try {
@@ -99,51 +61,33 @@ export const getCentroGestorAccessFromSession = (): CentroGestorAccess => {
       sessionStorage.getItem("auth_session");
 
     if (!rawSession) {
-      return {
-        userCentroGestor: null,
-        canViewAll: true,
-        isRestricted: false,
-      };
+      // Sin sesión: usuario no autenticado; el AuthWrapper bloquea la app.
+      return { userCentroGestor: null, canViewAll: true, isRestricted: false };
     }
 
     const parsedSession = JSON.parse(rawSession);
     const userCentroGestor = extractUserCentroGestor(parsedSession);
-    const userRoles = extractUserRoles(parsedSession);
-    const hasPrivilegedRole = userRoles.some((role) =>
-      PRIVILEGED_ROLES.has(role),
-    );
 
-    if (hasPrivilegedRole) {
-      return {
-        userCentroGestor,
-        canViewAll: true,
-        isRestricted: false,
-      };
-    }
-
-    if (!userCentroGestor || isOpenCentroGestor(userCentroGestor)) {
-      return {
-        userCentroGestor,
-        canViewAll: true,
-        isRestricted: false,
-      };
-    }
+    // Fuente única: scope del backend. Fallback legacy: rol global (política A)
+    // o centro interno especial (Calitrack) con visibilidad global.
+    const explicit = extractCanViewAll(parsedSession);
+    const canViewAll =
+      explicit !== undefined
+        ? explicit
+        : rolesCanViewAll(extractRoles(parsedSession)) ||
+          isGlobalViewCentro(userCentroGestor);
 
     return {
       userCentroGestor,
-      canViewAll: false,
-      isRestricted: true,
+      canViewAll,
+      isRestricted: !canViewAll,
     };
   } catch (error) {
     console.warn(
       "⚠️ Error reading auth session for centro gestor filtering:",
       error,
     );
-    return {
-      userCentroGestor: null,
-      canViewAll: true,
-      isRestricted: false,
-    };
+    return { userCentroGestor: null, canViewAll: true, isRestricted: false };
   }
 };
 
@@ -234,19 +178,16 @@ export const filterByAllowedBpins = <T extends Record<string, any>>(
 
 /**
  * Normaliza un valor de centro gestor (trim + lowercase + sin tildes).
- * Exportado para reutilización en componentes/modales que necesiten
- * comparar pertenencia de centros gestores con la misma regla.
+ * Reexporta la normalización canónica del catálogo para reutilización.
  */
 export const normalizeCentroGestor = (value: unknown): string =>
   normalizeValue(value);
 
 /**
- * Verifica si el usuario tiene permiso para modificar un item específico
- * combinando:
- *  - acceso global (canViewAll = true → privilegiado, autoriza)
- *  - pertenencia del item al mismo centro gestor del usuario.
- * No reemplaza la verificación de permisos por rol (write:unidades),
- * sólo cubre la dimensión "centro gestor".
+ * Verifica si el usuario puede modificar un item por su dimensión centro gestor:
+ *  - acceso global (canViewAll) autoriza,
+ *  - o pertenencia del item al mismo centro gestor del usuario.
+ * No reemplaza la verificación de permisos por rol (write:unidades).
  */
 export const userCanEditItem = (
   item: Record<string, any> | null | undefined,
