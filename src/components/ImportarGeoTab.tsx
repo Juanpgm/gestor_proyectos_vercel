@@ -21,6 +21,7 @@ import {
 
 import type { GeoJSONFeature, ParseResult } from "@/utils/geoImport";
 import { parseFile } from "@/utils/geoImport";
+import { useAuth } from "@/context/AuthContext";
 
 type EntityType = "unidad_proyecto" | "intervencion" | "combinado";
 type Step = "upload" | "mapping" | "preview" | "import";
@@ -30,6 +31,15 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   intervencion: "Intervenciones",
   combinado: "UP + Intervenciones (combinado)",
 };
+
+type ExportFormat = "geojson" | "kml" | "kmz" | "shp";
+
+const EXPORT_FORMATS: { id: ExportFormat; label: string; hint: string }[] = [
+  { id: "geojson", label: "GeoJSON", hint: ".geojson" },
+  { id: "shp", label: "Shapefile", hint: ".zip" },
+  { id: "kml", label: "KML", hint: ".kml" },
+  { id: "kmz", label: "KMZ", hint: ".kmz" },
+];
 
 interface ValidationResult {
   success: boolean;
@@ -118,6 +128,60 @@ const ImportarGeoTab: React.FC = () => {
   const [importConfirmed, setImportConfirmed] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Export state / auth ──────────────────────────────────────────────────────
+  const { state: authState, hasRole, isSuperAdmin } = useAuth();
+  const userCentro = authState.user?.nombre_centro_gestor ?? "";
+  // Solo perfiles de gestión global eligen centro; admin_centro_gestor lo fuerza el backend.
+  const canChooseCentro =
+    isSuperAdmin() || hasRole("admin_general") || hasRole("editor_datos");
+
+  const [view, setView] = useState<"importar" | "exportar">("importar");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("geojson");
+  const [exportCentro, setExportCentro] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const params = new URLSearchParams({ formato: exportFormat });
+      if (canChooseCentro && exportCentro.trim()) {
+        params.set("nombre_centro_gestor", exportCentro.trim());
+      }
+      const res = await fetch(
+        `/api/proxy/unidades-proyecto/exportar?${params.toString()}`,
+      );
+      if (!res.ok) {
+        let msg = `Error ${res.status}`;
+        try {
+          const j = await res.json();
+          msg = j.detail ?? msg;
+        } catch {
+          /* respuesta no-JSON */
+        }
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const cd = res.headers.get("content-disposition") || "";
+      const match = cd.match(/filename="?([^"]+)"?/);
+      const ext = exportFormat === "shp" ? "zip" : exportFormat;
+      const filename = match?.[1] || `unidades_proyecto.${ext}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      setExportError(err instanceof Error ? err.message : "Error al exportar");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const targetFields =
     entityType === "unidad_proyecto" ? UP_TARGET_FIELDS : INTERVENCION_TARGET_FIELDS;
@@ -304,6 +368,25 @@ const ImportarGeoTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* View toggle: Importar | Exportar */}
+      <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5 bg-gray-50 dark:bg-gray-800">
+        {(["importar", "exportar"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-5 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              view === v
+                ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            }`}
+          >
+            {v === "importar" ? "Importar" : "Exportar"}
+          </button>
+        ))}
+      </div>
+
+      {view === "importar" && (
+        <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -987,6 +1070,103 @@ const ImportarGeoTab: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+        </>
+      )}
+
+      {/* ── EXPORT VIEW ──────────────────────────────────────────────────── */}
+      {view === "exportar" && (
+        <motion.div
+          key="exportar"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-5"
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Download className="w-5 h-5 text-indigo-500" />
+              Exportar datos geoespaciales
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Descargá la tabla única (Unidades de Proyecto + intervenciones, vinculadas por{" "}
+              <code className="font-mono text-xs">upid</code>, con todas las variables y la
+              geometría) en formato estandarizado para trabajarla.
+            </p>
+          </div>
+
+          {/* Format selector */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Formato
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {EXPORT_FORMATS.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setExportFormat(f.id)}
+                  className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-colors flex flex-col items-center gap-0.5 ${
+                    exportFormat === f.id
+                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {f.label}
+                  <span className="text-[10px] font-mono text-gray-400">{f.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Centro scope */}
+          {canChooseCentro ? (
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filtrar por Centro Gestor{" "}
+                <span className="text-gray-400 font-normal">(vacío = todos los centros)</span>
+              </label>
+              <input
+                type="text"
+                value={exportCentro}
+                onChange={(e) => setExportCentro(e.target.value)}
+                placeholder="Ej: DAGMA — dejar vacío para exportar todo"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+          ) : (
+            <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>
+                Se exportarán los datos de tu centro gestor:{" "}
+                <strong>{userCentro || "(no asignado)"}</strong>.
+              </span>
+            </div>
+          )}
+
+          {exportError && (
+            <div className="flex gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              {exportError}
+            </div>
+          )}
+
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-lg transition-colors"
+          >
+            {exporting ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Generando archivo...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Descargar {EXPORT_FORMATS.find((f) => f.id === exportFormat)?.label}
+              </>
+            )}
+          </button>
+        </motion.div>
+      )}
     </div>
   );
 };
