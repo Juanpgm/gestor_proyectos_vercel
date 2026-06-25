@@ -32,10 +32,11 @@ const ENTITY_LABELS: Record<EntityType, string> = {
   combinado: "UP + Intervenciones (combinado)",
 };
 
-type ExportFormat = "geojson" | "kml" | "kmz" | "shp";
+type ExportFormat = "geojson" | "kml" | "kmz" | "shp" | "gpkg";
 
 const EXPORT_FORMATS: { id: ExportFormat; label: string; hint: string }[] = [
   { id: "geojson", label: "GeoJSON", hint: ".geojson" },
+  { id: "gpkg", label: "GeoPackage", hint: ".gpkg" },
   { id: "shp", label: "Shapefile", hint: ".zip" },
   { id: "kml", label: "KML", hint: ".kml" },
   { id: "kmz", label: "KMZ", hint: ".kmz" },
