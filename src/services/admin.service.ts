@@ -322,10 +322,16 @@ class AdminService {
    * Listar usuarios por endpoint principal
    * Endpoint: GET /auth/admin/users
    */
-  async listUsers(params: ListUsersParams = {}): Promise<ListUsersResponse> {
+  async listUsers(
+    params: ListUsersParams = {},
+    bypassCache: boolean = false,
+  ): Promise<ListUsersResponse> {
     try {
-      const query = this.buildUsersQuery(params);
-      const endpoint = `/auth/admin/users${query ? `?${query}` : ""}`;
+      const endpoint = this.buildUsersEndpoint(
+        "/auth/admin/users",
+        params,
+        bypassCache,
+      );
       const response = await apiClient.get<any>(endpoint);
       return this.normalizeUsersResponse(response, params);
     } catch (authAdminError) {
@@ -335,7 +341,7 @@ class AdminService {
       );
 
       try {
-        return await this.listSystemUsers(params);
+        return await this.listSystemUsers(params, bypassCache);
       } catch (systemUsersError) {
         const authAdminErrorText = this.getErrorText(authAdminError);
         const systemUsersErrorText = this.getErrorText(systemUsersError);
@@ -354,11 +360,27 @@ class AdminService {
    */
   async listSystemUsers(
     params: ListUsersParams = {},
+    bypassCache: boolean = false,
   ): Promise<ListUsersResponse> {
-    const query = this.buildUsersQuery(params);
-    const endpoint = `/admin/users${query ? `?${query}` : ""}`;
+    const endpoint = this.buildUsersEndpoint("/admin/users", params, bypassCache);
     const response = await apiClient.get<any>(endpoint);
     return this.normalizeUsersResponse(response, params);
+  }
+
+  // Builds a users list endpoint, optionally appending bypass_cache=1 so the
+  // Next.js proxy skips its 2-min admin cache and returns fresh data (used after
+  // mutations and on manual refresh). The proxy strips bypass_cache before
+  // forwarding to the backend.
+  private buildUsersEndpoint(
+    basePath: string,
+    params: ListUsersParams,
+    bypassCache: boolean,
+  ): string {
+    const query = this.buildUsersQuery(params);
+    const search = new URLSearchParams(query);
+    if (bypassCache) search.set("bypass_cache", "1");
+    const qs = search.toString();
+    return `${basePath}${qs ? `?${qs}` : ""}`;
   }
 
   private getUserDedupKey(
@@ -403,7 +425,10 @@ class AdminService {
     const MAX_PAGES = 10; // 500 users/page × 10 = 5000 max
 
     while (page <= MAX_PAGES) {
-      const response = await this.listUsers({ page, limit: safeLimit });
+      const response = await this.listUsers(
+        { page, limit: safeLimit },
+        forceRefresh,
+      );
       const received = response.users.length;
 
       response.users.forEach((user, index) => {

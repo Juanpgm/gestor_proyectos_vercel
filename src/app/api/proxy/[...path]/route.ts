@@ -92,7 +92,13 @@ const isCacheableAdminPath = (apiPath: string): boolean => {
 
 const isAdminMutationPath = (apiPath: string): boolean => {
   const path = normalizeApiPath(apiPath);
-  return path.startsWith("auth/admin/") || path.startsWith("admin/users");
+  return (
+    path.startsWith("auth/admin/") ||
+    path.startsWith("admin/users") ||
+    // User delete lives at DELETE /auth/user/{uid}, outside the auth/admin/
+    // namespace; without this the cached users list would survive a deletion.
+    path.startsWith("auth/user/")
+  );
 };
 
 const buildCacheKey = (

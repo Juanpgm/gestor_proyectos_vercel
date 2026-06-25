@@ -855,7 +855,10 @@ export default function UserManagementPage({
     if (!deleteUserTarget) return;
 
     try {
-      await adminService.deleteUser(deleteUserTarget.uid, true);
+      // Hard delete: removes the user from Firebase Auth and Firestore so the
+      // row actually disappears. Reversible deactivation is the separate
+      // "Desactivar" action (toggleUserStatus).
+      await adminService.deleteUser(deleteUserTarget.uid, false);
       setDeleteUserTarget(null);
       adminService.invalidateAllCaches();
       const [usersRes, statsRes] = await Promise.allSettled([
@@ -1736,9 +1739,14 @@ export default function UserManagementPage({
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-5">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
               ¿Deseas eliminar al usuario{" "}
               <span className="font-semibold">{deleteUserTarget.email}</span>?
+            </p>
+            <p className="text-xs text-red-600 dark:text-red-400 mb-5">
+              Esta acción es permanente e irreversible: borra la cuenta de
+              Firebase Auth y sus datos. Si solo querés suspender el acceso, usá
+              &quot;Desactivar&quot;.
             </p>
             <div className="flex justify-end gap-2">
               <button
