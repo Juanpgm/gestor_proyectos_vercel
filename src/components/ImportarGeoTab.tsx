@@ -115,7 +115,7 @@ const ImportarGeoTab: React.FC = () => {
   const [parseError, setParseError] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
 
-  const [entityType, setEntityType] = useState<EntityType>("combinado");
+  const entityType: EntityType = "combinado";
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [centroGestorGlobal, setCentroGestorGlobal] = useState("");
 
@@ -226,8 +226,7 @@ const ImportarGeoTab: React.FC = () => {
     }
   };
 
-  const targetFields =
-    entityType === "unidad_proyecto" ? UP_TARGET_FIELDS : INTERVENCION_TARGET_FIELDS;
+  const targetFields = INTERVENCION_TARGET_FIELDS;
 
   // Per-column stats (sample values, distinct count, fill rate) to make mapping easier
   const columnStats = useMemo(() => {
@@ -496,41 +495,20 @@ const ImportarGeoTab: React.FC = () => {
             exit={{ opacity: 0, y: -10 }}
             className="space-y-4"
           >
-            {/* Entity type selector */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              {(["combinado", "unidad_proyecto", "intervencion"] as EntityType[]).map(
-                (et) => (
-                  <button
-                    key={et}
-                    onClick={() => setEntityType(et)}
-                    className={`flex-1 py-2.5 px-4 rounded-lg border text-sm font-medium transition-colors ${
-                      entityType === et
-                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
-                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    {ENTITY_LABELS[et]}
-                  </button>
-                ),
-              )}
-            </div>
-
             {/* Combined mode hint */}
-            {entityType === "combinado" && (
-              <div className="flex gap-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-sm text-indigo-700 dark:text-indigo-300">
-                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>
-                  Cargá UP e intervenciones en una sola tabla. El sistema agrupa por{" "}
-                  <code className="font-mono text-xs bg-indigo-100 dark:bg-indigo-900/40 px-1 rounded">
-                    upid
-                  </code>
-                  : filas con el mismo <code className="font-mono text-xs">upid</code> son la
-                  misma UP. Si el <code className="font-mono text-xs">upid</code> ya existe se
-                  preserva y se le agregan las intervenciones; si es nuevo, se crea la UP con un{" "}
-                  <code className="font-mono text-xs">upid</code> generado.
-                </span>
-              </div>
-            )}
+            <div className="flex gap-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-sm text-indigo-700 dark:text-indigo-300">
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>
+                Cargá UP e intervenciones en una sola tabla. El sistema agrupa por{" "}
+                <code className="font-mono text-xs bg-indigo-100 dark:bg-indigo-900/40 px-1 rounded">
+                  upid
+                </code>
+                : filas con el mismo <code className="font-mono text-xs">upid</code> son la
+                misma UP. Si el <code className="font-mono text-xs">upid</code> ya existe se
+                preserva y se le agregan las intervenciones; si es nuevo, se crea la UP con un{" "}
+                <code className="font-mono text-xs">upid</code> generado.
+              </span>
+            </div>
 
             {/* Drop zone */}
             <div
@@ -611,20 +589,6 @@ const ImportarGeoTab: React.FC = () => {
                   {parseResult.geometryTypes.join(", ")}
                 </span>
               </div>
-            </div>
-
-            {/* Entity type reminder */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Importando como:</span>
-              <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-medium rounded">
-                {ENTITY_LABELS[entityType]}
-              </span>
-              <button
-                onClick={() => setStep("upload")}
-                className="text-xs text-gray-400 hover:text-gray-600 underline"
-              >
-                cambiar
-              </button>
             </div>
 
             {/* Global centro gestor */}

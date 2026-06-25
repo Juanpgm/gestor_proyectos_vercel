@@ -614,7 +614,7 @@ const GestionUnidadesProyecto: React.FC<GestionUnidadesProyectoProps> = ({
     },
     {
       id: "importar-geo" as TabType,
-      label: "Importar GIS",
+      label: "Gestionar GIS",
       icon: Upload,
       endpoint: "",
       description:
