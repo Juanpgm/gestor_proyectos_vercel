@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react'
 import {
   Mail,
   Building,
@@ -47,23 +47,75 @@ export default function UserList({
   canEdit
 }: UserListProps) {
   const [openMenuUid, setOpenMenuUid] = useState<string | null>(null)
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
 
   const toggleMenu = (uid: string, e: React.MouseEvent<HTMLButtonElement>) => {
     if (openMenuUid === uid) {
       setOpenMenuUid(null)
+      setAnchorRect(null)
       setMenuPos(null)
     } else {
-      const rect = e.currentTarget.getBoundingClientRect()
+      // Store the anchor button's viewport rect; final position is computed in a
+      // layout effect once the menu is mounted and its real size is known.
       setOpenMenuUid(uid)
-      setMenuPos({ top: rect.bottom + 4, left: rect.right - 208 })
+      setAnchorRect(e.currentTarget.getBoundingClientRect())
+      setMenuPos(null)
     }
   }
 
   const closeMenu = () => {
     setOpenMenuUid(null)
+    setAnchorRect(null)
     setMenuPos(null)
   }
+
+  // Position the floating menu so it is ALWAYS fully visible inside the viewport.
+  // Measures the rendered menu, opens upward when there isn't enough room below,
+  // and clamps both axes so it can never land off-screen (e.g. bottom corner).
+  useLayoutEffect(() => {
+    if (!openMenuUid || !anchorRect || !menuRef.current) return
+
+    const margin = 8
+    const gap = 4
+    const menu = menuRef.current.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+
+    // Horizontal: align the menu's right edge with the button, then clamp.
+    let left = anchorRect.right - menu.width
+    left = Math.min(Math.max(margin, left), vw - menu.width - margin)
+    if (left < margin) left = margin
+
+    // Vertical: prefer below the button; flip above when it would overflow the
+    // bottom; if it fits neither way, clamp within the viewport.
+    let top = anchorRect.bottom + gap
+    if (top + menu.height + margin > vh) {
+      const aboveTop = anchorRect.top - gap - menu.height
+      top = aboveTop >= margin ? aboveTop : Math.max(margin, vh - menu.height - margin)
+    }
+
+    setMenuPos({ top, left })
+  }, [openMenuUid, anchorRect])
+
+  // Close the menu on scroll/resize so its fixed position never goes stale.
+  useEffect(() => {
+    if (!openMenuUid) return
+
+    const handleDismiss = () => {
+      setOpenMenuUid(null)
+      setAnchorRect(null)
+      setMenuPos(null)
+    }
+
+    window.addEventListener('scroll', handleDismiss, true)
+    window.addEventListener('resize', handleDismiss)
+    return () => {
+      window.removeEventListener('scroll', handleDismiss, true)
+      window.removeEventListener('resize', handleDismiss)
+    }
+  }, [openMenuUid])
 
   const withClose = (fn: () => void) => () => {
     fn()
@@ -301,12 +353,17 @@ export default function UserList({
     </div>
 
     {/* Floating action menu — rendered OUTSIDE overflow-hidden container */}
-    {openUser && menuPos && (
+    {openUser && anchorRect && (
       <>
         <div className="fixed inset-0 z-[9998]" onClick={closeMenu} />
         <div
-          className="fixed z-[9999] w-52 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl py-1 text-left"
-          style={{ top: menuPos.top, left: Math.max(8, menuPos.left) }}
+          ref={menuRef}
+          className="fixed z-[9999] w-52 max-h-[calc(100vh-1rem)] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl py-1 text-left"
+          style={
+            menuPos
+              ? { top: menuPos.top, left: menuPos.left }
+              : { top: anchorRect.bottom + 4, left: anchorRect.right - 208, visibility: 'hidden' }
+          }
         >
           <button onClick={withClose(() => onViewPermissions(openUser))} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             <Eye className="w-4 h-4 text-blue-500" /> Ver detalle
