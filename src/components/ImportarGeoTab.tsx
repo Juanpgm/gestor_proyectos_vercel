@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useMemo } from "react";
+import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -141,6 +141,48 @@ const ImportarGeoTab: React.FC = () => {
   const [exportCentro, setExportCentro] = useState("");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+
+  // Catálogo de centros gestores para el dropdown (init desde el catálogo global
+  // que publica el padre; se refresca con el endpoint de filtros como fuente firme).
+  const [availableCentros, setAvailableCentros] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    const g = (
+      window as unknown as {
+        UNIDADES_PROYECTO_FILTERS_GLOBAL?: { centros_gestores?: string[] };
+      }
+    ).UNIDADES_PROYECTO_FILTERS_GLOBAL?.centros_gestores;
+    return Array.isArray(g) ? g.filter(Boolean) : [];
+  });
+
+  useEffect(() => {
+    if (view !== "exportar" || !canChooseCentro) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          "/api/proxy/unidades-proyecto/filters?field=nombre_centro_gestor",
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const list =
+          data?.filters?.nombre_centro_gestor ??
+          data?.filters?.centros_gestores ??
+          [];
+        if (!cancelled && Array.isArray(list) && list.length) {
+          setAvailableCentros(
+            [...new Set(list.filter(Boolean) as string[])].sort((a, b) =>
+              a.localeCompare(b),
+            ),
+          );
+        }
+      } catch {
+        /* se mantiene el fallback del catálogo global */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view, canChooseCentro]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -1120,16 +1162,20 @@ const ImportarGeoTab: React.FC = () => {
           {canChooseCentro ? (
             <div className="space-y-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Filtrar por Centro Gestor{" "}
-                <span className="text-gray-400 font-normal">(vacío = todos los centros)</span>
+                Centro Gestor
               </label>
-              <input
-                type="text"
+              <select
                 value={exportCentro}
                 onChange={(e) => setExportCentro(e.target.value)}
-                placeholder="Ej: DAGMA — dejar vacío para exportar todo"
                 className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
+              >
+                <option value="">Todos los centros gestores</option>
+                {availableCentros.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
           ) : (
             <div className="flex gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
