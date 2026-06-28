@@ -153,15 +153,6 @@ export default function AvancesUPCentroGestor() {
         break
     }
 
-    if (fechaDesde || fechaHasta) {
-      const desde = fechaDesde ? new Date(fechaDesde) : null
-      const hasta = fechaHasta ? new Date(fechaHasta) : null
-      lista = lista.filter(c => {
-        if (c.total_avances === 0) return false
-        return estaEnRango(c.ultimo_avance, desde, hasta)
-      })
-    }
-
     const dir = ordenDir === 'asc' ? 1 : -1
     lista = [...lista].sort((a, b) => {
       switch (ordenCampo) {
@@ -184,7 +175,32 @@ export default function AvancesUPCentroGestor() {
     })
 
     return lista
-  }, [resumenPorCentroGestor, busqueda, filtroEstado, ordenCampo, ordenDir, fechaDesde, fechaHasta, canViewAll, userCentroGestor])
+  }, [resumenPorCentroGestor, busqueda, filtroEstado, ordenCampo, ordenDir, canViewAll, userCentroGestor])
+
+  // Count how many centers the active date range hides (computed separately so it can
+  // be shown in the filter-active banner without altering the main list's sort order).
+  const fechaFilterInfo = useMemo(() => {
+    if (!fechaDesde && !fechaHasta) return null
+    const desde = fechaDesde ? new Date(fechaDesde) : null
+    const hasta = fechaHasta ? new Date(fechaHasta) : null
+    const visible = listaFiltrada.filter(c => {
+      if (c.total_avances === 0) return false
+      return estaEnRango(c.ultimo_avance, desde, hasta)
+    })
+    const hidden = listaFiltrada.length - visible.length
+    return { desde, hasta, hiddenCount: hidden, visibleCount: visible.length }
+  }, [listaFiltrada, fechaDesde, fechaHasta])
+
+  // Apply date filter as the last step so hiddenCount can reference the pre-date list
+  const listaConFechaFiltrada = useMemo(() => {
+    if (!fechaDesde && !fechaHasta) return listaFiltrada
+    const desde = fechaDesde ? new Date(fechaDesde) : null
+    const hasta = fechaHasta ? new Date(fechaHasta) : null
+    return listaFiltrada.filter(c => {
+      if (c.total_avances === 0) return false
+      return estaEnRango(c.ultimo_avance, desde, hasta)
+    })
+  }, [listaFiltrada, fechaDesde, fechaHasta])
 
   const toggleOrden = useCallback((campo: OrdenCampo) => {
     if (ordenCampo === campo) {
@@ -403,13 +419,29 @@ export default function AvancesUPCentroGestor() {
           <div className="col-span-2 text-center">Estado</div>
         </div>
 
+        {fechaFilterInfo && fechaFilterInfo.hiddenCount > 0 && (
+          <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>
+              El filtro de fechas oculta <strong>{fechaFilterInfo.hiddenCount}</strong> centro{fechaFilterInfo.hiddenCount !== 1 ? 's' : ''} cuyo último avance no cae en el rango seleccionado.
+              Los avances registrados en ese periodo pueden existir pero el centro tiene actividad más reciente.{' '}
+              <button
+                onClick={() => { setFechaDesde(''); setFechaHasta('') }}
+                className="underline hover:no-underline font-medium"
+              >
+                Limpiar filtro
+              </button>
+            </span>
+          </div>
+        )}
+
         <div className="divide-y divide-gray-100 dark:divide-gray-700/60 max-h-[600px] overflow-y-auto">
-          {listaFiltrada.length === 0 ? (
+          {listaConFechaFiltrada.length === 0 ? (
             <div className="py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
               No se encontraron centros gestores con los filtros actuales
             </div>
           ) : (
-            listaFiltrada.map(cg => (
+            listaConFechaFiltrada.map(cg => (
               <CentroGestorRow
                 key={cg.nombre_centro_gestor}
                 data={cg}
@@ -422,7 +454,7 @@ export default function AvancesUPCentroGestor() {
         </div>
 
         <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700/80 text-xs text-gray-500 dark:text-gray-400">
-          Mostrando {listaFiltrada.length} de {resumenPorCentroGestor.length} centros gestores · {totalAvances} avances totales · {totalIntervenciones} intervenciones
+          Mostrando {listaConFechaFiltrada.length} de {resumenPorCentroGestor.length} centros gestores · {totalAvances} avances totales · {totalIntervenciones} intervenciones
         </div>
       </div>
 
