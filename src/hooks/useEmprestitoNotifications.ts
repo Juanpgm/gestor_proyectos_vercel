@@ -70,27 +70,14 @@ export function useEmprestitoNotifications(
         notifyNewEmprestitoReport({
           referencia_contrato: key,
           nombre_contrato: reporte.descripcion_del_proceso,
-          avance_fisico: reporte.valor_facturado && reporte.valor_del_contrato 
-            ? (reporte.valor_facturado / reporte.valor_del_contrato) * 100 
+          avance_fisico: reporte.valor_facturado && reporte.valor_del_contrato
+            ? (reporte.valor_facturado / reporte.valor_del_contrato) * 100
             : 0,
           avance_financiero: reporte.valor_pagado && reporte.valor_del_contrato
             ? (reporte.valor_pagado / reporte.valor_del_contrato) * 100
             : 0,
           fecha_reporte: reporte.fecha_de_firma || new Date().toISOString()
         });
-
-        // Verificar si el avance es muy bajo
-        const avanceFisico = reporte.valor_facturado && reporte.valor_del_contrato 
-          ? (reporte.valor_facturado / reporte.valor_del_contrato) * 100 
-          : 0;
-          
-        if (avanceFisico < 30 && avanceFisico > 0) {
-          notifyLowProgress({
-            referencia_contrato: key,
-            nombre_contrato: reporte.descripcion_del_proceso,
-            avance_fisico: avanceFisico
-          });
-        }
       }
       // CONTRATO ACTUALIZADO
       else {
