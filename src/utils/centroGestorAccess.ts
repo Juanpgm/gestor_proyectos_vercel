@@ -87,11 +87,14 @@ export const getCentroGestorAccessFromSession = (): CentroGestorAccess => {
     // Fuente única: scope del backend. Fallback legacy: rol global (política A)
     // o centro interno especial (Calitrack) con visibilidad global.
     const explicit = extractCanViewAll(parsedSession);
+    // Politica B: super_admin y admin_general SIEMPRE tienen visibilidad global
+    // (ven/editan cualquier centro), por encima del flag del backend. El resto
+    // usa el scope explicito del backend o el fallback por centro.
     const canViewAll =
-      explicit !== undefined
+      rolesCanViewAll(extractRoles(parsedSession)) ||
+      (explicit !== undefined
         ? explicit
-        : rolesCanViewAll(extractRoles(parsedSession)) ||
-          isGlobalViewCentro(userCentroGestor);
+        : isGlobalViewCentro(userCentroGestor));
 
     return {
       userCentroGestor,
