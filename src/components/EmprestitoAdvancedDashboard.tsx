@@ -1839,6 +1839,7 @@ const useSeguimientoData = () => {
 // Hook avanzado para obtener y procesar datos reales de la API
 const useEmprestitoRealData = () => {
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0); // #29: forzar recarga tras editar
   const [error, setError] = useState<string | null>(null);
   const [contratos, setContratos] = useState<ContratoEmprestito[]>([]);
   const [reportes, setReportes] = useState<ReporteEmprestito[]>([]);
@@ -2472,7 +2473,7 @@ const useEmprestitoRealData = () => {
     };
 
     fetchData();
-  }, [calculateYearlySummary]);
+  }, [calculateYearlySummary, refreshKey]);
 
   // Debug: Monitorear cambios en proyecciones
   useEffect(() => {
@@ -3653,6 +3654,7 @@ const useEmprestitoRealData = () => {
     porcentajeFinancieroPromedio,
     porcentajePagosPromedio,
     yearlySummary,
+    refetch: () => setRefreshKey((k) => k + 1),
   };
 };
 
@@ -4992,6 +4994,7 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
     porcentajeFinancieroPromedio,
     porcentajePagosPromedio,
     yearlySummary,
+    refetch,
   } = useEmprestitoRealData();
 
   const { seguimiento, lastUpdate, loadingSeguimiento } = useSeguimientoData();
@@ -6776,9 +6779,10 @@ const EmprestitoAdvancedDashboard: React.FC = () => {
           <EditNombreResumidoModal
             contrato={modalEditNombre.contrato}
             onClose={() => setModalEditNombre({ open: false, contrato: null })}
-            onSuccess={() =>
-              setModalEditNombre({ open: false, contrato: null })
-            }
+            onSuccess={() => {
+              setModalEditNombre({ open: false, contrato: null });
+              refetch();
+            }}
           />
         )}
       </AnimatePresence>
