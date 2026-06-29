@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { deriveEstadoUP } from "./estadoUP";
+import {
+  deriveEstadoUP,
+  getEstadoUPColor,
+  withDerivedEstado,
+} from "./estadoUP";
 
 describe("deriveEstadoUP", () => {
   describe("derives estado from avance_obra", () => {
@@ -51,6 +55,64 @@ describe("deriveEstadoUP", () => {
     it("matches manual estados case- and accent-insensitively", () => {
       expect(deriveEstadoUP(0, "suspendido")).toBe("suspendido");
       expect(deriveEstadoUP(0, "  INAUGURADO  ")).toBe("INAUGURADO");
+    });
+  });
+
+  describe("withDerivedEstado", () => {
+    it("overwrites estado with the value derived from avance_obra", () => {
+      const record = { upid: "1", avance_obra: 100, estado: "En ejecución" };
+      expect(withDerivedEstado(record)).toEqual({
+        upid: "1",
+        avance_obra: 100,
+        estado: "Terminado",
+      });
+    });
+
+    it("respects whitelist estados regardless of avance_obra", () => {
+      const record = { avance_obra: 100, estado: "Suspendido" };
+      expect(withDerivedEstado(record).estado).toBe("Suspendido");
+    });
+
+    it("re-derives non-canonical stored estados", () => {
+      expect(withDerivedEstado({ avance_obra: 0, estado: "Liquidado" }).estado).toBe(
+        "En alistamiento",
+      );
+    });
+
+    it("derives 'En alistamiento' when avance_obra is missing", () => {
+      const record = { upid: "2", avance_obra: undefined };
+      expect(withDerivedEstado(record).estado).toBe("En alistamiento");
+    });
+
+    it("does not mutate the original record", () => {
+      const record = { avance_obra: 100, estado: "En ejecución" };
+      withDerivedEstado(record);
+      expect(record.estado).toBe("En ejecución");
+    });
+  });
+
+  describe("getEstadoUPColor", () => {
+    it("maps each canonical estado to its color", () => {
+      expect(getEstadoUPColor("En alistamiento")).toBe("#F59E0B");
+      expect(getEstadoUPColor("En ejecución")).toBe("#3B82F6");
+      expect(getEstadoUPColor("Terminado")).toBe("#10B981");
+      expect(getEstadoUPColor("Suspendido")).toBe("#EF4444");
+      expect(getEstadoUPColor("Inaugurado")).toBe("#8B5CF6");
+    });
+
+    it("maps aggregate/empty labels to gray", () => {
+      expect(getEstadoUPColor("Varios estados")).toBe("#6B7280");
+      expect(getEstadoUPColor("Sin estado")).toBe("#6B7280");
+      expect(getEstadoUPColor("")).toBe("#6B7280");
+    });
+
+    it("is case- and accent-insensitive", () => {
+      expect(getEstadoUPColor("  EN EJECUCION ")).toBe("#3B82F6");
+      expect(getEstadoUPColor("terminado")).toBe("#10B981");
+    });
+
+    it("falls back to gray for unknown estados", () => {
+      expect(getEstadoUPColor("Cualquier cosa")).toBe("#6B7280");
     });
   });
 

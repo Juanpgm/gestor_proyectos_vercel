@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { withDerivedEstado } from '@/utils/estadoUP';
 
 // Schema de validación para una intervención individual
 const IntervencionSchema = z.object({
@@ -361,14 +362,16 @@ export async function fetchIntervenciones(
       const mergedIntervenciones = feature.properties.intervenciones.map((intervencion) => {
         const latestAvance = latestAvancesByIntervencion.get(intervencion.intervencion_id);
 
+        // Derivar `estado` desde el avance final (mergeado o el de la respuesta)
+        // para que no quede desincronizado con `avance_obra`.
         if (typeof latestAvance === 'number') {
-          return {
+          return withDerivedEstado({
             ...intervencion,
             avance_obra: latestAvance
-          };
+          });
         }
 
-        return intervencion;
+        return withDerivedEstado(intervencion);
       });
 
       return {

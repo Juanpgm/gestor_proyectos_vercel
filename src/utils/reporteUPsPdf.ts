@@ -4,7 +4,7 @@
  *
  * Secciones:
  *   Resumen ejecutivo  — KPIs globales
- *   1.1 UP's por Organismo — actualizacion (exc. Terminado/Liquidado), mas reciente primero
+ *   1.1 UP's por Organismo — actualizacion (exc. Terminado), mas reciente primero
  *   2.  Semaforo de Calidad por Centro Gestor
  *   3.  Detalle completo por Centro Gestor (menor a mayor avance)
  *   4.  Centros Gestores con Alertas Activas
@@ -158,13 +158,13 @@ export async function generarReporteUPsPorCentroGestor(
 
   // ═══════════════════════════════════════════════════════
   // SECCION 1.1 — UP's por Organismo
-  // Excluye estado Terminado / Liquidado
+  // Excluye estado Terminado
   // Ordenado: mas reciente primero (por ultimo_avance)
   // ═══════════════════════════════════════════════════════
   y = verificarPagina(doc, y, 50);
   y = dibujarTituloSeccion(
     doc,
-    "1.1  UP's por Organismo — Actualizacion (excluye Terminado / Liquidado)",
+    "1.1  UP's por Organismo — Actualizacion (excluye Terminado)",
     y,
   );
 
@@ -179,7 +179,7 @@ export async function generarReporteUPsPorCentroGestor(
 
   const rows11 = datosSec11.map((c) => {
     const upsSinTerminar = c.intervenciones.filter(
-      (i) => i.estado !== "Terminado" && i.estado !== "Liquidado",
+      (i) => i.estado !== "Terminado",
     );
     const hanActualizado = upsSinTerminar.filter((i) => i.tiene_avances).length;
     const pct =
@@ -246,7 +246,7 @@ export async function generarReporteUPsPorCentroGestor(
       // % Actualizacion con semaforo
       if (data.column.index === 3) {
         const ups = centro.intervenciones.filter(
-          (i) => i.estado !== "Terminado" && i.estado !== "Liquidado",
+          (i) => i.estado !== "Terminado",
         );
         const act = ups.filter((i) => i.tiene_avances).length;
         const p = ups.length > 0 ? (act / ups.length) * 100 : 0;

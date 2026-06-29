@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Intervencion } from "@/types/intervenciones";
 import { getCurrentIdToken } from "@/lib/firebase";
+import { deriveEstadoUP } from "@/utils/estadoUP";
 
 const API_BASE = "/api/proxy";
 
@@ -53,7 +54,7 @@ export interface IntervencionConAvances {
   avances: AvanceUPRaw[];
   ultimo_avance: AvanceUPRaw | null;
   tiene_avances: boolean;
-  /** Intervención al 100% o estado Terminado/Liquidado — no requiere más reportes */
+  /** Intervención con estado derivado "Terminado" — no requiere más reportes */
   esta_completada: boolean;
 }
 
@@ -150,9 +151,9 @@ export function useAvancesCentroGestor() {
       const avancesInt = avancesPorIntervencion.get(int.intervencion_id) || [];
       const ultimo = avancesInt.length > 0 ? avancesInt[0] : null; // ya están ordenados desc
       const avanceObra = int.avance_obra || 0;
-      const estado = int.estado || "Sin estado";
-      const completada =
-        avanceObra >= 100 || estado === "Terminado" || estado === "Liquidado";
+      // Estado canónico derivado del avance (única fuente de verdad).
+      const estado = deriveEstadoUP(avanceObra, int.estado);
+      const completada = estado === "Terminado";
       return {
         intervencion_id: int.intervencion_id,
         upid: int.upid,
@@ -226,7 +227,7 @@ export function useAvancesCentroGestor() {
           }
         }
       } else if (int.esta_completada) {
-        // 100% o Terminado/Liquidado sin reportes → completada, no cuenta como sin avance
+        // Terminado (avance >= 99.5) sin reportes → completada, no cuenta como sin avance
         resumen.intervenciones_completadas++;
       } else {
         resumen.intervenciones_sin_avance++;

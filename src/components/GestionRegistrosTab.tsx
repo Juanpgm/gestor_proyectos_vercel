@@ -44,6 +44,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { getCentroGestorAccessFromSession } from "@/utils/centroGestorAccess";
 import { authFetch } from "@/lib/authFetch";
+import { deriveEstadoUP } from "@/utils/estadoUP";
 
 const UpLocationPickerMap = dynamic(() => import("./UpLocationPickerMap"), {
   ssr: false,
@@ -2821,6 +2822,10 @@ const GestionRegistrosTab: React.FC = () => {
               item.referencia_proceso || first.referencia_proceso || "",
             url_proceso: item.url_proceso || first.url_proceso || "",
           };
+
+          // Estado canónico derivado del avance_obra promediado de la UP
+          // (la fuente cruda de /unidades-proyecto puede traer estado raíz stale).
+          up.estado = deriveEstadoUP(up.avance_obra, up.estado);
 
           return { up, intervenciones };
         });

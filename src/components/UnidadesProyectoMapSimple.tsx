@@ -27,6 +27,7 @@ import {
   type GeometryData,
   type AttributeData,
 } from "@/services/unidades-proyecto.service";
+import { getEstadoUPColor } from "@/utils/estadoUP";
 import MapMeasureTool from "./MapMeasureTool";
 
 // Configurar iconos de Leaflet
@@ -1258,38 +1259,13 @@ const UnidadesProyectoMapSimple: React.FC<UnidadesProyectoMapSimpleProps> = ({
           );
         };
 
+        // Color por estado canónico (fuente única en utils/estadoUP). Los datos
+        // ya llegan derivados; "sin dato"/"varios" caen al gris por defecto.
         const getEstadoColor = (value: string): string => {
-          const normalized = normalizeEstadoValue(value);
-          if (!normalized || isEstadoSinDato(value)) {
+          if (!value || isEstadoSinDato(value)) {
             return "#6B7280";
           }
-          if (normalized.includes("varios")) return "#6B7280";
-          if (
-            normalized.includes("terminad") ||
-            normalized.includes("finaliz") ||
-            normalized.includes("complet")
-          )
-            return "#10B981";
-          if (
-            normalized.includes("ejecucion") ||
-            normalized.includes("en curso") ||
-            normalized.includes("activo")
-          )
-            return "#3B82F6";
-          if (
-            normalized.includes("alist") ||
-            normalized.includes("planific") ||
-            normalized.includes("program")
-          )
-            return "#F59E0B";
-          if (
-            normalized.includes("suspend") ||
-            normalized.includes("cancel") ||
-            normalized.includes("deten") ||
-            normalized.includes("paraliz")
-          )
-            return "#EF4444";
-          return "#8B5CF6";
+          return getEstadoUPColor(value);
         };
 
         const getEstadoLabel = (value: string): string => {

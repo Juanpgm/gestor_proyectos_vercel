@@ -34,7 +34,7 @@ export const normalizeEstado = (s: string): string =>
  *   `< 0.5` → "En alistamiento", `>= 99.5` → "Terminado", resto → "En ejecución".
  */
 export const deriveEstadoUP = (
-  avanceObra: number | null | undefined,
+  avanceObra: number | string | null | undefined,
   rawEstado?: string | null,
 ): string => {
   const raw = String(rawEstado ?? "").trim();
@@ -51,3 +51,40 @@ export const deriveEstadoUP = (
   if (avance >= AVANCE_MAX_EN_EJECUCION) return "Terminado";
   return "En ejecución";
 };
+
+/**
+ * Normaliza el campo `estado` de un registro de UP/intervención derivándolo de
+ * `avance_obra`. Es el punto de ingesta único: aplicar al cruzar la frontera de
+ * datos (servicios/hooks) garantiza que `.estado` sea canónico aguas abajo, sin
+ * que cada consumidor tenga que recordar derivar. No muta el registro original.
+ */
+export const withDerivedEstado = <
+  T extends { avance_obra?: number | string | null; estado?: string | null },
+>(
+  record: T,
+): T & { estado: string } => ({
+  ...record,
+  estado: deriveEstadoUP(record.avance_obra, record.estado),
+});
+
+/** Color por defecto (gris) para estados desconocidos o agregados. */
+const ESTADO_UP_COLOR_DEFAULT = "#6B7280";
+
+/** Mapa canónico estado → color, indexado por etiqueta normalizada. */
+const ESTADO_UP_COLORS: Record<string, string> = {
+  "en alistamiento": "#F59E0B",
+  "en ejecucion": "#3B82F6",
+  terminado: "#10B981",
+  suspendido: "#EF4444",
+  inaugurado: "#8B5CF6",
+};
+
+/**
+ * Color canónico para un estado de UP/intervención. Normaliza la etiqueta y la
+ * busca en el mapa; etiquetas agregadas ("Varios estados"/"Sin estado") o
+ * desconocidas caen al gris por defecto. Reemplaza el matching difuso por
+ * substring que divergía entre vistas.
+ */
+export const getEstadoUPColor = (estado: string | null | undefined): string =>
+  ESTADO_UP_COLORS[normalizeEstado(String(estado ?? ""))] ??
+  ESTADO_UP_COLOR_DEFAULT;
