@@ -8,6 +8,7 @@ import {
   parseGeometry,
   createGeoJSONFeatureCollection,
 } from "@/utils/geometryParser";
+import { deriveEstadoUP } from "@/utils/estadoUP";
 
 // Schemas de validación usando Zod para garantizar tipo de datos
 const GeometrySchema = z.object({
@@ -744,30 +745,9 @@ export const fetchAttributeData = async (
         .replace(/[\u0300-\u036f]/g, "")
         .trim()
         .toLowerCase();
-    const DERIVED_ESTADOS_NORM = new Set([
-      "en alistamiento",
-      "en ejecucion",
-      "terminado",
-    ]);
-    const deriveEstado = (
-      avanceObra: number | null | undefined,
-      rawEstado: string | null | undefined,
-    ): string => {
-      const raw = String(rawEstado || "").trim();
-      // Respetar estados especiales imputados por el usuario (Suspendido, Inaugurado, etc.)
-      if (raw && !DERIVED_ESTADOS_NORM.has(normalizeAccents(raw))) {
-        return raw;
-      }
-      const avance =
-        typeof avanceObra === "number"
-          ? avanceObra
-          : parseFloat(String(avanceObra || "0"));
-      // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
-      if (isNaN(avance) || avance < AVANCE_MIN_EN_EJECUCION)
-        return "En alistamiento";
-      if (avance >= AVANCE_MAX_EN_EJECUCION) return "Terminado";
-      return "En ejecución";
-    };
+    // Derivación centralizada: respeta solo los estados manuales explícitos
+    // (Suspendido, Inaugurado) y re-deriva todo lo demás desde avance_obra.
+    const deriveEstado = deriveEstadoUP;
 
     // Determinar frente activo usando estados derivados Y avances —
     // una intervención al 100% con estado "En ejecución" NO es frente activo (debe ser Terminado).
@@ -1178,39 +1158,9 @@ export const consolidateAttributeData = (
     }
   });
 
-  // Derivar estado a partir de avance_obra, igual que fetchAttributeData
-  const DERIVED_ESTADOS_NORM_LOCAL = new Set([
-    "en alistamiento",
-    "en ejecucion",
-    "terminado",
-  ]);
-  const normalizeAccentsForDerive = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .toLowerCase();
-  const deriveEstadoLocal = (
-    avanceObra: number | null | undefined,
-    rawEstado: string | null | undefined,
-  ): string => {
-    const raw = String(rawEstado || "").trim();
-    if (
-      raw &&
-      !DERIVED_ESTADOS_NORM_LOCAL.has(normalizeAccentsForDerive(raw))
-    ) {
-      return raw;
-    }
-    const avance =
-      typeof avanceObra === "number"
-        ? avanceObra
-        : parseFloat(String(avanceObra || "0"));
-    // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
-    if (isNaN(avance) || avance < AVANCE_MIN_EN_EJECUCION)
-      return "En alistamiento";
-    if (avance >= AVANCE_MAX_EN_EJECUCION) return "Terminado";
-    return "En ejecución";
-  };
+  // (derivaci\u00f3n centralizada \u2014 sin helpers locales)
+  // Derivación centralizada en @/utils/estadoUP (whitelist de estados manuales).
+  const deriveEstadoLocal = deriveEstadoUP;
 
   return Array.from(grouped.values()).map((group) => {
     const base = group[0];

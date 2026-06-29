@@ -21,6 +21,7 @@ import {
 import { type AttributeData } from "@/services/unidades-proyecto.service";
 import { formatCurrency, formatCurrencyFull } from "@/utils/currency";
 import { proxyFetch } from "@/utils/errorHandler";
+import { deriveEstadoUP } from "@/utils/estadoUP";
 import dynamic from "next/dynamic";
 
 // Componentes dinámicos para modales de avances
@@ -526,39 +527,14 @@ const UnidadesProyectoTabularView: React.FC<
       let intList: IntervencionData[] = intervenciones || [];
 
       // Derivar estado a partir de avance_obra (ej: avance=100 → Terminado, avance=0 → En alistamiento)
-      const normalizeAccentsLocal = (s: string) =>
-        s
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .trim()
-          .toLowerCase();
-      const DERIVED_ESTADOS = new Set([
-        "en alistamiento",
-        "en ejecucion",
-        "terminado",
-      ]);
       intList = intList.map((interv) => {
-        const rawEstado = String(interv.estado || "").trim();
-        // Respetar estados especiales (Suspendido, Inaugurado, etc.)
-        if (
-          rawEstado &&
-          !DERIVED_ESTADOS.has(normalizeAccentsLocal(rawEstado))
-        ) {
-          return interv;
-        }
-        const avance =
-          typeof interv.avance_obra === "number"
-            ? interv.avance_obra
-            : parseFloat(String(interv.avance_obra || "0"));
-        let derivedEstado: string;
-        // Umbrales consistentes con la visualización (ProgressBar muestra toFixed(0))
-        if (isNaN(avance) || avance < 0.5) derivedEstado = "En alistamiento";
-        else if (avance >= 99.5) derivedEstado = "Terminado";
-        else derivedEstado = "En ejecución";
-        if (derivedEstado !== rawEstado) {
-          return { ...interv, estado: derivedEstado };
-        }
-        return interv;
+        const derivedEstado = deriveEstadoUP(
+          interv.avance_obra,
+          interv.estado,
+        );
+        return derivedEstado !== interv.estado
+          ? { ...interv, estado: derivedEstado }
+          : interv;
       });
 
       // Calcular métricas
