@@ -1481,6 +1481,14 @@ const ResumenEjecutivo: React.FC<{
     setSelectedYear(event.target.value);
   };
 
+  // Issue #28: aplicar el ano seleccionado a las tarjetas de resumen.
+  const yearSel =
+    selectedYear !== "Consolidado" && yearlySummary[selectedYear]
+      ? yearlySummary[selectedYear]
+      : null;
+  const displayTotalContratos = yearSel ? yearSel.totalContratos : totalContratos;
+  const displayValorTotal = yearSel ? yearSel.valorTotalAsignado : valorTotalAsignado;
+
   return (
     <div className="space-y-6 mb-6">
       {/* Resumen Principal */}
@@ -1515,7 +1523,7 @@ const ResumenEjecutivo: React.FC<{
               Contratos Totales
             </p>
             <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-              {formatNumber(totalContratos)}
+              {formatNumber(displayTotalContratos)}
             </p>
           </div>
           <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
@@ -1523,7 +1531,7 @@ const ResumenEjecutivo: React.FC<{
               Valor Total
             </p>
             <p className="text-lg font-bold text-green-700 dark:text-green-300">
-              {formatNumber(valorTotalAsignado, "currency")}
+              {formatNumber(displayValorTotal, "currency")}
             </p>
           </div>
           <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
