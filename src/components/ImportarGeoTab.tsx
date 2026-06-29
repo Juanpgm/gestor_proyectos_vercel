@@ -105,6 +105,8 @@ const INTERVENCION_TARGET_FIELDS = [
   ...UP_TARGET_FIELDS,
 ];
 
+const CHUNK_SIZE = 25;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function parseJsonOrThrow(res: Response): Promise<unknown> {
@@ -146,6 +148,7 @@ const ImportarGeoTab: React.FC = () => {
   const [importConfirmed, setImportConfirmed] = useState(false);
 
   const [crsWarning, setCrsWarning] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -376,29 +379,71 @@ const ImportarGeoTab: React.FC = () => {
     if (!parseResult || !importConfirmed) return;
     setImporting(true);
     setImportError(null);
+
+    const allFeatures = parseResult.features.map((f) => ({
+      geometry: f.geometry,
+      properties: f.properties,
+    }));
+
+    const chunks: (typeof allFeatures)[] = [];
+    for (let i = 0; i < allFeatures.length; i += CHUNK_SIZE) {
+      chunks.push(allFeatures.slice(i, i + CHUNK_SIZE));
+    }
+
+    const aggregated: ImportResult = {
+      success: false,
+      entity_type: entityType,
+      created_count: 0,
+      error_count: 0,
+      created_ids: [],
+      errors: [],
+      created_up_count: 0,
+      created_intervencion_count: 0,
+    };
+
     try {
-      const body = {
-        entity_type: entityType,
-        column_mapping: columnMapping,
-        features: parseResult.features.map((f) => ({
-          geometry: f.geometry,
-          properties: f.properties,
-        })),
-        nombre_centro_gestor_global: centroGestorGlobal || null,
-      };
-      const res = await fetch("/api/proxy/unidades-proyecto/importar/ejecutar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body),
-      });
-      const data = await parseJsonOrThrow(res);
-      setImportResult(data as ImportResult);
+      for (let i = 0; i < chunks.length; i++) {
+        setImportProgress({ current: i + 1, total: chunks.length });
+
+        const body = {
+          entity_type: entityType,
+          column_mapping: columnMapping,
+          features: chunks[i],
+          nombre_centro_gestor_global: centroGestorGlobal || null,
+        };
+
+        const res = await fetch("/api/proxy/unidades-proyecto/importar/ejecutar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(body),
+        });
+
+        const data = (await parseJsonOrThrow(res)) as ImportResult;
+
+        aggregated.success = aggregated.success || data.success;
+        aggregated.created_count += data.created_count ?? 0;
+        aggregated.error_count += data.error_count ?? 0;
+        aggregated.created_ids.push(...(data.created_ids ?? []));
+        aggregated.created_up_count =
+          (aggregated.created_up_count ?? 0) + (data.created_up_count ?? 0);
+        aggregated.created_intervencion_count =
+          (aggregated.created_intervencion_count ?? 0) + (data.created_intervencion_count ?? 0);
+
+        // Offset feature_index so errors reference the global position
+        const offset = i * CHUNK_SIZE;
+        for (const e of data.errors ?? []) {
+          aggregated.errors.push({ ...e, feature_index: e.feature_index + offset });
+        }
+      }
+
+      setImportResult(aggregated);
       setStep("import");
     } catch (err: unknown) {
       setImportError(err instanceof Error ? err.message : "Error al importar");
     } finally {
       setImporting(false);
+      setImportProgress(null);
     }
   };
 
@@ -416,6 +461,7 @@ const ImportarGeoTab: React.FC = () => {
     setImportError(null);
     setImportConfirmed(false);
     setCrsWarning(null);
+    setImportProgress(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -990,7 +1036,9 @@ const ImportarGeoTab: React.FC = () => {
                 {importing ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    Importando...
+                    {importProgress && importProgress.total > 1
+                      ? `Lote ${importProgress.current}/${importProgress.total}...`
+                      : "Importando..."}
                   </>
                 ) : (
                   <>
