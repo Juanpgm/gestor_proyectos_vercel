@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   FileText,
-  Download,
   AlertCircle,
   Calendar,
   DollarSign,
@@ -39,7 +38,6 @@ import {
   formatDate,
 } from "@/services/pagos.service";
 import { proxyFetch } from "@/utils/errorHandler";
-import { downloadContratoFichaPdf } from "@/utils/contratoFichaPdf";
 
 interface ReporteEmprestito {
   id: string;
@@ -125,7 +123,6 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
   const [expandReportes, setExpandReportes] = useState(true);
   const [expandPagos, setExpandPagos] = useState(true);
   const [pagosList, setPagosList] = useState<PagoEmprestito[]>(pagos);
-  const [descargandoFicha, setDescargandoFicha] = useState(false);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -231,23 +228,6 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // Issue #14: descargar la ficha del contrato como PDF
-  const handleDescargarFicha = useCallback(async () => {
-    const data: any = contratoData || contrato;
-    if (!data) return;
-    try {
-      setDescargandoFicha(true);
-      const reps =
-        (Array.isArray(data.reportes) && data.reportes) || reportes || [];
-      await downloadContratoFichaPdf(data, reps as any);
-    } catch (err) {
-      console.error("Error generando ficha PDF del contrato:", err);
-      alert("No se pudo generar la ficha del contrato.");
-    } finally {
-      setDescargandoFicha(false);
-    }
-  }, [contratoData, contrato, reportes]);
-
   if (!isOpen) return null;
   if (!mounted || typeof document === "undefined") return null;
 
@@ -309,15 +289,6 @@ const ContratosModal: React.FC<ContratosModalProps> = ({
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => void handleDescargarFicha()}
-                disabled={descargandoFicha}
-                aria-label="Descargar ficha del contrato en PDF"
-                title="Descargar ficha (PDF)"
-                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 mr-1"
-              >
-                <Download className="w-5 h-5 text-white" />
-              </button>
               <button
                 onClick={onClose}
                 aria-label="Cerrar modal"
