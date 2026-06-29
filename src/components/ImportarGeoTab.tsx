@@ -105,6 +105,23 @@ const INTERVENCION_TARGET_FIELDS = [
   ...UP_TARGET_FIELDS,
 ];
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function parseJsonOrThrow(res: Response): Promise<unknown> {
+  const text = await res.text();
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  if (!res.ok) {
+    const detail = (data as Record<string, unknown>)?.detail;
+    throw new Error(typeof detail === "string" ? detail : `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const ImportarGeoTab: React.FC = () => {
@@ -127,6 +144,8 @@ const ImportarGeoTab: React.FC = () => {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importConfirmed, setImportConfirmed] = useState(false);
+
+  const [crsWarning, setCrsWarning] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -267,11 +286,13 @@ const ImportarGeoTab: React.FC = () => {
       setParseResult(null);
       setColumnMapping({});
       setValidationResult(null);
+      setCrsWarning(null);
       setImportResult(null);
       setParseLoading(true);
       try {
         const result = await parseFile(droppedFile);
         setParseResult(result);
+        if (result.crsWarning) setCrsWarning(result.crsWarning);
         // Ask the backend for auto-suggested mapping
         const res = await fetch("/api/proxy/unidades-proyecto/importar/sugerir-mapping", {
           method: "POST",
@@ -336,11 +357,11 @@ const ImportarGeoTab: React.FC = () => {
       const res = await fetch("/api/proxy/unidades-proyecto/importar/validar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail ?? "Error al validar");
-      setValidationResult(data);
+      const data = await parseJsonOrThrow(res);
+      setValidationResult(data as ValidationResult);
       setStep("preview");
     } catch (err: unknown) {
       setValidationError(err instanceof Error ? err.message : "Error al validar");
@@ -368,11 +389,11 @@ const ImportarGeoTab: React.FC = () => {
       const res = await fetch("/api/proxy/unidades-proyecto/importar/ejecutar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail ?? "Error al importar");
-      setImportResult(data);
+      const data = await parseJsonOrThrow(res);
+      setImportResult(data as ImportResult);
       setStep("import");
     } catch (err: unknown) {
       setImportError(err instanceof Error ? err.message : "Error al importar");
@@ -394,6 +415,7 @@ const ImportarGeoTab: React.FC = () => {
     setImportResult(null);
     setImportError(null);
     setImportConfirmed(false);
+    setCrsWarning(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -590,6 +612,14 @@ const ImportarGeoTab: React.FC = () => {
                 </span>
               </div>
             </div>
+
+            {/* CRS warning */}
+            {crsWarning && (
+              <div className="flex gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{crsWarning}</span>
+              </div>
+            )}
 
             {/* Global centro gestor */}
             <div className="space-y-1">

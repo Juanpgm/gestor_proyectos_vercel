@@ -19,6 +19,7 @@ export interface ParseResult {
   columns: string[];
   geometryTypes: string[];
   fileType: string;
+  crsWarning?: string;
 }
 
 // ── Known column aliases → target field ──────────────────────────────────────
@@ -175,14 +176,30 @@ export async function parseKMZBuffer(buffer: ArrayBuffer): Promise<GeoJSONFeatur
   return parseKMLText(kmlText);
 }
 
-export async function parseShapefileZipBuffer(buffer: ArrayBuffer): Promise<GeoJSONFeature[]> {
-  const { unzipSync } = await import("fflate");
+export async function parseShapefileZipBuffer(
+  buffer: ArrayBuffer
+): Promise<{ features: GeoJSONFeature[]; crsWarning?: string }> {
+  const { unzipSync, strFromU8 } = await import("fflate");
   const unzipped = unzipSync(new Uint8Array(buffer));
 
   const shpEntry = Object.entries(unzipped).find(([n]) => n.toLowerCase().endsWith(".shp"));
   const dbfEntry = Object.entries(unzipped).find(([n]) => n.toLowerCase().endsWith(".dbf"));
+  const prjEntry = Object.entries(unzipped).find(([n]) => n.toLowerCase().endsWith(".prj"));
 
   if (!shpEntry) throw new Error("No se encontró .shp dentro del ZIP");
+
+  let crsWarning: string | undefined;
+  if (prjEntry) {
+    const wkt = strFromU8(prjEntry[1]);
+    const isWgs84 = /GCS_WGS_1984|GEOGCS\["WGS 84/i.test(wkt);
+    if (!isWgs84) {
+      const crsName = wkt.split('"')[1] ?? "desconocida";
+      crsWarning = `El shapefile usa la proyección "${crsName}" (no WGS84). Las coordenadas pueden estar en metros y quedar fuera del área de Cali, haciendo que las geometrías sean descartadas. Reprojectá a EPSG:4326 antes de importar.`;
+    }
+  } else {
+    crsWarning =
+      "El shapefile no incluye archivo .prj. Se asume WGS84 (EPSG:4326). Si las geometrías no aparecen en el mapa, verificá la proyección del archivo.";
+  }
 
   const shapefile = await import("shapefile");
   const shpBuf = shpEntry[1].buffer as ArrayBuffer;
@@ -195,7 +212,7 @@ export async function parseShapefileZipBuffer(buffer: ArrayBuffer): Promise<GeoJ
     if (result.value) features.push(result.value as unknown as GeoJSONFeature);
     result = await source.read();
   }
-  return features;
+  return { features, crsWarning };
 }
 
 /**
@@ -220,6 +237,7 @@ export async function parseFile(file: File): Promise<ParseResult> {
   const name = file.name.toLowerCase();
   let features: GeoJSONFeature[] = [];
   let fileType = "";
+  let crsWarning: string | undefined;
 
   if (name.endsWith(".geojson") || name.endsWith(".json")) {
     const text = await file.text();
@@ -235,7 +253,9 @@ export async function parseFile(file: File): Promise<ParseResult> {
     fileType = "KMZ";
   } else if (name.endsWith(".zip")) {
     const buf = await file.arrayBuffer();
-    features = await parseShapefileZipBuffer(buf);
+    const parsed = await parseShapefileZipBuffer(buf);
+    features = parsed.features;
+    crsWarning = parsed.crsWarning;
     fileType = "Shapefile";
   } else {
     throw new Error(
@@ -250,5 +270,6 @@ export async function parseFile(file: File): Promise<ParseResult> {
     columns: extractColumns(features),
     geometryTypes: extractGeometryTypes(features),
     fileType,
+    crsWarning,
   };
 }
