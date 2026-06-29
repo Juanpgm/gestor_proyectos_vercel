@@ -6,7 +6,7 @@
   "ignoreCommand": "bash scripts/verify-deploy-owner.sh",
   "functions": {
     "src/app/**": {
-      "maxDuration": 30
+      "maxDuration": 60
     }
   }
 }

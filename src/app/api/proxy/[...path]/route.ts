@@ -114,6 +114,7 @@ const getProxyTimeout = (apiPath: string): number => {
   const path = normalizeApiPath(apiPath);
 
   if (
+    path.startsWith("unidades-proyecto/importar/") ||
     path === "procesos_emprestito_all" ||
     path === "contratos_emprestito_all" ||
     path === "convenios_transferencias_all" ||

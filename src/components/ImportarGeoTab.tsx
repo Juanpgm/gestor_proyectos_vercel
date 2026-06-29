@@ -71,6 +71,7 @@ interface ImportResult {
   errors: Array<{ feature_index: number; errors: string[] }>;
   created_up_count?: number;
   created_intervencion_count?: number;
+  next_upid_start?: number;
 }
 
 // ─── Field definitions ───────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ const INTERVENCION_TARGET_FIELDS = [
   ...UP_TARGET_FIELDS,
 ];
 
-const CHUNK_SIZE = 25;
+const CHUNK_SIZE = 10;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -401,16 +402,23 @@ const ImportarGeoTab: React.FC = () => {
       created_intervencion_count: 0,
     };
 
+    let nextUpidStart: number | undefined = undefined;
+
     try {
       for (let i = 0; i < chunks.length; i++) {
         setImportProgress({ current: i + 1, total: chunks.length });
 
-        const body = {
+        const body: Record<string, unknown> = {
           entity_type: entityType,
           column_mapping: columnMapping,
           features: chunks[i],
           nombre_centro_gestor_global: centroGestorGlobal || null,
         };
+        // Chunks 2+ skip the full collection scan by receiving the counter
+        // from the previous chunk's response.
+        if (nextUpidStart !== undefined) {
+          body.upid_start = nextUpidStart;
+        }
 
         const res = await fetch("/api/proxy/unidades-proyecto/importar/ejecutar", {
           method: "POST",
@@ -429,6 +437,11 @@ const ImportarGeoTab: React.FC = () => {
           (aggregated.created_up_count ?? 0) + (data.created_up_count ?? 0);
         aggregated.created_intervencion_count =
           (aggregated.created_intervencion_count ?? 0) + (data.created_intervencion_count ?? 0);
+
+        // Propagate upid counter so subsequent chunks skip the full collection scan
+        if (data.next_upid_start !== undefined) {
+          nextUpidStart = data.next_upid_start;
+        }
 
         // Offset feature_index so errors reference the global position
         const offset = i * CHUNK_SIZE;
