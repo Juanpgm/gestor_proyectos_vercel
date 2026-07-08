@@ -16,18 +16,18 @@ export default function MaintenanceScreen() {
         <span className="text-white text-sm font-bold tracking-tight">CT</span>
       </div>
 
-      <h1 className="text-[17px] font-semibold text-gray-800 max-w-md">
+      <h1 className="text-[18px] font-bold text-gray-900 max-w-md">
         Lo sentimos, CaliTrack se encuentra temporalmente fuera de servicio
       </h1>
 
-      <p className="mt-3 text-[13px] text-gray-500 max-w-sm leading-relaxed">
+      <p className="mt-3 text-[14px] text-gray-700 max-w-sm leading-relaxed">
         Estamos realizando tareas de mantenimiento. Por favor, vuelve a
         intentarlo más tarde.
       </p>
 
       <Link
         href="/acceso"
-        className="mt-10 text-[11px] text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
+        className="mt-10 text-[12px] font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2 transition-colors"
       >
         Acceso de administración
       </Link>
