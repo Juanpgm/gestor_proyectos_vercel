@@ -4,11 +4,18 @@ import React, { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/components/LoginPage";
+import MaintenanceScreen from "@/components/MaintenanceScreen";
 import { ROLES_CONFIG } from "@/types/admin";
 import { LogOut } from "lucide-react";
 
 /** Routes that bypass auth in development — never reaches production */
 const DEV_PUBLIC_ROUTES = ["/test-design-system"];
+
+/** Discreet staff sign-in route, reachable during maintenance */
+const ACCESO_ROUTE = "/acceso";
+
+/** How often to re-check maintenance status (kicks out open tabs) */
+const MAINTENANCE_POLL_MS = 60_000;
 
 interface AuthWrapperProps {
   children: React.ReactNode;
@@ -16,13 +23,55 @@ interface AuthWrapperProps {
 
 export default function AuthWrapper({ children }: AuthWrapperProps) {
   const pathname = usePathname();
-  const { state, validateSession } = useAuth();
+  const { state, validateSession, signOut, isSuperAdmin } = useAuth();
   const sessionCheckRef = useRef<string | null>(null);
   const [isRevalidatingSession, setIsRevalidatingSession] = useState(false);
+
+  // Maintenance state — null while unknown; the backend env flag is the single
+  // source of truth, learned via the public /maintenance-status endpoint.
+  const [maintenance, setMaintenance] = useState<boolean | null>(null);
 
   const isDevBypassRoute =
     process.env.NODE_ENV === "development" &&
     DEV_PUBLIC_ROUTES.some((r) => pathname?.startsWith(r));
+
+  const onAccesoRoute = pathname?.startsWith(ACCESO_ROUTE) ?? false;
+  const superAdmin = isSuperAdmin();
+
+  // Poll maintenance status on mount and periodically. Fail-open on the client
+  // (backend middleware is the real enforcement); if unreachable, keep the app
+  // in its normal flow.
+  useEffect(() => {
+    if (isDevBypassRoute) return;
+    let active = true;
+
+    const check = async () => {
+      try {
+        const res = await fetch("/api/proxy/maintenance-status", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (active) setMaintenance(Boolean(data?.maintenance));
+      } catch {
+        // ignore — treat as unknown, do not lock out on a network blip
+      }
+    };
+
+    check();
+    const id = setInterval(check, MAINTENANCE_POLL_MS);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, [isDevBypassRoute]);
+
+  // Kick out any authenticated non-super_admin as soon as maintenance is on.
+  useEffect(() => {
+    if (maintenance === true && state.isAuthenticated && !superAdmin) {
+      signOut();
+    }
+  }, [maintenance, state.isAuthenticated, superAdmin, signOut]);
 
   useEffect(() => {
     if (isDevBypassRoute) return;
@@ -76,6 +125,18 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
         </p>
       </div>
     );
+  }
+
+  // Modo mantenimiento: solo super_admin opera; el resto ve "fuera de servicio".
+  if (maintenance === true) {
+    if (state.isAuthenticated && state.user?.session_valid === true && superAdmin) {
+      return <>{children}</>;
+    }
+    // El formulario de login solo es accesible por la ruta discreta y sin sesión.
+    if (onAccesoRoute && !state.isAuthenticated) {
+      return <LoginPage />;
+    }
+    return <MaintenanceScreen />;
   }
 
   // Si no está autenticado, mostrar login
