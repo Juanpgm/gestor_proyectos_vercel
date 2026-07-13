@@ -55,7 +55,7 @@
     "dompurify": "^3.4.9",
     "exceljs": "^4.4.0",
     "fflate": "^0.8.2",
-    "firebase": "^12.3.0",
+    "firebase": "^12.16.0",
     "framer-motion": "^11.18.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.2",
